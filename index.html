@@ -1154,6 +1154,22 @@ window.__XLSX_READY = false;
           <span class="sb-chev">▶</span>
         </div>
         <div class="sb-sub">
+          <div class="sb-sub-section">Site DESPS</div>
+          <a class="sb-link" href="https://mena-desps.org" target="_blank" rel="noopener noreferrer" style="text-decoration:none">
+            <span class="sb-icon" style="background:var(--blue-soft);color:var(--blue-deep)">🌐</span>
+            <span>Site DESPS — mena-desps.org</span>
+            <span class="sb-chev" style="transform:none">↗</span>
+          </a>
+          <a class="sb-link" href="https://agcp.sigfne.net/admin/" target="_blank" rel="noopener noreferrer" style="text-decoration:none">
+            <span class="sb-icon" style="background:var(--green-soft);color:var(--green-deep)">🔐</span>
+            <span>Connexion AGCP — DPES/MENET</span>
+            <span class="sb-chev" style="transform:none">↗</span>
+          </a>
+          <div class="sb-sub-section">Comptes</div>
+          <div class="sb-link" data-module="comptes-correspondant" onclick="navigate('comptes-correspondant')">
+            <span class="sb-icon">🪪</span><span>Création de comptes</span>
+          </div>
+          <div class="sb-sub-section">Activités</div>
           <div class="sb-link" data-module="matrice" onclick="navigate('matrice')">
             <span class="sb-icon">📋</span><span>Matrice d'activités</span>
           </div>
@@ -1235,6 +1251,81 @@ window.__XLSX_READY = false;
       </div>
     </div>
 
+
+    <!-- ===== Services de l'IEPP (ajout) ===== -->
+    <div class="sb-section" id="sb-services-section">
+      <div class="sb-section-title">Services de l'IEPP</div>
+
+      <!-- Service : Secrétariat -->
+      <div class="sb-group" id="sb-grp-secretariat">
+        <div class="sb-link" onclick="toggleGroup('sb-grp-secretariat')">
+          <span class="sb-icon" style="background:var(--blue-soft);color:var(--blue-deep)">⌨️</span>
+          <span>Secrétariat</span>
+          <span class="sb-chev">▶</span>
+        </div>
+        <div class="sb-sub">
+          <div class="sb-link" data-module="svc-secretariat-mat" onclick="navigate('svc-secretariat-mat')">
+            <span class="sb-icon">📋</span><span>Matrice d'activités</span>
+          </div>
+          <div class="sb-link" data-module="svc-secretariat-perm" onclick="navigate('svc-secretariat-perm')">
+            <span class="sb-icon">🔁</span><span>Activités permanentes</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Service : Cantine scolaire -->
+      <div class="sb-group" id="sb-grp-cantine">
+        <div class="sb-link" onclick="toggleGroup('sb-grp-cantine')">
+          <span class="sb-icon" style="background:var(--green-soft);color:var(--green-deep)">🍽️</span>
+          <span>Cantine scolaire</span>
+          <span class="sb-chev">▶</span>
+        </div>
+        <div class="sb-sub">
+          <div class="sb-link" data-module="svc-cantine-mat" onclick="navigate('svc-cantine-mat')">
+            <span class="sb-icon">📋</span><span>Matrice d'activités</span>
+          </div>
+          <div class="sb-link" data-module="svc-cantine-perm" onclick="navigate('svc-cantine-perm')">
+            <span class="sb-icon">🎯</span><span>Axes & activités</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Service : SMOSS -->
+      <div class="sb-group" id="sb-grp-smoss">
+        <div class="sb-link" onclick="toggleGroup('sb-grp-smoss')">
+          <span class="sb-icon" style="background:#FEE2E2;color:#991B1B">⚕️</span>
+          <span>SMOSS</span>
+          <span class="sb-chev">▶</span>
+        </div>
+        <div class="sb-sub">
+          <div class="sb-link" data-module="svc-smoss-mat" onclick="navigate('svc-smoss-mat')">
+            <span class="sb-icon">📋</span><span>Matrice d'activités</span>
+          </div>
+          <div class="sb-link" data-module="svc-smoss-perm" onclick="navigate('svc-smoss-perm')">
+            <span class="sb-icon">🔁</span><span>Activités permanentes</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Service : Bibliothèque -->
+      <div class="sb-group" id="sb-grp-biblio">
+        <div class="sb-link" onclick="toggleGroup('sb-grp-biblio')">
+          <span class="sb-icon" style="background:#FFF4D1;color:#856300">📚</span>
+          <span>Bibliothèque</span>
+          <span class="sb-chev">▶</span>
+        </div>
+        <div class="sb-sub">
+          <div class="sb-link" data-module="svc-biblio-mat" onclick="navigate('svc-biblio-mat')">
+            <span class="sb-icon">📋</span><span>Matrice d'activités</span>
+          </div>
+          <div class="sb-link" data-module="svc-biblio-perm" onclick="navigate('svc-biblio-perm')">
+            <span class="sb-icon">🔁</span><span>Activités permanentes</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
     <div class="sb-section" id="sb-admin-section">
       <div class="sb-section-title">Système</div>
       <div class="sb-link" data-module="users" onclick="navigate('users')">
@@ -1242,6 +1333,9 @@ window.__XLSX_READY = false;
       </div>
       <div class="sb-link" data-module="audit" onclick="navigate('audit')">
         <span class="sb-icon">🕵️</span><span>Journal d'audit</span>
+      </div>
+      <div class="sb-link" data-module="parametres" onclick="navigate('parametres')">
+        <span class="sb-icon" style="background:#EFE0FA;color:#5B1F94">⚙️</span><span>Paramètres</span>
       </div>
     </div>
 
@@ -1302,36 +1396,79 @@ const ROLES = {
   superadmin: { label: 'Grand Administrateur (toutes les IEPP)',  short: 'Super Administrateur', color: 'blue' },
   drenaet:    { label: 'Directeur DRENAET (région)',              short: 'Directeur Régional', color: 'blue' },
   inspecteur: { label: 'Inspecteur (Chef de circonscription)', short: 'Administrateur', color: 'blue' },
-  cpi:        { label: 'Conseiller Pédagogique (CPI)',         short: 'Superviseur péda.', color: 'green' },
+  cpi:        { label: 'Conseiller Pédagogique (CPPP / CPI)',  short: 'Superviseur péda.', color: 'green' },
   directeur:  { label: 'Directeur d\'école',                    short: 'Utilisateur avancé', color: 'orange' },
   instituteur:{ label: 'Instituteur',                           short: 'Utilisateur standard', color: 'purple' },
   correspondant:{ label:'Correspondant fichier',                short: 'Gestionnaire comptes', color: 'yellow' },
-  agent:      { label: 'Agent administratif',                   short: 'Utilisateur limité', color: 'grey' },
+  corresp_stat: { label:'Correspondant statistique (IEPP)',     short: 'Corresp. statistique', color: 'green' },
+  agent:      { label: 'Agent administratif',                   short: 'Agent administratif', color: 'grey' },
+  /* ---- Comptes créés par le Correspondant Fichier (CDC-IEPP-2026 · ajout) ---- */
+  secretaire: { label: 'Secrétaire',                            short: 'Secrétaire',         color: 'blue' },
+  courrier:   { label: 'Courrier (agent du courrier)',          short: 'Courrier',           color: 'orange' },
+  archiviste: { label: 'Archiviste',                            short: 'Archiviste',         color: 'yellow' },
+  econome:    { label: 'Économe',                               short: 'Économe',            color: 'green' },
+  viescolaire:{ label: 'Vie scolaire',                          short: 'Vie scolaire',       color: 'purple' },
+  smoss:      { label: 'SMOSS (santé scolaire)',                short: 'SMOSS',              color: 'red' },
+  cantine:    { label: 'Cantine scolaire',                      short: 'Cantine',            color: 'green' },
+  coges:      { label: 'COGES (Comité de gestion)',             short: 'COGES',              color: 'orange' },
+  autres:     { label: 'Autres (profil personnalisé)',          short: 'Autres',             color: 'grey' },
 };
 
 /* Modules accessibles par rôle (pages visibles dans la sidebar) */
 const CORRESPONDANT_MODULES = [
+  'comptes-correspondant',
   'matrice','fichier-ecoles','fichier-eleves','cartes-scolaires',
   'stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees',
   'carte-prescolaire','carte-primaire','carte-secondaire',
   'pnapas','aser'
 ];
 
+/* Modules des Services de l'IEPP (Secrétariat, Cantine, SMOSS, Bibliothèque) — ajout */
+const SERVICE_MODULES = {
+  secretariat:  ['svc-secretariat-mat','svc-secretariat-perm'],
+  cantine:      ['svc-cantine-mat','svc-cantine-perm'],
+  smoss:        ['svc-smoss-mat','svc-smoss-perm'],
+  bibliotheque: ['svc-biblio-mat','svc-biblio-perm'],
+};
+const ALL_SERVICE_MODULES = Object.values(SERVICE_MODULES).reduce((a,b)=>a.concat(b),[]);
+
 const ACL = {
   /* Grand Administrateur National : voit le module DRENAET (pilotage national multi-IEPP) + accès complet */
-  superadmin:   ['dashboard','drenaet','statistiques','rapports','ecoles','examens','cpi','vie-scolaire','rh','absences','coges','economat','courrier','archives','users','audit', ...CORRESPONDANT_MODULES],
+  superadmin:   ['dashboard','drenaet','statistiques','rapports','ecoles','examens','cpi','vie-scolaire','rh','absences','coges','economat','courrier','archives','users','audit','parametres', ...CORRESPONDANT_MODULES],
   /* Directeur DRENAET : voit le module DRENAET mais limité à sa région + tout sauf comptes utilisateurs nationaux */
-  drenaet:      ['dashboard','drenaet','statistiques','rapports','ecoles','examens','cpi','rh','absences','coges','courrier','archives','audit','stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','carte-prescolaire','carte-primaire','carte-secondaire','pnapas','aser'],
+  drenaet:      ['dashboard','drenaet','statistiques','rapports','ecoles','examens','cpi','rh','absences','coges','courrier','archives','audit','parametres','stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','carte-prescolaire','carte-primaire','carte-secondaire','pnapas','aser'],
   /* Inspecteur IEPP : voit son IEPP, pas le pilotage régional */
-  inspecteur:   ['dashboard','statistiques','rapports','ecoles','examens','cpi','vie-scolaire','rh','absences','coges','economat','courrier','archives','users','audit', ...CORRESPONDANT_MODULES],
+  inspecteur:   ['dashboard','statistiques','rapports','ecoles','examens','cpi','vie-scolaire','rh','absences','coges','economat','courrier','archives','users','audit','parametres', ...CORRESPONDANT_MODULES],
   cpi:          ['dashboard','statistiques','rapports','ecoles','cpi','vie-scolaire','rh','absences','archives','stat-effectifs','stat-situation','carte-prescolaire','carte-primaire','pnapas','aser'],
   /* Directeur d'école : voit son école (espace personnel) + modules d'école */
   directeur:    ['dashboard','mon-ecole','ecoles','vie-scolaire','rh','absences','coges','economat','courrier','archives','fichier-eleves','cartes-scolaires','stat-effectifs','remontees'],
   /* Instituteur : voit sa classe (espace personnel) + demandes personnelles */
   instituteur:  ['dashboard','ma-classe','absences','archives','courrier','cartes-scolaires'],
   correspondant:['dashboard','rh','absences','courrier','archives','users', ...CORRESPONDANT_MODULES],
+  /* Correspondant statistique (IEPP) : tableaux de bord + tous les tableaux statistiques (correction des données) */
+  corresp_stat: ['dashboard','statistiques','rapports','archives','courrier','stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','carte-prescolaire','carte-primaire','carte-secondaire'],
   agent:        ['dashboard','statistiques','rapports','archives','courrier','matrice','stat-situation','stat-effectifs'],
+  /* ---- Profils créés par le Correspondant Fichier (accès ciblé par fonction) ---- */
+  secretaire:   ['dashboard','courrier','archives','rh','absences','rapports'],
+  courrier:     ['dashboard','courrier','archives'],
+  archiviste:   ['dashboard','archives','courrier'],
+  econome:      ['dashboard','economat','courrier','archives'],
+  viescolaire:  ['dashboard','vie-scolaire','absences','courrier','archives'],
+  smoss:        ['dashboard','vie-scolaire','courrier','archives'],
+  cantine:      ['dashboard','economat','courrier','archives'],
+  coges:        ['dashboard','coges','courrier','archives'],
+  autres:       ['dashboard','courrier','archives'],
 };
+
+/* Rattachement des Services de l'IEPP aux rôles (ajout) */
+['superadmin','inspecteur','correspondant'].forEach(r => { if (ACL[r]) ACL[r] = ACL[r].concat(ALL_SERVICE_MODULES); });
+if (ACL.secretaire) ACL.secretaire = ACL.secretaire.concat(SERVICE_MODULES.secretariat);
+if (ACL.archiviste) ACL.archiviste = ACL.archiviste.concat(SERVICE_MODULES.secretariat, SERVICE_MODULES.bibliotheque);
+if (ACL.econome)    ACL.econome    = ACL.econome.concat(SERVICE_MODULES.cantine);
+if (ACL.cantine)    ACL.cantine    = ACL.cantine.concat(SERVICE_MODULES.cantine);
+if (ACL.coges)      ACL.coges      = ACL.coges.concat(SERVICE_MODULES.cantine);
+if (ACL.smoss)      ACL.smoss      = ACL.smoss.concat(SERVICE_MODULES.smoss);
+if (ACL.viescolaire)ACL.viescolaire= ACL.viescolaire.concat(SERVICE_MODULES.smoss);
 
 /* Permissions fines (can()) */
 function can(action) {
@@ -1345,7 +1482,17 @@ function can(action) {
     directeur:     ['create-effectif','validate-absence-school','manage-school','view-school'],
     instituteur:   ['create-absence-request','view-own'],
     correspondant: ['manage-users','archive','view-mail'],
-    agent:         ['view','print','view-reports']
+    corresp_stat:  ['view-all','view-reports','edit-stats','create-effectif','export-data','print'],
+    agent:         ['view','print','view-reports'],
+    secretaire:    ['view','print','view-mail','archive'],
+    courrier:      ['view','view-mail','archive'],
+    archiviste:    ['view','archive','print'],
+    econome:       ['view','print','view-mail'],
+    viescolaire:   ['view','print','view-mail'],
+    smoss:         ['view','print','view-mail'],
+    cantine:       ['view','print','view-mail'],
+    coges:         ['view','print','view-mail'],
+    autres:        ['view']
   };
   const perms = p[r] || [];
   return perms.includes('*') || perms.includes(action);
@@ -1360,6 +1507,7 @@ const DEFAULT_USERS = [
   { username:'directeur',   password:'iepp2026', name:'DIABATE Souleymane',            role:'directeur',   email:'directeur@iepp.ci',    iepp:'IEPP Niakara', drenaet:'DRENAET Katiola', ecole:'EPP Niakara 1 B' },
   { username:'instituteur', password:'iepp2026', name:'BAMBA Mariam',                  role:'instituteur', email:'instituteur@iepp.ci',  iepp:'IEPP Niakara', drenaet:'DRENAET Katiola', ecole:'EPP Niakara 1 B', classe:'CE1' },
   { username:'correspondant',password:'iepp2026',name:'KONE Adama',                    role:'correspondant',email:'correspondant@iepp.ci',iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
+  { username:'correspstat', password:'iepp2026', name:'YAO Konan',                     role:'corresp_stat', email:'stat@iepp.ci',         iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
   { username:'agent',       password:'iepp2026', name:'OUATTARA Fatou',                role:'agent',       email:'agent@iepp.ci',        iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
 ];
 
@@ -1391,7 +1539,7 @@ function save(k, val) {
   try { localStorage.setItem(KEY+k, JSON.stringify(val)); } catch(e){ console.error('save fail', e); }
 }
 function saveAll() {
-  ['users','ecoles','effectifs','personnel','absences','visites','examens','coges','economat','courrier','archives','audit','matrice','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','drenaet'].forEach(k=>save(k,state[k]));
+  ['users','ecoles','effectifs','personnel','absences','visites','examens','coges','economat','courrier','archives','audit','matrice','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','drenaet','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','carteScolaire'].forEach(k=>save(k,state[k]));
 }
 
 /* ---------- DEFAULT DATA ---------- */
@@ -1541,6 +1689,7 @@ function startApp() {
 }
 
 function applyACL() {
+  if (typeof injectCustomServiceSidebar === 'function') injectCustomServiceSidebar();
   const allowed = ACL[state.user.role] || [];
   // Masquer/afficher chaque lien selon son data-module
   document.querySelectorAll('.sb-link').forEach(el => {
@@ -1549,7 +1698,7 @@ function applyACL() {
     el.style.display = allowed.includes(mod) ? '' : 'none';
   });
   // Masquer la section Système si rien d'accessible
-  const adminLinks = ['users','audit'].filter(m => allowed.includes(m));
+  const adminLinks = ['users','audit','parametres'].filter(m => allowed.includes(m));
   document.getElementById('sb-admin-section').style.display = adminLinks.length ? '' : 'none';
 
   // Section Direction régionale (DRENAET) : visible uniquement par le Grand Administrateur
@@ -1568,6 +1717,13 @@ function applyACL() {
   // Masquer la section Correspondant si rien d'accessible
   const corrLinks = CORRESPONDANT_MODULES.filter(m => allowed.includes(m));
   document.getElementById('sb-correspondant-section').style.display = corrLinks.length ? '' : 'none';
+
+  // Section Services de l'IEPP : visible si au moins un module de service est accessible (ajout)
+  const svcSection = document.getElementById('sb-services-section');
+  if (svcSection) {
+    const svcLinks = (typeof ALL_SERVICE_MODULES !== 'undefined' ? ALL_SERVICE_MODULES : []).filter(m => allowed.includes(m));
+    svcSection.style.display = svcLinks.length ? '' : 'none';
+  }
 
   // Masquer chaque groupe accordéon si aucun sous-item visible
   document.querySelectorAll('.sb-group').forEach(g => {
@@ -1604,6 +1760,7 @@ const MODULES = {
   'audit':        { title:'Journal d\'audit',        sub:'Connexions et actions des utilisateurs',         render: renderAudit },
 
   /* ===== Correspondant Fichier ===== */
+  'comptes-correspondant':{ title:'Création de comptes', sub:'Gestion des comptes par fonction · Correspondant Fichier', render: renderComptesCorrespondant },
   'matrice':         { title:'Matrice d\'activités annuelle',         sub:'Plan d\'activités · modifiable, imprimable, importable',    render: renderMatrice },
   'fichier-ecoles':  { title:'Fichier des écoles',                    sub:'Codes d\'identification · ajout, modification, suppression', render: renderFichierEcoles },
   'fichier-eleves':  { title:'Fichier des élèves',                    sub:'Immatriculation · corrections · transferts · changements', render: renderFichierEleves },
@@ -1624,6 +1781,19 @@ const MODULES = {
   /* ===== Suivi & Évaluation ===== */
   'pnapas':          { title:'Activités PNAPAS',                      sub:'Programme National d\'Appui à la Performance Scolaire',    render: renderPNAPAS },
   'aser':            { title:'Test ASER',                             sub:'Évaluation des acquis · Annual Status of Education Report', render: renderASER },
+
+  /* ===== Services de l'IEPP (ajout) ===== */
+  'svc-secretariat-mat':  { title:'Secrétariat — Matrice d\'activités',  sub:'Plan d\'actions annuel du Secrétariat · ajout, modification, suppression', render: ()=>renderServiceMatrice('secretariat') },
+  'svc-secretariat-perm': { title:'Secrétariat — Activités permanentes', sub:'Activités récurrentes du Secrétariat · ajout, modification, suppression', render: ()=>renderServicePerm('secretariat') },
+  'svc-cantine-mat':      { title:'Cantine — Matrice d\'activités',       sub:'Plan d\'actions annuel du Conseiller Cantine · ajout, modification, suppression', render: ()=>renderServiceMatrice('cantine') },
+  'svc-cantine-perm':     { title:'Cantine — Axes & activités',          sub:'Axes stratégiques et activités permanentes · ajout, modification, suppression', render: ()=>renderServicePerm('cantine') },
+  'svc-smoss-mat':        { title:'SMOSS — Matrice d\'activités',         sub:'Plan d\'actions annuel du Service SMOSS · ajout, modification, suppression', render: ()=>renderServiceMatrice('smoss') },
+  'svc-smoss-perm':       { title:'SMOSS — Activités permanentes',       sub:'Activités sociales et sanitaires permanentes · ajout, modification, suppression', render: ()=>renderServicePerm('smoss') },
+  'svc-biblio-mat':       { title:'Bibliothèque — Matrice d\'activités',  sub:'Plan d\'actions annuel du Service Bibliothèque · ajout, modification, suppression', render: ()=>renderServiceMatrice('bibliotheque') },
+  'svc-biblio-perm':      { title:'Bibliothèque — Activités permanentes', sub:'Activités permanentes et indicateurs · ajout, modification, suppression', render: ()=>renderServicePerm('bibliotheque') },
+
+  /* ===== Paramètres (création de services dans le système) ===== */
+  'parametres':           { title:'Paramètres', sub:'Création et gestion des services du système', render: renderParametres },
 };
 
 function navigate(mod) {
@@ -2412,6 +2582,8 @@ function renderUsers() {
   renderUsersBody();
 }
 function renderUsersBody() {
+  const tbEl = document.getElementById('us-body');
+  if (!tbEl) return;
   const q = (document.getElementById('us-search')?.value || '').toLowerCase();
   const list = state.users.filter(u =>
     u.username.toLowerCase().includes(q) || u.name.toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q)
@@ -2432,8 +2604,8 @@ function renderUsersBody() {
     </tr>
   `).join('');
 }
-function userForm(username) {
-  const u = username ? state.users.find(x=>x.username===username) : {username:'',password:'',name:'',role:'instituteur',email:'',iepp:'IEPP Yamoussoukro 1',ecole:''};
+function userForm(username, presetRole) {
+  const u = username ? state.users.find(x=>x.username===username) : {username:'',password:'',name:'',role:presetRole||'instituteur',email:'',iepp:(state.user?.iepp&&state.user.iepp!=='TOUTES'?state.user.iepp:'IEPP Niakara'),drenaet:(state.user?.drenaet||''),ecole:''};
   openModal(username ? 'Modifier le compte' : 'Nouveau compte', `
     <div class="form-row">
       <div class="field"><label>Identifiant</label><input id="u-user" value="${escapeHtml(u.username)}" ${username?'readonly':''}></div>
@@ -2465,7 +2637,8 @@ function userSave(username) {
     role: document.getElementById('u-role').value,
     email: document.getElementById('u-email').value.trim(),
     iepp: document.getElementById('u-iepp').value.trim(),
-    ecole: document.getElementById('u-ecole').value.trim()
+    ecole: document.getElementById('u-ecole').value.trim(),
+    drenaet: (state.user?.drenaet || '')
   };
   if (!data.username || !data.name) { toast('Identifiant et nom obligatoires', 'error'); return; }
   if (username) {
@@ -2483,7 +2656,8 @@ function userSave(username) {
   }
   save('users', state.users);
   closeModal();
-  renderUsersBody();
+  if (document.getElementById('us-body')) renderUsersBody();
+  if (state.module === 'comptes-correspondant') renderComptesCorrespondant();
 }
 function userDelete(username) {
   if (!confirm(`Supprimer le compte "${username}" ?`)) return;
@@ -2491,7 +2665,134 @@ function userDelete(username) {
   save('users', state.users);
   logAction('delete-user', `Suppression compte : ${username}`);
   toast('Compte supprimé', 'success');
-  renderUsersBody();
+  if (document.getElementById('us-body')) renderUsersBody();
+  if (state.module === 'comptes-correspondant') renderComptesCorrespondant();
+}
+
+/* ==================================================================
+   CRÉATION DE COMPTES — module du Correspondant Fichier (ajout)
+   Crée et gère les comptes par fonction (CPPP/CPI, Directeur, Instituteur,
+   Agent administratif, Secrétaire, Courrier, Archiviste, Économe,
+   Vie scolaire, SMOSS, Cantine, COGES, Autres).
+   Réutilise userForm / userSave / userDelete existants.
+   ================================================================== */
+const COMPTES_CATEGORIES = [
+  { role:'corresp_stat', icon:'📊', desc:'Correspondant statistique de l\'IEPP — tableaux & effectifs' },
+  { role:'cpi',         icon:'🎓', desc:'Conseiller pédagogique (préscolaire / primaire)' },
+  { role:'directeur',   icon:'🏫', desc:'Chef d\'établissement — gestion de son école' },
+  { role:'instituteur', icon:'👨‍🏫', desc:'Enseignant — gestion de sa classe' },
+  { role:'agent',       icon:'🗂️', desc:'Agent administratif de l\'IEPP' },
+  { role:'secretaire',  icon:'⌨️', desc:'Secrétariat — courrier, saisie, archivage' },
+  { role:'courrier',    icon:'✉️', desc:'Gestion du courrier entrant et sortant' },
+  { role:'archiviste',  icon:'🗄️', desc:'Indexation et conservation des archives' },
+  { role:'econome',     icon:'💰', desc:'Gestion du matériel et des ressources' },
+  { role:'viescolaire', icon:'🧑‍🤝‍🧑', desc:'Discipline, absences élèves, activités' },
+  { role:'smoss',       icon:'⚕️', desc:'Santé scolaire — suivi médico-social' },
+  { role:'cantine',     icon:'🍽️', desc:'Cantine scolaire — repas et stocks' },
+  { role:'coges',       icon:'🤝', desc:'Comité de gestion de l\'établissement' },
+  { role:'autres',      icon:'➕', desc:'Profil personnalisé / fonction non listée' },
+];
+
+function renderComptesCorrespondant() {
+  if (!['superadmin','inspecteur','correspondant'].includes(state.user.role)) {
+    setContent('<div class="card"><div class="table-empty">Accès réservé au Correspondant Fichier et aux administrateurs.</div></div>');
+    return;
+  }
+  const countByRole = {};
+  state.users.forEach(u => { countByRole[u.role] = (countByRole[u.role]||0) + 1; });
+  const total = state.users.length;
+
+  const tiles = COMPTES_CATEGORIES.map(c => {
+    const r = ROLES[c.role];
+    const n = countByRole[c.role] || 0;
+    return `
+      <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div style="font-size:26px;line-height:1">${c.icon}</div>
+          <div style="flex:1;min-width:0">
+            <div class="fw-7" style="font-size:14px">${escapeHtml(r.label)}</div>
+            <div class="text-xs text-muted" style="margin-top:2px">${escapeHtml(c.desc)}</div>
+          </div>
+          <span class="badge badge-${r.color}">${n} compte${n>1?'s':''}</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:auto">
+          <button class="btn btn-orange btn-sm" style="flex:1" onclick="userForm('','${c.role}')">+ Créer un compte</button>
+          <button class="btn btn-ghost btn-sm" onclick="filtreComptesRole('${c.role}')" title="Voir les comptes de ce profil">Voir</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  setContent(`
+    <div class="card" style="border-left:4px solid var(--orange);margin-bottom:16px">
+      <p style="margin:0;color:var(--ink-soft);font-size:13px">
+        Espace de gestion des comptes du <strong>Correspondant Fichier</strong>.
+        Choisissez une fonction ci-dessous pour créer un compte ; l'identifiant, le mot de passe
+        et l'affectation (IEPP) sont définis dans le formulaire. Les comptes créés sont
+        immédiatement actifs et consultables dans le tableau ci-dessous.
+      </p>
+    </div>
+
+    <div class="stat-grid" style="margin-bottom:18px">
+      <div class="stat s-orange"><div class="stat-label">Comptes au total</div><div class="stat-value">${total}</div></div>
+      <div class="stat"><div class="stat-label">Profils disponibles</div><div class="stat-value">${COMPTES_CATEGORIES.length}</div></div>
+      <div class="stat s-green"><div class="stat-label">Écoles rattachées</div><div class="stat-value">${countByRole['directeur']||0}</div></div>
+    </div>
+
+    <h3 style="margin:0 0 10px;font-size:15px">Créer un compte par fonction</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-bottom:22px">
+      ${tiles}
+    </div>
+
+    <div class="toolbar">
+      <div class="search-input"><input id="cc-search" placeholder="Rechercher un compte..." oninput="renderComptesBody()"></div>
+      <select id="cc-filter" onchange="renderComptesBody()" style="padding:9px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--white)">
+        <option value="">Tous les profils</option>
+        ${COMPTES_CATEGORIES.map(c=>`<option value="${c.role}">${escapeHtml(ROLES[c.role].short)}</option>`).join('')}
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="userForm('')">+ Compte (autre profil)</button>
+    </div>
+    <div class="card" style="padding:0">
+      <div class="table-wrap" style="border:none">
+        <table>
+          <thead><tr>
+            <th>Identifiant</th><th>Nom complet</th><th>Profil</th><th>Email</th><th>Affectation</th><th></th>
+          </tr></thead>
+          <tbody id="cc-body"></tbody>
+        </table>
+      </div>
+    </div>
+  `);
+  renderComptesBody();
+}
+
+function filtreComptesRole(role) {
+  const sel = document.getElementById('cc-filter');
+  if (sel) { sel.value = role; renderComptesBody(); sel.scrollIntoView({behavior:'smooth', block:'center'}); }
+}
+
+function renderComptesBody() {
+  const tb = document.getElementById('cc-body');
+  if (!tb) return;
+  const q = (document.getElementById('cc-search')?.value || '').toLowerCase();
+  const f = document.getElementById('cc-filter')?.value || '';
+  const list = state.users.filter(u =>
+    (!f || u.role === f) &&
+    (u.username.toLowerCase().includes(q) || u.name.toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q))
+  );
+  if (!list.length) { tb.innerHTML = `<tr><td colspan="6" class="table-empty">Aucun compte pour ce filtre</td></tr>`; return; }
+  tb.innerHTML = list.map(u => `
+    <tr>
+      <td><span class="badge badge-grey">${escapeHtml(u.username)}</span></td>
+      <td class="fw-7">${escapeHtml(u.name)}</td>
+      <td><span class="badge badge-${ROLES[u.role]?.color||'grey'}">${ROLES[u.role]?.short||escapeHtml(u.role)}</span></td>
+      <td class="text-sm">${escapeHtml(u.email||'—')}</td>
+      <td class="text-sm">${escapeHtml(u.iepp||'—')}${u.ecole?'<br><span class="text-xs text-muted">'+escapeHtml(u.ecole)+'</span>':''}</td>
+      <td class="actions-cell">
+        <button class="icon-btn" onclick="userForm('${u.username}')" title="Modifier">✏️</button>
+        ${u.username !== state.user.username ? `<button class="icon-btn danger" onclick="userDelete('${u.username}')" title="Supprimer">🗑️</button>` : ''}
+      </td>
+    </tr>
+  `).join('');
 }
 
 /* ---------- STATISTIQUES (M01) ---------- */
@@ -3104,6 +3405,539 @@ state.recrutementMater = load('recrutementMater', defaultRecrutementMater());
 state.pnapas = load('pnapas', defaultPNAPAS());
 state.aser = load('aser', defaultASER());
 
+/* ==================================================================
+   SERVICES DE L'IEPP — données par défaut (ajout)
+   Source : matrices fournies (SECRETARIAT, CANTINE, SMOSS, BIBLIOTHEQUE)
+   Chaque service possède :
+     - une MATRICE d'activités annuelle (périodes datées)
+     - une liste d'ACTIVITÉS PERMANENTES (récurrentes)
+   Toutes deux : ajout / modification / suppression + import / export.
+   ================================================================== */
+const SERVICES = {
+  secretariat: {
+    label: 'Secrétariat', icon: '⌨️', color: 'blue',
+    grad: 'linear-gradient(135deg,var(--blue) 0%,var(--blue-deep) 100%)',
+    intro: "Le Secrétariat assure la gestion administrative, le courrier, l'archivage, l'accueil et le suivi des dossiers de l'IEPP. Il garantit le fonctionnement administratif quotidien de la circonscription.",
+    cols: [
+      { key:'periode',  label:'Période',            width:'180px' },
+      { key:'activite', label:'Activités',          textarea:true },
+      { key:'resultat', label:'Résultats attendus', width:'240px' },
+    ],
+    permLabel: 'Activités permanentes du Secrétariat',
+    matrice: [
+      { periode:'Septembre',          activite:"Préparation de la rentrée administrative et scolaire",            resultat:'Dossiers de rentrée disponibles' },
+      { periode:'Septembre - Juin',   activite:"Réception, enregistrement et ventilation du courrier",           resultat:'Courriers traités dans les délais' },
+      { periode:'Septembre - Juin',   activite:"Rédaction et saisie des correspondances administratives",        resultat:'Courriers et actes administratifs produits' },
+      { periode:'Septembre - Juin',   activite:"Gestion de l'agenda de l'Inspecteur et des réunions",            resultat:'Activités planifiées et suivies' },
+      { periode:'Septembre - Juin',   activite:"Classement et archivage des documents administratifs",           resultat:'Archives sécurisées et accessibles' },
+      { periode:'Chaque mois',        activite:"Collecte et transmission des rapports des écoles",               resultat:'Rapports transmis à la hiérarchie' },
+      { periode:'Chaque trimestre',   activite:"Mise à jour des fichiers du personnel et des écoles",            resultat:'Données administratives fiables' },
+      { periode:'Novembre - Décembre',activite:"Préparation des dossiers des examens et concours professionnels", resultat:'Dossiers conformes et transmis' },
+      { periode:'Janvier',            activite:"Élaboration des statistiques administratives de mi-parcours",    resultat:'Données disponibles pour la prise de décision' },
+      { periode:'Février - Avril',    activite:"Appui administratif aux missions de suivi et d'inspection",      resultat:'Missions organisées efficacement' },
+      { periode:'Mai - Juin',         activite:"Préparation des documents de fin d'année scolaire",              resultat:'Clôture administrative réussie' },
+      { periode:'Juillet - Août',     activite:"Archivage annuel et préparation de la nouvelle rentrée",         resultat:'Documents conservés et exploitables' },
+    ],
+    permanentes: [
+      "Accueil et orientation des usagers.",
+      "Réception, traitement et expédition du courrier.",
+      "Tenue des registres administratifs.",
+      "Gestion des dossiers du personnel.",
+      "Rédaction des notes de service, convocations et comptes rendus.",
+      "Organisation des réunions et ateliers.",
+      "Gestion des archives de l'IEPP.",
+      "Suivi des décisions administratives.",
+      "Transmission des informations entre l'IEPP, la DRENA et les écoles.",
+      "Production des statistiques et rapports administratifs.",
+    ],
+  },
+
+  cantine: {
+    label: 'Cantine scolaire', icon: '🍽️', color: 'green',
+    grad: 'linear-gradient(135deg,var(--green) 0%,var(--green-deep) 100%)',
+    intro: "Le Conseiller Cantine Scolaire organise, suit, contrôle et pérennise les cantines scolaires : alimentation saine des élèves, maintien à l'école et bonne gestion des ressources alimentaires.",
+    cols: [
+      { key:'periode',    label:'Période',     width:'120px' },
+      { key:'activite',   label:'Activités',   textarea:true },
+      { key:'objectif',   label:'Objectifs',   width:'200px' },
+      { key:'indicateur', label:'Indicateurs', width:'180px' },
+    ],
+    permLabel: 'Axes stratégiques du Conseiller Cantine',
+    matrice: [
+      { periode:'Septembre', activite:"Recensement des écoles à cantine et élaboration du plan d'action", objectif:"Organiser l'année scolaire",        indicateur:'Plan validé' },
+      { periode:'Octobre',   activite:"Installation ou redynamisation des comités de gestion",            objectif:'Renforcer la gouvernance',          indicateur:'Nombre de comités fonctionnels' },
+      { periode:'Novembre',  activite:"Formation des gestionnaires et cuisinières",                       objectif:'Améliorer la gestion',              indicateur:"Nombre d'acteurs formés" },
+      { periode:'Décembre',  activite:"Contrôle des stocks et suivi des cantines",                        objectif:'Assurer la disponibilité des vivres', indicateur:'Rapports de suivi' },
+      { periode:'Janvier',   activite:"Sensibilisation communautaire",                                    objectif:'Mobiliser les communautés',         indicateur:'Nombre de séances réalisées' },
+      { periode:'Février',   activite:"Visites techniques dans les écoles",                               objectif:'Contrôler le fonctionnement',       indicateur:"Nombre d'écoles visitées" },
+      { periode:'Mars',      activite:"Évaluation de la consommation des vivres",                         objectif:'Maîtriser les stocks',              indicateur:'Fiches de consommation disponibles' },
+      { periode:'Avril',     activite:"Contrôle de l'hygiène et de la nutrition",                         objectif:'Garantir la qualité des repas',     indicateur:'Taux de conformité' },
+      { periode:'Mai',       activite:"Préparation des examens et maintien de la fréquentation",          objectif:'Soutenir la réussite scolaire',     indicateur:'Taux de fréquentation' },
+      { periode:'Juin',      activite:"Évaluation des cantines et collecte des données",                  objectif:'Mesurer les performances',          indicateur:"Rapports d'évaluation" },
+      { periode:'Juillet',   activite:"Bilan annuel des activités",                                       objectif:'Analyser les résultats',            indicateur:'Rapport annuel produit' },
+      { periode:'Août',      activite:"Préparation de la rentrée et planification des besoins",           objectif:'Anticiper les besoins futurs',      indicateur:'Programme préparé' },
+    ],
+    permanentes: [
+      "Gestion des vivres et des stocks.",
+      "Hygiène et sécurité alimentaire.",
+      "Formation et renforcement des capacités.",
+      "Mobilisation communautaire.",
+      "Suivi-évaluation des cantines.",
+      "Pérennisation et approvisionnement local.",
+      "Production des rapports et statistiques.",
+    ],
+  },
+
+  smoss: {
+    label: 'SMOSS', icon: '⚕️', color: 'red',
+    grad: 'linear-gradient(135deg,#C0392B 0%,#7B241C 100%)',
+    intro: "Le Service SMOSS (Service Mutualité et Œuvres Sociales en milieu Scolaire) prend en charge les actions sociales, sanitaires et le bien-être des élèves et du personnel, dans le cadre des missions de la DMOSS.",
+    cols: [
+      { key:'periode',  label:'Période',            width:'150px' },
+      { key:'activite', label:'Activités',          textarea:true },
+      { key:'resultat', label:'Résultats attendus', width:'240px' },
+    ],
+    permLabel: 'Activités permanentes du SMOSS',
+    matrice: [
+      { periode:'Septembre - Octobre', activite:"Sensibilisation sur l'hygiène scolaire et la santé des élèves",        resultat:"Élèves sensibilisés aux bonnes pratiques d'hygiène" },
+      { periode:'Septembre - Juin',    activite:"Suivi des cas sociaux (orphelins, élèves vulnérables, handicapés)",    resultat:'Prise en charge et accompagnement des élèves en difficulté' },
+      { periode:'Octobre',             activite:"Mise en place et suivi des clubs santé dans les écoles",               resultat:'Clubs fonctionnels dans les établissements' },
+      { periode:'Novembre',            activite:"Campagne de sensibilisation contre les grossesses en milieu scolaire", resultat:'Réduction des comportements à risque' },
+      { periode:'Décembre',            activite:"Collecte des données sociales et sanitaires des écoles",               resultat:'Base de données actualisée' },
+      { periode:'Janvier',             activite:"Sensibilisation sur les IST/VIH-SIDA et la protection de l'enfant",    resultat:'Élèves mieux informés' },
+      { periode:'Février',             activite:"Suivi des cantines scolaires et des conditions de vie des élèves",     resultat:'Amélioration du bien-être des apprenants' },
+      { periode:'Mars',                activite:"Journée de promotion de la santé scolaire",                            resultat:'Renforcement de la prévention sanitaire' },
+      { periode:'Avril',               activite:"Visites des écoles pour le contrôle de l'hygiène et de la salubrité",  resultat:'Écoles plus propres et sécurisées' },
+      { periode:'Mai',                 activite:"Sensibilisation sur les violences basées sur le genre et les drogues", resultat:'Réduction des cas signalés' },
+      { periode:'Juin',                activite:"Bilan annuel des activités sociales et sanitaires",                    resultat:'Rapport annuel disponible' },
+      { periode:"Toute l'année",       activite:"Assistance aux élèves en situation de handicap ou de vulnérabilité",   resultat:'Inclusion scolaire renforcée' },
+      { periode:"Toute l'année",       activite:"Gestion des urgences sociales et sanitaires signalées par les écoles", resultat:'Réponse rapide aux situations critiques' },
+      { periode:"Toute l'année",       activite:"Collaboration avec les centres de santé, ONG et partenaires",          resultat:'Meilleure prise en charge des bénéficiaires' },
+    ],
+    permanentes: [
+      "Suivi des élèves vulnérables.",
+      "Lutte contre les grossesses en cours de scolarité.",
+      "Sensibilisation à l'hygiène et à la santé.",
+      "Promotion de l'inclusion des enfants en situation de handicap.",
+      "Prévention des violences en milieu scolaire.",
+      "Appui psychosocial aux élèves.",
+      "Suivi des cantines scolaires.",
+      "Participation aux campagnes nationales de santé scolaire.",
+      "Collecte et transmission des statistiques sociales et sanitaires.",
+    ],
+  },
+
+  bibliotheque: {
+    label: 'Bibliothèque', icon: '📚', color: 'yellow',
+    grad: 'linear-gradient(135deg,var(--vibrant-yellow) 0%,var(--orange) 100%)',
+    intro: "Le Service Bibliothèque promeut la lecture, développe les compétences documentaires des enseignants et gère les ressources pédagogiques mises à la disposition des écoles et de l'IEPP.",
+    cols: [
+      { key:'periode',  label:'Période',            width:'160px' },
+      { key:'activite', label:'Activités',          textarea:true },
+      { key:'resultat', label:'Résultats attendus', width:'240px' },
+    ],
+    permLabel: 'Activités permanentes de la Bibliothèque',
+    matrice: [
+      { periode:'Septembre',        activite:"Inventaire et réorganisation du fonds documentaire",                       resultat:'Bibliothèque fonctionnelle dès la rentrée' },
+      { periode:'Septembre',        activite:"Élaboration du plan annuel d'activités de la bibliothèque",                resultat:'Activités planifiées' },
+      { periode:'Septembre - Juin', activite:"Accueil et orientation des usagers (enseignants, encadreurs, élèves)",     resultat:'Accès facilité à la documentation' },
+      { periode:'Septembre - Juin', activite:"Gestion des prêts et retours des ouvrages",                                resultat:'Suivi régulier des documents' },
+      { periode:'Chaque mois',      activite:"Mise à jour des registres de prêt et des statistiques de fréquentation",   resultat:'Données disponibles pour le suivi' },
+      { periode:'Octobre - Juin',   activite:"Promotion de la lecture auprès des élèves et enseignants",                 resultat:'Augmentation de la fréquentation de la bibliothèque' },
+      { periode:'Novembre',         activite:"Organisation d'activités autour du livre et de la lecture",                resultat:'Développement du goût de la lecture' },
+      { periode:'Décembre',         activite:"Contrôle de l'état des ouvrages et réparation des documents endommagés",   resultat:'Fonds documentaire préservé' },
+      { periode:'Janvier',          activite:"Sensibilisation des écoles à l'utilisation des ressources documentaires",  resultat:'Utilisation accrue des ouvrages pédagogiques' },
+      { periode:'Février - Mars',   activite:"Appui documentaire aux animations pédagogiques et formations",             resultat:'Enseignants mieux outillés' },
+      { periode:'Avril',            activite:"Acquisition ou proposition d'acquisition de nouveaux ouvrages",            resultat:'Fonds documentaire enrichi' },
+      { periode:'Mai',              activite:"Évaluation de l'utilisation des ressources documentaires",                 resultat:'Identification des besoins' },
+      { periode:'Juin',             activite:"Élaboration du rapport annuel d'activités de la bibliothèque",             resultat:'Rapport disponible' },
+      { periode:'Juillet - Août',   activite:"Inventaire général et archivage des documents de gestion",                 resultat:'Préparation de la nouvelle année scolaire' },
+    ],
+    permanentes: [
+      "Gestion et conservation des ouvrages.",
+      "Enregistrement des nouvelles acquisitions.",
+      "Classement et catalogage des documents.",
+      "Gestion des prêts et retours.",
+      "Orientation et assistance aux usagers.",
+      "Promotion de la lecture et de la recherche documentaire.",
+      "Production des statistiques de fréquentation.",
+      "Appui documentaire aux enseignants, conseillers pédagogiques et inspecteurs.",
+      "Veille documentaire sur les programmes et innovations pédagogiques.",
+      "Entretien des locaux et des équipements de la bibliothèque.",
+    ],
+  },
+};
+
+function defaultSvcMat() {
+  const o = {};
+  Object.keys(SERVICES).forEach(k => {
+    o[k] = SERVICES[k].matrice.map((r,i) => Object.assign({ id: k+'-m'+(i+1) }, r));
+  });
+  return o;
+}
+function defaultSvcPerm() {
+  const o = {};
+  Object.keys(SERVICES).forEach(k => {
+    o[k] = SERVICES[k].permanentes.map((t,i) => ({ id: k+'-p'+(i+1), activite: t }));
+  });
+  return o;
+}
+state.svcMat = load('svcMat', defaultSvcMat());
+state.svcPerm = load('svcPerm', defaultSvcPerm());
+
+/* ==================================================================
+   PARAMÈTRES — Création de services dans le système (ajout)
+   Permet de créer des services personnalisés disposant des mêmes
+   fonctionnalités que les services existants (matrice d'activités +
+   activités permanentes, sidebar, ajout/modif/suppression, import/export,
+   impression). Les services personnalisés sont persistés (localStorage).
+   ================================================================== */
+const SVC_COLOR_MAP = {
+  blue:   { grad:'linear-gradient(135deg,var(--blue) 0%,var(--blue-deep) 100%)',     soft:'var(--blue-soft)',   deep:'var(--blue-deep)',  label:'Bleu' },
+  green:  { grad:'linear-gradient(135deg,var(--green) 0%,var(--green-deep) 100%)',   soft:'var(--green-soft)',  deep:'var(--green-deep)', label:'Vert' },
+  orange: { grad:'linear-gradient(135deg,var(--orange) 0%,var(--orange-deep) 100%)', soft:'var(--orange-soft)', deep:'var(--orange-deep)',label:'Orange' },
+  purple: { grad:'linear-gradient(135deg,#7B2CBF 0%,#4A1376 100%)',                  soft:'#EFE0FA',            deep:'#5B1F94',           label:'Violet' },
+  red:    { grad:'linear-gradient(135deg,#C0392B 0%,#7B241C 100%)',                  soft:'#FEE2E2',            deep:'#991B1B',           label:'Rouge' },
+  yellow: { grad:'linear-gradient(135deg,var(--vibrant-yellow) 0%,var(--orange) 100%)',soft:'#FFF4D1',          deep:'#856300',           label:'Jaune' },
+  teal:   { grad:'linear-gradient(135deg,#0E9594 0%,#075E5E 100%)',                  soft:'#D4F1F0',            deep:'#075E5E',           label:'Sarcelle' },
+};
+function svcColorGrad(c){ return (SVC_COLOR_MAP[c]||SVC_COLOR_MAP.blue).grad; }
+function svcColorSoft(c){ return (SVC_COLOR_MAP[c]||SVC_COLOR_MAP.blue).soft; }
+function svcColorDeep(c){ return (SVC_COLOR_MAP[c]||SVC_COLOR_MAP.blue).deep; }
+
+function svcSlug(label) {
+  let s = String(label||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+  if (!s) s = 'service';
+  return s;
+}
+function svcUniqueKey(label) {
+  let base = svcSlug(label), key = base, i = 2;
+  while (SERVICES[key]) { key = base + i; i++; }
+  return key;
+}
+
+/* Construit l'objet cols d'un service à partir des libellés saisis */
+function svcBuildCols(c3, c4) {
+  const cols = [
+    { key:'periode',  label:'Période',   width:'170px' },
+    { key:'activite', label:'Activités', textarea:true },
+  ];
+  if (c3 && c3.trim()) cols.push({ key:'col3', label:c3.trim(), width:'230px' });
+  if (c4 && c4.trim()) cols.push({ key:'col4', label:c4.trim(), width:'200px' });
+  return cols;
+}
+
+/* Câble un service personnalisé dans tout le système (live) */
+function registerOneCustomService(svc) {
+  const key = svc.key;
+  SERVICES[key] = {
+    label: svc.label, icon: svc.icon || '🧩', color: svc.color || 'blue',
+    grad: svcColorGrad(svc.color), intro: svc.intro || '',
+    cols: (svc.cols && svc.cols.length) ? svc.cols : svcBuildCols('Résultats attendus',''),
+    permLabel: svc.permLabel || ('Activités permanentes — ' + svc.label),
+    custom: true,
+  };
+  const matId = 'svc-'+key+'-mat', permId = 'svc-'+key+'-perm';
+  MODULES[matId]  = { title: svc.label+" — Matrice d'activités",  sub:"Plan d'activités · ajout, modification, suppression", render: (function(k){return function(){return renderServiceMatrice(k);};})(key) };
+  MODULES[permId] = { title: svc.label+' — Activités permanentes', sub:'Activités permanentes · ajout, modification, suppression', render: (function(k){return function(){return renderServicePerm(k);};})(key) };
+  SERVICE_MODULES[key] = [matId, permId];
+  [matId, permId].forEach(m => { if (!ALL_SERVICE_MODULES.includes(m)) ALL_SERVICE_MODULES.push(m); });
+  ['superadmin','drenaet','inspecteur','correspondant'].forEach(r => {
+    if (ACL[r]) [matId, permId].forEach(m => { if (!ACL[r].includes(m)) ACL[r].push(m); });
+  });
+  if (!state.svcMat[key])  state.svcMat[key]  = [];
+  if (!state.svcPerm[key]) state.svcPerm[key] = [];
+}
+function registerCustomServices() {
+  (state.customServices || []).forEach(registerOneCustomService);
+}
+
+/* Injecte (ou ré-injecte) les groupes de services personnalisés dans la sidebar */
+function injectCustomServiceSidebar() {
+  const section = document.getElementById('sb-services-section');
+  if (!section) return;
+  section.querySelectorAll('.svc-custom-grp').forEach(n => n.remove());
+  (state.customServices || []).forEach(svc => {
+    const key = svc.key, soft = svcColorSoft(svc.color), deep = svcColorDeep(svc.color);
+    const grp = document.createElement('div');
+    grp.className = 'sb-group svc-custom-grp';
+    grp.id = 'sb-grp-'+key;
+    grp.innerHTML = `
+      <div class="sb-link" onclick="toggleGroup('sb-grp-${key}')">
+        <span class="sb-icon" style="background:${soft};color:${deep}">${escapeHtml(svc.icon||'🧩')}</span>
+        <span>${escapeHtml(svc.label)}</span>
+        <span class="sb-chev">▶</span>
+      </div>
+      <div class="sb-sub">
+        <div class="sb-link" data-module="svc-${key}-mat" onclick="navigate('svc-${key}-mat')">
+          <span class="sb-icon">📋</span><span>Matrice d'activités</span>
+        </div>
+        <div class="sb-link" data-module="svc-${key}-perm" onclick="navigate('svc-${key}-perm')">
+          <span class="sb-icon">🔁</span><span>Activités permanentes</span>
+        </div>
+      </div>`;
+    section.appendChild(grp);
+  });
+}
+
+/* ---------- Page PARAMÈTRES ---------- */
+function paramCanManage(){ return ['superadmin','drenaet','inspecteur'].includes(state.user.role); }
+
+const BUILTIN_SVC_KEYS = ['secretariat','cantine','smoss','bibliotheque'];
+
+function renderParametres() {
+  if (!paramCanManage()) { setContent('<div class="card"><div class="table-empty">Accès réservé aux administrateurs.</div></div>'); return; }
+  const customCount = (state.customServices||[]).length;
+  const builtinRows = BUILTIN_SVC_KEYS.filter(k=>SERVICES[k]).map(k => svcParamRow(k, false));
+  const customRows  = (state.customServices||[]).map(s => svcParamRow(s.key, true));
+
+  setContent(`
+    <div class="hero" style="background:linear-gradient(135deg,#5B1F94 0%,#2E0E54 100%)">
+      <h3>⚙️ <em>Paramètres</em> — Services du système</h3>
+      <p>Créez de nouveaux services dotés des mêmes fonctionnalités que les services existants : matrice d'activités et activités permanentes, avec ajout, modification, suppression, import/export Excel et impression. Les services créés apparaissent automatiquement dans le menu « Services de l'IEPP ».</p>
+    </div>
+
+    <div class="stat-grid" style="margin-bottom:16px">
+      <div class="stat s-purple"><div class="stat-label">Services au total</div><div class="stat-value">${BUILTIN_SVC_KEYS.length + customCount}</div></div>
+      <div class="stat s-green"><div class="stat-label">Services intégrés</div><div class="stat-value">${BUILTIN_SVC_KEYS.length}</div></div>
+      <div class="stat s-orange"><div class="stat-label">Services personnalisés</div><div class="stat-value">${customCount}</div></div>
+    </div>
+
+    <div class="toolbar">
+      <div style="flex:1"></div>
+      <button class="btn btn-orange" onclick="serviceForm()">+ Créer un service</button>
+    </div>
+
+    <div class="card" style="padding:0">
+      <div class="table-wrap" style="border:none">
+        <table>
+          <thead><tr><th style="width:48px">Icône</th><th>Service</th><th>Type</th><th>Colonnes de la matrice</th><th style="text-align:center">Activités</th><th style="width:120px"></th></tr></thead>
+          <tbody>
+            ${builtinRows.join('')}
+            ${customRows.join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p class="text-xs text-muted" style="margin-top:10px">Les services intégrés (Secrétariat, Cantine, SMOSS, Bibliothèque) ne peuvent pas être supprimés. Les services personnalisés sont entièrement modifiables et supprimables.</p>
+  `);
+}
+function svcParamRow(key, isCustom) {
+  const cfg = SERVICES[key]; if (!cfg) return '';
+  const nMat = (state.svcMat[key]||[]).length, nPerm = (state.svcPerm[key]||[]).length;
+  const cols = cfg.cols.map(c=>escapeHtml(c.label)).join(' · ');
+  return `<tr>
+    <td style="text-align:center;font-size:20px">${escapeHtml(cfg.icon||'🧩')}</td>
+    <td class="fw-7">${escapeHtml(cfg.label)}<br><span class="text-xs text-muted" style="font-weight:400">${escapeHtml((cfg.intro||'').slice(0,70))}${(cfg.intro||'').length>70?'…':''}</span></td>
+    <td>${isCustom?'<span class="badge badge-orange">Personnalisé</span>':'<span class="badge badge-grey">Intégré</span>'}</td>
+    <td class="text-sm">${cols}</td>
+    <td style="text-align:center" class="text-sm">${nMat} act. / ${nPerm} perm.</td>
+    <td class="actions-cell">
+      <button class="icon-btn" onclick="navigate('svc-${key}-mat')" title="Ouvrir la matrice">📋</button>
+      ${isCustom?`<button class="icon-btn" onclick="serviceForm('${key}')" title="Modifier">✏️</button>
+      <button class="icon-btn danger" onclick="serviceDelete('${key}')" title="Supprimer">🗑️</button>`:''}
+    </td>
+  </tr>`;
+}
+
+function serviceForm(editKey) {
+  const s = editKey ? (state.customServices||[]).find(x=>x.key===editKey) : null;
+  const cur = s || { label:'', icon:'🧩', color:'blue', intro:'', permLabel:'', cols:svcBuildCols('Résultats attendus','') };
+  const c3 = (cur.cols && cur.cols[2]) ? cur.cols[2].label : 'Résultats attendus';
+  const c4 = (cur.cols && cur.cols[3]) ? cur.cols[3].label : '';
+  const colorOpts = Object.keys(SVC_COLOR_MAP).map(k=>`<option value="${k}" ${cur.color===k?'selected':''}>${SVC_COLOR_MAP[k].label}</option>`).join('');
+  openModal(editKey ? 'Modifier le service' : 'Créer un service', `
+    <div class="form-row">
+      <div class="field" style="flex:2"><label>Nom du service</label><input id="svc-f-label" value="${escapeHtml(cur.label)}" placeholder="ex : Service Informatique"></div>
+      <div class="field"><label>Icône (emoji)</label><input id="svc-f-icon" value="${escapeHtml(cur.icon)}" maxlength="4" placeholder="🧩"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Couleur</label><select id="svc-f-color">${colorOpts}</select></div>
+      <div class="field" style="flex:2"><label>Libellé des activités permanentes</label><input id="svc-f-perm" value="${escapeHtml(cur.permLabel||'')}" placeholder="(laisser vide pour valeur par défaut)"></div>
+    </div>
+    <div class="field"><label>Description du service</label><textarea id="svc-f-intro" rows="2" style="resize:vertical;width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:8px" placeholder="Rôle et missions du service...">${escapeHtml(cur.intro||'')}</textarea></div>
+    <div style="font-size:12px;font-weight:700;color:var(--ink-soft);margin:8px 0 2px">Colonnes de la matrice d'activités</div>
+    <div class="text-xs text-muted" style="margin-bottom:6px">Les colonnes « Période » et « Activités » sont toujours présentes. Vous pouvez ajouter jusqu'à deux colonnes supplémentaires.</div>
+    <div class="form-row">
+      <div class="field"><label>Colonne 3 (optionnelle)</label><input id="svc-f-c3" value="${escapeHtml(c3)}" placeholder="ex : Résultats attendus"></div>
+      <div class="field"><label>Colonne 4 (optionnelle)</label><input id="svc-f-c4" value="${escapeHtml(c4)}" placeholder="ex : Indicateurs"></div>
+    </div>
+  `, `
+    <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-orange" onclick="serviceSave('${editKey||''}')">${editKey?'Enregistrer':'Créer le service'}</button>
+  `);
+}
+
+function serviceSave(editKey) {
+  const label = document.getElementById('svc-f-label').value.trim();
+  if (!label) { toast('Le nom du service est obligatoire','error'); return; }
+  const icon  = document.getElementById('svc-f-icon').value.trim() || '🧩';
+  const color = document.getElementById('svc-f-color').value;
+  const intro = document.getElementById('svc-f-intro').value.trim();
+  const permLabel = document.getElementById('svc-f-perm').value.trim() || ('Activités permanentes — ' + label);
+  const cols = svcBuildCols(document.getElementById('svc-f-c3').value, document.getElementById('svc-f-c4').value);
+  state.customServices = state.customServices || [];
+
+  if (editKey) {
+    const s = state.customServices.find(x=>x.key===editKey);
+    if (!s) { toast('Service introuvable','error'); return; }
+    Object.assign(s, { label, icon, color, intro, permLabel, cols });
+    // mise à jour live de la config + libellés de modules
+    registerOneCustomService(s);
+    MODULES['svc-'+editKey+'-mat'].title  = label+" — Matrice d'activités";
+    MODULES['svc-'+editKey+'-perm'].title = label+' — Activités permanentes';
+    logAction('param-svc-update', `Service personnalisé modifié : ${label}`);
+    toast('Service modifié','success');
+  } else {
+    const key = svcUniqueKey(label);
+    const svc = { key, label, icon, color, intro, permLabel, cols };
+    state.customServices.push(svc);
+    registerOneCustomService(svc);
+    logAction('param-svc-create', `Service personnalisé créé : ${label}`);
+    toast('Service créé — disponible dans « Services de l\'IEPP »','success');
+  }
+  save('customServices', state.customServices);
+  save('svcMat', state.svcMat);
+  save('svcPerm', state.svcPerm);
+  closeModal();
+  injectCustomServiceSidebar();
+  applyACL();
+  renderParametres();
+}
+
+function serviceDelete(key) {
+  const s = (state.customServices||[]).find(x=>x.key===key);
+  if (!s) return;
+  if (!confirm(`Supprimer définitivement le service « ${s.label} » et toutes ses activités ?`)) return;
+  state.customServices = state.customServices.filter(x=>x.key!==key);
+  delete state.svcMat[key];
+  delete state.svcPerm[key];
+  delete SERVICES[key];
+  delete MODULES['svc-'+key+'-mat'];
+  delete MODULES['svc-'+key+'-perm'];
+  delete SERVICE_MODULES[key];
+  ['svc-'+key+'-mat','svc-'+key+'-perm'].forEach(m=>{
+    const i = ALL_SERVICE_MODULES.indexOf(m); if (i>=0) ALL_SERVICE_MODULES.splice(i,1);
+    Object.keys(ACL).forEach(r=>{ const j=ACL[r].indexOf(m); if(j>=0) ACL[r].splice(j,1); });
+  });
+  save('customServices', state.customServices);
+  save('svcMat', state.svcMat);
+  save('svcPerm', state.svcPerm);
+  logAction('param-svc-delete', `Service personnalisé supprimé : ${s.label}`);
+  toast('Service supprimé','success');
+  injectCustomServiceSidebar();
+  applyACL();
+  renderParametres();
+}
+
+/* Chargement des services personnalisés au démarrage */
+state.customServices = load('customServices', []);
+registerCustomServices();
+
+
+/* ==================================================================
+   ÉTAT DE L'EFFECTIF — données par défaut (ajout · Correspondant statistique)
+   Tableaux éditables (ajout / modification / suppression) + synchronisation
+   à partir des remontées des écoles. Source initiale : fiches de recensement.
+   ================================================================== */
+function defaultEffPrescolaire() {
+  const raw = [
+    ['Maternelle Arikokaha',2,4,6,6,12,9],
+    ['Maternelle Angolokaha',16,12,23,20,21,27],
+    ['Maternelle Badiokaha',6,9,10,10,7,8],
+    ['Maternelle Dossoulokaha',0,0,11,10,9,6],
+    ['Maternelle Folofonkaha',0,3,6,20,5,9],
+    ['Maternelle Kanawolo',0,0,13,18,13,20],
+    ['Maternelle Latokaha',2,3,3,5,18,16],
+    ['Maternelle Les Colombes Tortiya',3,4,11,13,11,21],
+    ['Maternelle Municipale Niakara',11,9,25,24,31,26],
+    ['Maternelle Nambanakaha',0,0,13,15,12,13],
+    ['Maternelle Nangoniékaha',0,0,8,6,6,5],
+    ['Maternelle Niakara 1 B',4,9,16,14,28,18],
+    ['Maternelle Niakara 2',6,8,8,17,13,19],
+    ['Maternelle Niakara 3',8,7,21,17,37,24],
+    ['Maternelle Niakara Château',4,3,14,13,13,19],
+    ['Maternelle Niakara Résidentiel',15,13,18,10,24,16],
+    ['Maternelle Niangbo',0,0,2,4,9,16],
+    ['Maternelle Niédiékaha',7,7,10,12,3,9],
+    ['Maternelle Ouéréguékaha',13,14,14,14,10,15],
+  ];
+  return raw.map((r,i)=>({ id:'efp'+(i+1), nom:r[0], psG:r[1], psF:r[2], msG:r[3], msF:r[4], gsG:r[5], gsF:r[6] }));
+}
+function defaultEffPrimaire() {
+  /* Saisie école par école (comme le préscolaire) : CP1..CM2 · Garçons / Filles.
+     Amorçage à partir des écoles primaires de l'IEPP ; chiffres répartis à titre
+     indicatif (corrigeables) à partir de l'effectif connu de chaque école. */
+  const ecolesPrim = (typeof defaultEcoles === 'function' ? defaultEcoles() : [])
+    .filter(e => /^EPP/i.test(e.nom));
+  const NIV = ['cp1','cp2','ce1','ce2','cm1','cm2'];
+  return ecolesPrim.map((e,idx) => {
+    const row = { id:'efr'+(idx+1), nom:e.nom };
+    const eff = Math.max(0, parseInt(e.effectif,10) || 0);
+    // répartition douce décroissante du CP1 au CM2, ~51% G / 49% F
+    const weights = [0.185,0.175,0.170,0.160,0.158,0.152];
+    NIV.forEach((n,i) => {
+      const lvl = Math.round(eff * weights[i]);
+      const g = Math.round(lvl * 0.51);
+      row[n+'G'] = g;
+      row[n+'F'] = Math.max(0, lvl - g);
+    });
+    return row;
+  });
+}
+state.effPrescolaire = load('effPrescolaire', defaultEffPrescolaire());
+state.effPrimaire = load('effPrimaire', defaultEffPrimaire());
+/* Migration : si d'anciennes données primaires (modèle par niveau) sont stockées,
+   on bascule vers le nouveau modèle école par école. */
+if (Array.isArray(state.effPrimaire) && state.effPrimaire.length && state.effPrimaire[0] && state.effPrimaire[0].cp1G === undefined) {
+  state.effPrimaire = defaultEffPrimaire();
+  save('effPrimaire', state.effPrimaire);
+}
+state.effMeta = load('effMeta', { lastSync: null });
+/* ==================================================================
+   CARTE SCOLAIRE — données par défaut (ajout · Préscolaire / Primaire / Secondaire)
+   Champs essentiels + champs avancés (issus des fiches Excel de collecte).
+   Éditable : ajout / modification / suppression, import / export Excel,
+   tout supprimer après sélection, impression.
+   ================================================================== */
+function defaultCarteScolaire() {
+  const mk = (id, niveau, dep, sp, loc, denom, zone, statut, eff, cl, extra) =>
+    Object.assign({ id, niveau, departement:dep, sprefecture:sp, localite:loc, denomination:denom,
+      zone, statut, effectif:eff, classes:cl, iepp:'NIAKARA',
+      superficie:'', population:'', dateOuverture:'', financement:'', cout:'', observations:'' }, extra||{});
+  return [
+    // Préscolaire
+    mk('cs-p1','prescolaire','NIAKARA','NIAKARA','Niakara','Maternelle Municipale Niakara','U','Public',126,3),
+    mk('cs-p2','prescolaire','NIAKARA','NIAKARA','Niakara','Maternelle Niakara Résidentiel','U','Public',96,3),
+    mk('cs-p3','prescolaire','NIAKARA','NIAKARA','Niakara','Maternelle Niakara 3','U','Public',114,3),
+    mk('cs-p4','prescolaire','NIAKARA','ARIKOKAHA','Arikokaha','Maternelle Arikokaha','R','Public',39,2),
+    mk('cs-p5','prescolaire','NIAKARA','KANAWOLO','Kanawolo','Maternelle Kanawolo','R','Public',64,2),
+    // Primaire
+    mk('cs-r1','primaire','NIAKARA','NIAKARA','Niakara','EPP Niakara 1 B','U','Public',312,6),
+    mk('cs-r2','primaire','NIAKARA','NIAKARA','Niakara','EPP Niakara 2','U','Public',298,6),
+    mk('cs-r3','primaire','NIAKARA','NIAKARA','Niakara','EPP Niakara 3','U','Public',345,6),
+    mk('cs-r4','primaire','NIAKARA','NIAKARA','Niakara','EPP Niakara Château','U','Public',286,6),
+    mk('cs-r5','primaire','NIAKARA','KANAWOLO','Kanawolo','EPP Kanawolo','R','Public',264,6),
+    mk('cs-r6','primaire','NIAKARA','ARIKOKAHA','Arikokaha','EPP Arikokaha','R','Public',198,5),
+    mk('cs-r7','primaire','NIAKARA','TORTIYA','Tortiya','EPP Privée Tortiya','U','Privé',308,6),
+    // Secondaire (exemples — relèvent de la DRENAET, saisissables ici pour la carte locale)
+    mk('cs-s1','secondaire','NIAKARA','NIAKARA','Niakara','Collège de Proximité de Niakara','U','Public',420,8),
+    mk('cs-s2','secondaire','NIAKARA','KANAWOLO','Kanawolo','Collège de Proximité de Kanawolo','R','Public',180,4),
+  ];
+}
+state.carteScolaire = load('carteScolaire', defaultCarteScolaire());
+
+/* Filet de sécurité : si un service manque dans les données stockées, on le seed */
+(function(){
+  const dm = defaultSvcMat(), dp = defaultSvcPerm();
+  Object.keys(SERVICES).forEach(k => {
+    if (!state.svcMat[k]) state.svcMat[k] = dm[k];
+    if (!state.svcPerm[k]) state.svcPerm[k] = dp[k];
+  });
+})();
+
+
 function downloadFile(content, name, mime) {
   const blob = new Blob(["\ufeff"+content], {type: mime});
   const a = document.createElement('a');
@@ -3396,6 +4230,311 @@ function importMatriceExcel(ev) {
     renderMatriceBody();
   });
 }
+
+
+/* ==================================================================
+   SERVICES DE L'IEPP — rendus & CRUD génériques (ajout)
+   renderServiceMatrice(svc) / renderServicePerm(svc)
+   Réutilise openModal, exportRowsToExcel, importRowsFromFile, toast, etc.
+   ================================================================== */
+function svcCanEdit() {
+  return ['superadmin','inspecteur','correspondant','secretaire','cantine','smoss','archiviste','econome','coges','viescolaire'].includes(state.user.role);
+}
+function svcSafeName(s) { return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''); }
+
+/* ---------- MATRICE D'ACTIVITÉS d'un service ---------- */
+function renderServiceMatrice(svc) {
+  const cfg = SERVICES[svc];
+  if (!cfg) { setContent('<div class="card"><div class="table-empty">Service inconnu.</div></div>'); return; }
+  const canEdit = svcCanEdit();
+  const cols = cfg.cols;
+  setContent(`
+    <div class="hero" style="background:${cfg.grad}">
+      <h3>${cfg.icon} ${escapeHtml(cfg.label)} — <em>Matrice d'activités</em></h3>
+      <p>${escapeHtml(cfg.intro)} Document modifiable, imprimable, importable et exportable (Excel / CSV).</p>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-input"><input id="svcm-search" placeholder="Rechercher une activité ou une période..." oninput="renderServiceMatriceBody('${svc}')"></div>
+      <div style="flex:1"></div>
+      ${canEdit ? `<button class="btn btn-ghost danger" onclick="svcMatBulkDelete('${svc}')">🗑️ Supprimer sélection</button>` : ''}
+      <button class="btn btn-ghost" onclick="svcMatExport('${svc}')">⬇️ Exporter sélection</button>
+      <button class="btn btn-ghost" onclick="window.print()">🖨️ Imprimer</button>
+      <button class="btn btn-green" onclick="svcMatExport('${svc}', true)">📊 Export Excel</button>
+      ${canEdit ? `<button class="btn btn-ghost" onclick="document.getElementById('svcm-import').click()">📥 Importer</button>
+      <input type="file" id="svcm-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="svcMatImport('${svc}', event)">
+      <button class="btn btn-orange" onclick="svcMatForm('${svc}')">+ Nouvelle activité</button>` : ''}
+    </div>
+
+    <div class="card" style="padding:0">
+      <div class="table-wrap" style="border:none">
+        <table id="svcm-table">
+          <thead><tr>
+            <th style="width:36px;text-align:center"><input type="checkbox" id="svcm-check-all" onclick="svcMatToggleAll(this)"></th>
+            ${cols.map(c=>`<th${c.width?` style="width:${c.width}"`:''}>${escapeHtml(c.label)}</th>`).join('')}
+            ${canEdit ? '<th style="width:80px"></th>' : ''}
+          </tr></thead>
+          <tbody id="svcm-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:14px;margin-top:14px;font-style:italic;color:var(--ink-soft);font-size:12.5px">
+      <span>Fait à Niakara, le ${new Date().toLocaleDateString('fr-FR')}</span>
+    </div>
+  `);
+  renderServiceMatriceBody(svc);
+}
+function svcMatFiltered(svc) {
+  const cfg = SERVICES[svc];
+  const q = (document.getElementById('svcm-search')?.value || '').toLowerCase();
+  let list = state.svcMat[svc] || [];
+  if (q) list = list.filter(r => cfg.cols.some(c => String(r[c.key]||'').toLowerCase().includes(q)));
+  return list;
+}
+function renderServiceMatriceBody(svc) {
+  const cfg = SERVICES[svc];
+  const canEdit = svcCanEdit();
+  const list = svcMatFiltered(svc);
+  const tb = document.getElementById('svcm-body');
+  if (!tb) return;
+  const span = cfg.cols.length + 1 + (canEdit?1:0);
+  if (!list.length) { tb.innerHTML = `<tr><td colspan="${span}" class="table-empty">Aucune activité</td></tr>`; return; }
+  tb.innerHTML = list.map(r => `
+    <tr>
+      <td style="text-align:center"><input type="checkbox" class="svcm-check" value="${r.id}"></td>
+      ${cfg.cols.map((c,i)=>{
+        const v = escapeHtml(r[c.key]||'');
+        if (i===0) return `<td class="text-sm fw-7">${v}</td>`;
+        if (c.key==='activite') return `<td>${v}</td>`;
+        return `<td class="text-sm text-muted">${v||'—'}</td>`;
+      }).join('')}
+      ${canEdit ? `<td class="actions-cell">
+        <button class="icon-btn" onclick="svcMatForm('${svc}','${r.id}')" title="Modifier">✏️</button>
+        <button class="icon-btn danger" onclick="svcMatDelete('${svc}','${r.id}')" title="Supprimer">🗑️</button>
+      </td>` : ''}
+    </tr>
+  `).join('');
+}
+function svcMatToggleAll(cb){ document.querySelectorAll('.svcm-check').forEach(c=>c.checked=cb.checked); }
+function svcMatSelectedIds(){ return [...document.querySelectorAll('.svcm-check:checked')].map(c=>c.value); }
+function svcMatBulkDelete(svc) {
+  const ids = svcMatSelectedIds();
+  if (!ids.length) { toast('Aucune ligne cochée','error'); return; }
+  if (!confirm(`Supprimer ${ids.length} activité(s) sélectionnée(s) ?`)) return;
+  state.svcMat[svc] = state.svcMat[svc].filter(x=>!ids.includes(x.id));
+  save('svcMat', state.svcMat);
+  logAction('svc-mat-bulk-delete', `${SERVICES[svc].label} : suppression de ${ids.length} activités`);
+  toast(`${ids.length} activité(s) supprimée(s)`,'success');
+  renderServiceMatriceBody(svc);
+}
+function svcMatForm(svc, id) {
+  const cfg = SERVICES[svc];
+  const r = id ? state.svcMat[svc].find(x=>x.id===id) : {};
+  const body = cfg.cols.map(c => {
+    const v = escapeHtml(r[c.key]||'');
+    if (c.textarea) {
+      return `<div class="field"><label>${escapeHtml(c.label)}</label><textarea id="svcf-${c.key}" rows="2" style="resize:vertical;width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:8px">${v}</textarea></div>`;
+    }
+    return `<div class="field"><label>${escapeHtml(c.label)}</label><input id="svcf-${c.key}" value="${v}"></div>`;
+  }).join('');
+  openModal(id ? "Modifier l'activité" : 'Nouvelle activité', body, `
+    <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-orange" onclick="svcMatSave('${svc}','${id||''}')">Enregistrer</button>
+  `);
+}
+function svcMatSave(svc, id) {
+  const cfg = SERVICES[svc];
+  const data = {};
+  cfg.cols.forEach(c => { data[c.key] = (document.getElementById('svcf-'+c.key)?.value || '').trim(); });
+  if (!data.periode || !data.activite) { toast('Période et activité obligatoires','error'); return; }
+  if (id) {
+    Object.assign(state.svcMat[svc].find(x=>x.id===id), data);
+    logAction('svc-mat-update', `${cfg.label} : modification « ${data.activite.slice(0,40)} »`);
+    toast('Activité modifiée','success');
+  } else {
+    state.svcMat[svc].push(Object.assign({ id: svc+'-m'+uid() }, data));
+    logAction('svc-mat-create', `${cfg.label} : nouvelle activité « ${data.activite.slice(0,40)} »`);
+    toast('Activité ajoutée','success');
+  }
+  save('svcMat', state.svcMat);
+  closeModal();
+  renderServiceMatriceBody(svc);
+}
+function svcMatDelete(svc, id) {
+  if (!confirm('Supprimer cette activité ?')) return;
+  state.svcMat[svc] = state.svcMat[svc].filter(x=>x.id!==id);
+  save('svcMat', state.svcMat);
+  logAction('svc-mat-delete', `${SERVICES[svc].label} : suppression activité`);
+  toast('Activité supprimée','success');
+  renderServiceMatriceBody(svc);
+}
+function svcMatExport(svc, full) {
+  const cfg = SERVICES[svc];
+  const ids = svcMatSelectedIds();
+  const src = (!full && ids.length) ? state.svcMat[svc].filter(x=>ids.includes(x.id)) : svcMatFiltered(svc);
+  const rows = src.map(r => {
+    const o = {};
+    cfg.cols.forEach(c => { o[c.label] = r[c.key]||''; });
+    return o;
+  });
+  exportRowsToExcel(rows, 'matrice_'+svcSafeName(cfg.label)+'_iepp_niakara', cfg.label.slice(0,28));
+}
+function svcMatImport(svc, ev) {
+  const cfg = SERVICES[svc];
+  importRowsFromFile(ev, (rows) => {
+    let n = 0;
+    rows.forEach(raw => {
+      // tolérant aux variantes de casse / accents des en-têtes
+      const get = (label) => {
+        const want = svcSafeName(label);
+        const k = Object.keys(raw).find(h => svcSafeName(h) === want);
+        return k ? String(raw[k]).trim() : '';
+      };
+      const rec = { id: svc+'-m'+uid()+'_'+(n) };
+      cfg.cols.forEach(c => { rec[c.key] = get(c.label); });
+      if (!rec.activite) return;
+      state.svcMat[svc].push(rec); n++;
+    });
+    save('svcMat', state.svcMat);
+    logAction('svc-mat-import', `${cfg.label} : importation de ${n} activités`);
+    toast(`${n} activité(s) importée(s)`,'success');
+    renderServiceMatriceBody(svc);
+  });
+}
+
+/* ---------- ACTIVITÉS PERMANENTES d'un service ---------- */
+function renderServicePerm(svc) {
+  const cfg = SERVICES[svc];
+  if (!cfg) { setContent('<div class="card"><div class="table-empty">Service inconnu.</div></div>'); return; }
+  const canEdit = svcCanEdit();
+  setContent(`
+    <div class="hero" style="background:${cfg.grad}">
+      <h3>${cfg.icon} ${escapeHtml(cfg.label)} — <em>${escapeHtml(cfg.permLabel)}</em></h3>
+      <p>Activités récurrentes assurées en permanence par le service tout au long de l'année. Ajout, modification et suppression pris en charge.</p>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-input"><input id="svcp-search" placeholder="Rechercher une activité..." oninput="renderServicePermBody('${svc}')"></div>
+      <div style="flex:1"></div>
+      ${canEdit ? `<button class="btn btn-ghost danger" onclick="svcPermBulkDelete('${svc}')">🗑️ Supprimer sélection</button>` : ''}
+      <button class="btn btn-ghost" onclick="window.print()">🖨️ Imprimer</button>
+      <button class="btn btn-green" onclick="svcPermExport('${svc}')">📊 Export Excel</button>
+      ${canEdit ? `<button class="btn btn-ghost" onclick="document.getElementById('svcp-import').click()">📥 Importer</button>
+      <input type="file" id="svcp-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="svcPermImport('${svc}', event)">
+      <button class="btn btn-orange" onclick="svcPermForm('${svc}')">+ Nouvelle activité</button>` : ''}
+    </div>
+
+    <div class="card" style="padding:0">
+      <div class="table-wrap" style="border:none">
+        <table id="svcp-table">
+          <thead><tr>
+            <th style="width:36px;text-align:center"><input type="checkbox" id="svcp-check-all" onclick="svcPermToggleAll(this)"></th>
+            <th style="width:48px;text-align:center">N°</th>
+            <th>Activité permanente</th>
+            ${canEdit ? '<th style="width:80px"></th>' : ''}
+          </tr></thead>
+          <tbody id="svcp-body"></tbody>
+        </table>
+      </div>
+    </div>
+  `);
+  renderServicePermBody(svc);
+}
+function svcPermFiltered(svc) {
+  const q = (document.getElementById('svcp-search')?.value || '').toLowerCase();
+  let list = state.svcPerm[svc] || [];
+  if (q) list = list.filter(r => String(r.activite||'').toLowerCase().includes(q));
+  return list;
+}
+function renderServicePermBody(svc) {
+  const canEdit = svcCanEdit();
+  const list = svcPermFiltered(svc);
+  const tb = document.getElementById('svcp-body');
+  if (!tb) return;
+  const span = 3 + (canEdit?1:0);
+  if (!list.length) { tb.innerHTML = `<tr><td colspan="${span}" class="table-empty">Aucune activité</td></tr>`; return; }
+  tb.innerHTML = list.map((r,i) => `
+    <tr>
+      <td style="text-align:center"><input type="checkbox" class="svcp-check" value="${r.id}"></td>
+      <td style="text-align:center" class="text-sm text-muted">${i+1}</td>
+      <td>${escapeHtml(r.activite)}</td>
+      ${canEdit ? `<td class="actions-cell">
+        <button class="icon-btn" onclick="svcPermForm('${svc}','${r.id}')" title="Modifier">✏️</button>
+        <button class="icon-btn danger" onclick="svcPermDelete('${svc}','${r.id}')" title="Supprimer">🗑️</button>
+      </td>` : ''}
+    </tr>
+  `).join('');
+}
+function svcPermToggleAll(cb){ document.querySelectorAll('.svcp-check').forEach(c=>c.checked=cb.checked); }
+function svcPermSelectedIds(){ return [...document.querySelectorAll('.svcp-check:checked')].map(c=>c.value); }
+function svcPermBulkDelete(svc) {
+  const ids = svcPermSelectedIds();
+  if (!ids.length) { toast('Aucune ligne cochée','error'); return; }
+  if (!confirm(`Supprimer ${ids.length} activité(s) ?`)) return;
+  state.svcPerm[svc] = state.svcPerm[svc].filter(x=>!ids.includes(x.id));
+  save('svcPerm', state.svcPerm);
+  logAction('svc-perm-bulk-delete', `${SERVICES[svc].label} : suppression de ${ids.length} activités permanentes`);
+  toast(`${ids.length} activité(s) supprimée(s)`,'success');
+  renderServicePermBody(svc);
+}
+function svcPermForm(svc, id) {
+  const r = id ? state.svcPerm[svc].find(x=>x.id===id) : {};
+  openModal(id ? "Modifier l'activité" : 'Nouvelle activité permanente', `
+    <div class="field"><label>Activité permanente</label>
+      <textarea id="svcp-act" rows="3" style="resize:vertical;width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:8px">${escapeHtml(r.activite||'')}</textarea>
+    </div>
+  `, `
+    <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-orange" onclick="svcPermSave('${svc}','${id||''}')">Enregistrer</button>
+  `);
+}
+function svcPermSave(svc, id) {
+  const activite = (document.getElementById('svcp-act')?.value || '').trim();
+  if (!activite) { toast('Activité obligatoire','error'); return; }
+  if (id) {
+    state.svcPerm[svc].find(x=>x.id===id).activite = activite;
+    logAction('svc-perm-update', `${SERVICES[svc].label} : modification activité permanente`);
+    toast('Activité modifiée','success');
+  } else {
+    state.svcPerm[svc].push({ id: svc+'-p'+uid(), activite });
+    logAction('svc-perm-create', `${SERVICES[svc].label} : nouvelle activité permanente`);
+    toast('Activité ajoutée','success');
+  }
+  save('svcPerm', state.svcPerm);
+  closeModal();
+  renderServicePermBody(svc);
+}
+function svcPermDelete(svc, id) {
+  if (!confirm('Supprimer cette activité ?')) return;
+  state.svcPerm[svc] = state.svcPerm[svc].filter(x=>x.id!==id);
+  save('svcPerm', state.svcPerm);
+  logAction('svc-perm-delete', `${SERVICES[svc].label} : suppression activité permanente`);
+  toast('Activité supprimée','success');
+  renderServicePermBody(svc);
+}
+function svcPermExport(svc) {
+  const cfg = SERVICES[svc];
+  const rows = svcPermFiltered(svc).map((r,i)=>({ 'N°': i+1, 'Activité permanente': r.activite }));
+  exportRowsToExcel(rows, 'activites_permanentes_'+svcSafeName(cfg.label), cfg.label.slice(0,28));
+}
+function svcPermImport(svc, ev) {
+  const cfg = SERVICES[svc];
+  importRowsFromFile(ev, (rows) => {
+    let n = 0;
+    rows.forEach(raw => {
+      const k = Object.keys(raw).find(h => /activ/i.test(h)) || Object.keys(raw)[0];
+      const act = k ? String(raw[k]).trim() : '';
+      if (!act) return;
+      state.svcPerm[svc].push({ id: svc+'-p'+uid()+'_'+(n), activite: act }); n++;
+    });
+    save('svcPerm', state.svcPerm);
+    logAction('svc-perm-import', `${cfg.label} : importation de ${n} activités permanentes`);
+    toast(`${n} activité(s) importée(s)`,'success');
+    renderServicePermBody(svc);
+  });
+}
+
 
 /* ==================================================================
    MODULE : Fichier des écoles & codes (M-CORR-02)
@@ -3938,11 +5077,40 @@ function carteEleveOpen(id) {
 /* ==================================================================
    MODULE : Recrutement (Stat) — CP1 + Maternelle (M-CORR-05)
    ================================================================== */
+/* ==================================================================
+   MODULE : Recrutement & points — version éditable (Correspondant statistique)
+   - Saisie école par école (CP1 et Préscolaire/Maternelle)
+   - Ajouter / Modifier / Supprimer une école (avec ses effectifs G/F)
+   - Chaque saisie est datée -> impression filtrée par JOUR ou par SEMAINE
+   - Totaux recalculés, Export/Import Excel, Synthèse
+   ================================================================== */
+function recCanEdit() {
+  return ['superadmin','inspecteur','correspondant','corresp_stat','drenaet'].includes(state.user.role);
+}
+function recToday(){ return new Date().toISOString().slice(0,10); }
+function recWeekKey(d){
+  // ISO week (année-Wnn)
+  const dt = new Date(d+'T00:00:00'); if (isNaN(dt)) return '';
+  const t = new Date(dt); t.setHours(0,0,0,0); t.setDate(t.getDate()+3-((t.getDay()+6)%7));
+  const week1 = new Date(t.getFullYear(),0,4);
+  const wn = 1 + Math.round(((t-week1)/86400000 - 3 + ((week1.getDay()+6)%7))/7);
+  return t.getFullYear()+'-S'+String(wn).padStart(2,'0');
+}
+function recFmtDate(d){ if(!d) return '—'; const x=new Date(d+'T00:00:00'); return isNaN(x)?d:x.toLocaleDateString('fr-FR'); }
+/* migration : ajoute une date aux anciens enregistrements sans date */
+(function recMigrate(){
+  let ch=false;
+  (state.recrutementCP1||[]).forEach(r=>{ if(!r.date){ r.date=recToday(); ch=true; } });
+  (state.recrutementMater||[]).forEach(r=>{ if(!r.date){ r.date=recToday(); ch=true; } });
+  if (ch){ save('recrutementCP1',state.recrutementCP1); save('recrutementMater',state.recrutementMater); }
+})();
+
 function renderStatRecrutement() {
+  const canEdit = recCanEdit();
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,var(--orange) 0%,var(--orange-deep) 100%)">
       <h3>Points de <em>recrutement</em> · CP1 et Préscolaire</h3>
-      <p>Année scolaire 2026-2027 — IEPP NIAKARA. Synthèse des présentés, recrutés, refusés et redoublants par école.</p>
+      <p>Année scolaire 2026-2027 — IEPP NIAKARA. Saisie école par école des présentés, recrutés, refusés et redoublants. ${canEdit?'Ajout, modification, suppression et impression du point par jour ou par semaine.':''}</p>
     </div>
 
     <div class="tabs">
@@ -3951,94 +5119,273 @@ function renderStatRecrutement() {
       <div class="tab" onclick="switchTab(event,'tab-rec-synthese')">📊 Synthèse</div>
     </div>
 
-    <div class="tab-pane active" id="tab-rec-cp1">${renderRecrutementCP1Table()}</div>
-    <div class="tab-pane" id="tab-rec-mat">${renderRecrutementMaternelleTable()}</div>
-    <div class="tab-pane" id="tab-rec-synthese">${renderRecrutementSynthese()}</div>
+    <div class="tab-pane active" id="tab-rec-cp1">${recFilterBar('cp1')}<div id="rec-cp1-content"></div></div>
+    <div class="tab-pane" id="tab-rec-mat">${recFilterBar('mat')}<div id="rec-mat-content"></div></div>
+    <div class="tab-pane" id="tab-rec-synthese"></div>
+  `);
+  renderRecCP1();
+  renderRecMat();
+  document.getElementById('tab-rec-synthese').innerHTML = renderRecrutementSynthese();
+}
+
+/* barre de filtre date (jour / semaine) commune — construite une seule fois */
+function recFilterBar(scope) {
+  const canEdit = recCanEdit();
+  const id = scope; // 'cp1' ou 'mat'
+  const fn = id==='cp1'?'renderRecCP1':'renderRecMat';
+  return `
+    <div class="toolbar no-print">
+      <select id="rec-${id}-mode" onchange="${fn}()" style="padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--white)">
+        <option value="all">Toutes les dates</option>
+        <option value="day">Par jour</option>
+        <option value="week">Par semaine</option>
+      </select>
+      <input type="date" id="rec-${id}-day" value="${recToday()}" onchange="${fn}()" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px">
+      <div class="search-input"><input id="rec-${id}-search" placeholder="Rechercher une école..." oninput="${fn}()"></div>
+      <div style="flex:1"></div>
+      ${canEdit?`<button class="btn btn-ghost danger" onclick="recBulkDelete('${id}')">🗑️ Supprimer sélection</button>`:''}
+      <button class="btn btn-ghost" onclick="recPrint('${id}')">🖨️ Imprimer le point</button>
+      <button class="btn btn-green" onclick="recExport('${id}')">📊 Export Excel</button>
+      ${canEdit?`<button class="btn btn-ghost" onclick="document.getElementById('rec-${id}-import').click()">📥 Importer</button>
+      <input type="file" id="rec-${id}-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="recImport('${id}',event)">
+      <button class="btn btn-orange" onclick="recForm('${id}')">+ Ajouter une école</button>`:''}
+    </div>`;
+}
+function recFilteredList(scope) {
+  const arr = scope==='cp1' ? (state.recrutementCP1||[]) : (state.recrutementMater||[]);
+  const mode = document.getElementById('rec-'+scope+'-mode')?.value || 'all';
+  const day = document.getElementById('rec-'+scope+'-day')?.value || recToday();
+  const q = (document.getElementById('rec-'+scope+'-search')?.value||'').toLowerCase();
+  let list = arr.slice();
+  if (mode==='day') list = list.filter(r=>r.date===day);
+  else if (mode==='week') { const wk=recWeekKey(day); list = list.filter(r=>recWeekKey(r.date)===wk); }
+  if (q) list = list.filter(r=>(r.ecole||'').toLowerCase().includes(q));
+  return list;
+}
+function recScopeLabel(scope){
+  const mode = document.getElementById('rec-'+scope+'-mode')?.value || 'all';
+  const day = document.getElementById('rec-'+scope+'-day')?.value || recToday();
+  if (mode==='day') return 'Point du jour — '+recFmtDate(day);
+  if (mode==='week') return 'Point de la semaine — '+recWeekKey(day);
+  return 'Toutes les dates';
+}
+
+/* ---------- CP1 ---------- */
+function renderRecCP1() {
+  const pane = document.getElementById('rec-cp1-content'); if(!pane) return;
+  const canEdit = recCanEdit();
+  const list = recFilteredList('cp1');
+  const tot = list.reduce((a,r)=>({prG:a.prG+nint(r.prG),prF:a.prF+nint(r.prF),recG:a.recG+nint(r.recG),recF:a.recF+nint(r.recF),refG:a.refG+nint(r.refG),refF:a.refF+nint(r.refF),redG:a.redG+nint(r.redG),redF:a.redF+nint(r.redF)}),{prG:0,prF:0,recG:0,recF:0,refG:0,refF:0,redG:0,redF:0});
+  const pres = tot.prG+tot.prF, rec = tot.recG+tot.recF;
+  const taux = pres>0 ? Math.round(rec/pres*100) : 0;
+  pane.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat s-orange"><div class="stat-label">Total présentés</div><div class="stat-value">${pres}</div></div>
+      <div class="stat s-green"><div class="stat-label">Recrutés</div><div class="stat-value">${rec}</div><div class="stat-delta up">${taux}% taux de recrutement</div></div>
+      <div class="stat s-pink"><div class="stat-label">Refusés</div><div class="stat-value">${tot.refG+tot.refF}</div></div>
+      <div class="stat s-purple"><div class="stat-label">Redoublants</div><div class="stat-value">${tot.redG+tot.redF}</div></div>
+    </div>
+    <div class="card" style="padding:0"><div class="table-wrap" style="border:none">
+      <table id="rec-cp1-table">
+        <thead>
+          <tr>${canEdit?'<th rowspan="2" style="width:32px;text-align:center"><input type="checkbox" onclick="recToggleAll(\'cp1\',this)"></th>':''}
+            <th rowspan="2" style="width:32px">N°</th><th rowspan="2">École</th><th rowspan="2">Date</th>
+            <th colspan="3" style="text-align:center;background:var(--orange-soft)">Présentés</th>
+            <th colspan="3" style="text-align:center;background:var(--green-soft)">Recrutés</th>
+            <th colspan="3" style="text-align:center;background:#FEE2E2">Refusés</th>
+            <th colspan="3" style="text-align:center;background:#EFE0FA">Redoublants</th>
+            ${canEdit?'<th rowspan="2" class="no-print" style="width:74px"></th>':''}
+          </tr>
+          <tr><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th></tr>
+        </thead>
+        <tbody>
+          ${list.length? list.map((r,i)=>`<tr>
+            ${canEdit?`<td class="no-print" style="text-align:center"><input type="checkbox" class="rec-cp1-check" value="${r.id}"></td>`:''}
+            <td>${i+1}</td><td class="fw-7">${escapeHtml(r.ecole)}</td><td class="text-sm">${recFmtDate(r.date)}</td>
+            <td>${nint(r.prG)}</td><td>${nint(r.prF)}</td><td class="fw-7">${nint(r.prG)+nint(r.prF)}</td>
+            <td>${nint(r.recG)}</td><td>${nint(r.recF)}</td><td class="fw-7" style="color:var(--green-deep)">${nint(r.recG)+nint(r.recF)}</td>
+            <td>${nint(r.refG)}</td><td>${nint(r.refF)}</td><td class="fw-7" style="color:var(--danger)">${nint(r.refG)+nint(r.refF)}</td>
+            <td>${nint(r.redG)}</td><td>${nint(r.redF)}</td><td class="fw-7" style="color:#5B1F94">${nint(r.redG)+nint(r.redF)}</td>
+            ${canEdit?`<td class="actions-cell no-print"><button class="icon-btn" onclick="recForm('cp1','${r.id}')" title="Modifier">✏️</button><button class="icon-btn danger" onclick="recDelete('cp1','${r.id}')" title="Supprimer">🗑️</button></td>`:''}
+          </tr>`).join('') : `<tr><td colspan="${canEdit?18:16}" class="table-empty">Aucune école pour ce filtre</td></tr>`}
+          <tr style="background:var(--bg);font-weight:800">
+            ${canEdit?'<td class="no-print"></td>':''}<td colspan="3">TOTAL (${list.length})</td>
+            <td>${tot.prG}</td><td>${tot.prF}</td><td>${pres}</td>
+            <td>${tot.recG}</td><td>${tot.recF}</td><td>${rec}</td>
+            <td>${tot.refG}</td><td>${tot.refF}</td><td>${tot.refG+tot.refF}</td>
+            <td>${tot.redG}</td><td>${tot.redF}</td><td>${tot.redG+tot.redF}</td>
+            ${canEdit?'<td class="no-print"></td>':''}
+          </tr>
+        </tbody>
+      </table>
+    </div></div>`;
+}
+
+/* ---------- Maternelle ---------- */
+function renderRecMat() {
+  const pane = document.getElementById('rec-mat-content'); if(!pane) return;
+  const canEdit = recCanEdit();
+  const list = recFilteredList('mat');
+  const tot = list.reduce((a,r)=>({psG:a.psG+nint(r.psG),psF:a.psF+nint(r.psF),msG:a.msG+nint(r.msG),msF:a.msF+nint(r.msF),gsG:a.gsG+nint(r.gsG),gsF:a.gsF+nint(r.gsF),refG:a.refG+nint(r.refG),refF:a.refF+nint(r.refF)}),{psG:0,psF:0,msG:0,msF:0,gsG:0,gsF:0,refG:0,refF:0});
+  pane.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat s-orange"><div class="stat-label">Petite Section</div><div class="stat-value">${tot.psG+tot.psF}</div></div>
+      <div class="stat s-green"><div class="stat-label">Moyenne Section</div><div class="stat-value">${tot.msG+tot.msF}</div></div>
+      <div class="stat s-purple"><div class="stat-label">Grande Section</div><div class="stat-value">${tot.gsG+tot.gsF}</div></div>
+      <div class="stat s-pink"><div class="stat-label">Total préscolaire</div><div class="stat-value">${tot.psG+tot.psF+tot.msG+tot.msF+tot.gsG+tot.gsF}</div></div>
+    </div>
+    <div class="card" style="padding:0"><div class="table-wrap" style="border:none">
+      <table id="rec-mat-table">
+        <thead>
+          <tr>${canEdit?'<th rowspan="2" style="width:32px;text-align:center"><input type="checkbox" onclick="recToggleAll(\'mat\',this)"></th>':''}
+            <th rowspan="2" style="width:32px">N°</th><th rowspan="2">École maternelle</th><th rowspan="2">Date</th>
+            <th colspan="3" style="text-align:center;background:var(--orange-soft)">Petite S.</th>
+            <th colspan="3" style="text-align:center;background:var(--green-soft)">Moyenne S.</th>
+            <th colspan="3" style="text-align:center;background:#EFE0FA">Grande S.</th>
+            <th colspan="3" style="text-align:center;background:#FEE2E2">Refusés</th>
+            ${canEdit?'<th rowspan="2" class="no-print" style="width:74px"></th>':''}
+          </tr>
+          <tr><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th></tr>
+        </thead>
+        <tbody>
+          ${list.length? list.map((r,i)=>`<tr>
+            ${canEdit?`<td class="no-print" style="text-align:center"><input type="checkbox" class="rec-mat-check" value="${r.id}"></td>`:''}
+            <td>${i+1}</td><td class="fw-7">${escapeHtml(r.ecole)}</td><td class="text-sm">${recFmtDate(r.date)}</td>
+            <td>${nint(r.psG)}</td><td>${nint(r.psF)}</td><td class="fw-7">${nint(r.psG)+nint(r.psF)}</td>
+            <td>${nint(r.msG)}</td><td>${nint(r.msF)}</td><td class="fw-7">${nint(r.msG)+nint(r.msF)}</td>
+            <td>${nint(r.gsG)}</td><td>${nint(r.gsF)}</td><td class="fw-7">${nint(r.gsG)+nint(r.gsF)}</td>
+            <td>${nint(r.refG)}</td><td>${nint(r.refF)}</td><td class="fw-7" style="color:var(--danger)">${nint(r.refG)+nint(r.refF)}</td>
+            ${canEdit?`<td class="actions-cell no-print"><button class="icon-btn" onclick="recForm('mat','${r.id}')" title="Modifier">✏️</button><button class="icon-btn danger" onclick="recDelete('mat','${r.id}')" title="Supprimer">🗑️</button></td>`:''}
+          </tr>`).join('') : `<tr><td colspan="${canEdit?18:16}" class="table-empty">Aucune école pour ce filtre</td></tr>`}
+          <tr style="background:var(--bg);font-weight:800">
+            ${canEdit?'<td class="no-print"></td>':''}<td colspan="3">TOTAL (${list.length})</td>
+            <td>${tot.psG}</td><td>${tot.psF}</td><td>${tot.psG+tot.psF}</td>
+            <td>${tot.msG}</td><td>${tot.msF}</td><td>${tot.msG+tot.msF}</td>
+            <td>${tot.gsG}</td><td>${tot.gsF}</td><td>${tot.gsG+tot.gsF}</td>
+            <td>${tot.refG}</td><td>${tot.refF}</td><td>${tot.refG+tot.refF}</td>
+            ${canEdit?'<td class="no-print"></td>':''}
+          </tr>
+        </tbody>
+      </table>
+    </div></div>`;
+}
+
+/* ---------- champs par type ---------- */
+const REC_FIELDS = {
+  cp1: [ {g:'prG',f:'prF',lab:'Présentés',col:'var(--orange-deep)'},{g:'recG',f:'recF',lab:'Recrutés',col:'var(--green-deep)'},{g:'refG',f:'refF',lab:'Refusés',col:'var(--danger)'},{g:'redG',f:'redF',lab:'Redoublants',col:'#5B1F94'} ],
+  mat: [ {g:'psG',f:'psF',lab:'Petite section',col:'var(--orange-deep)'},{g:'msG',f:'msF',lab:'Moyenne section',col:'var(--green-deep)'},{g:'gsG',f:'gsF',lab:'Grande section',col:'#5B1F94'},{g:'refG',f:'refF',lab:'Refusés',col:'var(--danger)'} ],
+};
+function recArr(scope){ return scope==='cp1'?state.recrutementCP1:state.recrutementMater; }
+function recSaveArr(scope){ save(scope==='cp1'?'recrutementCP1':'recrutementMater', recArr(scope)); }
+function recToggleAll(scope,cb){ document.querySelectorAll('.rec-'+scope+'-check').forEach(c=>c.checked=cb.checked); }
+function recSelectedIds(scope){ return [...document.querySelectorAll('.rec-'+scope+'-check:checked')].map(c=>c.value); }
+function recBulkDelete(scope){
+  const ids = recSelectedIds(scope);
+  if(!ids.length){ toast('Aucune ligne cochée','error'); return; }
+  if(!confirm(`Supprimer ${ids.length} école(s) ?`)) return;
+  const key = scope==='cp1'?'recrutementCP1':'recrutementMater';
+  state[key] = state[key].filter(x=>!ids.includes(x.id));
+  recSaveArr(scope);
+  logAction('rec-bulk-delete', `Recrutement ${scope.toUpperCase()} : suppression de ${ids.length} école(s)`);
+  toast(`${ids.length} école(s) supprimée(s)`,'success');
+  scope==='cp1'?renderRecCP1():renderRecMat();
+}
+function recForm(scope, id) {
+  const r = id ? recArr(scope).find(x=>x.id===id) : { ecole:'', date:recToday() };
+  const fields = REC_FIELDS[scope].map(f=>`
+    <div style="font-size:12px;font-weight:700;color:${f.col};margin:6px 0 2px">${f.lab}</div>
+    <div class="form-row">
+      <div class="field"><label>Garçons</label><input id="recf-${f.g}" type="number" min="0" value="${nint(r[f.g])}"></div>
+      <div class="field"><label>Filles</label><input id="recf-${f.f}" type="number" min="0" value="${nint(r[f.f])}"></div>
+    </div>`).join('');
+  openModal(id ? "Modifier le point de l'école" : 'Ajouter une école', `
+    <div class="form-row">
+      <div class="field" style="flex:2"><label>${scope==='cp1'?'École':'École maternelle'}</label><input id="recf-ecole" value="${escapeHtml(r.ecole||'')}" placeholder="${scope==='cp1'?'ex : EPP Niakara 1 B':'ex : Maternelle Niakara 3'}"></div>
+      <div class="field"><label>Date du point</label><input id="recf-date" type="date" value="${r.date||recToday()}"></div>
+    </div>
+    ${fields}
+  `, `
+    <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-orange" onclick="recSave('${scope}','${id||''}')">Enregistrer</button>
   `);
 }
-function renderRecrutementCP1Table() {
-  const totals = state.recrutementCP1.reduce((acc,r)=>({
-    prG:acc.prG+r.prG, prF:acc.prF+r.prF,
-    recG:acc.recG+r.recG, recF:acc.recF+r.recF,
-    refG:acc.refG+r.refG, refF:acc.refF+r.refF,
-    redG:acc.redG+r.redG, redF:acc.redF+r.redF
-  }), {prG:0,prF:0,recG:0,recF:0,refG:0,refF:0,redG:0,redF:0});
-  const tauxRec = totals.prG+totals.prF > 0 ? Math.round(((totals.recG+totals.recF)/(totals.prG+totals.prF))*100) : 0;
-  return `
-    <div class="stat-grid">
-      <div class="stat s-orange"><div class="stat-label">Total présentés</div><div class="stat-value">${totals.prG+totals.prF}</div></div>
-      <div class="stat s-green"><div class="stat-label">Recrutés</div><div class="stat-value">${totals.recG+totals.recF}</div><div class="stat-delta up">${tauxRec}% taux de recrutement</div></div>
-      <div class="stat s-pink"><div class="stat-label">Refusés</div><div class="stat-value">${totals.refG+totals.refF}</div></div>
-      <div class="stat s-purple"><div class="stat-label">Redoublants</div><div class="stat-value">${totals.redG+totals.redF}</div></div>
-    </div>
-    <div class="card" style="padding:0">
-      <div class="table-wrap" style="border:none">
-        <table>
-          <thead>
-            <tr><th rowspan="2">N°</th><th rowspan="2">École</th><th colspan="3" style="text-align:center;background:var(--orange-soft)">Présentés</th><th colspan="3" style="text-align:center;background:var(--green-soft)">Recrutés</th><th colspan="3" style="text-align:center;background:#FEE2E2">Refusés</th><th colspan="3" style="text-align:center;background:#EFE0FA">Redoublants</th></tr>
-            <tr><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th></tr>
-          </thead>
-          <tbody>
-            ${state.recrutementCP1.map((r,i)=>`<tr>
-              <td>${i+1}</td>
-              <td class="fw-7">${escapeHtml(r.ecole)}</td>
-              <td>${r.prG}</td><td>${r.prF}</td><td class="fw-7">${r.prG+r.prF}</td>
-              <td>${r.recG}</td><td>${r.recF}</td><td class="fw-7" style="color:var(--green-deep)">${r.recG+r.recF}</td>
-              <td>${r.refG}</td><td>${r.refF}</td><td class="fw-7" style="color:var(--danger)">${r.refG+r.refF}</td>
-              <td>${r.redG}</td><td>${r.redF}</td><td class="fw-7" style="color:#5B1F94">${r.redG+r.redF}</td>
-            </tr>`).join('')}
-            <tr style="background:var(--bg);font-weight:800">
-              <td colspan="2">TOTAL IEPP NIAKARA</td>
-              <td>${totals.prG}</td><td>${totals.prF}</td><td>${totals.prG+totals.prF}</td>
-              <td>${totals.recG}</td><td>${totals.recF}</td><td>${totals.recG+totals.recF}</td>
-              <td>${totals.refG}</td><td>${totals.refF}</td><td>${totals.refG+totals.refF}</td>
-              <td>${totals.redG}</td><td>${totals.redF}</td><td>${totals.redG+totals.redF}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
+function recSave(scope, id) {
+  const ecole = document.getElementById('recf-ecole').value.trim();
+  if(!ecole){ toast('Le nom de l\'école est obligatoire','error'); return; }
+  const data = { ecole, date: document.getElementById('recf-date').value || recToday() };
+  REC_FIELDS[scope].forEach(f=>{ data[f.g]=nint(document.getElementById('recf-'+f.g).value); data[f.f]=nint(document.getElementById('recf-'+f.f).value); });
+  if (id) {
+    Object.assign(recArr(scope).find(x=>x.id===id), data);
+    logAction('rec-update', `Recrutement ${scope.toUpperCase()} : correction « ${ecole} »`);
+    toast('Point corrigé','success');
+  } else {
+    const prefix = scope==='cp1'?'r':'rm';
+    recArr(scope).push(Object.assign({id:prefix+uid()}, data));
+    logAction('rec-create', `Recrutement ${scope.toUpperCase()} : ajout « ${ecole} »`);
+    toast('École ajoutée','success');
+  }
+  recSaveArr(scope);
+  closeModal();
+  scope==='cp1'?renderRecCP1():renderRecMat();
+  document.getElementById('tab-rec-synthese').innerHTML = renderRecrutementSynthese();
 }
-function renderRecrutementMaternelleTable() {
-  const totals = state.recrutementMater.reduce((acc,r)=>({
-    psG:acc.psG+r.psG, psF:acc.psF+r.psF, msG:acc.msG+r.msG, msF:acc.msF+r.msF, gsG:acc.gsG+r.gsG, gsF:acc.gsF+r.gsF, refG:acc.refG+r.refG, refF:acc.refF+r.refF
-  }), {psG:0,psF:0,msG:0,msF:0,gsG:0,gsF:0,refG:0,refF:0});
-  return `
-    <div class="stat-grid">
-      <div class="stat s-orange"><div class="stat-label">Petite Section</div><div class="stat-value">${totals.psG+totals.psF}</div></div>
-      <div class="stat s-green"><div class="stat-label">Moyenne Section</div><div class="stat-value">${totals.msG+totals.msF}</div></div>
-      <div class="stat s-purple"><div class="stat-label">Grande Section</div><div class="stat-value">${totals.gsG+totals.gsF}</div></div>
-      <div class="stat s-pink"><div class="stat-label">Total préscolaire</div><div class="stat-value">${totals.psG+totals.psF+totals.msG+totals.msF+totals.gsG+totals.gsF}</div></div>
-    </div>
-    <div class="card" style="padding:0">
-      <div class="table-wrap" style="border:none">
-        <table>
-          <thead>
-            <tr><th rowspan="2">N°</th><th rowspan="2">École maternelle</th><th colspan="3" style="text-align:center;background:var(--orange-soft)">Petite Section</th><th colspan="3" style="text-align:center;background:var(--green-soft)">Moyenne Section</th><th colspan="3" style="text-align:center;background:#EFE0FA">Grande Section</th><th colspan="3" style="text-align:center;background:#FEE2E2">Refusés</th></tr>
-            <tr><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th></tr>
-          </thead>
-          <tbody>
-            ${state.recrutementMater.map((r,i)=>`<tr>
-              <td>${i+1}</td>
-              <td class="fw-7">${escapeHtml(r.ecole)}</td>
-              <td>${r.psG}</td><td>${r.psF}</td><td class="fw-7">${r.psG+r.psF}</td>
-              <td>${r.msG}</td><td>${r.msF}</td><td class="fw-7">${r.msG+r.msF}</td>
-              <td>${r.gsG}</td><td>${r.gsF}</td><td class="fw-7">${r.gsG+r.gsF}</td>
-              <td>${r.refG}</td><td>${r.refF}</td><td class="fw-7" style="color:var(--danger)">${r.refG+r.refF}</td>
-            </tr>`).join('')}
-            <tr style="background:var(--bg);font-weight:800">
-              <td colspan="2">TOTAL</td>
-              <td>${totals.psG}</td><td>${totals.psF}</td><td>${totals.psG+totals.psF}</td>
-              <td>${totals.msG}</td><td>${totals.msF}</td><td>${totals.msG+totals.msF}</td>
-              <td>${totals.gsG}</td><td>${totals.gsF}</td><td>${totals.gsG+totals.gsF}</td>
-              <td>${totals.refG}</td><td>${totals.refF}</td><td>${totals.refG+totals.refF}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
+function recDelete(scope, id) {
+  if(!confirm('Supprimer cette école du point de recrutement ?')) return;
+  const key = scope==='cp1'?'recrutementCP1':'recrutementMater';
+  state[key] = state[key].filter(x=>x.id!==id);
+  recSaveArr(scope);
+  logAction('rec-delete', `Recrutement ${scope.toUpperCase()} : suppression école`);
+  toast('École supprimée','success');
+  scope==='cp1'?renderRecCP1():renderRecMat();
+}
+function recExport(scope) {
+  const list = recFilteredList(scope);
+  let rows;
+  if (scope==='cp1') rows = list.map((r,i)=>({'N°':i+1,'École':r.ecole,'Date':r.date,'Présentés G':nint(r.prG),'Présentés F':nint(r.prF),'Recrutés G':nint(r.recG),'Recrutés F':nint(r.recF),'Refusés G':nint(r.refG),'Refusés F':nint(r.refF),'Redoublants G':nint(r.redG),'Redoublants F':nint(r.redF)}));
+  else rows = list.map((r,i)=>({'N°':i+1,'École':r.ecole,'Date':r.date,'PS G':nint(r.psG),'PS F':nint(r.psF),'MS G':nint(r.msG),'MS F':nint(r.msF),'GS G':nint(r.gsG),'GS F':nint(r.gsF),'Refusés G':nint(r.refG),'Refusés F':nint(r.refF)}));
+  exportRowsToExcel(rows, 'recrutement_'+scope+'_iepp_niakara', scope==='cp1'?'CP1':'Maternelle');
+}
+function recImport(scope, ev) {
+  importRowsFromFile(ev, (rows)=>{
+    let n=0; const norm=h=>h.toLowerCase().replace(/[^a-z0-9]/g,'');
+    const pick=(raw,keys)=>{ const k=Object.keys(raw).find(h=>keys.some(x=>norm(h).includes(x))); return k?raw[k]:''; };
+    rows.forEach(raw=>{
+      const ecole = pick(raw,['ecole','nom','maternelle']); if(!ecole) return;
+      const rec = { id:(scope==='cp1'?'r':'rm')+uid()+'_'+(n++), ecole:String(ecole).trim(), date:(String(pick(raw,['date'])).slice(0,10)||recToday()) };
+      REC_FIELDS[scope].forEach(f=>{ rec[f.g]=nint(pick(raw,[norm(f.lab).slice(0,4)+'g',f.g.toLowerCase()])); rec[f.f]=nint(pick(raw,[norm(f.lab).slice(0,4)+'f',f.f.toLowerCase()])); });
+      recArr(scope).push(rec);
+    });
+    recSaveArr(scope);
+    logAction('rec-import', `Recrutement ${scope.toUpperCase()} : importation de ${n} école(s)`);
+    toast(`${n} école(s) importée(s)`,'success');
+    scope==='cp1'?renderRecCP1():renderRecMat();
+  });
+}
+function recPrint(scope) {
+  const table = document.getElementById('rec-'+scope+'-table');
+  if (!table) { window.print(); return; }
+  const titre = (scope==='cp1'?'POINT DE RECRUTEMENT CP1':'POINT DE RECRUTEMENT PRÉSCOLAIRE') + ' — IEPP NIAKARA';
+  const sous = recScopeLabel(scope);
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>${titre}</title>
+    <style>
+      body{font-family:Arial,Helvetica,sans-serif;margin:24px;color:#1A1B25}
+      h1{font-size:16px;margin:0 0 2px;text-align:center}
+      .sub{text-align:center;font-size:12px;color:#555;margin-bottom:14px}
+      table{width:100%;border-collapse:collapse;font-size:11px}
+      th,td{border:1px solid #999;padding:4px 5px;text-align:center}
+      th{background:#eee}
+      td:nth-child(2){text-align:left;font-weight:bold}
+      .no-print{display:none !important}
+      tr:last-child{font-weight:bold;background:#f0f0f0}
+      .foot{margin-top:16px;text-align:right;font-style:italic;font-size:11px}
+    </style></head><body>
+    <h1>${titre}</h1><div class="sub">${sous} — Année scolaire 2026-2027</div>
+    ${table.outerHTML}
+    <div class="foot">Fait à Niakara, le ${new Date().toLocaleDateString('fr-FR')}</div>
+    </body></html>`);
+  w.document.close();
+  setTimeout(()=>{ w.focus(); w.print(); }, 350);
 }
 function renderRecrutementSynthese() {
   const tCP1 = state.recrutementCP1.reduce((a,r)=>({d:a.d+r.prG+r.prF,i:a.i+r.recG+r.recF,n:a.n+r.refG+r.refF}), {d:0,i:0,n:0});
@@ -4145,117 +5492,440 @@ function renderStatSituation() {
 /* ==================================================================
    MODULE : État des effectifs par niveau (M-CORR-07)
    ================================================================== */
+/* ==================================================================
+   MODULE : État de l'effectif — version éditable (Correspondant statistique)
+   - Ajouter / Modifier / Supprimer dans les tableaux
+   - Préscolaire (MPS/MMS/MGS · G/F par école) et Primaire (Public/Privé/Communautaire · G/F par niveau)
+   - Totaux recalculés automatiquement
+   - Synchronisation / mise à jour à partir des remontées des écoles
+   - Import / Export Excel · Impression
+   ================================================================== */
+function statCanEdit() {
+  return ['superadmin','inspecteur','correspondant','corresp_stat','drenaet'].includes(state.user.role);
+}
+function nint(v){ const n = parseInt(String(v).replace(/[^0-9-]/g,''),10); return isNaN(n)?0:n; }
+
+const PRIM_NIV = [
+  { key:'cp1', label:'CP1', bg:'var(--blue-soft)' },
+  { key:'cp2', label:'CP2', bg:'var(--orange-soft)' },
+  { key:'ce1', label:'CE1', bg:'var(--green-soft)' },
+  { key:'ce2', label:'CE2', bg:'#EFE0FA' },
+  { key:'cm1', label:'CM1', bg:'#FFE0EB' },
+  { key:'cm2', label:'CM2', bg:'#FFF4D1' },
+];
+
 function renderStatEffectifs() {
+  const canEdit = statCanEdit();
+  const last = state.effMeta?.lastSync ? new Date(state.effMeta.lastSync).toLocaleString('fr-FR') : 'jamais';
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,var(--green) 0%,var(--green-deep) 100%)">
-      <h3>État des <em>effectifs</em> par niveau et par école</h3>
-      <p>Tableaux détaillés des effectifs préscolaires (MPS / MMS / MGS) et primaires (CP1 à CM2) — IEPP NIAKARA. Source : fiches de recensement annuel.</p>
+      <h3>État de l'<em>effectif</em> par niveau et par école</h3>
+      <p>Tableaux statistiques éditables — préscolaire (MPS/MMS/MGS) et primaire (CP1→CM2), saisis école par école — IEPP NIAKARA. Le Correspondant statistique peut corriger les données : ajout, modification, suppression, puis synchronisation à partir des remontées des écoles.</p>
     </div>
+
+    ${canEdit ? `<div class="card" style="border-left:4px solid var(--green);margin-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div class="fw-7" style="font-size:13.5px">🔄 Synchronisation des remontées</div>
+        <div class="text-xs text-muted">Met à jour la liste des écoles (préscolaire et primaire) à partir des remontées, en ajoutant les écoles manquantes sans écraser vos saisies. Dernière synchronisation : <strong>${last}</strong></div>
+      </div>
+      <button class="btn btn-orange btn-sm" onclick="syncEffectifsFromRemontees()">🔄 Synchroniser depuis les remontées</button>
+    </div>` : ''}
 
     <div class="tabs">
       <div class="tab active" onclick="switchTab(event,'tab-ef-pres')">🧸 Préscolaire</div>
       <div class="tab" onclick="switchTab(event,'tab-ef-prim')">📚 Primaire</div>
     </div>
 
-    <div class="tab-pane active" id="tab-ef-pres">${renderEffectifsPrescolaireTable()}</div>
-    <div class="tab-pane" id="tab-ef-prim">${renderEffectifsPrimaireTable()}</div>
+    <div class="tab-pane active" id="tab-ef-pres">
+      <div class="toolbar">
+        <div class="search-input"><input id="efp-search" placeholder="Rechercher une maternelle..." oninput="renderEffPrescolaireBody()"></div>
+        <div style="flex:1"></div>
+        ${canEdit ? `<button class="btn btn-ghost danger" onclick="effPresBulkDelete()">🗑️ Supprimer sélection</button>` : ''}
+        <button class="btn btn-ghost" onclick="window.print()">🖨️ Imprimer</button>
+        <button class="btn btn-green" onclick="effPresExport()">📊 Export Excel</button>
+        ${canEdit ? `<button class="btn btn-ghost" onclick="document.getElementById('efp-import').click()">📥 Importer</button>
+        <input type="file" id="efp-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="effPresImport(event)">
+        <button class="btn btn-orange" onclick="effPresForm()">+ Ajouter une école</button>` : ''}
+      </div>
+      <div class="card" style="padding:0">
+        <div class="table-wrap" style="border:none">
+          <table id="efp-table">
+            <thead>
+              <tr>
+                ${canEdit?'<th rowspan="2" style="width:34px;text-align:center"><input type="checkbox" id="efp-check-all" onclick="effPresToggleAll(this)"></th>':''}
+                <th rowspan="2" style="width:36px">N°</th><th rowspan="2">Maternelle</th>
+                <th colspan="3" style="text-align:center;background:var(--orange-soft)">MPS</th>
+                <th colspan="3" style="text-align:center;background:var(--green-soft)">MMS</th>
+                <th colspan="3" style="text-align:center;background:#EFE0FA">MGS</th>
+                <th colspan="3" style="text-align:center;background:var(--blue-soft)">Total</th>
+                ${canEdit?'<th rowspan="2" style="width:74px"></th>':''}
+              </tr>
+              <tr><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th></tr>
+            </thead>
+            <tbody id="efp-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="tab-ef-prim">
+      <div id="efr-stats" class="stat-grid"></div>
+      <div class="toolbar">
+        <div class="search-input"><input id="efr-search" placeholder="Rechercher une école primaire..." oninput="renderEffPrimaireBody()"></div>
+        <div style="flex:1"></div>
+        ${canEdit ? `<button class="btn btn-ghost danger" onclick="effPrimBulkDelete()">🗑️ Supprimer sélection</button>` : ''}
+        <button class="btn btn-ghost" onclick="window.print()">🖨️ Imprimer</button>
+        <button class="btn btn-green" onclick="effPrimExport()">📊 Export Excel</button>
+        ${canEdit ? `<button class="btn btn-ghost" onclick="document.getElementById('efr-import').click()">📥 Importer</button>
+        <input type="file" id="efr-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="effPrimImport(event)">
+        <button class="btn btn-orange" onclick="effPrimForm()">+ Ajouter une école</button>` : ''}
+      </div>
+      <div class="card" style="padding:0">
+        <div class="table-wrap" style="border:none">
+          <table id="efr-table">
+            <thead>
+              <tr>
+                ${canEdit?'<th rowspan="2" style="width:34px;text-align:center"><input type="checkbox" id="efr-check-all" onclick="effPrimToggleAll(this)"></th>':''}
+                <th rowspan="2" style="width:36px">N°</th><th rowspan="2">École primaire</th>
+                ${PRIM_NIV.map(n=>`<th colspan="3" style="text-align:center;background:${n.bg}">${n.label}</th>`).join('')}
+                <th colspan="3" style="text-align:center;background:var(--blue-soft)">Total</th>
+                ${canEdit?'<th rowspan="2" style="width:74px"></th>':''}
+              </tr>
+              <tr>${PRIM_NIV.map(()=>'<th>G</th><th>F</th><th>T</th>').join('')}<th>G</th><th>F</th><th>T</th></tr>
+            </thead>
+            <tbody id="efr-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `);
+  renderEffPrescolaireBody();
+  renderEffPrimaireBody();
+}
+
+/* ---------- PRÉSCOLAIRE ---------- */
+function effPresFiltered() {
+  const q = (document.getElementById('efp-search')?.value || '').toLowerCase();
+  let list = state.effPrescolaire || [];
+  if (q) list = list.filter(r => r.nom.toLowerCase().includes(q));
+  return list;
+}
+function renderEffPrescolaireBody() {
+  const canEdit = statCanEdit();
+  const tb = document.getElementById('efp-body');
+  if (!tb) return;
+  const list = effPresFiltered();
+  const all = state.effPrescolaire || [];
+  const tot = all.reduce((a,r)=>({psG:a.psG+nint(r.psG),psF:a.psF+nint(r.psF),msG:a.msG+nint(r.msG),msF:a.msF+nint(r.msF),gsG:a.gsG+nint(r.gsG),gsF:a.gsF+nint(r.gsF)}),{psG:0,psF:0,msG:0,msF:0,gsG:0,gsF:0});
+  const cols = (canEdit?1:0)+14+(canEdit?1:0);
+  let html = '';
+  if (!list.length) {
+    html = `<tr><td colspan="${cols}" class="table-empty">Aucune école — utilisez « + Ajouter une école »</td></tr>`;
+  } else {
+    html = list.map((r,i)=>{
+      const tG=nint(r.psG)+nint(r.msG)+nint(r.gsG), tF=nint(r.psF)+nint(r.msF)+nint(r.gsF);
+      return `<tr>
+        ${canEdit?`<td style="text-align:center"><input type="checkbox" class="efp-check" value="${r.id}"></td>`:''}
+        <td>${i+1}</td>
+        <td class="text-sm fw-7">${escapeHtml(r.nom)}</td>
+        <td>${nint(r.psG)}</td><td>${nint(r.psF)}</td><td class="fw-7">${nint(r.psG)+nint(r.psF)}</td>
+        <td>${nint(r.msG)}</td><td>${nint(r.msF)}</td><td class="fw-7">${nint(r.msG)+nint(r.msF)}</td>
+        <td>${nint(r.gsG)}</td><td>${nint(r.gsF)}</td><td class="fw-7">${nint(r.gsG)+nint(r.gsF)}</td>
+        <td>${tG}</td><td>${tF}</td><td class="fw-7" style="color:var(--blue-deep)">${tG+tF}</td>
+        ${canEdit?`<td class="actions-cell">
+          <button class="icon-btn" onclick="effPresForm('${r.id}')" title="Modifier">✏️</button>
+          <button class="icon-btn danger" onclick="effPresDelete('${r.id}')" title="Supprimer">🗑️</button>
+        </td>`:''}
+      </tr>`;
+    }).join('');
+  }
+  html += `<tr style="background:var(--bg);font-weight:800">
+    ${canEdit?'<td></td>':''}<td colspan="2">TOTAL (${all.length})</td>
+    <td>${tot.psG}</td><td>${tot.psF}</td><td>${tot.psG+tot.psF}</td>
+    <td>${tot.msG}</td><td>${tot.msF}</td><td>${tot.msG+tot.msF}</td>
+    <td>${tot.gsG}</td><td>${tot.gsF}</td><td>${tot.gsG+tot.gsF}</td>
+    <td>${tot.psG+tot.msG+tot.gsG}</td><td>${tot.psF+tot.msF+tot.gsF}</td>
+    <td style="color:var(--orange-deep);font-size:14px">${tot.psG+tot.psF+tot.msG+tot.msF+tot.gsG+tot.gsF}</td>
+    ${canEdit?'<td></td>':''}
+  </tr>`;
+  tb.innerHTML = html;
+}
+function effPresToggleAll(cb){ document.querySelectorAll('.efp-check').forEach(c=>c.checked=cb.checked); }
+function effPresSelectedIds(){ return [...document.querySelectorAll('.efp-check:checked')].map(c=>c.value); }
+function effPresBulkDelete() {
+  const ids = effPresSelectedIds();
+  if (!ids.length) { toast('Aucune ligne cochée','error'); return; }
+  if (!confirm(`Supprimer ${ids.length} école(s) du tableau ?`)) return;
+  state.effPrescolaire = state.effPrescolaire.filter(x=>!ids.includes(x.id));
+  save('effPrescolaire', state.effPrescolaire);
+  logAction('eff-pres-bulk-delete', `Effectif préscolaire : suppression de ${ids.length} école(s)`);
+  toast(`${ids.length} école(s) supprimée(s)`,'success');
+  renderEffPrescolaireBody();
+}
+function effPresForm(id) {
+  const r = id ? state.effPrescolaire.find(x=>x.id===id) : {nom:'',psG:0,psF:0,msG:0,msF:0,gsG:0,gsF:0};
+  const num = (k,lab)=>`<div class="field"><label>${lab}</label><input id="efpf-${k}" type="number" min="0" value="${nint(r[k])}"></div>`;
+  openModal(id ? "Modifier l'effectif de l'école" : 'Ajouter une école (préscolaire)', `
+    <div class="field"><label>Nom de la maternelle</label><input id="efpf-nom" value="${escapeHtml(r.nom||'')}" placeholder="ex : Maternelle Niakara 1 B"></div>
+    <div style="font-size:12px;font-weight:700;color:var(--orange-deep);margin:6px 0 2px">MPS — Petite section</div>
+    <div class="form-row">${num('psG','Garçons')}${num('psF','Filles')}</div>
+    <div style="font-size:12px;font-weight:700;color:var(--green-deep);margin:6px 0 2px">MMS — Moyenne section</div>
+    <div class="form-row">${num('msG','Garçons')}${num('msF','Filles')}</div>
+    <div style="font-size:12px;font-weight:700;color:#5B1F94;margin:6px 0 2px">MGS — Grande section</div>
+    <div class="form-row">${num('gsG','Garçons')}${num('gsF','Filles')}</div>
+  `, `
+    <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-orange" onclick="effPresSave('${id||''}')">Enregistrer</button>
   `);
 }
-function renderEffectifsPrescolaireTable() {
-  const data = [
-    {n:'Maternelle Arikokaha',         psG:2,  psF:4,  msG:6,  msF:6,  gsG:12, gsF:9},
-    {n:'Maternelle Angolokaha',        psG:16, psF:12, msG:23, msF:20, gsG:21, gsF:27},
-    {n:'Maternelle Badiokaha',         psG:6,  psF:9,  msG:10, msF:10, gsG:7,  gsF:8},
-    {n:'Maternelle Dossoulokaha',      psG:0,  psF:0,  msG:11, msF:10, gsG:9,  gsF:6},
-    {n:'Maternelle Folofonkaha',       psG:0,  psF:3,  msG:6,  msF:20, gsG:5,  gsF:9},
-    {n:'Maternelle Kanawolo',          psG:0,  psF:0,  msG:13, msF:18, gsG:13, gsF:20},
-    {n:'Maternelle Latokaha',          psG:2,  psF:3,  msG:3,  msF:5,  gsG:18, gsF:16},
-    {n:'Maternelle Les Colombes Tortiya',psG:3,psF:4,  msG:11, msF:13, gsG:11, gsF:21},
-    {n:'Maternelle Municipale Niakara',psG:11, psF:9,  msG:25, msF:24, gsG:31, gsF:26},
-    {n:'Maternelle Nambanakaha',       psG:0,  psF:0,  msG:13, msF:15, gsG:12, gsF:13},
-    {n:'Maternelle Nangoniékaha',      psG:0,  psF:0,  msG:8,  msF:6,  gsG:6,  gsF:5},
-    {n:'Maternelle Niakara 1 B',       psG:4,  psF:9,  msG:16, msF:14, gsG:28, gsF:18},
-    {n:'Maternelle Niakara 2',         psG:6,  psF:8,  msG:8,  msF:17, gsG:13, gsF:19},
-    {n:'Maternelle Niakara 3',         psG:8,  psF:7,  msG:21, msF:17, gsG:37, gsF:24},
-    {n:'Maternelle Niakara Château',   psG:4,  psF:3,  msG:14, msF:13, gsG:13, gsF:19},
-    {n:'Maternelle Niakara Résidentiel',psG:15,psF:13, msG:18, msF:10, gsG:24, gsF:16},
-    {n:'Maternelle Niangbo',           psG:0,  psF:0,  msG:2,  msF:4,  gsG:9,  gsF:16},
-    {n:'Maternelle Niédiékaha',        psG:7,  psF:7,  msG:10, msF:12, gsG:3,  gsF:9},
-    {n:'Maternelle Ouéréguékaha',      psG:13, psF:14, msG:14, msF:14, gsG:10, gsF:15},
+function effPresSave(id) {
+  const g = k => nint(document.getElementById('efpf-'+k).value);
+  const nom = document.getElementById('efpf-nom').value.trim();
+  if (!nom) { toast('Le nom de l\'école est obligatoire','error'); return; }
+  const data = { nom, psG:g('psG'),psF:g('psF'),msG:g('msG'),msF:g('msF'),gsG:g('gsG'),gsF:g('gsF') };
+  if (id) {
+    Object.assign(state.effPrescolaire.find(x=>x.id===id), data);
+    logAction('eff-pres-update', `Effectif préscolaire : correction « ${nom} »`);
+    toast('Effectif corrigé','success');
+  } else {
+    state.effPrescolaire.push(Object.assign({id:'efp'+uid()}, data));
+    logAction('eff-pres-create', `Effectif préscolaire : ajout « ${nom} »`);
+    toast('École ajoutée','success');
+  }
+  save('effPrescolaire', state.effPrescolaire);
+  closeModal();
+  renderEffPrescolaireBody();
+}
+function effPresDelete(id) {
+  if (!confirm('Supprimer cette école du tableau des effectifs ?')) return;
+  state.effPrescolaire = state.effPrescolaire.filter(x=>x.id!==id);
+  save('effPrescolaire', state.effPrescolaire);
+  logAction('eff-pres-delete', `Effectif préscolaire : suppression école`);
+  toast('École supprimée','success');
+  renderEffPrescolaireBody();
+}
+function effPresExport() {
+  const rows = (state.effPrescolaire||[]).map((r,i)=>({
+    'N°':i+1, 'Maternelle':r.nom,
+    'MPS G':nint(r.psG),'MPS F':nint(r.psF),
+    'MMS G':nint(r.msG),'MMS F':nint(r.msF),
+    'MGS G':nint(r.gsG),'MGS F':nint(r.gsF),
+    'Total':nint(r.psG)+nint(r.psF)+nint(r.msG)+nint(r.msF)+nint(r.gsG)+nint(r.gsF)
+  }));
+  exportRowsToExcel(rows, 'etat_effectif_prescolaire_iepp_niakara', 'Préscolaire');
+}
+function effPresImport(ev) {
+  importRowsFromFile(ev, (rows) => {
+    let n=0;
+    const pick = (raw, keys) => { const k = Object.keys(raw).find(h=>keys.some(x=>h.toLowerCase().replace(/[^a-z]/g,'').includes(x))); return k?raw[k]:''; };
+    rows.forEach(raw => {
+      const nom = pick(raw,['maternelle','ecole','nom']);
+      if (!nom) return;
+      state.effPrescolaire.push({
+        id:'efp'+uid()+'_'+(n++),
+        nom:String(nom).trim(),
+        psG:nint(pick(raw,['mpsg'])), psF:nint(pick(raw,['mpsf'])),
+        msG:nint(pick(raw,['mmsg'])), msF:nint(pick(raw,['mmsf'])),
+        gsG:nint(pick(raw,['mgsg'])), gsF:nint(pick(raw,['mgsf'])),
+      });
+    });
+    save('effPrescolaire', state.effPrescolaire);
+    logAction('eff-pres-import', `Effectif préscolaire : importation de ${n} école(s)`);
+    toast(`${n} école(s) importée(s)`,'success');
+    renderEffPrescolaireBody();
+  });
+}
+
+/* ---------- PRIMAIRE (école par école) ---------- */
+function effPrimRowTotalG(r){ return PRIM_NIV.reduce((a,n)=>a+nint(r[n.key+'G']),0); }
+function effPrimRowTotalF(r){ return PRIM_NIV.reduce((a,n)=>a+nint(r[n.key+'F']),0); }
+function effPrimTotals() {
+  const t = {};
+  PRIM_NIV.forEach(n => { t[n.key+'G']=0; t[n.key+'F']=0; });
+  (state.effPrimaire||[]).forEach(r => PRIM_NIV.forEach(n => { t[n.key+'G']+=nint(r[n.key+'G']); t[n.key+'F']+=nint(r[n.key+'F']); }));
+  return t;
+}
+function effPrimFiltered() {
+  const q = (document.getElementById('efr-search')?.value || '').toLowerCase();
+  let list = state.effPrimaire || [];
+  if (q) list = list.filter(r => (r.nom||'').toLowerCase().includes(q));
+  return list;
+}
+function renderEffPrimaireBody() {
+  const canEdit = statCanEdit();
+  const tb = document.getElementById('efr-body');
+  if (!tb) return;
+  const list = effPrimFiltered();
+  const all = state.effPrimaire || [];
+  const t = effPrimTotals();
+  let grandG=0, grandF=0;
+  PRIM_NIV.forEach(n=>{ grandG+=t[n.key+'G']; grandF+=t[n.key+'F']; });
+  const grand = grandG+grandF;
+  const st = document.getElementById('efr-stats');
+  if (st) st.innerHTML = `
+    <div class="stat s-green"><div class="stat-label">Écoles primaires saisies</div><div class="stat-value">${all.length}</div></div>
+    <div class="stat s-orange"><div class="stat-label">Garçons</div><div class="stat-value">${grandG.toLocaleString('fr-FR')}</div></div>
+    <div class="stat s-purple"><div class="stat-label">Effectif total primaire</div><div class="stat-value">${grand.toLocaleString('fr-FR')}</div></div>
+    <div class="stat s-pink"><div class="stat-label">Parité F</div><div class="stat-value">${grand?Math.round(grandF/grand*100):0}%</div><div class="stat-delta">filles</div></div>`;
+  const ncols = (canEdit?1:0) + 2 + PRIM_NIV.length*3 + 3 + (canEdit?1:0);
+  let html = '';
+  if (!list.length) {
+    html = `<tr><td colspan="${ncols}" class="table-empty">Aucune école — utilisez « + Ajouter une école »</td></tr>`;
+  } else {
+    html = list.map((r,i)=>{
+      const cells = PRIM_NIV.map(n=>{
+        const g=nint(r[n.key+'G']), f=nint(r[n.key+'F']);
+        return `<td>${g}</td><td>${f}</td><td class="fw-7">${g+f}</td>`;
+      }).join('');
+      const tg=effPrimRowTotalG(r), tf=effPrimRowTotalF(r);
+      return `<tr>
+        ${canEdit?`<td style="text-align:center"><input type="checkbox" class="efr-check" value="${r.id}"></td>`:''}
+        <td>${i+1}</td>
+        <td class="text-sm fw-7">${escapeHtml(r.nom)}</td>
+        ${cells}
+        <td>${tg}</td><td>${tf}</td><td class="fw-7" style="color:var(--blue-deep)">${tg+tf}</td>
+        ${canEdit?`<td class="actions-cell">
+          <button class="icon-btn" onclick="effPrimForm('${r.id}')" title="Modifier">✏️</button>
+          <button class="icon-btn danger" onclick="effPrimDelete('${r.id}')" title="Supprimer">🗑️</button>
+        </td>`:''}
+      </tr>`;
+    }).join('');
+  }
+  const totCells = PRIM_NIV.map(n=>`<td>${t[n.key+'G']}</td><td>${t[n.key+'F']}</td><td>${t[n.key+'G']+t[n.key+'F']}</td>`).join('');
+  html += `<tr style="background:var(--bg);font-weight:800">
+    ${canEdit?'<td></td>':''}<td colspan="2">TOTAL (${all.length})</td>
+    ${totCells}
+    <td>${grandG}</td><td>${grandF}</td><td style="color:var(--orange-deep);font-size:14px">${grand.toLocaleString('fr-FR')}</td>
+    ${canEdit?'<td></td>':''}
+  </tr>`;
+  tb.innerHTML = html;
+}
+function effPrimToggleAll(cb){ document.querySelectorAll('.efr-check').forEach(c=>c.checked=cb.checked); }
+function effPrimSelectedIds(){ return [...document.querySelectorAll('.efr-check:checked')].map(c=>c.value); }
+function effPrimBulkDelete() {
+  const ids = effPrimSelectedIds();
+  if (!ids.length) { toast('Aucune ligne cochée','error'); return; }
+  if (!confirm(`Supprimer ${ids.length} école(s) du tableau ?`)) return;
+  state.effPrimaire = state.effPrimaire.filter(x=>!ids.includes(x.id));
+  save('effPrimaire', state.effPrimaire);
+  logAction('eff-prim-bulk-delete', `Effectif primaire : suppression de ${ids.length} école(s)`);
+  toast(`${ids.length} école(s) supprimée(s)`,'success');
+  renderEffPrimaireBody();
+}
+function effPrimForm(id) {
+  const r = id ? state.effPrimaire.find(x=>x.id===id) : {nom:''};
+  const block = PRIM_NIV.map(n=>`
+    <div style="font-size:12px;font-weight:700;color:var(--blue-deep);margin:6px 0 2px">${n.label}</div>
+    <div class="form-row">
+      <div class="field"><label>Garçons</label><input id="efrf-${n.key}G" type="number" min="0" value="${nint(r[n.key+'G'])}"></div>
+      <div class="field"><label>Filles</label><input id="efrf-${n.key}F" type="number" min="0" value="${nint(r[n.key+'F'])}"></div>
+    </div>`).join('');
+  openModal(id ? "Modifier l'effectif de l'école" : 'Ajouter une école (primaire)', `
+    <div class="field"><label>Nom de l'école primaire</label><input id="efrf-nom" value="${escapeHtml(r.nom||'')}" placeholder="ex : EPP Niakara 1 B"></div>
+    ${block}
+  `, `
+    <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-orange" onclick="effPrimSave('${id||''}')">Enregistrer</button>
+  `);
+}
+function effPrimSave(id) {
+  const nom = document.getElementById('efrf-nom').value.trim();
+  if (!nom) { toast('Le nom de l\'école est obligatoire','error'); return; }
+  const data = { nom };
+  PRIM_NIV.forEach(n => {
+    data[n.key+'G'] = nint(document.getElementById('efrf-'+n.key+'G').value);
+    data[n.key+'F'] = nint(document.getElementById('efrf-'+n.key+'F').value);
+  });
+  if (id) {
+    Object.assign(state.effPrimaire.find(x=>x.id===id), data);
+    logAction('eff-prim-update', `Effectif primaire : correction « ${nom} »`);
+    toast('Effectif corrigé','success');
+  } else {
+    state.effPrimaire.push(Object.assign({id:'efr'+uid()}, data));
+    logAction('eff-prim-create', `Effectif primaire : ajout « ${nom} »`);
+    toast('École ajoutée','success');
+  }
+  save('effPrimaire', state.effPrimaire);
+  closeModal();
+  renderEffPrimaireBody();
+}
+function effPrimDelete(id) {
+  if (!confirm('Supprimer cette école du tableau des effectifs ?')) return;
+  state.effPrimaire = state.effPrimaire.filter(x=>x.id!==id);
+  save('effPrimaire', state.effPrimaire);
+  logAction('eff-prim-delete', `Effectif primaire : suppression école`);
+  toast('École supprimée','success');
+  renderEffPrimaireBody();
+}
+function effPrimExport() {
+  const rows = (state.effPrimaire||[]).map((r,i)=>{
+    const o = { 'N°':i+1, 'École':r.nom };
+    PRIM_NIV.forEach(n => { o[n.label+' G']=nint(r[n.key+'G']); o[n.label+' F']=nint(r[n.key+'F']); });
+    o['Total'] = effPrimRowTotalG(r)+effPrimRowTotalF(r);
+    return o;
+  });
+  exportRowsToExcel(rows, 'etat_effectif_primaire_iepp_niakara', 'Primaire');
+}
+function effPrimImport(ev) {
+  importRowsFromFile(ev, (rows) => {
+    let n=0;
+    const norm = h => h.toLowerCase().replace(/[^a-z0-9]/g,'');
+    const pick = (raw, keys) => { const k = Object.keys(raw).find(h=>keys.some(x=>norm(h)===x || norm(h).includes(x))); return k?raw[k]:''; };
+    rows.forEach(raw => {
+      const nom = pick(raw,['ecole','nom','ecoleprimaire']);
+      if (!nom) return;
+      const rec = { id:'efr'+uid()+'_'+(n++), nom:String(nom).trim() };
+      PRIM_NIV.forEach(nv => {
+        rec[nv.key+'G'] = nint(pick(raw,[nv.key+'g']));
+        rec[nv.key+'F'] = nint(pick(raw,[nv.key+'f']));
+      });
+      state.effPrimaire.push(rec);
+    });
+    save('effPrimaire', state.effPrimaire);
+    logAction('eff-prim-import', `Effectif primaire : importation de ${n} école(s)`);
+    toast(`${n} école(s) importée(s)`,'success');
+    renderEffPrimaireBody();
+  });
+}
+
+/* ---------- SYNCHRONISATION À PARTIR DES REMONTÉES DES ÉCOLES ---------- */
+function syncEffectifsFromRemontees() {
+  if (!statCanEdit()) { toast('Action réservée au Correspondant statistique','error'); return; }
+  // Préscolaire : liste de référence des maternelles remontées (carte scolaire préscolaire)
+  const refPres = [
+    'Maternelle Arikokaha','Maternelle Angolokaha','Maternelle Badiokaha','Maternelle Dossoulokaha',
+    'Maternelle Folofonkaha','Maternelle Kanawolo','Maternelle Latokaha','Maternelle Les Colombes Tortiya',
+    'Maternelle Municipale Niakara','Maternelle Nambanakaha','Maternelle Nangoniékaha','Maternelle Niakara 1 B',
+    'Maternelle Niakara 2','Maternelle Niakara 3','Maternelle Niakara Château','Maternelle Niakara Résidentiel',
+    'Maternelle Niangbo','Maternelle Niédiékaha','Maternelle Ouéréguékaha'
   ];
-  const totals = data.reduce((a,r)=>({
-    psG:a.psG+r.psG, psF:a.psF+r.psF, msG:a.msG+r.msG, msF:a.msF+r.msF, gsG:a.gsG+r.gsG, gsF:a.gsF+r.gsF
-  }), {psG:0,psF:0,msG:0,msF:0,gsG:0,gsF:0});
-  return `
-    <div class="card" style="padding:0">
-      <div class="table-wrap" style="border:none">
-        <table>
-          <thead>
-            <tr><th rowspan="2">N°</th><th rowspan="2">Maternelle</th><th colspan="3" style="text-align:center;background:var(--orange-soft)">MPS</th><th colspan="3" style="text-align:center;background:var(--green-soft)">MMS</th><th colspan="3" style="text-align:center;background:#EFE0FA">MGS</th><th colspan="3" style="text-align:center;background:var(--blue-soft)">Total</th></tr>
-            <tr><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th></tr>
-          </thead>
-          <tbody>
-            ${data.map((r,i)=>{
-              const tG = r.psG+r.msG+r.gsG;
-              const tF = r.psF+r.msF+r.gsF;
-              return `<tr>
-                <td>${i+1}</td>
-                <td class="text-sm fw-7">${escapeHtml(r.n)}</td>
-                <td>${r.psG}</td><td>${r.psF}</td><td class="fw-7">${r.psG+r.psF}</td>
-                <td>${r.msG}</td><td>${r.msF}</td><td class="fw-7">${r.msG+r.msF}</td>
-                <td>${r.gsG}</td><td>${r.gsF}</td><td class="fw-7">${r.gsG+r.gsF}</td>
-                <td>${tG}</td><td>${tF}</td><td class="fw-7" style="color:var(--blue-deep)">${tG+tF}</td>
-              </tr>`;
-            }).join('')}
-            <tr style="background:var(--bg);font-weight:800">
-              <td colspan="2">TOTAL</td>
-              <td>${totals.psG}</td><td>${totals.psF}</td><td>${totals.psG+totals.psF}</td>
-              <td>${totals.msG}</td><td>${totals.msF}</td><td>${totals.msG+totals.msF}</td>
-              <td>${totals.gsG}</td><td>${totals.gsF}</td><td>${totals.gsG+totals.gsF}</td>
-              <td>${totals.psG+totals.msG+totals.gsG}</td><td>${totals.psF+totals.msF+totals.gsF}</td>
-              <td style="color:var(--orange-deep);font-size:14px">${totals.psG+totals.psF+totals.msG+totals.msF+totals.gsG+totals.gsF}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
+  const exP = new Set((state.effPrescolaire||[]).map(r=>r.nom.trim().toLowerCase()));
+  let addP = 0;
+  refPres.forEach(nom => { if (!exP.has(nom.toLowerCase())) { state.effPrescolaire.push({ id:'efp'+uid()+'_s'+addP, nom, psG:0,psF:0,msG:0,msF:0,gsG:0,gsF:0 }); addP++; } });
+
+  // Primaire : écoles primaires issues des remontées (fichier des écoles)
+  const refPrim = (state.ecoles||[]).filter(e=>/^EPP/i.test(e.nom)).map(e=>e.nom);
+  const exR = new Set((state.effPrimaire||[]).map(r=>(r.nom||'').trim().toLowerCase()));
+  let addR = 0;
+  refPrim.forEach(nom => {
+    if (!exR.has(nom.toLowerCase())) {
+      const rec = { id:'efr'+uid()+'_s'+addR, nom };
+      PRIM_NIV.forEach(nv => { rec[nv.key+'G']=0; rec[nv.key+'F']=0; });
+      state.effPrimaire.push(rec); addR++;
+    }
+  });
+
+  state.effMeta = state.effMeta || {};
+  state.effMeta.lastSync = new Date().toISOString();
+  save('effPrescolaire', state.effPrescolaire);
+  save('effPrimaire', state.effPrimaire);
+  save('effMeta', state.effMeta);
+  logAction('eff-sync', `Synchronisation des remontées : +${addP} préscolaire, +${addR} primaire`);
+  const tot = addP+addR;
+  toast(tot ? `Synchronisation terminée — ${addP} préscolaire(s) et ${addR} primaire(s) ajoutée(s)` : 'Synchronisation terminée — aucune nouvelle école', 'success');
+  renderStatEffectifs();
 }
-function renderEffectifsPrimaireTable() {
-  return `
-    <div class="stat-grid">
-      <div class="stat s-green"><div class="stat-label">Total écoles primaires</div><div class="stat-value">62</div></div>
-      <div class="stat s-orange"><div class="stat-label">Classes en fonctionnement</div><div class="stat-value">373</div></div>
-      <div class="stat s-purple"><div class="stat-label">Effectif total primaire</div><div class="stat-value">16 111</div></div>
-      <div class="stat s-pink"><div class="stat-label">Parité F/G primaire</div><div class="stat-value">${Math.round(7880/16111*100)}%</div><div class="stat-delta">filles</div></div>
-    </div>
-    <div class="card" style="padding:0">
-      <div class="table-wrap" style="border:none">
-        <table>
-          <thead>
-            <tr><th>Niveau</th><th colspan="3" style="text-align:center;background:var(--blue-soft)">Public</th><th colspan="3" style="text-align:center;background:var(--orange-soft)">Privé</th><th colspan="3" style="text-align:center;background:var(--green-soft)">Communautaire</th><th style="text-align:center;background:#EFE0FA">Total</th></tr>
-            <tr><th></th><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th><th>G</th><th>F</th><th>T</th><th></th></tr>
-          </thead>
-          <tbody>
-            <tr><td class="fw-7">CP1</td><td>1 372</td><td>1 192</td><td class="fw-7">2 564</td><td>22</td><td>22</td><td class="fw-7">44</td><td>52</td><td>67</td><td class="fw-7">119</td><td class="fw-7" style="color:var(--blue-deep)">2 727</td></tr>
-            <tr><td class="fw-7">CP2</td><td>1 159</td><td>1 237</td><td class="fw-7">2 396</td><td>26</td><td>26</td><td class="fw-7">52</td><td>22</td><td>43</td><td class="fw-7">65</td><td class="fw-7" style="color:var(--blue-deep)">2 513</td></tr>
-            <tr><td class="fw-7">CE1</td><td>1 196</td><td>1 241</td><td class="fw-7">2 437</td><td>33</td><td>28</td><td class="fw-7">61</td><td>12</td><td>11</td><td class="fw-7">23</td><td class="fw-7" style="color:var(--blue-deep)">2 521</td></tr>
-            <tr><td class="fw-7">CE2</td><td>1 220</td><td>1 228</td><td class="fw-7">2 448</td><td>29</td><td>29</td><td class="fw-7">58</td><td>9</td><td>9</td><td class="fw-7">18</td><td class="fw-7" style="color:var(--blue-deep)">2 524</td></tr>
-            <tr><td class="fw-7">CM1</td><td>1 306</td><td>1 203</td><td class="fw-7">2 509</td><td>27</td><td>27</td><td class="fw-7">54</td><td>5</td><td>9</td><td class="fw-7">14</td><td class="fw-7" style="color:var(--blue-deep)">2 577</td></tr>
-            <tr><td class="fw-7">CM2</td><td>1 428</td><td>1 140</td><td class="fw-7">2 568</td><td>21</td><td>18</td><td class="fw-7">39</td><td>0</td><td>0</td><td class="fw-7">0</td><td class="fw-7" style="color:var(--blue-deep)">2 607</td></tr>
-            <tr style="background:var(--bg);font-weight:800">
-              <td>TOTAL</td>
-              <td>7 681</td><td>7 241</td><td>14 922</td>
-              <td>158</td><td>150</td><td>308</td>
-              <td>100</td><td>139</td><td>239</td>
-              <td style="font-size:14px;color:var(--orange-deep)">16 111</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
-}
+
 
 
 
@@ -4362,74 +6032,245 @@ function exportRemonteesCSV() {
 /* ==================================================================
    MODULE : Carte scolaire (Préscolaire / Primaire / Secondaire)
    ================================================================== */
+/* ==================================================================
+   MODULE : Carte scolaire — version éditable (ajout)
+   Préscolaire / Primaire / Secondaire. Formulaire de remplissage avec
+   cellules essentielles + champs avancés repliables. Ajout / modification /
+   suppression, import / export Excel, tout supprimer après sélection, impression.
+   ================================================================== */
+const CARTE_META = {
+  prescolaire: { icon:'🧸', color:'orange', titre:'Préscolaire' },
+  primaire:    { icon:'📚', color:'green',  titre:'Primaire' },
+  secondaire:  { icon:'🎓', color:'blue',   titre:'Secondaire' },
+};
+const CARTE_COLS = [
+  { key:'denomination', label:"Dénomination de l'école", width:'' , req:true },
+  { key:'localite',     label:'Localité',      width:'130px' },
+  { key:'sprefecture',  label:'S/Préf. ou Commune', width:'140px' },
+  { key:'zone',         label:'Zone',          width:'70px' },
+  { key:'statut',       label:'Statut',        width:'110px' },
+  { key:'effectif',     label:'Effectif',      width:'90px', num:true },
+  { key:'classes',      label:'Classes',       width:'80px', num:true },
+];
+const CARTE_ADV = [
+  { key:'departement',  label:'Département' },
+  { key:'superficie',   label:'Superficie du terrain' },
+  { key:'population',   label:'Population (6-11 ans)' },
+  { key:'dateOuverture',label:"Date d'ouverture programmée" },
+  { key:'financement',  label:'Structure de financement' },
+  { key:'cout',         label:'Coût estimatif' },
+  { key:'observations', label:'Observations' },
+];
+function carteCanEdit() {
+  return ['superadmin','inspecteur','correspondant','corresp_stat','drenaet'].includes(state.user.role);
+}
+
 function renderCarteScolaire(type) {
-  const dataSets = {
-    prescolaire: {
-      icon: '🧸', color: 'orange',
-      titre: 'Préscolaire',
-      ecoles: 22, ecolesAutorisees: 24, classes: 52, eleves: 1411, garcons: 679, filles: 732,
-      list: [
-        'Maternelle Arikokaha','Maternelle Angolokaha','Maternelle Badiokaha','Maternelle Dossoulokaha',
-        'Maternelle Folofonkaha','Maternelle Kanawolo','Maternelle Latokaha','Maternelle Les Colombes Tortiya',
-        'Maternelle Municipale Niakara','Maternelle Nambanakaha','Maternelle Nangoniékaha','Maternelle Niakara 1 B',
-        'Maternelle Niakara 2','Maternelle Niakara 3','Maternelle Niakara Château','Maternelle Niakara Résidentiel',
-        'Maternelle Niangbo','Maternelle Niédiékaha','Maternelle Ouéréguékaha'
-      ]
-    },
-    primaire: {
-      icon: '📚', color: 'green',
-      titre: 'Primaire',
-      ecoles: 62, ecolesAutorisees: 65, classes: 373, eleves: 16111, garcons: 8231, filles: 7880,
-      list: state.ecoles.map(e=>e.nom)
-    },
-    secondaire: {
-      icon: '🎓', color: 'blue',
-      titre: 'Secondaire',
-      ecoles: 0, ecolesAutorisees: 0, classes: 0, eleves: 0, garcons: 0, filles: 0,
-      list: []
-    }
-  };
-  const d = dataSets[type];
-
+  const m = CARTE_META[type] || CARTE_META.prescolaire;
+  const canEdit = carteCanEdit();
   setContent(`
-    <div class="hero" style="background:linear-gradient(135deg,var(--${d.color}) 0%,var(--${d.color}-deep) 100%)">
-      <h3>${d.icon} Carte scolaire — <em>${d.titre}</em></h3>
-      <p>Synthèse et liste des écoles ${d.titre.toLowerCase()}s remontées de la circonscription IEPP NIAKARA. Données issues du Secrétariat de la carte scolaire.</p>
+    <div class="hero" style="background:linear-gradient(135deg,var(--${m.color}) 0%,var(--${m.color}-deep) 100%)">
+      <h3>${m.icon} Carte scolaire — <em>${m.titre}</em></h3>
+      <p>Établissements ${m.titre.toLowerCase()}s de la circonscription IEPP NIAKARA. ${canEdit?'Formulaire de remplissage : ajout, modification, suppression, import/export Excel et impression.':'Liste des établissements remontés.'}</p>
     </div>
-
-    ${type === 'secondaire' ? `
-      <div class="card" style="padding:40px;text-align:center">
-        <div style="font-size:48px;margin-bottom:14px">🏗️</div>
-        <h3 style="font-family:'Fraunces',serif;color:var(--blue-deep);margin-bottom:8px">Module en cours d'élaboration</h3>
-        <p class="text-muted" style="max-width:480px;margin:0 auto">Les données du secondaire ne relèvent pas directement de l'IEPP (Inspection de l'Enseignement Préscolaire et Primaire). Ce module sera connecté aux services de l'enseignement secondaire de la DRENAET Katiola lors d'une prochaine version.</p>
-      </div>
-    ` : `
-      <div class="stat-grid">
-        <div class="stat s-${d.color}"><div class="stat-label">Écoles en fonctionnement</div><div class="stat-value">${d.ecoles}</div><div class="stat-delta">sur ${d.ecolesAutorisees} autorisées</div></div>
-        <div class="stat s-purple"><div class="stat-label">Classes</div><div class="stat-value">${d.classes}</div></div>
-        <div class="stat s-pink"><div class="stat-label">Effectif total</div><div class="stat-value">${d.eleves.toLocaleString('fr-FR')}</div></div>
-        <div class="stat s-yellow"><div class="stat-label">Parité F/G</div><div class="stat-value">${Math.round(d.filles/(d.filles+d.garcons)*100)}%</div></div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">Liste des écoles remontées (${d.list.length})</div>
-            <div class="card-sub">Établissements ${d.titre.toLowerCase()}s déclarés et en fonctionnement</div>
-          </div>
-          <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨️ Imprimer</button>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;margin-top:10px">
-          ${d.list.map((nom,i)=>`
-            <div style="padding:10px 12px;border:1px solid var(--line);border-radius:8px;display:flex;align-items:center;gap:10px">
-              <div style="width:28px;height:28px;border-radius:7px;background:var(--${d.color}-soft);color:var(--${d.color}-deep);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px">${i+1}</div>
-              <div class="text-sm fw-7">${escapeHtml(nom)}</div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `}
+    <div id="carte-stats-${type}" class="stat-grid"></div>
+    <div class="toolbar no-print">
+      <div class="search-input"><input id="carte-${type}-search" placeholder="Rechercher (école, localité)..." oninput="renderCarteBody('${type}')"></div>
+      <select id="carte-${type}-statut" onchange="renderCarteBody('${type}')" style="padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--white)">
+        <option value="">Tous statuts</option><option>Public</option><option>Privé</option><option>Communautaire</option>
+      </select>
+      <div style="flex:1"></div>
+      ${canEdit?`<button class="btn btn-ghost danger" onclick="carteSelectAllDelete('${type}')">🗑️ Tout supprimer (sélection)</button>`:''}
+      <button class="btn btn-ghost" onclick="cartePrint('${type}')">🖨️ Imprimer</button>
+      <button class="btn btn-green" onclick="carteExport('${type}')">📊 Export Excel</button>
+      ${canEdit?`<button class="btn btn-ghost" onclick="document.getElementById('carte-${type}-import').click()">📥 Importer Excel</button>
+      <input type="file" id="carte-${type}-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="carteImport('${type}',event)">
+      <button class="btn btn-orange" onclick="carteForm('${type}')">+ Ajouter une école</button>`:''}
+    </div>
+    <div class="card" style="padding:0"><div class="table-wrap" style="border:none">
+      <table id="carte-${type}-table">
+        <thead><tr>
+          ${canEdit?`<th style="width:32px;text-align:center"><input type="checkbox" onclick="carteToggleAll('${type}',this)"></th>`:''}
+          <th style="width:32px">N°</th>
+          ${CARTE_COLS.map(c=>`<th${c.width?` style="width:${c.width}"`:''}>${escapeHtml(c.label)}</th>`).join('')}
+          ${canEdit?'<th class="no-print" style="width:74px"></th>':''}
+        </tr></thead>
+        <tbody id="carte-${type}-body"></tbody>
+      </table>
+    </div></div>
+    <div style="text-align:right;margin-top:12px;font-style:italic;color:var(--ink-soft);font-size:12.5px">Fait à Niakara, le ${new Date().toLocaleDateString('fr-FR')}</div>
   `);
+  renderCarteBody(type);
+}
+function carteList(type) { return (state.carteScolaire||[]).filter(e=>e.niveau===type); }
+function carteFiltered(type) {
+  const q = (document.getElementById('carte-'+type+'-search')?.value||'').toLowerCase();
+  const st = document.getElementById('carte-'+type+'-statut')?.value||'';
+  let list = carteList(type);
+  if (q) list = list.filter(e=>(e.denomination||'').toLowerCase().includes(q) || (e.localite||'').toLowerCase().includes(q));
+  if (st) list = list.filter(e=>e.statut===st);
+  return list;
+}
+function renderCarteBody(type) {
+  const canEdit = carteCanEdit();
+  const tb = document.getElementById('carte-'+type+'-body'); if(!tb) return;
+  const list = carteFiltered(type);
+  const all = carteList(type);
+  // stats
+  const totEff = all.reduce((a,e)=>a+nint(e.effectif),0);
+  const totCl = all.reduce((a,e)=>a+nint(e.classes),0);
+  const st = document.getElementById('carte-stats-'+type);
+  const m = CARTE_META[type];
+  if (st) st.innerHTML = `
+    <div class="stat s-${m.color}"><div class="stat-label">Écoles ${m.titre.toLowerCase()}s</div><div class="stat-value">${all.length}</div></div>
+    <div class="stat s-purple"><div class="stat-label">Classes</div><div class="stat-value">${totCl}</div></div>
+    <div class="stat s-pink"><div class="stat-label">Effectif total</div><div class="stat-value">${totEff.toLocaleString('fr-FR')}</div></div>
+    <div class="stat s-yellow"><div class="stat-label">Publiques</div><div class="stat-value">${all.filter(e=>e.statut==='Public').length}</div></div>`;
+  const span = (canEdit?1:0)+1+CARTE_COLS.length+(canEdit?1:0);
+  if (!list.length) { tb.innerHTML = `<tr><td colspan="${span}" class="table-empty">Aucune école — utilisez « + Ajouter une école »</td></tr>`; return; }
+  tb.innerHTML = list.map((e,i)=>`<tr>
+    ${canEdit?`<td class="no-print" style="text-align:center"><input type="checkbox" class="carte-${type}-check" value="${e.id}"></td>`:''}
+    <td>${i+1}</td>
+    ${CARTE_COLS.map((c,ci)=>{
+      const v = escapeHtml(e[c.key]||'');
+      if (ci===0) return `<td class="fw-7">${v||'—'}</td>`;
+      if (c.key==='statut') { return `<td><span class="badge badge-${e.statut==='Public'?'blue':e.statut==='Privé'?'orange':'green'}">${v||'—'}</span></td>`; }
+      if (c.key==='zone') return `<td style="text-align:center">${v||'—'}</td>`;
+      if (c.num) return `<td style="text-align:center" class="fw-7">${nint(e[c.key])||'—'}</td>`;
+      return `<td class="text-sm">${v||'—'}</td>`;
+    }).join('')}
+    ${canEdit?`<td class="actions-cell no-print"><button class="icon-btn" onclick="carteForm('${type}','${e.id}')" title="Modifier">✏️</button><button class="icon-btn danger" onclick="carteDelete('${type}','${e.id}')" title="Supprimer">🗑️</button></td>`:''}
+  </tr>`).join('');
+}
+function carteToggleAll(type,cb){ document.querySelectorAll('.carte-'+type+'-check').forEach(c=>c.checked=cb.checked); }
+function carteSelectedIds(type){ return [...document.querySelectorAll('.carte-'+type+'-check:checked')].map(c=>c.value); }
+function carteSelectAllDelete(type) {
+  const ids = carteSelectedIds(type);
+  if (!ids.length) { toast('Cochez d\'abord des écoles (ou la case d\'en-tête)','error'); return; }
+  if (!confirm(`Supprimer définitivement ${ids.length} école(s) sélectionnée(s) ?`)) return;
+  state.carteScolaire = state.carteScolaire.filter(x=>!ids.includes(x.id));
+  save('carteScolaire', state.carteScolaire);
+  logAction('carte-bulk-delete', `Carte scolaire ${type} : suppression de ${ids.length} école(s)`);
+  toast(`${ids.length} école(s) supprimée(s)`,'success');
+  renderCarteBody(type);
+}
+function carteForm(type, id) {
+  const m = CARTE_META[type];
+  const e = id ? state.carteScolaire.find(x=>x.id===id) : { niveau:type, statut:'Public', zone:'U', iepp:'NIAKARA' };
+  const fld = (k,lab,opts)=>{
+    if (k==='statut') return `<div class="field"><label>Statut</label><select id="cf-statut">${['Public','Privé','Communautaire'].map(s=>`<option ${e.statut===s?'selected':''}>${s}</option>`).join('')}</select></div>`;
+    if (k==='zone') return `<div class="field"><label>Zone</label><select id="cf-zone"><option value="U" ${e.zone==='U'?'selected':''}>Urbaine (U)</option><option value="R" ${e.zone==='R'?'selected':''}>Rurale (R)</option></select></div>`;
+    const t = opts&&opts.num?'number':'text';
+    return `<div class="field"><label>${lab}</label><input id="cf-${k}" type="${t}" ${opts&&opts.num?'min="0"':''} value="${escapeHtml(e[k]||'')}"></div>`;
+  };
+  openModal(id ? "Modifier l'école" : `Ajouter une école — ${m.titre}`, `
+    <div class="field"><label>Dénomination de l'école</label><input id="cf-denomination" value="${escapeHtml(e.denomination||'')}" placeholder="ex : EPP Niakara 1 B"></div>
+    <div class="form-row">${fld('localite','Localité')}${fld('sprefecture','S/Préfecture ou Commune')}</div>
+    <div class="form-row">${fld('zone')}${fld('statut')}</div>
+    <div class="form-row">${fld('effectif','Effectif',{num:true})}${fld('classes','Nombre de classes',{num:true})}</div>
+    <details style="margin-top:8px">
+      <summary style="cursor:pointer;font-weight:700;color:var(--${m.color}-deep);font-size:13px;padding:6px 0">▸ Champs avancés (carte scolaire détaillée)</summary>
+      <div style="padding-top:8px">
+        <div class="form-row">${fld('departement','Département')}${fld('superficie','Superficie du terrain')}</div>
+        <div class="form-row">${fld('population','Population (6-11 ans)')}${fld('dateOuverture',"Date d'ouverture programmée")}</div>
+        <div class="form-row">${fld('financement','Structure de financement')}${fld('cout','Coût estimatif')}</div>
+        <div class="field"><label>Observations</label><input id="cf-observations" value="${escapeHtml(e.observations||'')}"></div>
+      </div>
+    </details>
+  `, `
+    <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-orange" onclick="carteSave('${type}','${id||''}')">Enregistrer</button>
+  `);
+}
+function carteSave(type, id) {
+  const denomination = document.getElementById('cf-denomination').value.trim();
+  if (!denomination) { toast("La dénomination de l'école est obligatoire",'error'); return; }
+  const g = k => { const el=document.getElementById('cf-'+k); return el?el.value.trim():''; };
+  const data = {
+    niveau:type, iepp:'NIAKARA', denomination,
+    localite:g('localite'), sprefecture:g('sprefecture'), zone:g('zone'), statut:g('statut'),
+    effectif:nint(g('effectif')), classes:nint(g('classes')),
+    departement:g('departement'), superficie:g('superficie'), population:g('population'),
+    dateOuverture:g('dateOuverture'), financement:g('financement'), cout:g('cout'), observations:g('observations')
+  };
+  if (id) {
+    Object.assign(state.carteScolaire.find(x=>x.id===id), data);
+    logAction('carte-update', `Carte scolaire ${type} : correction « ${denomination} »`);
+    toast('École corrigée','success');
+  } else {
+    state.carteScolaire.push(Object.assign({id:'cs-'+uid()}, data));
+    logAction('carte-create', `Carte scolaire ${type} : ajout « ${denomination} »`);
+    toast('École ajoutée','success');
+  }
+  save('carteScolaire', state.carteScolaire);
+  closeModal();
+  renderCarteBody(type);
+}
+function carteDelete(type, id) {
+  if (!confirm('Supprimer cette école de la carte scolaire ?')) return;
+  state.carteScolaire = state.carteScolaire.filter(x=>x.id!==id);
+  save('carteScolaire', state.carteScolaire);
+  logAction('carte-delete', `Carte scolaire ${type} : suppression école`);
+  toast('École supprimée','success');
+  renderCarteBody(type);
+}
+function carteExport(type) {
+  const rows = carteFiltered(type).map((e,i)=>({
+    'N°':i+1, 'Département':e.departement||'', 'S/Préfecture ou Commune':e.sprefecture||'', 'Localité':e.localite||'',
+    'IEPP':e.iepp||'NIAKARA', "Dénomination de l'école":e.denomination||'', 'Zone':e.zone||'', 'Statut':e.statut||'',
+    'Effectif':nint(e.effectif), 'Classes':nint(e.classes), 'Superficie':e.superficie||'', 'Population (6-11 ans)':e.population||'',
+    "Date d'ouverture":e.dateOuverture||'', 'Financement':e.financement||'', 'Coût estimatif':e.cout||'', 'Observations':e.observations||''
+  }));
+  exportRowsToExcel(rows, 'carte_scolaire_'+type+'_iepp_niakara', CARTE_META[type].titre);
+}
+function carteImport(type, ev) {
+  importRowsFromFile(ev, (rows)=>{
+    let n=0; const norm=h=>h.toLowerCase().replace(/[^a-z0-9]/g,'');
+    const pick=(raw,keys)=>{ const k=Object.keys(raw).find(h=>keys.some(x=>norm(h).includes(x))); return k?String(raw[k]).trim():''; };
+    rows.forEach(raw=>{
+      const denomination = pick(raw,['denomination','ecole','nom','etablissement']);
+      if (!denomination || /neant/i.test(denomination)) return;
+      state.carteScolaire.push({
+        id:'cs-'+uid()+'_'+(n++), niveau:type, iepp:pick(raw,['iepp'])||'NIAKARA',
+        denomination,
+        localite:pick(raw,['localite']), sprefecture:pick(raw,['sprefecture','commune','prefecture']),
+        zone:(pick(raw,['zone'])||'').toUpperCase().slice(0,1)||'',
+        statut:pick(raw,['statut'])||'Public',
+        effectif:nint(pick(raw,['effectif','population'])), classes:nint(pick(raw,['classe'])),
+        departement:pick(raw,['departement']), superficie:pick(raw,['superficie']),
+        population:pick(raw,['population6','population']), dateOuverture:pick(raw,['ouverture','date']),
+        financement:pick(raw,['financement']), cout:pick(raw,['cout']), observations:pick(raw,['observation'])
+      });
+    });
+    save('carteScolaire', state.carteScolaire);
+    logAction('carte-import', `Carte scolaire ${type} : importation de ${n} école(s)`);
+    toast(`${n} école(s) importée(s)`,'success');
+    renderCarteBody(type);
+  });
+}
+function cartePrint(type) {
+  const table = document.getElementById('carte-'+type+'-table');
+  if (!table) { window.print(); return; }
+  const m = CARTE_META[type];
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Carte scolaire ${m.titre}</title>
+    <style>
+      body{font-family:Arial,Helvetica,sans-serif;margin:22px;color:#1A1B25}
+      h1{font-size:15px;margin:0 0 2px;text-align:center}
+      .sub{text-align:center;font-size:12px;color:#555;margin-bottom:14px}
+      table{width:100%;border-collapse:collapse;font-size:10.5px}
+      th,td{border:1px solid #999;padding:4px 5px;text-align:left}
+      th{background:#eee;text-align:center}
+      .no-print{display:none !important}
+      .foot{margin-top:16px;text-align:right;font-style:italic;font-size:11px}
+    </style></head><body>
+    <h1>CARTE SCOLAIRE — ${m.titre.toUpperCase()} — IEPP NIAKARA</h1>
+    <div class="sub">Année scolaire 2026-2027 — ${carteList(type).length} établissement(s)</div>
+    ${table.outerHTML}
+    <div class="foot">Fait à Niakara, le ${new Date().toLocaleDateString('fr-FR')}</div>
+    </body></html>`);
+  w.document.close();
+  setTimeout(()=>{ w.focus(); w.print(); }, 350);
 }
 
 /* ==================================================================
