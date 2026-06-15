@@ -1140,6 +1140,12 @@ function vieResetAllData() {
       </div>
     </div>
 
+    <div style="padding:0 12px;margin-bottom:6px">
+      <button onclick="openGuideUtilisation()" style="width:100%;display:flex;align-items:center;gap:10px;padding:11px 13px;border:none;border-radius:10px;cursor:pointer;background:linear-gradient(135deg,#1F6FEB 0%,#0A4DA6 100%);color:#fff;font-weight:700;font-size:13px;box-shadow:0 2px 8px rgba(10,77,166,.25)">
+        <span style="font-size:17px">📘</span><span style="flex:1;text-align:left">Guide d'utilisation</span><span style="font-size:11px;opacity:.85">PDF</span>
+      </button>
+    </div>
+
     <div class="sb-section" id="sb-drenaet-section">
       <div class="sb-section-title">Direction régionale</div>
       <div class="sb-link" data-module="drenaet" onclick="navigate('drenaet')">
@@ -24761,6 +24767,125 @@ function absImprimerAutorisation(id) {
     if (changed) save('users', state.users);
   } catch(e) { console.warn('seedEspaceAccounts', e); }
 })();
+
+/* ==================================================================
+   GUIDE D'UTILISATION DE LA PLATEFORME — accessible à tous
+   Aperçu en modale + téléchargement / impression PDF.
+   ================================================================== */
+function guideSections() {
+  return [
+    { t:"1. Présentation", icon:"🏫", html:`
+      <p>La <strong>Plateforme Numérique de Gestion de l'IEPP</strong> centralise la gestion d'une Inspection de l'Enseignement Préscolaire et Primaire (MENAET — Côte d'Ivoire) : écoles, élèves, personnel, statistiques, examens, autorisations d'absence, services (bibliothèque, cantine, économat, COGES, archives, courrier…) et remontées de fiches statistiques.</p>
+      <p>Elle fonctionne entièrement dans le navigateur. Les données sont enregistrées automatiquement sur l'appareil (stockage local) ; aucune saisie n'est perdue entre deux sessions.</p>` },
+    { t:"2. Connexion & profils", icon:"🔑", html:`
+      <p>Chaque utilisateur se connecte avec un identifiant et un mot de passe. Le menu latéral s'adapte automatiquement au <strong>rôle</strong> : on ne voit que les modules autorisés.</p>
+      <ul>
+        <li><strong>Administrateur / Superadmin</strong> : accès complet, paramétrage, comptes.</li>
+        <li><strong>Inspecteur</strong> : pilotage, approbation des demandes, examens, RH.</li>
+        <li><strong>DRENA</strong> : supervision régionale des IEPP.</li>
+        <li><strong>CPI / CPPP, Conseillers</strong> : suivi pédagogique et vie scolaire.</li>
+        <li><strong>Correspondant fichier / statistique</strong> : écoles, élèves, situation et état des effectifs, remontées de fiches.</li>
+        <li><strong>Directeur</strong> : son école, ses classes, demandes d'autorisation.</li>
+        <li><strong>Instituteur</strong> : sa classe, ses élèves.</li>
+        <li><strong>Services</strong> (bibliothèque, cantine, économat, COGES, SMOSS, communication, secrétariat, archives, RH) : leur espace dédié.</li>
+      </ul>` },
+    { t:"3. Navigation", icon:"🧭", html:`
+      <p>Le <strong>menu latéral</strong> gauche regroupe les modules par catégories (Pilotage, Mon espace, Correspondant, Administration, Services…). Les groupes avec une flèche ▾ se déplient.</p>
+      <p>En haut à droite : l'<strong>année scolaire</strong>, l'<strong>horloge</strong>, l'état de synchronisation et le logo. En bas du menu : votre nom, votre rôle et le bouton de déconnexion.</p>` },
+    { t:"4. Barre d'outils des tableaux", icon:"🧰", html:`
+      <p>La plupart des modules présentent un tableau muni d'une barre d'outils homogène :</p>
+      <ul>
+        <li>🔍 <strong>Rechercher</strong> : filtre le tableau en direct.</li>
+        <li>📄 <strong>Aperçu PDF</strong> : prévisualise avant impression (en-tête officiel + signatures).</li>
+        <li>📊 <strong>Excel</strong> : export du tableau au format tableur.</li>
+        <li>📄 <strong>Word</strong> : export en document .doc.</li>
+        <li>🖨️ <strong>Imprimer</strong> : impression directe ou enregistrement en PDF.</li>
+        <li>📥 <strong>Importer</strong> : injecte des données depuis un fichier Excel/CSV.</li>
+        <li>➕ <strong>Nouvelle action</strong> : ajoute une ligne / un enregistrement.</li>
+        <li>✏️ <strong>Modifier</strong> et 🗑️ <strong>Supprimer</strong> : sur chaque ligne.</li>
+      </ul>` },
+    { t:"5. Gestion des écoles & élèves", icon:"🏫", html:`
+      <p><strong>Fichier des écoles</strong> : codes d'identification, directeurs, effectifs, statut (Public/Privé/Communautaire), import/export.</p>
+      <p><strong>Immatriculation des élèves</strong> : matricules, cartes scolaires, élèves sans extrait de naissance (suivi prioritaire et régularisation).</p>` },
+    { t:"6. Situation & effectifs", icon:"📈", html:`
+      <p><strong>Situation statistique</strong> (Correspondant statistique) reproduit la fiche officielle DESPS en 3 sections : I. écoles / classes / élèves · II. état des niveaux · III. état des effectifs par niveaux. Une barre d'outils générale en haut permet d'exporter ou imprimer toute la page d'un coup.</p>
+      <p><strong>État des effectifs</strong> : saisie école par école (préscolaire & primaire) et fiches officielles de rentrée par classe (enseignant + effectifs par catégorie). La section III peut être synchronisée depuis ces effectifs.</p>` },
+    { t:"7. Fiches statistiques (type Kobo)", icon:"📝", html:`
+      <p>Les questionnaires officiels (Préscolaire, Primaire, Alphabétisation, Structures islamiques) sont disponibles comme formulaires à remplir en ligne. Pour chacun :</p>
+      <ul>
+        <li><strong>Remplir</strong> la fiche par sections.</li>
+        <li><strong>Réponses</strong> : voir, modifier, imprimer, supprimer, exporter (Excel/Word/PDF).</li>
+        <li>🔗 <strong>Lien partageable</strong> : à envoyer aux directeurs (WhatsApp/Email) pour une saisie en ligne sans connexion.</li>
+        <li>✨ <strong>Générateur</strong> : créer une fiche identique depuis un fichier Excel ou via une IA standard (avec votre propre clé).</li>
+      </ul>` },
+    { t:"8. Autorisations d'absence", icon:"📅", html:`
+      <p>Tout le personnel peut soumettre une demande d'autorisation d'absence. Deux circuits :</p>
+      <ul>
+        <li><strong>Personnel de l'inspection & Directeurs</strong> : la demande va <strong>directement à l'Inspecteur</strong> pour approbation avant signature.</li>
+        <li><strong>Instituteur (en école)</strong> : la demande passe d'abord par le <strong>Directeur</strong>, puis l'Inspecteur.</li>
+      </ul>
+      <p>L'Inspecteur approuve (✓✓) ou rejette ; l'autorisation officielle est ensuite imprimée.</p>` },
+    { t:"9. Examens & Concours", icon:"🎓", html:`
+      <p>Gestion du CEPE et de l'Entrée en 6ᵉ : centres, classes CM2, saisie des notes par matière, effectifs, candidats, convocations et <strong>matrice d'action</strong> (plan chronologique des phases), avec génération de rapport automatique.</p>` },
+    { t:"10. Services & espaces", icon:"🗂️", html:`
+      <p>Chaque service dispose de son espace : Bibliothèque, Cantine, Économat, COGES, SMOSS, Communication, Secrétariat, Archives, Ressources humaines. Tous proposent tableaux de bord, registres, statistiques et générateurs de rapports.</p>` },
+    { t:"11. Corbeille", icon:"♻️", html:`
+      <p>Toute suppression (élève, ligne de tableau, fiche, document…) part dans la <strong>Corbeille</strong>. On peut y <strong>restaurer</strong> un élément supprimé par erreur, individuellement ou en lot.</p>` },
+    { t:"12. Conseils", icon:"💡", html:`
+      <ul>
+        <li>Utilisez l'<strong>Aperçu PDF</strong> avant d'imprimer pour vérifier la mise en page.</li>
+        <li>Pour partager une fiche aux directeurs, préférez le <strong>lien partageable</strong>.</li>
+        <li>Exportez régulièrement vos données (Excel) en sauvegarde.</li>
+        <li>En cas de suppression accidentelle, rendez-vous dans la <strong>Corbeille</strong>.</li>
+        <li>Les boutons d'ajout/modification n'apparaissent que pour les rôles autorisés.</li>
+      </ul>` },
+  ];
+}
+function guideInnerHtml(forPrint) {
+  const u = state.user || {};
+  const ieppName = state.activeIepp || 'IEPP NIAKARA';
+  const logo = (typeof ARMOIRIE_MENAET_B64 !== 'undefined') ? ARMOIRIE_MENAET_B64 : '';
+  const secs = guideSections().map(s=>`
+    <section style="margin-bottom:16px;page-break-inside:avoid">
+      <h3 style="color:#0A4DA6;font-size:15px;margin:0 0 6px;border-bottom:1.5px solid #E2E8F0;padding-bottom:4px">${s.icon} ${s.t}</h3>
+      <div style="font-size:12.5px;line-height:1.55;color:#1F2937">${s.html}</div>
+    </section>`).join('');
+  return `<div style="font-family:Arial,Helvetica,sans-serif;color:#1F2937">
+    <div style="text-align:center;border-bottom:2px solid #0A4DA6;padding-bottom:12px;margin-bottom:16px">
+      ${logo?`<img src="${logo}" style="max-width:230px;height:auto;margin-bottom:6px">`:''}
+      <div style="font-size:11px;color:#555">République de Côte d'Ivoire · MENAET · ${escapeHtml(ieppName)}</div>
+      <h1 style="font-size:20px;color:#0A4DA6;margin:8px 0 2px">📘 Guide d'utilisation</h1>
+      <div style="font-size:12px;color:#666">Plateforme Numérique de Gestion de l'IEPP — édité le ${new Date().toLocaleDateString('fr-FR')}</div>
+    </div>
+    ${secs}
+    <div style="margin-top:18px;padding-top:10px;border-top:1px solid #E2E8F0;font-size:10.5px;color:#888;text-align:center">
+      Document généré automatiquement par la plateforme · MENAET · ${escapeHtml(ieppName)}
+    </div>
+  </div>`;
+}
+function openGuideUtilisation() {
+  openModal('📘 Guide d\'utilisation de la plateforme',
+    `<div style="max-height:72vh;overflow:auto;background:#fff;padding:6px 4px">${guideInnerHtml(false)}</div>`,
+    `<button class="btn btn-primary" style="background:#0A4DA6;border-color:#0A4DA6" onclick="downloadGuidePDF()">⬇️ Télécharger en PDF</button>
+     <button class="btn btn-green" onclick="downloadGuidePDF()">🖨️ Imprimer</button>
+     <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>`);
+}
+function downloadGuidePDF() {
+  const w = window.open('', '_blank');
+  if (!w) { toast('Autorisez les pop-up pour télécharger le PDF', 'error'); return; }
+  w.document.write(`<html><head><meta charset="utf-8"><title>Guide d'utilisation — Plateforme IEPP</title>
+    <style>
+      body{margin:24px;background:#fff}
+      ul{margin:4px 0 4px 18px;padding:0}
+      li{margin:3px 0}
+      @media print{ @page{margin:14mm} button{display:none} }
+    </style></head><body>
+    ${guideInnerHtml(true)}
+    <script>window.onload=function(){ setTimeout(function(){ window.print(); }, 300); }<\/script>
+    </body></html>`);
+  w.document.close();
+  toast('Ouverture du guide — choisissez « Enregistrer en PDF »', 'success');
+}
 
 autoLogin();
 /* Ouverture directe d'une fiche via lien partageable (#fiche=...) */
