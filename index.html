@@ -1111,11 +1111,11 @@ function vieResetAllData() {
 
     <div class="field">
       <label>Identifiant</label>
-      <input type="text" id="login-user" autocomplete="username" placeholder="ex : inspecteur" value="inspecteur">
+      <input type="text" id="login-user" autocomplete="username" placeholder="ex : inspecteur" value="">
     </div>
     <div class="field">
       <label>Mot de passe</label>
-      <input type="password" id="login-pass" autocomplete="current-password" placeholder="Votre mot de passe" value="iepp2026">
+      <input type="password" id="login-pass" autocomplete="current-password" placeholder="Votre mot de passe" value="">
     </div>
     <button class="btn btn-primary btn-block" onclick="doLogin()">Se connecter →</button>
 
@@ -1931,6 +1931,14 @@ const CLOUD_COLLECTION = 'appData';
     } catch(e){ console.warn('[Cloud] push erreur', e); }
   };
 
+  /* Empêche une opération réseau de bloquer indéfiniment */
+  function withTimeout(promise, ms, label){
+    return Promise.race([
+      promise,
+      new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('Délai dépassé ('+label+')')); }, ms); })
+    ]);
+  }
+
   /* Récupération : le cloud écrase le local là où il existe ; sinon amorçage */
   async function pullAll(){
     setStatus('Synchronisation…', '#F4A261');
@@ -1939,7 +1947,7 @@ const CLOUD_COLLECTION = 'appData';
       const fullKey = storeKey(k);
       try {
         const ref  = db.collection(CLOUD_COLLECTION).doc(fullKey);
-        const snap = await ref.get();
+        const snap = await withTimeout(ref.get(), 12000, fullKey);
         if (snap.exists){
           const data = snap.data();
           if (data && typeof data.json === 'string'){
@@ -1948,7 +1956,7 @@ const CLOUD_COLLECTION = 'appData';
         } else {
           const local = localStorage.getItem(fullKey);   // amorçage du cloud
           if (local !== null){
-            await ref.set({ json: local, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            await withTimeout(ref.set({ json: local, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }), 12000, fullKey);
           }
         }
       } catch(e){ console.warn('[Cloud] pull échoué', fullKey, e); }
@@ -1964,6 +1972,7 @@ const CLOUD_COLLECTION = 'appData';
   }
 
   async function start(){
+    setStatus('Synchronisation…', '#F4A261');
     try {
       if (typeof firebase === 'undefined') {
         await loadScript('https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js');
@@ -1972,7 +1981,20 @@ const CLOUD_COLLECTION = 'appData';
       firebase.initializeApp(firebaseConfig);
       db = firebase.firestore();
       // Cache hors-ligne du SDK (best-effort ; ignoré si indisponible)
-      try { await db.enablePersistence({ synchronizeTabs: true }); } catch(e){}
+      try { await withTimeout(db.enablePersistence({ synchronizeTabs: true }), 4000, 'persistance'); }
+      catch(e){ console.warn('[Cloud] persistance non activée', e); }
+
+      // Test de connexion RÉELLE au serveur Firestore (évite de rester bloqué sur orange)
+      try {
+        await withTimeout(
+          db.collection(CLOUD_COLLECTION).doc('__ping__').get({ source: 'server' }),
+          15000, 'connexion serveur'
+        );
+      } catch(e){
+        console.error('[Cloud] base Firestore injoignable —', e && e.message ? e.message : e, e);
+        setStatus('Base injoignable', '#E63946');
+        return; // l'appli continue de fonctionner en local
+      }
 
       await pullAll();
       cloudReady = true;
