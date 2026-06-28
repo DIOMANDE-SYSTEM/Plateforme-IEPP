@@ -1753,6 +1753,7 @@ function load(k, fallback) {
 }
 function save(k, val) {
   try { localStorage.setItem(storeKey(k), JSON.stringify(val)); } catch(e){ console.error('save fail', e); }
+  try { if (window.__cloudPush) window.__cloudPush(storeKey(k), val); } catch(e){}
 }
 
 /* Recharge toutes les données scopées depuis l'espace de la circonscription active */
@@ -1823,6 +1824,7 @@ function setActiveIepp(iepp) {
   state.activeIepp = iepp;
   activeScope = scopeSlug(iepp);
   reloadScopedState();
+  try { if (window.__cloudResyncScope) window.__cloudResyncScope(); } catch(e){}
 }
 function onScopeChange() {
   const sel = document.getElementById('scope-select');
@@ -1850,6 +1852,166 @@ function refreshScopeSelector() {
 function saveAll() {
   ['users','ecoles','effectifs','personnel','absences','visites','examens','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','audit','matrice','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','drenaet','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','compositions','pnapasForm','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp'].forEach(k=>save(k,state[k]));
 }
+
+/* ==================================================================
+   ☁️  SYNCHRONISATION EN LIGNE — Firebase Firestore
+   ------------------------------------------------------------------
+   Stratégie « hors-ligne d'abord » :
+     • L'appli démarre depuis localStorage (instantané, marche hors ligne).
+     • En arrière-plan, on récupère les données du cloud → on rafraîchit.
+     • Chaque save() est répercuté dans le cloud.
+     • Le cloud fait foi quand il a une donnée ; sinon il est amorcé
+       avec la donnée locale existante (aucune perte).
+
+   >>> ÉTAPE OBLIGATOIRE : remplacez les valeurs de firebaseConfig
+       ci-dessous par celles de VOTRE projet Firebase. <<<
+   Tant que ce n'est pas fait, la plateforme reste en mode 100 % local.
+   ================================================================== */
+const firebaseConfig = {
+  apiKey:            "AIzaSyCYLjb4eCi176D1ViNTcHQp1YqMU3oPH-A",
+  authDomain:        "plateforme-iepp.firebaseapp.com",
+  projectId:         "plateforme-iepp",
+  storageBucket:     "plateforme-iepp.firebasestorage.app",
+  messagingSenderId: "896625647159",
+  appId:             "1:896625647159:web:d74e5d681ef9f84d0ce9b2",
+  measurementId:     "G-2EXE3LE5BG"
+};
+const CLOUD_COLLECTION = 'appData';
+
+(function initCloudSync(){
+  if (!firebaseConfig.projectId || firebaseConfig.projectId === 'VOTRE_PROJET') {
+    console.warn('[Cloud] firebaseConfig non renseigné — mode local uniquement.');
+    return;
+  }
+
+  let db, cloudReady = false;
+
+  /* Charge un script classique (compat SDK) et attend sa disponibilité */
+  function loadScript(src){
+    return new Promise(function(resolve, reject){
+      const s = document.createElement('script');
+      s.src = src; s.async = false;
+      s.onload = function(){ resolve(); };
+      s.onerror = function(){ reject(new Error('Échec du chargement de ' + src)); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function setStatus(txt, color){
+    let el = document.getElementById('cloud-status');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'cloud-status';
+      el.style.cssText = 'position:fixed;bottom:14px;right:14px;z-index:99999;'
+        + 'font:600 12px/1 system-ui,sans-serif;padding:9px 14px;border-radius:999px;'
+        + 'box-shadow:0 6px 18px rgba(15,23,42,.18);background:#fff;color:#1A1B25;'
+        + 'display:flex;align-items:center;gap:7px;transition:opacity .4s;';
+      document.body.appendChild(el);
+    }
+    el.style.opacity = '1';
+    el.innerHTML = '<span style="width:9px;height:9px;border-radius:50%;background:'+color+'"></span>'+txt;
+  }
+
+  /* Clés à synchroniser pour la circonscription active (globales + scopées) */
+  function keysForCurrentScope(){
+    const list = [];
+    GLOBAL_KEYS.forEach(function(k){ if (k!=='current_user' && k!=='active_iepp') list.push(k); });
+    SCOPED_KEY_LIST.forEach(function(k){ list.push(k); });
+    return list;
+  }
+
+  /* Envoi vers le cloud (appelé par save() une fois la 1re synchro terminée) */
+  window.__cloudPush = function(fullKey, val){
+    if (!cloudReady || !db) return;
+    try {
+      db.collection(CLOUD_COLLECTION).doc(fullKey).set({
+        json: JSON.stringify(val),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(function(e){ console.warn('[Cloud] push échoué', fullKey, e); });
+    } catch(e){ console.warn('[Cloud] push erreur', e); }
+  };
+
+  /* Récupération : le cloud écrase le local là où il existe ; sinon amorçage */
+  async function pullAll(){
+    setStatus('Synchronisation…', '#F4A261');
+    const keys = keysForCurrentScope();
+    for (const k of keys){
+      const fullKey = storeKey(k);
+      try {
+        const ref  = db.collection(CLOUD_COLLECTION).doc(fullKey);
+        const snap = await ref.get();
+        if (snap.exists){
+          const data = snap.data();
+          if (data && typeof data.json === 'string'){
+            localStorage.setItem(fullKey, data.json);   // le cloud fait foi
+          }
+        } else {
+          const local = localStorage.getItem(fullKey);   // amorçage du cloud
+          if (local !== null){
+            await ref.set({ json: local, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+          }
+        }
+      } catch(e){ console.warn('[Cloud] pull échoué', fullKey, e); }
+    }
+  }
+
+  /* Recharge l'état mémoire + rafraîchit l'écran après une synchro */
+  function refreshAfterPull(){
+    try { if (typeof reloadScopedState==='function') reloadScopedState(); } catch(e){}
+    ['users','audit','drenaet','ieppRegistry','customServices','courrierMsg','courrierMatrice','pnapasForm']
+      .forEach(function(k){ try { state[k] = load(k, state[k]); } catch(e){} });
+    try { if (state.module && typeof navigate==='function') navigate(state.module); } catch(e){}
+  }
+
+  async function start(){
+    try {
+      if (typeof firebase === 'undefined') {
+        await loadScript('https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js');
+        await loadScript('https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore-compat.js');
+      }
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      // Cache hors-ligne du SDK (best-effort ; ignoré si indisponible)
+      try { await db.enablePersistence({ synchronizeTabs: true }); } catch(e){}
+
+      await pullAll();
+      cloudReady = true;
+      refreshAfterPull();
+
+      setStatus('Synchronisé', '#2A9D8F');
+      setTimeout(function(){ const el=document.getElementById('cloud-status'); if(el) el.style.opacity='0'; }, 2800);
+    } catch(e){
+      console.error('[Cloud] initialisation échouée', e);
+      setStatus('Hors ligne (local)', '#E63946');
+    }
+  }
+
+  /* Re-synchroniser au changement de circonscription */
+  window.__cloudResyncScope = async function(){
+    if (!cloudReady) return;
+    setStatus('Synchronisation…', '#F4A261');
+    try { await pullAll(); } catch(e){}
+    refreshAfterPull();
+    setStatus('Synchronisé', '#2A9D8F');
+    setTimeout(function(){ const el=document.getElementById('cloud-status'); if(el) el.style.opacity='0'; }, 2800);
+  };
+
+  /* Synchronisation manuelle (utilisable via un bouton : onclick="cloudSyncNow()") */
+  window.cloudSyncNow = async function(){
+    if (!cloudReady){ alert('Synchronisation cloud non encore prête.'); return; }
+    setStatus('Synchronisation…', '#F4A261');
+    try { await pullAll(); } catch(e){}
+    refreshAfterPull();
+    setStatus('Synchronisé', '#2A9D8F');
+    setTimeout(function(){ const el=document.getElementById('cloud-status'); if(el) el.style.opacity='0'; }, 2800);
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+})();
 
 /* ---------- DEFAULT DATA ---------- */
 function defaultEcoles() {
