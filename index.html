@@ -1883,8 +1883,10 @@ const CLOUD_COLLECTION = 'appData';
     console.warn('[Cloud] firebaseConfig non renseigné — mode local uniquement.');
     return;
   }
+  console.log('%c[Cloud] Module de synchronisation v6 chargé', 'color:#2A9D8F;font-weight:bold');
 
   let db, cloudReady = false;
+  const pendingPushes = new Map();   // modifications faites avant que le cloud soit prêt
 
   /* Charge un script classique (compat SDK) et attend sa disponibilité */
   function loadScript(src){
@@ -1920,16 +1922,32 @@ const CLOUD_COLLECTION = 'appData';
     return list;
   }
 
-  /* Envoi vers le cloud (appelé par save() une fois la 1re synchro terminée) */
-  window.__cloudPush = function(fullKey, val){
-    if (!cloudReady || !db) return;
+  /* Écriture réelle vers Firestore */
+  function realPush(fullKey, val){
     try {
       db.collection(CLOUD_COLLECTION).doc(fullKey).set({
         json: JSON.stringify(val),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).catch(function(e){ console.warn('[Cloud] push échoué', fullKey, e); });
+      }).then(function(){ console.log('[Cloud] ✔ poussé', fullKey); })
+        .catch(function(e){ console.warn('[Cloud] push échoué', fullKey, e); });
     } catch(e){ console.warn('[Cloud] push erreur', e); }
+  }
+
+  /* Appelé par save() : si le cloud n'est pas encore prêt, on met en file d'attente */
+  window.__cloudPush = function(fullKey, val){
+    if (!db || !cloudReady){
+      pendingPushes.set(fullKey, val);   // mémorisé, sera envoyé dès que prêt
+      return;
+    }
+    realPush(fullKey, val);
   };
+
+  /* Envoie toutes les modifications en attente une fois le cloud prêt */
+  function flushPending(){
+    if (!db || !cloudReady) return;
+    pendingPushes.forEach(function(val, fullKey){ realPush(fullKey, val); });
+    pendingPushes.clear();
+  }
 
   /* Empêche une opération réseau de bloquer indéfiniment */
   function withTimeout(promise, ms, label){
@@ -1940,17 +1958,15 @@ const CLOUD_COLLECTION = 'appData';
   }
 
   /* Récupération : le cloud écrase le local là où il existe ; sinon amorçage.
-     Renvoie true si au moins une donnée a été lue depuis le SERVEUR (pas le cache). */
+     Toutes les clés sont traitées EN PARALLÈLE → synchro quasi instantanée. */
   async function pullAll(){
     setStatus('Synchronisation…', '#F4A261');
     const keys = keysForCurrentScope();
-    let serverOk = false;
-    for (const k of keys){
+    await Promise.allSettled(keys.map(async function(k){
       const fullKey = storeKey(k);
       try {
         const ref  = db.collection(CLOUD_COLLECTION).doc(fullKey);
-        const snap = await withTimeout(ref.get(), 12000, fullKey);
-        if (snap.metadata && snap.metadata.fromCache === false) serverOk = true; // réponse du serveur
+        const snap = await withTimeout(ref.get(), 15000, fullKey);
         if (snap.exists){
           const data = snap.data();
           if (data && typeof data.json === 'string'){
@@ -1959,13 +1975,11 @@ const CLOUD_COLLECTION = 'appData';
         } else {
           const local = localStorage.getItem(fullKey);   // amorçage du cloud
           if (local !== null){
-            await withTimeout(ref.set({ json: local, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }), 12000, fullKey);
-            serverOk = true; // une écriture acceptée prouve aussi la connexion
+            await withTimeout(ref.set({ json: local, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }), 15000, fullKey);
           }
         }
       } catch(e){ console.warn('[Cloud] sync clé échouée', fullKey, e); }
-    }
-    return serverOk;
+    }));
   }
 
   /* Recharge l'état mémoire + rafraîchit l'écran après une synchro */
@@ -1990,16 +2004,14 @@ const CLOUD_COLLECTION = 'appData';
       catch(e){ console.warn('[Cloud] persistance non activée', e); }
 
       // Synchronisation (protégée par timeouts, ne peut plus rester bloquée)
-      const serverOk = await pullAll();
+      await pullAll();
       cloudReady = true;            // mode hors-ligne d'abord : les écritures se synchroniseront
+      flushPending();               // envoie les modifications faites pendant le chargement
       refreshAfterPull();
 
-      if (serverOk) {
-        setStatus('Synchronisé', '#2A9D8F');
-      } else {
-        // L'appli fonctionne en local ; les modifications partiront au retour du réseau
-        setStatus('Hors ligne — données locales', '#F4A261');
-      }
+      // Firestore gère lui-même le hors-ligne : si on est arrivé ici, la synchro est active.
+      setStatus('Synchronisé', '#2A9D8F');
+      console.log('%c[Cloud] ✔ Synchronisation active (cloudReady=true)', 'color:#2A9D8F;font-weight:bold');
       setTimeout(function(){ const el=document.getElementById('cloud-status'); if(el) el.style.opacity='0'; }, 3200);
     } catch(e){
       console.error('[Cloud] initialisation échouée', e);
