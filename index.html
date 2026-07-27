@@ -341,6 +341,33 @@ a { color: var(--blue); text-decoration: none; }
   text-transform: uppercase;
   padding: 0 8px 8px;
 }
+/* Bandeau chapeau : regroupe les services relevant de l'administration de l'IEPP */
+.sb-umbrella {
+  display: flex; align-items: center; gap: 8px;
+  margin: 18px 8px 2px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: linear-gradient(90deg, var(--blue-soft), rgba(220,233,245,.25));
+  border-left: 3px solid var(--blue);
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--blue-deep);
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+/* Les sections placées sous le bandeau deviennent des sous-services */
+.sb-section.is-service { padding-top: 8px; }
+.sb-section.is-service .sb-section-title {
+  padding-left: 16px;
+  color: var(--ink-soft);
+  font-size: 10px;
+  position: relative;
+}
+.sb-section.is-service .sb-section-title::before {
+  content: ''; position: absolute; left: 6px; top: 4px;
+  width: 4px; height: 4px; border-radius: 50%; background: var(--blue);
+  opacity: .55;
+}
 .sb-link {
   display: flex; align-items: center; gap: 11px;
   padding: 9px 11px;
@@ -1176,8 +1203,13 @@ function vieResetAllData() {
       </div>
     </div>
 
-    <div class="sb-section">
-      <div class="sb-section-title">Pédagogique</div>
+    <!-- ===== Chapeau : tous les services relèvent de l'administration de l'IEPP ===== -->
+    <div class="sb-umbrella" id="sb-umbrella-admin">
+      <span>🏛️</span><span>Administration de l'IEPP</span>
+    </div>
+
+    <div class="sb-section is-service">
+      <div class="sb-section-title">Services pédagogiques</div>
       <div class="sb-link" data-module="ecoles" onclick="navigate('ecoles')">
         <span class="sb-icon">🏫</span><span>Gestion des Écoles</span>
       </div>
@@ -1192,8 +1224,8 @@ function vieResetAllData() {
       </div>
     </div>
 
-    <div class="sb-section">
-      <div class="sb-section-title">Administration</div>
+    <div class="sb-section is-service">
+      <div class="sb-section-title">Services administratifs</div>
       <div class="sb-link" data-module="rh" onclick="navigate('rh')">
         <span class="sb-icon">👥</span><span>Chargé Ressources Humaines</span>
       </div>
@@ -1214,8 +1246,8 @@ function vieResetAllData() {
       </div>
     </div>
 
-    <div class="sb-section" id="sb-correspondant-section">
-      <div class="sb-section-title">Correspondant</div>
+    <div class="sb-section is-service" id="sb-correspondant-section">
+      <div class="sb-section-title">Services des correspondants</div>
 
       <!-- Groupe 1 : Correspondant Fichier -->
       <div class="sb-group" id="sb-grp-fichier">
@@ -1355,9 +1387,9 @@ function vieResetAllData() {
     </div>
 
 
-    <!-- ===== Services de l'IEPP (ajout) ===== -->
-    <div class="sb-section" id="sb-services-section">
-      <div class="sb-section-title">Services de l'IEPP</div>
+    <!-- ===== Services d'appui (ajout) ===== -->
+    <div class="sb-section is-service" id="sb-services-section">
+      <div class="sb-section-title">Services d'appui</div>
 
       <!-- Espace Secrétariat -->
       <div class="sb-link" data-module="secretariat" onclick="navigate('secretariat')">
@@ -2075,23 +2107,23 @@ function defaultDrenaet() {
 }
 function defaultEffectifs() {
   return [
-    { id:'ef1', ecole:'EPP Habitat',    niveau:'CP1', garcons:42, filles:38, total:80 },
-    { id:'ef2', ecole:'EPP Habitat',    niveau:'CP2', garcons:39, filles:36, total:75 },
-    { id:'ef3', ecole:'EPP Habitat',    niveau:'CE1', garcons:35, filles:33, total:68 },
-    { id:'ef4', ecole:'EPP Habitat',    niveau:'CE2', garcons:32, filles:30, total:62 },
-    { id:'ef5', ecole:'EPP Habitat',    niveau:'CM1', garcons:30, filles:28, total:58 },
-    { id:'ef6', ecole:'EPP Habitat',    niveau:'CM2', garcons:36, filles:33, total:69 },
+    { id:'ef1', ecole:'EPP Habitat',    niveau:'CP1', garcons:42, filles:38, total:80, annee:'2026-2027' },
+    { id:'ef2', ecole:'EPP Habitat',    niveau:'CP2', garcons:39, filles:36, total:75, annee:'2026-2027' },
+    { id:'ef3', ecole:'EPP Habitat',    niveau:'CE1', garcons:35, filles:33, total:68, annee:'2026-2027' },
+    { id:'ef4', ecole:'EPP Habitat',    niveau:'CE2', garcons:32, filles:30, total:62, annee:'2026-2027' },
+    { id:'ef5', ecole:'EPP Habitat',    niveau:'CM1', garcons:30, filles:28, total:58, annee:'2026-2027' },
+    { id:'ef6', ecole:'EPP Habitat',    niveau:'CM2', garcons:36, filles:33, total:69, annee:'2026-2027' },
   ];
 }
 function defaultPersonnel() {
   return [
-    { id:'p1', matricule:'124589A', nom:'BAMBA Mariam',     fonction:'Instituteur Adjoint',  ecole:'EPP Niakara 1 B', anciennete:8,  grade:'IA',  classe:'CE1', tel:'0701122334' },
-    { id:'p2', matricule:'098712B', nom:'KOUAKOU Yves',     fonction:'Instituteur Principal',ecole:'EPP Niakara 1 B', anciennete:15, grade:'IP',  classe:'CM2', tel:'0502233445' },
-    { id:'p3', matricule:'145621C', nom:'COULIBALY Awa',    fonction:'Instituteur Adjoint',  ecole:'EPP Niakara 1 B', anciennete:6,  grade:'IA',  classe:'CP1', tel:'0103344556' },
-    { id:'p4', matricule:'112233D', nom:'GNAGNE Akpess Claude',fonction:'Directeur',          ecole:'EPP Niakara 1 B', anciennete:22, grade:'DIR', classe:'', tel:'0707788990' },
-    { id:'p5', matricule:'234567E', nom:'TRAORE Adama',     fonction:'Instituteur Adjoint',  ecole:'EPP Niakara 1 B', anciennete:5,  grade:'IA',  classe:'CE2', tel:'0504455667' },
-    { id:'p6', matricule:'345678F', nom:'OUATTARA Salif',   fonction:'Instituteur Principal',ecole:'EPP Niakara 1 B', anciennete:12, grade:'IP',  classe:'CM1', tel:'0105566778' },
-    { id:'p7', matricule:'456789G', nom:'KONE Aïcha',       fonction:'Instituteur Adjoint',  ecole:'EPP Niakara 1 B', anciennete:3,  grade:'IA',  classe:'CP2', tel:'0708899001' },
+    { id:'p1', matricule:'124589A', nom:'BAMBA Mariam',     fonction:'Instituteur Adjoint',  ecole:'EPP Niakara 1 B', anciennete:8,  grade:'IA',  classe:'CE1', tel:'0701122334', sexe:'F' },
+    { id:'p2', matricule:'098712B', nom:'KOUAKOU Yves',     fonction:'Instituteur Principal',ecole:'EPP Niakara 1 B', anciennete:15, grade:'IP',  classe:'CM2', tel:'0502233445', sexe:'M' },
+    { id:'p3', matricule:'145621C', nom:'COULIBALY Awa',    fonction:'Instituteur Adjoint',  ecole:'EPP Niakara 1 B', anciennete:6,  grade:'IA',  classe:'CP1', tel:'0103344556', sexe:'F' },
+    { id:'p4', matricule:'112233D', nom:'GNAGNE Akpess Claude',fonction:'Directeur',          ecole:'EPP Niakara 1 B', anciennete:22, grade:'DIR', classe:'', tel:'0707788990', sexe:'M' },
+    { id:'p5', matricule:'234567E', nom:'TRAORE Adama',     fonction:'Instituteur Adjoint',  ecole:'EPP Niakara 1 B', anciennete:5,  grade:'IA',  classe:'CE2', tel:'0504455667', sexe:'M' },
+    { id:'p6', matricule:'345678F', nom:'OUATTARA Salif',   fonction:'Instituteur Principal',ecole:'EPP Niakara 1 B', anciennete:12, grade:'IP',  classe:'CM1', tel:'0105566778', sexe:'M' },
+    { id:'p7', matricule:'456789G', nom:'KONE Aïcha',       fonction:'Instituteur Adjoint',  ecole:'EPP Niakara 1 B', anciennete:3,  grade:'IA',  classe:'CP2', tel:'0708899001', sexe:'F' },
   ];
 }
 function defaultAbsences() {
@@ -2941,6 +2973,20 @@ function applyACL() {
     visibleSubs.forEach(s => { if (s.style.display !== 'none') anyVisible = true; });
     g.style.display = anyVisible ? '' : 'none';
   });
+
+  /* Bandeau chapeau « Administration de l'IEPP » : visible uniquement si au moins
+     un service rattaché reste accessible au rôle connecté. */
+  const umbrella = document.getElementById('sb-umbrella-admin');
+  if (umbrella) {
+    let anyService = false;
+    document.querySelectorAll('.sb-section.is-service').forEach(sec => {
+      if (sec.style.display === 'none') return;
+      sec.querySelectorAll('.sb-link[data-module]').forEach(l => {
+        if (l.style.display !== 'none') anyService = true;
+      });
+    });
+    umbrella.style.display = anyService ? '' : 'none';
+  }
 }
 
 function initials(name) {
@@ -4316,11 +4362,124 @@ function statBarsCard(title, items, mainColor='#3B82F6', cardStyle='') {
 }
 
 /* ---------- STATISTIQUES (M01) ---------- */
+/* ==================================================================
+   MODULE STATISTIQUES — vue d'ensemble de l'inspection
+   Helpers de classification (personnel, statut d'école, année scolaire)
+   ================================================================== */
+
+/* Année scolaire de référence affichée dans la barre supérieure */
+function statAnneeCourante() {
+  const el = document.getElementById('anscolaire-badge');
+  const v = el ? (el.textContent || '').trim() : '';
+  return v || '2026-2027';
+}
+
+/* Statut de l'école (Public / Privé / Communautaire) à partir du fichier des écoles */
+function statStatutEcole(nomEcole) {
+  const e = (state.ecoles || []).find(x => x.nom === nomEcole);
+  return (e && e.statut) ? e.statut : 'Public';
+}
+
+/* Fonctions considérées comme administratives (non tenantes de classe).
+   Tout agent qui ne tient pas de classe est classé « Administratif ». */
+const STAT_FONCTIONS_ADMIN = [
+  'directeur', 'inspecteur', 'conseiller', 'secr', 'archiv', 'econome',
+  'comptab', 'courrier', 'communication', 'attach', 'agent', 'gestionnaire',
+  'charg', 'correspondant', 'surveillant', 'intendant'
+];
+
+/* Un agent est « craie en main » s'il tient effectivement une classe. */
+function statEstCraieEnMain(p) {
+  const f = (p.fonction || '').toLowerCase();
+  if (STAT_FONCTIONS_ADMIN.some(k => f.includes(k))) return false;
+  if (p.classe && String(p.classe).trim() !== '') return true;
+  return f.includes('instituteur') || f.includes('enseignant') || f.includes('maitre') || f.includes('maître');
+}
+
+/* Ventilation du personnel : administratifs (H/F) et craie en main par statut (H/F) */
+function statVentilationPersonnel() {
+  const z = () => ({ h: 0, f: 0, n: 0, t: 0 });
+  const r = { admin: z(), craiePub: z(), craiePriv: z(), total: z() };
+  const add = (b, sexe) => {
+    const s = (sexe || '').toString().trim().toUpperCase();
+    if (s === 'M' || s === 'H') b.h++;
+    else if (s === 'F') b.f++;
+    else b.n++;
+    b.t++;
+  };
+  (state.personnel || []).forEach(p => {
+    add(r.total, p.sexe);
+    if (!statEstCraieEnMain(p)) { add(r.admin, p.sexe); return; }
+    const st = statStatutEcole(p.ecole);
+    add(st === 'Privé' ? r.craiePriv : r.craiePub, p.sexe);
+  });
+  return r;
+}
+
+/* Effectifs élèves agrégés par école et par année scolaire */
+function statEffectifsParEcoleAnnee() {
+  const map = {};
+  (state.effectifs || []).forEach(e => {
+    const an = e.annee || statAnneeCourante();
+    const ec = e.ecole || '—';
+    const k = ec + '||' + an;
+    if (!map[k]) map[k] = { ecole: ec, annee: an, garcons: 0, filles: 0, total: 0, classes: 0 };
+    map[k].garcons += (+e.garcons || 0);
+    map[k].filles  += (+e.filles  || 0);
+    map[k].total   += (+e.total   || ((+e.garcons || 0) + (+e.filles || 0)));
+    map[k].classes += 1;
+  });
+  return Object.values(map).sort((a, b) =>
+    (b.annee || '').localeCompare(a.annee || '') || (a.ecole || '').localeCompare(b.ecole || ''));
+}
+
+/* Session d'examen -> année scolaire (« CEPE 2026 » -> « 2025-2026 ») */
+function statAnneeSession(session) {
+  const m = /(\d{4})\s*[-–/]\s*(\d{4})/.exec(session || '');
+  if (m) return m[1] + '-' + m[2];
+  const y = /(\d{4})/.exec(session || '');
+  if (y) { const n = parseInt(y[1], 10); return (n - 1) + '-' + n; }
+  return statAnneeCourante();
+}
+
+/* Résultats CEPE agrégés par école (centre) et par année scolaire */
+function statCepeParEcoleAnnee() {
+  const map = {};
+  (state.examens || []).forEach(e => {
+    const an = statAnneeSession(e.session);
+    const ec = e.centre || '—';
+    const k = ec + '||' + an;
+    if (!map[k]) map[k] = { ecole: ec, annee: an, session: e.session || '', inscrits: 0, presents: 0, admis: 0 };
+    map[k].inscrits += (+e.inscrits || 0);
+    map[k].presents += (+e.presents || 0);
+    map[k].admis    += (+e.admis    || 0);
+  });
+  return Object.values(map).map(r => {
+    const base = r.presents || r.inscrits;
+    r.taux = base ? Math.round((r.admis / base) * 1000) / 10 : 0;
+    return r;
+  }).sort((a, b) =>
+    (b.annee || '').localeCompare(a.annee || '') || (a.ecole || '').localeCompare(b.ecole || ''));
+}
+
+/* Petite cellule « H / F » réutilisée dans les tableaux de personnel */
+function statCellHF(b) {
+  return `<td style="text-align:right">${b.h}</td><td style="text-align:right">${b.f}</td>` +
+         `<td style="text-align:right;font-weight:700">${b.t}</td>`;
+}
+
 function renderStats() {
   const totalG = state.effectifs.reduce((a,b)=>a+b.garcons,0);
   const totalF = state.effectifs.reduce((a,b)=>a+b.filles,0);
   const total = totalG + totalF;
   const tauxCEPE = tauxReussiteCEPE();
+  const anneeRef = statAnneeCourante();
+  const vp = statVentilationPersonnel();
+  const effAn = statEffectifsParEcoleAnnee();
+  const cepeAn = statCepeParEcoleAnnee();
+  const anneesEff  = [...new Set(effAn.map(r=>r.annee))].sort().reverse();
+  const anneesCepe = [...new Set(cepeAn.map(r=>r.annee))].sort().reverse();
+  const nbEcoles = (state.ecoles||[]).length;
   // Effectifs par niveau (pour barres)
   const parNiveau = {};
   state.effectifs.forEach(e=>{parNiveau[e.niveau]=(parNiveau[e.niveau]||0)+e.total;});
@@ -4332,6 +4491,22 @@ function renderStats() {
   const statutColors = {Public:'#2563EB',Privé:'#D97706',Communautaire:'#7C3AED'};
   const nbPublic = statuts['Public']||0;
   setContent(`
+    <div class="card" style="margin-bottom:14px;border-left:4px solid var(--blue)">
+      <div class="card-header" style="margin-bottom:10px">
+        <div>
+          <div class="card-title">Vue d'ensemble de l'inspection</div>
+          <div class="card-sub">Écoles, élèves, personnel et résultats — année de référence ${escapeHtml(anneeRef)}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+        <div class="stat"><div class="stat-label">Écoles</div><div class="stat-value">${nbEcoles}</div></div>
+        <div class="stat s-orange"><div class="stat-label">Élèves</div><div class="stat-value">${total.toLocaleString('fr-FR')}</div></div>
+        <div class="stat s-green"><div class="stat-label">Personnel total</div><div class="stat-value">${vp.total.t}</div><div class="stat-delta">${vp.total.h} H · ${vp.total.f} F</div></div>
+        <div class="stat s-purple"><div class="stat-label">Administratifs</div><div class="stat-value">${vp.admin.t}</div><div class="stat-delta">${vp.admin.h} H · ${vp.admin.f} F</div></div>
+        <div class="stat s-pink"><div class="stat-label">Craie en main</div><div class="stat-value">${vp.craiePub.t + vp.craiePriv.t}</div><div class="stat-delta">Public ${vp.craiePub.t} · Privé ${vp.craiePriv.t}</div></div>
+      </div>
+    </div>
+
     <div class="stat-grid">
       <div class="stat s-orange"><div class="stat-label">Effectif total</div><div class="stat-value">${total.toLocaleString('fr-FR')}</div></div>
       <div class="stat"><div class="stat-label">Garçons</div><div class="stat-value">${totalG.toLocaleString('fr-FR')}</div><div class="stat-delta">${total>0?Math.round(totalG/total*100):0}% de l'effectif</div></div>
@@ -4357,12 +4532,118 @@ function renderStats() {
     ${rapportIABtnHtml('statistiques')}
 
     <div class="tabs">
-      <div class="tab active" onclick="switchTab(event,'tab-effectifs')">Effectifs par classe</div>
+      <div class="tab active" onclick="switchTab(event,'tab-personnel')">Effectifs du personnel</div>
+      <div class="tab" onclick="switchTab(event,'tab-ecole-annee')">Effectif par école &amp; année</div>
+      <div class="tab" onclick="switchTab(event,'tab-cepe-annee')">CEPE par école &amp; année</div>
+      <div class="tab" onclick="switchTab(event,'tab-effectifs')">Effectifs par classe</div>
       <div class="tab" onclick="switchTab(event,'tab-cepe')">Résultats CEPE</div>
       <div class="tab" onclick="switchTab(event,'tab-carte')">Carte scolaire</div>
     </div>
 
-    <div class="tab-pane active" id="tab-effectifs">
+    <div class="tab-pane active" id="tab-personnel">
+      <div class="card" style="padding:0">
+        <div class="table-wrap" style="border:none">
+          <table>
+            <thead>
+              <tr>
+                <th rowspan="2" style="vertical-align:bottom">Catégorie de personnel</th>
+                <th colspan="3" style="text-align:center;border-left:1px solid var(--line)">Effectif par genre</th>
+              </tr>
+              <tr>
+                <th style="text-align:right;border-left:1px solid var(--line)">Hommes</th>
+                <th style="text-align:right">Femmes</th>
+                <th style="text-align:right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="fw-7">Personnel administratif</td>
+                ${statCellHF(vp.admin)}
+              </tr>
+              <tr>
+                <td class="fw-7">Craie en main — <span class="badge badge-green">Public</span></td>
+                ${statCellHF(vp.craiePub)}
+              </tr>
+              <tr>
+                <td class="fw-7">Craie en main — <span class="badge badge-orange">Privé</span></td>
+                ${statCellHF(vp.craiePriv)}
+              </tr>
+              <tr style="background:var(--blue-soft)">
+                <td class="fw-7">TOTAL GÉNÉRAL</td>
+                ${statCellHF(vp.total)}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        ${vp.total.n ? `<div style="padding:10px 14px;font-size:12px;color:var(--warning);font-weight:600">⚠️ ${vp.total.n} agent(s) sans sexe renseigné — comptés dans le total mais ni en hommes ni en femmes. Renseignez le champ « Sexe » dans le module Ressources Humaines.</div>` : ''}
+        <div style="padding:10px 14px;font-size:11.5px;color:var(--muted);border-top:1px solid var(--line)">
+          « Craie en main » : agents tenant effectivement une classe. Le statut Public / Privé est repris du fichier des écoles.
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="tab-ecole-annee">
+      <div class="card" style="padding:0">
+        <div class="table-wrap" style="border:none">
+          <table>
+            <thead><tr><th>Année scolaire</th><th>École</th><th style="text-align:center">Classes</th><th style="text-align:right">Garçons</th><th style="text-align:right">Filles</th><th style="text-align:right">Total</th><th>% Filles</th></tr></thead>
+            <tbody>
+              ${effAn.length ? effAn.map(r=>{
+                const pct = r.total ? Math.round((r.filles/r.total)*100) : 0;
+                return `<tr>
+                  <td><span class="badge badge-orange">${escapeHtml(r.annee)}</span></td>
+                  <td class="fw-7">${escapeHtml(r.ecole)}</td>
+                  <td style="text-align:center">${r.classes}</td>
+                  <td style="text-align:right">${r.garcons}</td>
+                  <td style="text-align:right">${r.filles}</td>
+                  <td style="text-align:right;font-weight:700">${r.total}</td>
+                  <td><div style="display:flex;align-items:center;gap:8px"><div style="background:var(--line);width:60px;height:6px;border-radius:3px;overflow:hidden"><div style="background:var(--vibrant-pink);width:${pct}%;height:100%"></div></div><span class="text-sm">${pct}%</span></div></td>
+                </tr>`;
+              }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:18px">Aucun effectif enregistré.</td></tr>'}
+            </tbody>
+            ${anneesEff.map(an=>{
+              const rows = effAn.filter(r=>r.annee===an);
+              const g = rows.reduce((a,b)=>a+b.garcons,0), f = rows.reduce((a,b)=>a+b.filles,0);
+              return `<tfoot><tr style="background:var(--bg);font-weight:700">
+                <td colspan="3">Total ${escapeHtml(an)} — ${rows.length} école(s)</td>
+                <td style="text-align:right">${g}</td><td style="text-align:right">${f}</td>
+                <td style="text-align:right">${g+f}</td><td></td></tr></tfoot>`;
+            }).join('')}
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="tab-cepe-annee">
+      <div class="card" style="padding:0">
+        <div class="table-wrap" style="border:none">
+          <table>
+            <thead><tr><th>Année scolaire</th><th>École (centre)</th><th style="text-align:right">Inscrits</th><th style="text-align:right">Présents</th><th style="text-align:right">Admis</th><th>Taux d'admission</th></tr></thead>
+            <tbody>
+              ${cepeAn.length ? cepeAn.map(r=>`<tr>
+                <td><span class="badge badge-orange">${escapeHtml(r.annee)}</span></td>
+                <td class="fw-7">${escapeHtml(r.ecole)}</td>
+                <td style="text-align:right">${r.inscrits}</td>
+                <td style="text-align:right">${r.presents}</td>
+                <td style="text-align:right">${r.admis}</td>
+                <td><div style="display:flex;align-items:center;gap:8px"><div style="background:var(--line);width:80px;height:8px;border-radius:4px;overflow:hidden"><div style="background:${r.taux>80?'var(--green)':r.taux>70?'var(--orange)':'var(--danger)'};width:${Math.min(r.taux,100)}%;height:100%"></div></div><span class="fw-7">${r.taux}%</span></div></td>
+              </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:18px">Aucun résultat d’examen enregistré.</td></tr>'}
+            </tbody>
+            ${anneesCepe.map(an=>{
+              const rows = cepeAn.filter(r=>r.annee===an);
+              const i = rows.reduce((a,b)=>a+b.inscrits,0), pr = rows.reduce((a,b)=>a+b.presents,0), ad = rows.reduce((a,b)=>a+b.admis,0);
+              const tx = (pr||i) ? Math.round((ad/(pr||i))*1000)/10 : 0;
+              return `<tfoot><tr style="background:var(--bg);font-weight:700">
+                <td colspan="2">Total ${escapeHtml(an)} — ${rows.length} centre(s)</td>
+                <td style="text-align:right">${i}</td><td style="text-align:right">${pr}</td>
+                <td style="text-align:right">${ad}</td><td>${tx}%</td></tr></tfoot>`;
+            }).join('')}
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="tab-effectifs">
       <div class="card" style="padding:0">
         <div class="table-wrap" style="border:none">
           <table>
@@ -6746,7 +7027,7 @@ function rhPersonnelHtml() {
     </table></div>`;
 }
 function rhPersonnelExcel() {
-  const rows = (state.personnel||[]).map(p=>({'Matricule':p.matricule,'Nom':p.nom,'Fonction':p.fonction,'Grade':p.grade,'École':p.ecole,'Ancienneté':p.anciennete,'Téléphone':p.tel||''}));
+  const rows = (state.personnel||[]).map(p=>({'Matricule':p.matricule,'Nom':p.nom,'Sexe':p.sexe||'','Fonction':p.fonction,'Grade':p.grade,'École':p.ecole,'Ancienneté':p.anciennete,'Téléphone':p.tel||''}));
   exportRowsToExcel(rows,'personnel_rh_'+(state.activeIepp||'').replace(/\W+/g,'_'),'Personnel RH');
 }
 function rhPersonnelWord() {
@@ -6762,7 +7043,7 @@ function rhPersonnelImport(ev) {
       const g=keys=>{const k=Object.keys(raw).find(h=>keys.some(x=>norm(h).includes(x)));return k?String(raw[k]).trim():'';};
       const nom=g(['nom','name']); if(!nom) return;
       state.personnel=state.personnel||[];
-      state.personnel.push({id:'p'+uid(),matricule:g(['matricule','mat']),nom,fonction:g(['fonction','poste','role'])||'Instituteur Adjoint',grade:g(['grade'])||'IA',ecole:g(['ecole','school']),anciennete:parseInt(g(['anciennete']))||0,classe:g(['classe']),tel:g(['tel','telephone'])});
+      state.personnel.push({id:'p'+uid(),matricule:g(['matricule','mat']),nom,sexe:(g(['sexe','genre'])||'').toUpperCase().slice(0,1),fonction:g(['fonction','poste','role'])||'Instituteur Adjoint',grade:g(['grade'])||'IA',ecole:g(['ecole','school']),anciennete:parseInt(g(['anciennete']))||0,classe:g(['classe']),tel:g(['tel','telephone'])});
       added++;
     });
     save('personnel',state.personnel); toast(`${added} agent(s) importé(s)`,'success'); rhRenderPane();
@@ -7740,7 +8021,16 @@ function rhForm(id) {
         <select id="rh-grade">${grades.map(g=>`<option ${p.grade===g?'selected':''}>${g}</option>`).join('')}</select>
       </div>
     </div>
-    <div class="field"><label>Nom complet</label><input id="rh-nom" value="${escapeHtml(p.nom||'')}"></div>
+    <div class="form-row">
+      <div class="field"><label>Nom complet</label><input id="rh-nom" value="${escapeHtml(p.nom||'')}"></div>
+      <div class="field"><label>Sexe</label>
+        <select id="rh-sexe">
+          <option value="" ${!p.sexe?'selected':''}>— Non renseigné —</option>
+          <option value="M" ${p.sexe==='M'?'selected':''}>Masculin</option>
+          <option value="F" ${p.sexe==='F'?'selected':''}>Féminin</option>
+        </select>
+      </div>
+    </div>
     <div class="form-row">
       <div class="field"><label>Fonction</label><input id="rh-fonction" value="${escapeHtml(p.fonction||'')}"></div>
       <div class="field"><label>École d'affectation</label>
@@ -7761,6 +8051,7 @@ function rhSave(id) {
   const data = {
     matricule: document.getElementById('rh-mat').value.trim(),
     nom: document.getElementById('rh-nom').value.trim(),
+    sexe: (document.getElementById('rh-sexe')?.value || ''),
     fonction: document.getElementById('rh-fonction').value.trim(),
     grade: document.getElementById('rh-grade').value,
     ecole: document.getElementById('rh-ecole').value,
@@ -24983,9 +25274,20 @@ function guideSections() {
         <li><strong>Directeur</strong> : son école, ses classes, demandes d'autorisation.</li>
         <li><strong>Instituteur</strong> : sa classe, ses élèves.</li>
         <li><strong>Services</strong> (bibliothèque, cantine, économat, COGES, SMOSS, communication, secrétariat, archives, RH) : leur espace dédié.</li>
+      </ul>
+      <p style="margin-top:10px"><strong>Les services de l'IEPP.</strong> Tous les espaces de la plateforme relèvent de l'administration de l'IEPP. Ils sont regroupés dans le menu sous le bandeau <em>Administration de l'IEPP</em> et se répartissent ainsi :</p>
+      <ul>
+        <li><strong>Services pédagogiques</strong> : gestion des écoles, examens &amp; concours, et les espaces des <strong>Conseillers</strong> —
+          <strong>CPPP</strong> (Conseiller Pédagogique du Préscolaire et du Primaire),
+          <strong>CVS</strong> (Conseiller Vie Scolaire),
+          <strong>CC</strong> (Conseiller COGES) et
+          <strong>CA</strong> (Conseiller Cantine scolaire).</li>
+        <li><strong>Services administratifs</strong> : ressources humaines, autorisations d'absence, économat, courrier, archives.</li>
+        <li><strong>Services des correspondants</strong> : correspondant fichier et correspondant statistique (immatriculation, fiches, remontées).</li>
+        <li><strong>Services d'appui</strong> : secrétariat, <strong>communication</strong>, cantine, SMOSS (santé scolaire), bibliothèque.</li>
       </ul>` },
     { t:"3. Navigation", icon:"🧭", html:`
-      <p>Le <strong>menu latéral</strong> gauche regroupe les modules par catégories (Pilotage, Mon espace, Correspondant, Administration, Services…). Les groupes avec une flèche ▾ se déplient.</p>
+      <p>Le <strong>menu latéral</strong> gauche regroupe les modules par catégories. Les espaces qui relèvent de l'administration de l'IEPP (services pédagogiques, administratifs, des correspondants et d'appui) sont rassemblés sous le bandeau <strong>Administration de l'IEPP</strong>. Les groupes avec une flèche ▾ se déplient.</p>
       <p>En haut à droite : l'<strong>année scolaire</strong>, l'<strong>horloge</strong>, l'état de synchronisation et le logo. En bas du menu : votre nom, votre rôle et le bouton de déconnexion.</p>` },
     { t:"4. Barre d'outils des tableaux", icon:"🧰", html:`
       <p>La plupart des modules présentent un tableau muni d'une barre d'outils homogène :</p>
