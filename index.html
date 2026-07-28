@@ -1173,6 +1173,12 @@ function vieResetAllData() {
       </button>
     </div>
 
+    <div id="sb-reset-btn" style="padding:0 12px;margin-bottom:8px;display:none">
+      <button onclick="openResetCirconscription()" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid #FCA5A5;border-radius:9px;cursor:pointer;background:#FEF2F2;color:#B91C1C;font-weight:600;font-size:12px">
+        <span style="font-size:14px">♻️</span><span style="flex:1;text-align:left">Réinitialiser les données</span>
+      </button>
+    </div>
+
     <div class="sb-section" id="sb-drenaet-section">
       <div class="sb-section-title">Direction régionale</div>
       <div class="sb-link" data-module="drenaet" onclick="navigate('drenaet')">
@@ -1689,29 +1695,30 @@ function can(action) {
 /* ---------- DEFAULT ACCOUNTS ---------- */
 const DEFAULT_USERS = [
   { username:'superadmin',  password:'iepp2026', name:'Grand Administrateur National', role:'superadmin', email:'admin@menaet.ci',  iepp:'TOUTES', drenaet:'TOUTES' },
-  { username:'drenaet',     password:'iepp2026', name:'Directeur DRENAET Katiola',     role:'drenaet',    email:'dr.katiola@menaet.ci', iepp:'TOUTES', drenaet:'DRENAET Katiola' },
-  { username:'inspecteur',  password:'iepp2026', name:'KOUASSI Jean-Marc',             role:'inspecteur', email:'inspecteur@iepp.ci',   iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
-  { username:'cpi',         password:'cpi2026', name:'TRAORE Aminata',                role:'cpi',         email:'cpi@iepp.ci',          iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
-  { username:'directeur',   password:'iepp2026', name:'DIABATE Souleymane',            role:'directeur',   email:'directeur@iepp.ci',    iepp:'IEPP Niakara', drenaet:'DRENAET Katiola', ecole:'EPP Niakara 1 B' },
-  { username:'instituteur', password:'iepp2026', name:'BAMBA Mariam',                  role:'instituteur', email:'instituteur@iepp.ci',  iepp:'IEPP Niakara', drenaet:'DRENAET Katiola', ecole:'EPP Niakara 1 B', classe:'CE1' },
-  { username:'correspondant',password:'iepp2026',name:'KONE Adama',                    role:'correspondant',email:'correspondant@iepp.ci',iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
-  { username:'correspstat', password:'stat2026', name:'YAO Konan',                     role:'corresp_stat', email:'stat@iepp.ci',         iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
-  { username:'agent',       password:'iepp2026', name:'OUATTARA Fatou',                role:'agent',       email:'agent@iepp.ci',        iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
+  { username:'Directeur DRENAET Boundiali',     password:'drenaet2026', name:'Directeur DRENAET Boundiali',     role:'drenaet',    email:'dr.boundiali@menaet.ci', iepp:'TOUTES', drenaet:'DRENAET Boundiali' },
+  { username:'inspecteur',  password:'inspecteur2026', name:'KOUASSI Jean-Marc',             role:'inspecteur', email:'inspecteur@iepp.ci',   iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'iepptengrela', password:'iepptengrela2026', name:'Inspecteur IEPP Tengrela', role:'inspecteur', email:'iepp.tengrela@menaet.ci', iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'cpi',         password:'cpi2026', name:'TRAORE Aminata',                role:'cpi',         email:'cpi@iepp.ci',          iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'directeur',   password:'directeur2026', name:'DIABATE Souleymane',            role:'directeur',   email:'directeur@iepp.ci',    iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', ecole:'EPP BASSO' },
+  { username:'instituteur', password:'instituteur2026', name:'BAMBA Mariam',                  role:'instituteur', email:'instituteur@iepp.ci',  iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', ecole:'EPP BASSO', classe:'CE1' },
+  { username:'correspondant',password:'correspondant2026',name:'KONE Adama',                    role:'correspondant',email:'correspondant@iepp.ci',iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'correspstat', password:'correspstat2026', name:'YAO Konan',                     role:'corresp_stat', email:'stat@iepp.ci',         iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'agent',       password:'agent2026', name:'OUATTARA Fatou',                role:'agent',       email:'agent@iepp.ci',        iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
   /* ---- Comptes d'espace cloisonnés (un mot de passe par fonction · ajout) ---- */
-  { username:'examens',      password:'examens2026',  name:'Responsable Examens & Concours', role:'examens',        email:'examens@iepp.ci',     iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
-  { username:'viescolaire',  password:'vie2026',      name:'Conseiller Vie Scolaire',        role:'viescolaire',    email:'viescolaire@iepp.ci', iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
-  { username:'rh',           password:'rh2026',       name:'Chargé des Ressources Humaines', role:'rh',             email:'rh@iepp.ci',          iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
-  { username:'coges',        password:'coges2026',    name:'Conseiller COGES',               role:'coges',          email:'coges@iepp.ci',       iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
-  { username:'economat',     password:'economat2026', name:'Économe',                        role:'econome',        email:'economat@iepp.ci',    iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
-  { username:'courrier',     password:'courrier2026', name:'Agent du Courrier',              role:'courrier',       email:'courrier@iepp.ci',    iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
-  { username:'archiviste',   password:'archives2026', name:'Archiviste',                     role:'archiviste',     email:'archives@iepp.ci',    iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
-  { username:'cartescolaire',password:'carte2026',    name:'Correspondant Carte Scolaire',   role:'carte_scolaire', email:'carte@iepp.ci',       iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
-  { username:'suivieval',    password:'suivi2026',    name:'Chargé Suivi & Évaluation',      role:'suivi_eval',     email:'suivi@iepp.ci',       iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
-  { username:'secretariat',  password:'secret2026',   name:'Secrétaire de l\'IEPP',           role:'secretaire',     email:'secretariat@iepp.ci', iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
-  { username:'communication',password:'comm2026',     name:'Chargé de Communication',        role:'communication',  email:'communication@iepp.ci',iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
-  { username:'cantine',      password:'cantine2026',  name:'Conseiller Cantine',             role:'cantine',        email:'cantine@iepp.ci',     iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
-  { username:'smoss',        password:'smoss2026',    name:'Responsable SMOSS',              role:'smoss',          email:'smoss@iepp.ci',       iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
-  { username:'bibliotheque', password:'biblio2026',   name:'Bibliothécaire',                 role:'bibliothecaire', email:'biblio@iepp.ci',      iepp:'IEPP Niakara', drenaet:'DRENAET Katiola' },
+  { username:'examens',      password:'examens2026',  name:'Responsable Examens & Concours', role:'examens',        email:'examens@iepp.ci',     iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'viescolaire',  password:'viescolaire2026',      name:'Conseiller Vie Scolaire',        role:'viescolaire',    email:'viescolaire@iepp.ci', iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'rh',           password:'rh2026',       name:'Chargé des Ressources Humaines', role:'rh',             email:'rh@iepp.ci',          iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'coges',        password:'coges2026',    name:'Conseiller COGES',               role:'coges',          email:'coges@iepp.ci',       iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'economat',     password:'economat2026', name:'Économe',                        role:'econome',        email:'economat@iepp.ci',    iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'courrier',     password:'courrier2026', name:'Agent du Courrier',              role:'courrier',       email:'courrier@iepp.ci',    iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'archiviste',   password:'archiviste2026', name:'Archiviste',                     role:'archiviste',     email:'archives@iepp.ci',    iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'cartescolaire',password:'cartescolaire2026',    name:'Correspondant Carte Scolaire',   role:'carte_scolaire', email:'carte@iepp.ci',       iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'suivieval',    password:'suivieval2026',    name:'Chargé Suivi & Évaluation',      role:'suivi_eval',     email:'suivi@iepp.ci',       iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'secretariat',  password:'secretariat2026',   name:'Secrétaire de l\'IEPP',           role:'secretaire',     email:'secretariat@iepp.ci', iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'communication',password:'communication2026',     name:'Chargé de Communication',        role:'communication',  email:'communication@iepp.ci',iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'cantine',      password:'cantine2026',  name:'Conseiller Cantine',             role:'cantine',        email:'cantine@iepp.ci',     iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'smoss',        password:'smoss2026',    name:'Responsable SMOSS',              role:'smoss',          email:'smoss@iepp.ci',       iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'bibliotheque', password:'bibliotheque2026',   name:'Bibliothécaire',                 role:'bibliothecaire', email:'biblio@iepp.ci',      iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
 ];
 
 /* ---------- STATE & STORAGE ---------- */
@@ -1727,15 +1734,15 @@ const KEY = 'iepp_';
 const GLOBAL_KEYS = new Set(['users','audit','customServices','current_user','drenaet','active_iepp','ieppRegistry','pnapasForm','courrierMsg','courrierMatrice']);
 const SCOPED_KEY_LIST = ['ecoles','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','cpppBulletins'];
 function scopeSlug(iepp){
-  return 'c_' + String(iepp||'IEPP Niakara').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+  return 'c_' + String(iepp||'IEPP TENGRELA').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 }
-let activeScope = scopeSlug('IEPP Niakara');
+let activeScope = scopeSlug('IEPP TENGRELA');
 function storeKey(k){ return GLOBAL_KEYS.has(k) ? (KEY + k) : (KEY + activeScope + '_' + k); }
 
-/* Migration unique : les anciennes données globales deviennent celles de l'IEPP Niakara */
+/* Migration unique : les anciennes données globales deviennent celles de l'IEPP TENGRELA */
 (function migrateLegacyToScoped(){
   try {
-    const defNs = scopeSlug('IEPP Niakara');
+    const defNs = scopeSlug('IEPP TENGRELA');
     SCOPED_KEY_LIST.forEach(k=>{
       const oldK = KEY + k, newK = KEY + defNs + '_' + k;
       if (localStorage.getItem(oldK) !== null && localStorage.getItem(newK) === null) {
@@ -1745,6 +1752,41 @@ function storeKey(k){ return GLOBAL_KEYS.has(k) ? (KEY + k) : (KEY + activeScope
   } catch(e){}
 })();
 
+const TENGRELA_ECOLES = [{"id":"ten1","nom":"EPC CHERIFLA DE TENGRELA","code":"320163","codeAGCP":"E12438771","commune":"Tengrela","milieu":"Urbain","directeur":"","effectif":0,"classes":6,"statut":"Privé"},{"id":"ten2","nom":"EPP ABDOULAYE KONE 2 KANAKONO","code":"E006709","codeAGCP":"E020574","commune":"Tengrela","milieu":"Urbain","directeur":"","effectif":0,"classes":6,"statut":"Public"},{"id":"ten3","nom":"EPP KOUROUKORO","code":"120007","codeAGCP":"E018491","commune":"Tengrela","milieu":"Urbain","directeur":"","effectif":0,"classes":6,"statut":"Public"},{"id":"ten4","nom":"MATERNELLE DEBETE","code":"1200013","codeAGCP":"E018197","commune":"Tengrela","milieu":"Urbain","directeur":"","effectif":0,"classes":3,"statut":"Public"},{"id":"ten5","nom":"MATERNELLE PAPARA","code":"1200012","codeAGCP":"E018196","commune":"Tengrela","milieu":"Urbain","directeur":"","effectif":0,"classes":3,"statut":"Public"},{"id":"ten6","nom":"EPP NEGUEPIE 2","code":"1200011","codeAGCP":"E018195","commune":"Tengrela","milieu":"Urbain","directeur":"","effectif":205,"classes":6,"statut":"Public"},{"id":"ten7","nom":"EPP PAPARA 2","code":"1200010","codeAGCP":"E018194","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":207,"classes":6,"statut":"Public"},{"id":"ten8","nom":"EPP DIAMAKANI 2","code":"1200009","codeAGCP":"E018193","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":58,"classes":5,"statut":"Public"},{"id":"ten9","nom":"EPP KOUROUKORO","code":"1200007","codeAGCP":"E018191","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":0,"classes":6,"statut":"Public"},{"id":"ten10","nom":"EPP KANAKONO 1","code":"E006708","codeAGCP":"E017924","commune":"Tengrela","milieu":"Urbain","directeur":"","effectif":0,"classes":6,"statut":"Public"},{"id":"ten11","nom":"EPP SAN 1","code":"E006724","codeAGCP":"E017907","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":43,"classes":5,"statut":"Public"},{"id":"ten12","nom":"EPP ZIEKOUNDOUGOU","code":"12004","codeAGCP":"E017003","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":26,"classes":6,"statut":"Public"},{"id":"ten13","nom":"kokari","code":"100002","codeAGCP":"E015583","commune":"Tengrela","milieu":"Urbain","directeur":"","effectif":53,"classes":5,"statut":"Public"},{"id":"ten14","nom":"EPP COULIBALY YACOUBA 4","code":"27-120-060","codeAGCP":"E006751","commune":"Tengrela","milieu":"Urbain","directeur":"","effectif":152,"classes":6,"statut":"Public"},{"id":"ten15","nom":"EPP COULIBALY YACOUBA 2","code":"27-120-059","codeAGCP":"E006750","commune":"Tengrela","milieu":"Urbain","directeur":"","effectif":268,"classes":6,"statut":"Public"},{"id":"ten16","nom":"EPP KAPEGUE","code":"27-120-055","codeAGCP":"E006746","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":35,"classes":6,"statut":"Public"},{"id":"ten17","nom":"EPP BENIASSO","code":"27-120-052","codeAGCP":"E006743","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":75,"classes":6,"statut":"Public"},{"id":"ten18","nom":"EPP BASSO","code":"27-120-051","codeAGCP":"E006742","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":33,"classes":2,"statut":"Public"},{"id":"ten19","nom":"EPP ZELESSO","code":"27-120-049","codeAGCP":"E006740","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":50,"classes":5,"statut":"Public"},{"id":"ten20","nom":"EPP ZANASSO","code":"27-120-048","codeAGCP":"E006739","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":133,"classes":6,"statut":"Public"},{"id":"ten21","nom":"EPP TIONGOLI","code":"27-120-047","codeAGCP":"E006738","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":30,"classes":3,"statut":"Public"},{"id":"ten22","nom":"EPP TIENDERIME","code":"27-120-046","codeAGCP":"E006737","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":77,"classes":6,"statut":"Public"},{"id":"ten23","nom":"EPP TIEMPA","code":"27-120-045","codeAGCP":"E006736","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":18,"classes":3,"statut":"Public"},{"id":"ten24","nom":"EPP KEBE BALLO 2","code":"27-120-043","codeAGCP":"E006734","commune":"Tengrela","milieu":"Urbain","directeur":"","effectif":93,"classes":5,"statut":"Public"},{"id":"ten25","nom":"EPP KEBE BALLO 1","code":"27-120-042","codeAGCP":"E006733","commune":"Tengrela","milieu":"Urbain","directeur":"","effectif":145,"classes":3,"statut":"Public"},{"id":"ten26","nom":"EPP COULIBALY YACOUBA 3","code":"27-120-041","codeAGCP":"E006732","commune":"Tengrela","milieu":"Urbain","directeur":"","effectif":142,"classes":6,"statut":"Public"},{"id":"ten27","nom":"EPP COULIBALY YACOUBA 1","code":"27-120-040","codeAGCP":"E006731","commune":"Tengrela","milieu":"Urbain","directeur":"","effectif":163,"classes":6,"statut":"Public"},{"id":"ten28","nom":"EPP TCHALAKA","code":"27-120-036","codeAGCP":"E006727","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":52,"classes":6,"statut":"Public"},{"id":"ten29","nom":"EPP TAMANIA","code":"27-120-035","codeAGCP":"E006726","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":98,"classes":6,"statut":"Public"},{"id":"ten30","nom":"EPP PAPARA","code":"27-120-030","codeAGCP":"E006721","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":193,"classes":6,"statut":"Public"},{"id":"ten31","nom":"EPP NIGOUNI","code":"27-120-029","codeAGCP":"E006720","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":66,"classes":6,"statut":"Public"},{"id":"ten32","nom":"EPP NIANRANGBA","code":"27-120-028","codeAGCP":"E006719","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":24,"classes":5,"statut":"Public"},{"id":"ten33","nom":"EPP NEGUEPIE","code":"27-120-027","codeAGCP":"E006718","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":124,"classes":6,"statut":"Public"},{"id":"ten34","nom":"EPP NANIASSO","code":"27-120-026","codeAGCP":"E006717","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":63,"classes":6,"statut":"Public"},{"id":"ten35","nom":"EPP M'BELLE","code":"27-120-025","codeAGCP":"E006716","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":81,"classes":6,"statut":"Public"},{"id":"ten36","nom":"EPP M'BASSO","code":"27-120-024","codeAGCP":"E006715","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":94,"classes":6,"statut":"Public"},{"id":"ten37","nom":"EPP MANIASSO","code":"27-120-023","codeAGCP":"E006714","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":79,"classes":6,"statut":"Public"},{"id":"ten38","nom":"EPP LA JOIE","code":"27-120-021","codeAGCP":"E006712","commune":"Tengrela","milieu":"Urbain","directeur":"","effectif":0,"classes":6,"statut":"Public"},{"id":"ten39","nom":"EPP KOLONZA","code":"27-120-019","codeAGCP":"E006710","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":42,"classes":6,"statut":"Public"},{"id":"ten40","nom":"EPP IRIBASSO","code":"27-120-016","codeAGCP":"E006707","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":61,"classes":6,"statut":"Public"},{"id":"ten41","nom":"EPP FLABOUGOU","code":"27-120-015","codeAGCP":"E006706","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":46,"classes":6,"statut":"Public"},{"id":"ten42","nom":"EPP FENI","code":"27-120-014","codeAGCP":"E006705","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":281,"classes":6,"statut":"Public"},{"id":"ten43","nom":"EPP DIAMAKANI","code":"27-120-012","codeAGCP":"E006703","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":179,"classes":6,"statut":"Public"},{"id":"ten44","nom":"EPP DEBETE","code":"27-120-011","codeAGCP":"E006702","commune":"Tengrela","milieu":"Urbain","directeur":"","effectif":49,"classes":3,"statut":"Public"},{"id":"ten45","nom":"EPP BOUGOULA","code":"27-120-010","codeAGCP":"E006701","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":104,"classes":6,"statut":"Public"},{"id":"ten46","nom":"EPC NDA TENGRELA","code":"27-120-008","codeAGCP":"E006699","commune":"Tengrela","milieu":"Urbain","directeur":"","effectif":366,"classes":6,"statut":"Privé"},{"id":"ten47","nom":"EPP SOROKOUMO","code":"27-120-006","codeAGCP":"E006697","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":246,"classes":6,"statut":"Public"},{"id":"ten48","nom":"EPP FIMBIASSO","code":"27-120-005","codeAGCP":"E006696","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":79,"classes":6,"statut":"Public"},{"id":"ten49","nom":"EPP DOUBASSO","code":"27-120-003","codeAGCP":"E006694","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":30,"classes":2,"statut":"Public"},{"id":"ten50","nom":"EPP KOULOUSSON","code":"27-120-002","codeAGCP":"E006693","commune":"Tengrela","milieu":"Rural","directeur":"","effectif":72,"classes":6,"statut":"Public"},{"id":"ten51","nom":"MATERNELLE LES ALOUETTES","code":"TEN-M-001","codeAGCP":"","commune":"Tengrela","milieu":"","directeur":"","effectif":0,"classes":3,"statut":"Public"},{"id":"ten52","nom":"MATERNELLE NEGUEPIE","code":"TEN-M-002","codeAGCP":"","commune":"Tengrela","milieu":"","directeur":"","effectif":0,"classes":3,"statut":"Public"},{"id":"ten53","nom":"MATERNELLE TAMANIA","code":"TEN-M-003","codeAGCP":"","commune":"Tengrela","milieu":"","directeur":"","effectif":0,"classes":3,"statut":"Public"},{"id":"ten54","nom":"MATERNELLE TENGRELA","code":"TEN-M-004","codeAGCP":"","commune":"Tengrela","milieu":"","directeur":"","effectif":0,"classes":3,"statut":"Public"},{"id":"ten55","nom":"MATERNELLE OLGA MONGELAS (PRIVEE)","code":"TEN-M-005","codeAGCP":"","commune":"Tengrela","milieu":"","directeur":"","effectif":0,"classes":3,"statut":"Privé"},{"id":"ten56","nom":"CPC BASSO","code":"TEN-C-001","codeAGCP":"","commune":"Tengrela","milieu":"","directeur":"","effectif":0,"classes":0,"statut":"Communautaire"},{"id":"ten57","nom":"CPC SOROKOUMO","code":"TEN-C-002","codeAGCP":"","commune":"Tengrela","milieu":"","directeur":"","effectif":0,"classes":0,"statut":"Communautaire"},{"id":"ten58","nom":"CPC ZELESSO","code":"TEN-C-003","codeAGCP":"","commune":"Tengrela","milieu":"","directeur":"","effectif":0,"classes":0,"statut":"Communautaire"}];
+const TENGRELA_EFF_PRIMAIRE = [{"id":"efr6","nom":"EPP NEGUEPIE 2","cp1G":18,"cp1F":17,"cp2G":16,"cp2F":16,"ce1G":13,"ce1F":12,"ce2G":19,"ce2F":18,"cm1G":13,"cm1F":12,"cm2G":26,"cm2F":25},{"id":"efr7","nom":"EPP PAPARA 2","cp1G":24,"cp1F":23,"cp2G":18,"cp2F":17,"ce1G":17,"ce1F":17,"ce2G":24,"ce2F":23,"cm1G":7,"cm1F":7,"cm2G":15,"cm2F":15},{"id":"efr8","nom":"EPP DIAMAKANI 2","cp1G":0,"cp1F":0,"cp2G":1,"cp2F":0,"ce1G":3,"ce1F":2,"ce2G":7,"ce2F":7,"cm1G":7,"cm1F":6,"cm2G":13,"cm2F":12},{"id":"efr11","nom":"EPP SAN 1","cp1G":19,"cp1F":18,"cp2G":1,"cp2F":1,"ce1G":1,"ce1F":0,"ce2G":1,"ce2F":0,"cm1G":1,"cm1F":1,"cm2G":0,"cm2F":0},{"id":"efr12","nom":"EPP ZIEKOUNDOUGOU","cp1G":3,"cp1F":2,"cp2G":2,"cp2F":2,"ce1G":2,"ce1F":2,"ce2G":2,"ce2F":1,"cm1G":3,"cm1F":2,"cm2G":3,"cm2F":2},{"id":"efr13","nom":"kokari","cp1G":3,"cp1F":2,"cp2G":6,"cp2F":5,"ce1G":7,"ce1F":7,"ce2G":9,"ce2F":8,"cm1G":0,"cm1F":0,"cm2G":3,"cm2F":3},{"id":"efr14","nom":"EPP COULIBALY YACOUBA 4","cp1G":20,"cp1F":20,"cp2G":11,"cp2F":10,"ce1G":9,"ce1F":8,"ce2G":10,"ce2F":9,"cm1G":5,"cm1F":5,"cm2G":23,"cm2F":22},{"id":"efr15","nom":"EPP COULIBALY YACOUBA 2","cp1G":26,"cp1F":24,"cp2G":25,"cp2F":24,"ce1G":17,"ce1F":17,"ce2G":20,"ce2F":20,"cm1G":21,"cm1F":21,"cm2G":27,"cm2F":26},{"id":"efr16","nom":"EPP KAPEGUE","cp1G":2,"cp1F":2,"cp2G":6,"cp2F":5,"ce1G":3,"ce1F":3,"ce2G":3,"ce2F":2,"cm1G":2,"cm1F":2,"cm2G":3,"cm2F":2},{"id":"efr17","nom":"EPP BENIASSO","cp1G":4,"cp1F":4,"cp2G":7,"cp2F":6,"ce1G":14,"ce1F":14,"ce2G":5,"ce2F":5,"cm1G":3,"cm1F":2,"cm2G":6,"cm2F":5},{"id":"efr18","nom":"EPP BASSO","cp1G":0,"cp1F":0,"cp2G":0,"cp2F":0,"ce1G":0,"ce1F":0,"ce2G":0,"ce2F":0,"cm1G":4,"cm1F":3,"cm2G":13,"cm2F":13},{"id":"efr19","nom":"EPP ZELESSO","cp1G":0,"cp1F":0,"cp2G":3,"cp2F":3,"ce1G":4,"ce1F":4,"ce2G":1,"ce2F":1,"cm1G":5,"cm1F":4,"cm2G":13,"cm2F":12},{"id":"efr20","nom":"EPP ZANASSO","cp1G":2,"cp1F":2,"cp2G":12,"cp2F":12,"ce1G":8,"ce1F":7,"ce2G":8,"ce2F":8,"cm1G":13,"cm1F":12,"cm2G":25,"cm2F":24},{"id":"efr21","nom":"EPP TIONGOLI","cp1G":0,"cp1F":0,"cp2G":0,"cp2F":0,"ce1G":0,"ce1F":0,"ce2G":1,"ce2F":1,"cm1G":2,"cm1F":1,"cm2G":13,"cm2F":12},{"id":"efr22","nom":"EPP TIENDERIME","cp1G":9,"cp1F":9,"cp2G":10,"cp2F":9,"ce1G":6,"ce1F":6,"ce2G":6,"ce2F":6,"cm1G":4,"cm1F":3,"cm2G":5,"cm2F":4},{"id":"efr23","nom":"EPP TIEMPA","cp1G":0,"cp1F":0,"cp2G":0,"cp2F":0,"ce1G":0,"ce1F":0,"ce2G":2,"ce2F":2,"cm1G":5,"cm1F":5,"cm2G":2,"cm2F":2},{"id":"efr24","nom":"EPP KEBE BALLO 2","cp1G":5,"cp1F":5,"cp2G":5,"cp2F":4,"ce1G":1,"ce1F":0,"ce2G":0,"ce2F":0,"cm1G":11,"cm1F":11,"cm2G":26,"cm2F":25},{"id":"efr25","nom":"EPP KEBE BALLO 1","cp1G":7,"cp1F":7,"cp2G":15,"cp2F":15,"ce1G":0,"ce1F":0,"ce2G":0,"ce2F":0,"cm1G":0,"cm1F":0,"cm2G":52,"cm2F":49},{"id":"efr26","nom":"EPP COULIBALY YACOUBA 3","cp1G":12,"cp1F":12,"cp2G":14,"cp2F":14,"ce1G":6,"ce1F":5,"ce2G":10,"ce2F":10,"cm1G":6,"cm1F":5,"cm2G":24,"cm2F":24},{"id":"efr27","nom":"EPP COULIBALY YACOUBA 1","cp1G":10,"cp1F":9,"cp2G":20,"cp2F":19,"ce1G":18,"ce1F":17,"ce2G":6,"ce2F":6,"cm1G":11,"cm1F":10,"cm2G":19,"cm2F":18},{"id":"efr28","nom":"EPP TCHALAKA","cp1G":2,"cp1F":1,"cp2G":5,"cp2F":5,"ce1G":4,"ce1F":4,"ce2G":4,"ce2F":4,"cm1G":1,"cm1F":1,"cm2G":11,"cm2F":10},{"id":"efr29","nom":"EPP TAMANIA","cp1G":10,"cp1F":10,"cp2G":5,"cp2F":5,"ce1G":9,"ce1F":8,"ce2G":10,"ce2F":10,"cm1G":7,"cm1F":7,"cm2G":9,"cm2F":8},{"id":"efr30","nom":"EPP PAPARA","cp1G":29,"cp1F":27,"cp2G":15,"cp2F":15,"ce1G":20,"ce1F":19,"ce2G":13,"ce2F":12,"cm1G":8,"cm1F":7,"cm2G":14,"cm2F":14},{"id":"efr31","nom":"EPP NIGOUNI","cp1G":6,"cp1F":6,"cp2G":6,"cp2F":6,"ce1G":6,"ce1F":6,"ce2G":6,"ce2F":6,"cm1G":4,"cm1F":4,"cm2G":5,"cm2F":5},{"id":"efr32","nom":"EPP NIANRANGBA","cp1G":0,"cp1F":0,"cp2G":1,"cp2F":0,"ce1G":3,"ce1F":3,"ce2G":3,"ce2F":3,"cm1G":2,"cm1F":1,"cm2G":4,"cm2F":4},{"id":"efr33","nom":"EPP NEGUEPIE","cp1G":23,"cp1F":23,"cp2G":11,"cp2F":10,"ce1G":1,"ce1F":0,"ce2G":1,"ce2F":0,"cm1G":13,"cm1F":13,"cm2G":15,"cm2F":14},{"id":"efr34","nom":"EPP NANIASSO","cp1G":3,"cp1F":3,"cp2G":3,"cp2F":3,"ce1G":8,"ce1F":8,"ce2G":9,"ce2F":9,"cm1G":4,"cm1F":3,"cm2G":5,"cm2F":5},{"id":"efr35","nom":"EPP M'BELLE","cp1G":3,"cp1F":2,"cp2G":6,"cp2F":5,"ce1G":8,"ce1F":8,"ce2G":1,"ce2F":0,"cm1G":3,"cm1F":2,"cm2G":22,"cm2F":21},{"id":"efr36","nom":"EPP M'BASSO","cp1G":8,"cp1F":7,"cp2G":11,"cp2F":11,"ce1G":11,"ce1F":11,"ce2G":8,"ce2F":8,"cm1G":5,"cm1F":4,"cm2G":5,"cm2F":5},{"id":"efr37","nom":"EPP MANIASSO","cp1G":6,"cp1F":6,"cp2G":4,"cp2F":4,"ce1G":5,"ce1F":4,"ce2G":3,"ce2F":3,"cm1G":2,"cm1F":2,"cm2G":20,"cm2F":20},{"id":"efr39","nom":"EPP KOLONZA","cp1G":2,"cp1F":2,"cp2G":4,"cp2F":4,"ce1G":4,"ce1F":3,"ce2G":4,"ce2F":4,"cm1G":1,"cm1F":1,"cm2G":7,"cm2F":6},{"id":"efr40","nom":"EPP IRIBASSO","cp1G":3,"cp1F":3,"cp2G":10,"cp2F":9,"ce1G":4,"ce1F":4,"ce2G":6,"ce2F":6,"cm1G":4,"cm1F":4,"cm2G":4,"cm2F":4},{"id":"efr41","nom":"EPP FLABOUGOU","cp1G":4,"cp1F":3,"cp2G":3,"cp2F":2,"ce1G":2,"ce1F":2,"ce2G":6,"ce2F":6,"cm1G":4,"cm1F":3,"cm2G":6,"cm2F":5},{"id":"efr42","nom":"EPP FENI","cp1G":28,"cp1F":27,"cp2G":32,"cp2F":30,"ce1G":42,"ce1F":41,"ce2G":17,"ce2F":16,"cm1G":5,"cm1F":4,"cm2G":20,"cm2F":19},{"id":"efr43","nom":"EPP DIAMAKANI","cp1G":18,"cp1F":18,"cp2G":22,"cp2F":22,"ce1G":12,"ce1F":11,"ce2G":9,"ce2F":8,"cm1G":9,"cm1F":9,"cm2G":21,"cm2F":20},{"id":"efr44","nom":"EPP DEBETE","cp1G":0,"cp1F":0,"cp2G":1,"cp2F":0,"ce1G":0,"ce1F":0,"ce2G":0,"ce2F":0,"cm1G":1,"cm1F":0,"cm2G":24,"cm2F":23},{"id":"efr45","nom":"EPP BOUGOULA","cp1G":4,"cp1F":4,"cp2G":16,"cp2F":16,"ce1G":11,"ce1F":11,"ce2G":3,"ce2F":2,"cm1G":7,"cm1F":7,"cm2G":12,"cm2F":11},{"id":"efr46","nom":"EPC NDA TENGRELA","cp1G":29,"cp1F":28,"cp2G":38,"cp2F":37,"ce1G":33,"ce1F":32,"ce2G":29,"ce2F":27,"cm1G":29,"cm1F":28,"cm2G":29,"cm2F":27},{"id":"efr47","nom":"EPP SOROKOUMO","cp1G":22,"cp1F":22,"cp2G":20,"cp2F":19,"ce1G":25,"ce1F":24,"ce2G":17,"ce2F":16,"cm1G":16,"cm1F":15,"cm2G":26,"cm2F":24},{"id":"efr48","nom":"EPP FIMBIASSO","cp1G":3,"cp1F":2,"cp2G":3,"cp2F":2,"ce1G":8,"ce1F":8,"ce2G":10,"ce2F":9,"cm1G":7,"cm1F":7,"cm2G":10,"cm2F":10},{"id":"efr49","nom":"EPP DOUBASSO","cp1G":0,"cp1F":0,"cp2G":0,"cp2F":0,"ce1G":0,"ce1F":0,"ce2G":0,"ce2F":0,"cm1G":2,"cm1F":2,"cm2G":13,"cm2F":13},{"id":"efr50","nom":"EPP KOULOUSSON","cp1G":8,"cp1F":7,"cp2G":6,"cp2F":6,"ce1G":4,"ce1F":4,"ce2G":8,"ce2F":7,"cm1G":3,"cm1F":3,"cm2G":8,"cm2F":8}];
+/* ===== AMORCE IEPP TENGRELA (DRENAET Boundiali) — fichier dédié ===== */
+(function seedTengrela(){
+  try {
+    var P = 'iepp_';
+    var SCOPE = 'c_iepp_tengrela';
+    var VER = '2';                       // v2 : carte scolaire officielle + effectifs réels
+    var eKey  = P + SCOPE + '_ecoles';
+    var epKey = P + SCOPE + '_effPrimaire';
+    var vKey  = P + 'tengrela_dataver';
+    var cur = null; try { cur = localStorage.getItem(vKey); } catch(e){}
+    if (cur !== VER) {
+      // Mise à jour autoritative des écoles et des effectifs primaires par classe
+      localStorage.setItem(eKey, JSON.stringify(TENGRELA_ECOLES));
+      localStorage.setItem(epKey, JSON.stringify(TENGRELA_EFF_PRIMAIRE));
+      localStorage.setItem(vKey, VER);
+    } else if (localStorage.getItem(eKey) === null) {
+      localStorage.setItem(eKey, JSON.stringify(TENGRELA_ECOLES));
+      localStorage.setItem(epKey, JSON.stringify(TENGRELA_EFF_PRIMAIRE));
+    }
+    // Garantir la présence du compte iepptengrela pour un navigateur ayant déjà des comptes
+    var uKey = P + 'users';
+    var raw = localStorage.getItem(uKey);
+    if (raw) {
+      try {
+        var us = JSON.parse(raw);
+        if (Array.isArray(us) && !us.some(function(u){return u.username==='iepptengrela';})) {
+          us.push({username:'iepptengrela', password:'iepptengrela2026', name:'Inspecteur IEPP Tengrela', role:'inspecteur', email:'iepp.tengrela@menaet.ci', iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali'});
+          localStorage.setItem(uKey, JSON.stringify(us));
+        }
+      } catch(e){}
+    }
+  } catch(e){ console.warn('seedTengrela', e); }
+})();
 const state = {
   user: null,
   module: 'dashboard',
@@ -1813,7 +1855,7 @@ function emptyLike(k) {
   return [];
 }
 function reloadScopedState() {
-  const isPrimary = (activeScope === scopeSlug('IEPP Niakara'));
+  const isPrimary = (activeScope === scopeSlug('IEPP TENGRELA'));
   SCOPED_STATE.forEach(([k, df]) => {
     let fallback;
     try { fallback = isPrimary ? df() : emptyLike(k); } catch(e) { fallback = emptyLike(k); }
@@ -1842,7 +1884,7 @@ function accessibleIepps() {
     ...state.users.map(u=>u.iepp).filter(i=>i && i!=='TOUTES'),
     ...reg.map(r=>r.name)
   ])];
-  if (!all.includes('IEPP Niakara')) all.push('IEPP Niakara');
+  if (!all.includes('IEPP TENGRELA')) all.push('IEPP TENGRELA');
   if (me.role === 'superadmin') return all.sort();
   if (me.role === 'drenaet') {
     const mineUsers = state.users.filter(u=>u.drenaet===me.drenaet).map(u=>u.iepp);
@@ -1850,7 +1892,7 @@ function accessibleIepps() {
     const mine = [...new Set([...mineUsers, ...mineReg].filter(i=>i && i!=='TOUTES'))];
     return mine.length ? mine.sort() : (me.iepp && me.iepp!=='TOUTES' ? [me.iepp] : all.sort());
   }
-  return [me.iepp && me.iepp!=='TOUTES' ? me.iepp : 'IEPP Niakara'];
+  return [me.iepp && me.iepp!=='TOUTES' ? me.iepp : 'IEPP TENGRELA'];
 }
 function setActiveIepp(iepp) {
   state.activeIepp = iepp;
@@ -2081,13 +2123,13 @@ const CLOUD_COLLECTION = 'appData';
 /* ---------- DEFAULT DATA ---------- */
 function defaultEcoles() {
   return [
-    { id:'e1', nom:'EPP Niakara 1 B',       code:'NIA-P-001', commune:'Niakara',   directeur:'GNAGNE Akpess Claude', effectif:312, classes:6, statut:'Public' },
-    { id:'e2', nom:'EPP Niakara 2',         code:'NIA-P-002', commune:'Niakara',   directeur:'KONE Adama',           effectif:298, classes:6, statut:'Public' },
-    { id:'e3', nom:'EPP Niakara 3',         code:'NIA-P-003', commune:'Niakara',   directeur:'OUATTARA Ibrahim',     effectif:345, classes:6, statut:'Public' },
-    { id:'e4', nom:'EPP Niakara Château',   code:'NIA-P-004', commune:'Niakara',   directeur:'YEO Lassana',          effectif:286, classes:6, statut:'Public' },
+    { id:'e1', nom:'EPP Tengrela 1 B',       code:'NIA-P-001', commune:'Tengrela',   directeur:'GNAGNE Akpess Claude', effectif:312, classes:6, statut:'Public' },
+    { id:'e2', nom:'EPP Tengrela 2',         code:'NIA-P-002', commune:'Tengrela',   directeur:'KONE Adama',           effectif:298, classes:6, statut:'Public' },
+    { id:'e3', nom:'EPP Tengrela 3',         code:'NIA-P-003', commune:'Tengrela',   directeur:'OUATTARA Ibrahim',     effectif:345, classes:6, statut:'Public' },
+    { id:'e4', nom:'EPP Tengrela Château',   code:'NIA-P-004', commune:'Tengrela',   directeur:'YEO Lassana',          effectif:286, classes:6, statut:'Public' },
     { id:'e5', nom:'EPP Kanawolo',          code:'NIA-P-012', commune:'Kanawolo',  directeur:'DIABATE Karim',        effectif:264, classes:6, statut:'Public' },
     { id:'e6', nom:'EPP Arikokaha',         code:'NIA-P-018', commune:'Arikokaha', directeur:'TRAORE Vassiogo',      effectif:198, classes:5, statut:'Public' },
-    { id:'e7', nom:'Maternelle Municipale Niakara', code:'NIA-M-001', commune:'Niakara', directeur:'KOUASSI Mariam', effectif:126, classes:3, statut:'Public' },
+    { id:'e7', nom:'Maternelle Municipale Tengrela', code:'NIA-M-001', commune:'Tengrela', directeur:'KOUASSI Mariam', effectif:126, classes:3, statut:'Public' },
     { id:'e8', nom:'EPP Privée Tortiya',    code:'NIA-PV-001', commune:'Tortiya',  directeur:'BAKAYOKO Sékou',       effectif:308, classes:6, statut:'Privé' },
   ];
 }
@@ -2095,9 +2137,9 @@ function defaultDrenaet() {
   /* Direction Régionale de l'Éducation Nationale → ses IEPP rattachées.
      Réservé au Grand Administrateur. Permet le pilotage multi-IEPP. */
   return [
-    { id:'d1', drenaet:'DRENAET Katiola',        iepp:'IEPP Niakara',        ieppCode:'IEPP-NIA', chef:'GNAGNE Akpess Claude', ecoles:84,  prescolaire:22, primaire:62, eleves:17522, statut:'Active' },
-    { id:'d2', drenaet:'DRENAET Katiola',        iepp:'IEPP Katiola 1',      ieppCode:'IEPP-KAT1',chef:'KOUADIO Émile',        ecoles:71,  prescolaire:18, primaire:53, eleves:14380, statut:'Active' },
-    { id:'d3', drenaet:'DRENAET Katiola',        iepp:'IEPP Dabakala',       ieppCode:'IEPP-DAB', chef:'SORO Nabintou',         ecoles:96,  prescolaire:25, primaire:71, eleves:19240, statut:'Active' },
+    { id:'d1', drenaet:'DRENAET Boundiali',        iepp:'IEPP TENGRELA',        ieppCode:'IEPP-TEN', chef:'GNAGNE Akpess Claude', ecoles:84,  prescolaire:22, primaire:62, eleves:17522, statut:'Active' },
+    { id:'d2', drenaet:'DRENAET Boundiali',        iepp:'IEPP Boundiali 1',      ieppCode:'IEPP-KAT1',chef:'KOUADIO Émile',        ecoles:71,  prescolaire:18, primaire:53, eleves:14380, statut:'Active' },
+    { id:'d3', drenaet:'DRENAET Boundiali',        iepp:'IEPP Dabakala',       ieppCode:'IEPP-DAB', chef:'SORO Nabintou',         ecoles:96,  prescolaire:25, primaire:71, eleves:19240, statut:'Active' },
     { id:'d4', drenaet:'DRENAET Bouaké 1',       iepp:'IEPP Bouaké Nord',    ieppCode:'IEPP-BKN', chef:'YAO Konan',             ecoles:118, prescolaire:34, primaire:84, eleves:26110, statut:'Active' },
     { id:'d5', drenaet:'DRENAET Bouaké 2',       iepp:'IEPP Bouaké Sud',     ieppCode:'IEPP-BKS', chef:'KOFFI Adjoua',          ecoles:124, prescolaire:38, primaire:86, eleves:27530, statut:'Active' },
     { id:'d6', drenaet:'DRENAET Yamoussoukro',   iepp:'IEPP Yamoussoukro 1', ieppCode:'IEPP-YK1', chef:'TIA Joseph',            ecoles:102, prescolaire:30, primaire:72, eleves:23890, statut:'Active' },
@@ -2117,44 +2159,44 @@ function defaultEffectifs() {
 }
 function defaultPersonnel() {
   return [
-    { id:'p1', matricule:'124589A', nom:'BAMBA Mariam',     fonction:'Instituteur Adjoint',  ecole:'EPP Niakara 1 B', anciennete:8,  grade:'IA',  classe:'CE1', tel:'0701122334', sexe:'F' },
-    { id:'p2', matricule:'098712B', nom:'KOUAKOU Yves',     fonction:'Instituteur Principal',ecole:'EPP Niakara 1 B', anciennete:15, grade:'IP',  classe:'CM2', tel:'0502233445', sexe:'M' },
-    { id:'p3', matricule:'145621C', nom:'COULIBALY Awa',    fonction:'Instituteur Adjoint',  ecole:'EPP Niakara 1 B', anciennete:6,  grade:'IA',  classe:'CP1', tel:'0103344556', sexe:'F' },
-    { id:'p4', matricule:'112233D', nom:'GNAGNE Akpess Claude',fonction:'Directeur',          ecole:'EPP Niakara 1 B', anciennete:22, grade:'DIR', classe:'', tel:'0707788990', sexe:'M' },
-    { id:'p5', matricule:'234567E', nom:'TRAORE Adama',     fonction:'Instituteur Adjoint',  ecole:'EPP Niakara 1 B', anciennete:5,  grade:'IA',  classe:'CE2', tel:'0504455667', sexe:'M' },
-    { id:'p6', matricule:'345678F', nom:'OUATTARA Salif',   fonction:'Instituteur Principal',ecole:'EPP Niakara 1 B', anciennete:12, grade:'IP',  classe:'CM1', tel:'0105566778', sexe:'M' },
-    { id:'p7', matricule:'456789G', nom:'KONE Aïcha',       fonction:'Instituteur Adjoint',  ecole:'EPP Niakara 1 B', anciennete:3,  grade:'IA',  classe:'CP2', tel:'0708899001', sexe:'F' },
+    { id:'p1', matricule:'124589A', nom:'BAMBA Mariam',     fonction:'Instituteur Adjoint',  ecole:'EPP Tengrela 1 B', anciennete:8,  grade:'IA',  classe:'CE1', tel:'0701122334', sexe:'F' },
+    { id:'p2', matricule:'098712B', nom:'KOUAKOU Yves',     fonction:'Instituteur Principal',ecole:'EPP Tengrela 1 B', anciennete:15, grade:'IP',  classe:'CM2', tel:'0502233445', sexe:'M' },
+    { id:'p3', matricule:'145621C', nom:'COULIBALY Awa',    fonction:'Instituteur Adjoint',  ecole:'EPP Tengrela 1 B', anciennete:6,  grade:'IA',  classe:'CP1', tel:'0103344556', sexe:'F' },
+    { id:'p4', matricule:'112233D', nom:'GNAGNE Akpess Claude',fonction:'Directeur',          ecole:'EPP Tengrela 1 B', anciennete:22, grade:'DIR', classe:'', tel:'0707788990', sexe:'M' },
+    { id:'p5', matricule:'234567E', nom:'TRAORE Adama',     fonction:'Instituteur Adjoint',  ecole:'EPP Tengrela 1 B', anciennete:5,  grade:'IA',  classe:'CE2', tel:'0504455667', sexe:'M' },
+    { id:'p6', matricule:'345678F', nom:'OUATTARA Salif',   fonction:'Instituteur Principal',ecole:'EPP Tengrela 1 B', anciennete:12, grade:'IP',  classe:'CM1', tel:'0105566778', sexe:'M' },
+    { id:'p7', matricule:'456789G', nom:'KONE Aïcha',       fonction:'Instituteur Adjoint',  ecole:'EPP Tengrela 1 B', anciennete:3,  grade:'IA',  classe:'CP2', tel:'0708899001', sexe:'F' },
   ];
 }
 function defaultAbsences() {
   return [
-    { id:'ab1', demandeur:'BAMBA Mariam',  ecole:'EPP Niakara 1 B', du:'2026-05-26', au:'2026-05-28', motif:'Maladie (certificat médical joint)', statut:'En attente directeur', dateDemande:'2026-05-22' },
-    { id:'ab2', demandeur:'KOUAKOU Yves',  ecole:'EPP Niakara 1 B', du:'2026-06-01', au:'2026-06-02', motif:'Événement familial',                  statut:'Validée directeur',  dateDemande:'2026-05-20' },
-    { id:'ab3', demandeur:'COULIBALY Awa', ecole:'EPP Niakara 1 B', du:'2026-05-15', au:'2026-05-15', motif:'Convocation administrative',          statut:'Validée',           dateDemande:'2026-05-10' },
+    { id:'ab1', demandeur:'BAMBA Mariam',  ecole:'EPP Tengrela 1 B', du:'2026-05-26', au:'2026-05-28', motif:'Maladie (certificat médical joint)', statut:'En attente directeur', dateDemande:'2026-05-22' },
+    { id:'ab2', demandeur:'KOUAKOU Yves',  ecole:'EPP Tengrela 1 B', du:'2026-06-01', au:'2026-06-02', motif:'Événement familial',                  statut:'Validée directeur',  dateDemande:'2026-05-20' },
+    { id:'ab3', demandeur:'COULIBALY Awa', ecole:'EPP Tengrela 1 B', du:'2026-05-15', au:'2026-05-15', motif:'Convocation administrative',          statut:'Validée',           dateDemande:'2026-05-10' },
   ];
 }
 function defaultVisites() {
   return [
-    { id:'v1', cpi:'TRAORE Aminata', enseignant:'BAMBA Mariam',   ecole:'EPP Habitat', date:'2026-05-12', niveau:'CE1', note:14.5, observation:'Préparation rigoureuse, gestion de classe à renforcer', secteur:'Niakara Centre', disciplines:['Français · Lecture','Mathématiques · Numération / Calcul'] },
-    { id:'v2', cpi:'TRAORE Aminata', enseignant:'KOUAKOU Yves',   ecole:'EPP Habitat', date:'2026-05-08', niveau:'CM2', note:16.0, observation:'Excellente maîtrise pédagogique', secteur:'Niakara Centre', disciplines:['Mathématiques · Géométrie','Sciences (Éveil scientifique)'] },
+    { id:'v1', cpi:'TRAORE Aminata', enseignant:'BAMBA Mariam',   ecole:'EPP Habitat', date:'2026-05-12', niveau:'CE1', note:14.5, observation:'Préparation rigoureuse, gestion de classe à renforcer', secteur:'Tengrela Centre', disciplines:['Français · Lecture','Mathématiques · Numération / Calcul'] },
+    { id:'v2', cpi:'TRAORE Aminata', enseignant:'KOUAKOU Yves',   ecole:'EPP Habitat', date:'2026-05-08', niveau:'CM2', note:16.0, observation:'Excellente maîtrise pédagogique', secteur:'Tengrela Centre', disciplines:['Mathématiques · Géométrie','Sciences (Éveil scientifique)'] },
   ];
 }
 function defaultCPPP() {
   return [
-    { id:'cppp1', nom:'TRAORE Aminata',  fonction:'CPS Primaire',    tel:'0701234567', email:'cps.primaire@iepp.ci',     secteurs:['Niakara Centre','Niakara Habitat','Niakara Plateau'] },
-    { id:'cppp2', nom:'KOUASSI Mariam',  fonction:'CPS Préscolaire', tel:'0709876543', email:'cps.prescolaire@iepp.ci',   secteurs:['Maternelles Niakara','Maternelles Kanawolo'] },
+    { id:'cppp1', nom:'TRAORE Aminata',  fonction:'CPS Primaire',    tel:'0701234567', email:'cps.primaire@iepp.ci',     secteurs:['Tengrela Centre','Tengrela Habitat','Tengrela Plateau'] },
+    { id:'cppp2', nom:'KOUASSI Mariam',  fonction:'CPS Préscolaire', tel:'0709876543', email:'cps.prescolaire@iepp.ci',   secteurs:['Maternelles Tengrela','Maternelles Kanawolo'] },
   ];
 }
 function defaultCpppBulletins() {
   return [
     { id:'bul1', cpppId:'cppp1', matricule:'',
       anneeScolaire:'2025-2026', periode:'Premier trimestre',
-      iepp:'NIAKARA', drena:'BÉLIER',
+      iepp:'TENGRELA', drena:'BÉLIER',
       notes:{ assiduite:17, hierarchie:18, planAction:15, encadrement:16, animations:14, visites:16, rapports:15, programmes:16, collaboration:17, initiative:15 },
       appreciation:"CPPP rigoureuse, engagée dans l'accompagnement pédagogique des enseignants de la circonscription. Travail apprécié des écoles visitées.",
       pointsForts:"Assiduité exemplaire et ponctualité\nBonne maîtrise des programmes officiels\nQualité des fiches de visite et rapports",
       axesAmelioration:"Renforcer l'animation pédagogique mensuelle\nDévelopper davantage les outils numériques de suivi",
-      decision:'Très satisfaisant', lieu:'Niakara', dateSignature:'2026-04-15' }
+      decision:'Très satisfaisant', lieu:'Tengrela', dateSignature:'2026-04-15' }
   ];
 }
 function defaultExamens() {
@@ -2197,7 +2239,7 @@ function defaultCogesReg() {
       { id:'cgmat_aou', periode:'Août', activite:'Préparation de la rentrée scolaire', resultats:'Rentrée préparée', indicateurs:'Liste de vérification' },
     ],
     'formation/sessions': [
-      { id:'fs1', intitule:'Gestion financière des COGES', theme:'Finances', debut:'2026-02-10', fin:'2026-02-12', lieu:'IEPP Niakara', formateur:'M. KONE', participants:24 },
+      { id:'fs1', intitule:'Gestion financière des COGES', theme:'Finances', debut:'2026-02-10', fin:'2026-02-12', lieu:'IEPP TENGRELA', formateur:'M. KONE', participants:24 },
     ],
     'formation/participants': [], 'formation/rapports': [],
     'mobilisation/sensibilisation': [], 'mobilisation/partenaires': [], 'mobilisation/contributions': [],
@@ -2252,7 +2294,7 @@ function defaultEconomatReg() {
       { id:'dr2', date:'2026-05-18', ecole:'EPP Assabou', article:'Cahiers', quantite:100, statut:'Livrée' },
     ],
     'distribution/bons': [
-      { id:'db1', numero:'BS-2026-0147', date:'2026-05-20', destination:'EPP Katiola', articles:'3 lots', statut:'Créé' },
+      { id:'db1', numero:'BS-2026-0147', date:'2026-05-20', destination:'EPP Boundiali', articles:'3 lots', statut:'Créé' },
     ],
     'distribution/historique': [],
     'maintenance/reparations': [
@@ -2328,7 +2370,7 @@ function defaultSmossReg() {
       { id:'vs1', nom:'BAMBA Fanta', ecole:'EPP Habitat', situation:'Décès parent', dateSignalement:today, statut:'Prise en charge' },
     ],
     'vulnerables/besoins': [
-      { id:'vbs1', nom:'KONE Ibrahim', ecole:'EPP Niakara Centre', besoin:'Déficience visuelle', equipement:'Lunettes', statut:'Équipé' },
+      { id:'vbs1', nom:'KONE Ibrahim', ecole:'EPP Tengrela Centre', besoin:'Déficience visuelle', equipement:'Lunettes', statut:'Équipé' },
     ],
     'protection/violences': [
       { id:'pv1', typeViolence:'Violence verbale', ecole:'EPP Habitat', date:today, victime:'Élève CM1', statut:'Signalé' },
@@ -2358,7 +2400,7 @@ function defaultSmossReg() {
       { id:'oa1', beneficiaire:'TRAORE Seydou', typeAssistance:'Fournitures scolaires', valeur:'15 000 FCFA', date:today, statut:'Fourni' },
     ],
     'sociales/dons': [
-      { id:'od1', donateur:'Mairie Niakara', nature:'Kits scolaires', quantite:'50 kits', date:today, ecoles:'EPP Habitat' },
+      { id:'od1', donateur:'Mairie Tengrela', nature:'Kits scolaires', quantite:'50 kits', date:today, ecoles:'EPP Habitat' },
     ],
     'sociales/partenaires': [
       { id:'op1', partenaire:'UNICEF', domaine:'Protection enfant', contact:'unicef@ci.org', statut:'Actif' },
@@ -2373,7 +2415,7 @@ function defaultSmossReg() {
       { id:'cc1', ecole:'EPP Habitat', president:'BAMBA Salif', tresorier:'OUATTARA Awa', statut:'Opérationnel', derniereReunion:today },
     ],
     'communaute/sensibilisation': [
-      { id:'cs1', theme:'Scolarisation des filles', localite:'Niakara', participants:'85', date:today, statut:'Réalisée' },
+      { id:'cs1', theme:'Scolarisation des filles', localite:'Tengrela', participants:'85', date:today, statut:'Réalisée' },
     ],
     'suivi/programmation': [
       { id:'sp1', ecole:'EPP Assabou', dateVisite:today, objet:'Suivi élèves vulnérables', statut:'Programmée' },
@@ -2433,8 +2475,8 @@ function defaultCantineReg() {
       { id:'ca4', titre:'Visites du mois', valeur:'9' },
     ],
     'ecoles/liste': [
-      { id:'el1', ecole:'EPP Habitat', localite:'Niakara', cantine:'Fonctionnelle', beneficiaires:340 },
-      { id:'el2', ecole:'EPP Assabou', localite:'Niakara', cantine:'Fonctionnelle', beneficiaires:285 },
+      { id:'el1', ecole:'EPP Habitat', localite:'Tengrela', cantine:'Fonctionnelle', beneficiaires:340 },
+      { id:'el2', ecole:'EPP Assabou', localite:'Tengrela', cantine:'Fonctionnelle', beneficiaires:285 },
     ],
     'ecoles/effectifs': [
       { id:'ee1', ecole:'EPP Habitat', garcons:178, filles:162, total:340, periode:'2025-2026' },
@@ -2482,7 +2524,7 @@ function defaultCantineReg() {
       { id:'fc1', theme:'Hygiène alimentaire', participants:'20', date:today, statut:'Réalisée' },
     ],
     'formation/communautes': [
-      { id:'fco1', theme:'Sensibilisation cantine', localite:'Niakara', participants:'45', date:today, statut:'Réalisée' },
+      { id:'fco1', theme:'Sensibilisation cantine', localite:'Tengrela', participants:'45', date:today, statut:'Réalisée' },
     ],
     'formation/coges': [
       { id:'fcg1', theme:'Cogestion de la cantine', participants:'8', date:today, statut:'Réalisée' },
@@ -2548,7 +2590,7 @@ function defaultCommunicationReg() {
       { id:'en1', titre:'Note d\'information aux parents', date:today, cible:'Parents d\'élèves', statut:'Publiée' },
     ],
     'externe/presse': [
-      { id:'ep1', media:'Radio locale Niakara', contact:'07 00 00 00', type:'Radio', dernierContact:today },
+      { id:'ep1', media:'Radio locale Tengrela', contact:'07 00 00 00', type:'Radio', dernierContact:today },
     ],
     'externe/publications': [
       { id:'epu1', titre:'Bulletin trimestriel IEPP', type:'Bulletin', date:'2026-04-15', statut:'Publié' },
@@ -2563,7 +2605,7 @@ function defaultCommunicationReg() {
       { id:'idf1', objet:'Calendrier des compositions', cible:'Toutes les écoles', date:today, canal:'Email + Courrier', statut:'Envoyée' },
     ],
     'evenements/calendrier': [
-      { id:'evc1', evenement:'Journée de l\'excellence', date:'2026-06-25', lieu:'IEPP Niakara', statut:'Programmé' },
+      { id:'evc1', evenement:'Journée de l\'excellence', date:'2026-06-25', lieu:'IEPP TENGRELA', statut:'Programmé' },
     ],
     'evenements/ceremonies': [
       { id:'evce1', ceremonie:'Remise des prix', date:'2026-06-28', lieu:'EPP Habitat', statut:'Programmée' },
@@ -2631,10 +2673,10 @@ function defaultSecretariatReg() {
       { id:'sa4', titre:'Documents produits', valeur:'21' },
     ],
     'courrier/recus': [
-      { id:'cr1', numero:'2026-0084', objet:'Convocation réunion DRENAET', expediteur:'DRENAET Katiola', date:today, statut:'Reçu' },
+      { id:'cr1', numero:'2026-0084', objet:'Convocation réunion DRENAET', expediteur:'DRENAET Boundiali', date:today, statut:'Reçu' },
     ],
     'courrier/emis': [
-      { id:'ce1', numero:'2026-0085', objet:'Transmission rapport trimestriel', destinataire:'DRENAET Katiola', date:today, statut:'Envoyé' },
+      { id:'ce1', numero:'2026-0085', objet:'Transmission rapport trimestriel', destinataire:'DRENAET Boundiali', date:today, statut:'Envoyé' },
     ],
     'courrier/attente': [
       { id:'ca1', numero:'2026-0086', objet:'Demande de fournitures', destinataire:'DAF', date:today, statut:'En attente' },
@@ -2650,20 +2692,20 @@ function defaultSecretariatReg() {
       { id:'pa1', nom:'TRAORE Issa', poste:'Bureau d\'ordre', dateAffectation:'2025-09-01', statut:'Active' },
     ],
     'personnel/contacts': [
-      { id:'pc1', nom:'DRENAET Katiola', type:'Institution', contact:'31 00 00 00', email:'drenaet.katiola@menaet.ci' },
+      { id:'pc1', nom:'DRENAET Boundiali', type:'Institution', contact:'31 00 00 00', email:'drenaet.boundiali@menaet.ci' },
     ],
     'ecoles/maternelles': [
-      { id:'em1', nom:'EM Niakara Centre', localite:'Niakara', directeur:'OUATTARA Mariam', effectif:120 },
+      { id:'em1', nom:'EM Tengrela Centre', localite:'Tengrela', directeur:'OUATTARA Mariam', effectif:120 },
     ],
     'ecoles/primaires': [
-      { id:'ep1', nom:'EPP Habitat', localite:'Niakara', directeur:'KOUASSI Jean', effectif:340 },
-      { id:'ep2', nom:'EPP Assabou', localite:'Niakara', directeur:'BAMBA Sekou', effectif:285 },
+      { id:'ep1', nom:'EPP Habitat', localite:'Tengrela', directeur:'KOUASSI Jean', effectif:340 },
+      { id:'ep2', nom:'EPP Assabou', localite:'Tengrela', directeur:'BAMBA Sekou', effectif:285 },
     ],
     'ecoles/directeurs': [
       { id:'ed1', nom:'KOUASSI Jean', ecole:'EPP Habitat', contact:'07 11 11 11', anciennete:'8 ans' },
     ],
     'ecoles/cartographie': [
-      { id:'ecg1', ecole:'EPP Habitat', secteur:'Niakara Nord', distance:'2 km', acces:'Praticable' },
+      { id:'ecg1', ecole:'EPP Habitat', secteur:'Tengrela Nord', distance:'2 km', acces:'Praticable' },
     ],
     'agenda/inspecteur': [
       { id:'ai1', date:today, heure:'09:00', activite:'Réunion de coordination', lieu:'Bureau IEPP', statut:'Programmé' },
@@ -2827,7 +2869,7 @@ function defaultEconomat() {
 function defaultCourrier() {
   return [
     { id:'co1', type:'Entrant', numero:'2026-0084', objet:'Convocation réunion mensuelle DRENAET', expediteur:'DRENAET Yamoussoukro', date:'2026-05-20', statut:'Lu' },
-    { id:'co2', type:'Sortant', numero:'2026-0085', objet:'Transmission rapport trimestriel', destinataire:'DRENAET Katiola', date:'2026-05-15', statut:'Envoyé' },
+    { id:'co2', type:'Sortant', numero:'2026-0085', objet:'Transmission rapport trimestriel', destinataire:'DRENAET Boundiali', date:'2026-05-15', statut:'Envoyé' },
   ];
 }
 function defaultNotifications() {
@@ -2920,9 +2962,9 @@ function startApp() {
   let target;
   if (me.role === 'superadmin' || me.role === 'drenaet') {
     const remembered = (function(){ try { return localStorage.getItem(KEY+'active_iepp'); } catch(e){ return null; } })();
-    target = (remembered && list.includes(remembered)) ? remembered : (list[0] || 'IEPP Niakara');
+    target = (remembered && list.includes(remembered)) ? remembered : (list[0] || 'IEPP TENGRELA');
   } else {
-    target = (me.iepp && me.iepp !== 'TOUTES') ? me.iepp : 'IEPP Niakara';
+    target = (me.iepp && me.iepp !== 'TOUTES') ? me.iepp : 'IEPP TENGRELA';
   }
   setActiveIepp(target);
   refreshScopeSelector();
@@ -2941,6 +2983,10 @@ function applyACL() {
   // Masquer la section Système si rien d'accessible
   const adminLinks = ['users','audit','parametres'].filter(m => allowed.includes(m));
   document.getElementById('sb-admin-section').style.display = adminLinks.length ? '' : 'none';
+
+  // Bouton "Réinitialiser les données" : réservé au Grand Administrateur (superadmin)
+  const resetBtn = document.getElementById('sb-reset-btn');
+  if (resetBtn) resetBtn.style.display = (state.user.role === 'superadmin') ? '' : 'none';
 
   // Section Direction régionale (DRENAET) : visible uniquement par le Grand Administrateur
   const drenaetSection = document.getElementById('sb-drenaet-section');
@@ -3246,14 +3292,14 @@ function drenaetForm(id) {
   const d = id ? state.drenaet.find(x=>x.id===id) : {drenaet:'',iepp:'',ieppCode:'',chef:'',ecoles:0,prescolaire:0,primaire:0,eleves:0,statut:'Active'};
   openModal(id ? 'Modifier l\'IEPP' : 'Nouvelle IEPP', `
     <div class="form-row">
-      <div class="field"><label>DRENAET</label><input id="dr-dren" value="${escapeHtml(d.drenaet)}" placeholder="ex : DRENAET Katiola"></div>
+      <div class="field"><label>DRENAET</label><input id="dr-dren" value="${escapeHtml(d.drenaet)}" placeholder="ex : DRENAET Boundiali"></div>
       <div class="field"><label>Statut</label>
         <select id="dr-stat"><option ${d.statut==='Active'?'selected':''}>Active</option><option ${d.statut==='Suspendue'?'selected':''}>Suspendue</option></select>
       </div>
     </div>
     <div class="form-row">
-      <div class="field"><label>Nom de l'IEPP</label><input id="dr-iepp" value="${escapeHtml(d.iepp)}" placeholder="ex : IEPP Niakara"></div>
-      <div class="field"><label>Code IEPP</label><input id="dr-code" value="${escapeHtml(d.ieppCode||'')}" placeholder="ex : IEPP-NIA"></div>
+      <div class="field"><label>Nom de l'IEPP</label><input id="dr-iepp" value="${escapeHtml(d.iepp)}" placeholder="ex : IEPP TENGRELA"></div>
+      <div class="field"><label>Code IEPP</label><input id="dr-code" value="${escapeHtml(d.ieppCode||'')}" placeholder="ex : IEPP-TEN"></div>
     </div>
     <div class="field"><label>Chef de circonscription</label><input id="dr-chef" value="${escapeHtml(d.chef||'')}" placeholder="Nom et prénoms"></div>
     <div class="form-row">
@@ -3403,7 +3449,7 @@ function renderDashboard() {
   else if (u.role === 'directeur')    heroSubtitle = `Direction de <strong>${escapeHtml(u.ecole||'—')}</strong>. Les chiffres ci-dessous portent sur votre école uniquement.`;
   else if (u.role === 'drenaet')      heroSubtitle = `Direction régionale <strong>${escapeHtml(u.drenaet||'—')}</strong>. Vue de l'IEPP active : <strong>${escapeHtml(state.activeIepp||'—')}</strong> (basculer via le sélecteur en haut).`;
   else if (u.role === 'superadmin')   heroSubtitle = `Grand Administrateur — Vue toutes circonscriptions. IEPP active : <strong>${escapeHtml(state.activeIepp||'—')}</strong>.`;
-  else                                 heroSubtitle = `Système de gestion centralisée — circonscription <strong>${escapeHtml(state.activeIepp || 'IEPP Niakara')}</strong>.`;
+  else                                 heroSubtitle = `Système de gestion centralisée — circonscription <strong>${escapeHtml(state.activeIepp || 'IEPP TENGRELA')}</strong>.`;
 
   // Cartes statistiques personnalisées (instituteur/directeur = leurs effectifs ; autres = vue circonscription)
   const isPersonalScope = ['instituteur','directeur'].includes(u.role);
@@ -4058,7 +4104,7 @@ function userForm(username, presetRole) {
   if (existing && !canSeeUser(existing)) { toast('Ce compte est hors de votre circonscription.', 'error'); return; }
   const isSuper = me.role === 'superadmin';
   const u = existing || {username:'',password:'',name:'',role:presetRole||'instituteur',email:'',
-    iepp:(me.iepp && me.iepp!=='TOUTES'?me.iepp:'IEPP Niakara'), drenaet:(me.drenaet||''), ecole:''};
+    iepp:(me.iepp && me.iepp!=='TOUTES'?me.iepp:'IEPP TENGRELA'), drenaet:(me.drenaet||''), ecole:''};
   // Liste des rôles attribuables (toujours inclure le rôle courant si on édite)
   let roles = assignableRoles();
   if (existing && !roles.includes(existing.role)) roles = [existing.role, ...roles];
@@ -4783,10 +4829,10 @@ function rapportTrimestriel() {
   const totEl = ef.reduce((a,e)=>a+e.total,0);
   const totEx = ex.reduce((a,r)=>({i:a.i+(+r.inscrits||0),ad:a.ad+(+r.admis||0)}),{i:0,ad:0});
   openAutoReport(
-    { titre:'Rapport trimestriel — IEPP '+(state.activeIepp||'NIAKARA'), sous:'Synthèse de l\'activité du trimestre' },
+    { titre:'Rapport trimestriel — IEPP '+(state.activeIepp||'TENGRELA'), sous:'Synthèse de l\'activité du trimestre' },
     [
       { titre:'1. Introduction', texte: aiPhrase([
-        `Le présent rapport trimestriel rend compte de l'activité de l'IEPP ${state.activeIepp||'Niakara'} au cours du trimestre.`,
+        `Le présent rapport trimestriel rend compte de l'activité de l'IEPP ${state.activeIepp||'Tengrela'} au cours du trimestre.`,
         `Il couvre les principaux domaines : pilotage pédagogique, effectifs scolaires, examens et concours, vie scolaire et services.`]) },
       { titre:'2. Effectifs scolaires', texte:`L'IEPP totalise ${totEl.toLocaleString('fr-FR')} élèves répartis sur ${ef.length} entrées d'effectifs déclarées.`,
         tableau:{ head:['École','Niveau','Garçons','Filles','Total'], rows:ef.slice(0,15).map(r=>[r.ecole,r.niveau,r.garcons,r.filles,r.total]) } },
@@ -4809,10 +4855,10 @@ function rapportBilanCEPE() {
   const tot = d.reduce((a,r)=>({i:a.i+(+r.inscrits||0),p:a.p+(+r.presents||0),ad:a.ad+(+r.admis||0)}),{i:0,p:0,ad:0});
   const taux = pctR(tot.ad, tot.p);
   openAutoReport(
-    { titre:'Bilan CEPE — IEPP '+(state.activeIepp||'NIAKARA'), sous:'Examen du Certificat d\'Études Primaires Élémentaires' },
+    { titre:'Bilan CEPE — IEPP '+(state.activeIepp||'TENGRELA'), sous:'Examen du Certificat d\'Études Primaires Élémentaires' },
     [
       { titre:'1. Introduction', texte: aiPhrase([
-        `Ce bilan présente les résultats au CEPE des candidats de l'IEPP ${state.activeIepp||'Niakara'},`,
+        `Ce bilan présente les résultats au CEPE des candidats de l'IEPP ${state.activeIepp||'Tengrela'},`,
         `couvrant ${d.length} centre(s) d'examen.`]) },
       { titre:'2. Résultats globaux', texte: aiPhrase([
         `Sur ${tot.i} inscrits, ${tot.p} candidats se sont présentés et ${tot.ad} ont été admis,`,
@@ -5012,7 +5058,7 @@ function visiteForm(id) {
         <select id="v-niveau">${['MPS','MMS','MGS','CP1','CP2','CE1','CE2','CM1','CM2'].map(n=>`<option ${n===v.niveau?'selected':''}>${n}</option>`).join('')}</select>
       </div>
       <div class="field"><label>Secteur (optionnel)</label>
-        <input id="v-secteur" list="v-secteur-list" value="${escapeHtml(v.secteur||'')}" placeholder="ex : Niakara Centre">
+        <input id="v-secteur" list="v-secteur-list" value="${escapeHtml(v.secteur||'')}" placeholder="ex : Tengrela Centre">
         <datalist id="v-secteur-list">${allSecteurs.map(s=>`<option value="${escapeHtml(s)}">`).join('')}</datalist>
       </div>
     </div>
@@ -5297,7 +5343,7 @@ function cpppForm(id) {
     </div>
     <div class="field">
       <label>Secteurs supervisés <span class="text-xs text-muted">(un par ligne)</span></label>
-      <textarea id="cppp-sect" rows="5" style="resize:vertical;width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:8px;font-family:inherit" placeholder="Niakara Centre&#10;Niakara Habitat&#10;Niakara Plateau">${escapeHtml((c.secteurs||[]).join('\n'))}</textarea>
+      <textarea id="cppp-sect" rows="5" style="resize:vertical;width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:8px;font-family:inherit" placeholder="Tengrela Centre&#10;Tengrela Habitat&#10;Tengrela Plateau">${escapeHtml((c.secteurs||[]).join('\n'))}</textarea>
     </div>
   `, `
     <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
@@ -5582,7 +5628,7 @@ function bulletinForm(id) {
       </div>
     </div>
     <div class="form-row">
-      <div class="field"><label>IEPP</label><input id="bul-iepp" value="${escapeHtml(b.iepp||'')}" placeholder="ex : NIAKARA"></div>
+      <div class="field"><label>IEPP</label><input id="bul-iepp" value="${escapeHtml(b.iepp||'')}" placeholder="ex : TENGRELA"></div>
       <div class="field"><label>DRENA</label><input id="bul-drena" value="${escapeHtml(b.drena||'')}" placeholder="ex : BÉLIER"></div>
     </div>
 
@@ -5629,7 +5675,7 @@ function bulletinForm(id) {
     </div>
 
     <div class="form-row" style="margin-top:10px">
-      <div class="field"><label>Fait à</label><input id="bul-lieu" value="${escapeHtml(b.lieu||'')}" placeholder="ex : Niakara"></div>
+      <div class="field"><label>Fait à</label><input id="bul-lieu" value="${escapeHtml(b.lieu||'')}" placeholder="ex : Tengrela"></div>
       <div class="field"><label>Date de signature</label><input type="date" id="bul-date" value="${b.dateSignature||''}"></div>
     </div>
   `, `
@@ -14277,11 +14323,11 @@ function communicationRechercheRun() {
 
 /* ===== RÉSEAUX SOCIAUX — liens cliquables + gestion des adresses IEPP ===== */
 const COMM_RESEAUX_DEFS = [
-  { id:'facebook',   label:'Facebook',  icon:'📘', color:'#1877F2', bg:'#E7F0FD', urlBase:'https://facebook.com/',  placeholder:'ex : IEPP.Niakara ou https://facebook.com/votrepage', hint:'Page Facebook de l\'IEPP' },
+  { id:'facebook',   label:'Facebook',  icon:'📘', color:'#1877F2', bg:'#E7F0FD', urlBase:'https://facebook.com/',  placeholder:'ex : IEPP.Tengrela ou https://facebook.com/votrepage', hint:'Page Facebook de l\'IEPP' },
   { id:'whatsapp',   label:'WhatsApp',  icon:'💬', color:'#25D366', bg:'#E7FDF0', urlBase:'https://wa.me/',         placeholder:'ex : +2250700000000 ou groupe', hint:'Numéro ou lien groupe WhatsApp de l\'IEPP' },
-  { id:'instagram',  label:'Instagram', icon:'📸', color:'#E1306C', bg:'#FDE8F1', urlBase:'https://instagram.com/', placeholder:'ex : iepp_niakara ou https://instagram.com/votrepage', hint:'Compte Instagram de l\'IEPP' },
-  { id:'twitter',    label:'X (Twitter)',icon:'🐦', color:'#000000', bg:'#F0F0F0', urlBase:'https://x.com/',         placeholder:'ex : @IEPP_Niakara', hint:'Compte X (Twitter) de l\'IEPP' },
-  { id:'youtube',    label:'YouTube',   icon:'▶️', color:'#FF0000', bg:'#FDECEA', urlBase:'https://youtube.com/',   placeholder:'ex : https://youtube.com/@IEPPNiakara', hint:'Chaîne YouTube de l\'IEPP' },
+  { id:'instagram',  label:'Instagram', icon:'📸', color:'#E1306C', bg:'#FDE8F1', urlBase:'https://instagram.com/', placeholder:'ex : iepp_tengrela ou https://instagram.com/votrepage', hint:'Compte Instagram de l\'IEPP' },
+  { id:'twitter',    label:'X (Twitter)',icon:'🐦', color:'#000000', bg:'#F0F0F0', urlBase:'https://x.com/',         placeholder:'ex : @IEPP_Tengrela', hint:'Compte X (Twitter) de l\'IEPP' },
+  { id:'youtube',    label:'YouTube',   icon:'▶️', color:'#FF0000', bg:'#FDECEA', urlBase:'https://youtube.com/',   placeholder:'ex : https://youtube.com/@IEPPTengrela', hint:'Chaîne YouTube de l\'IEPP' },
 ];
 // Clé de stockage des adresses réseaux sociaux — utilise le mécanisme global de la plateforme
 const COMM_RESEAUX_KEY = 'reseauxSociaux';
@@ -16282,7 +16328,7 @@ function clearAudit() {
 
 
 /* ==================================================================
-   CORRESPONDANT — DONNÉES PAR DÉFAUT (contexte IEPP NIAKARA)
+   CORRESPONDANT — DONNÉES PAR DÉFAUT (contexte IEPP TENGRELA)
    ================================================================== */
 
 function defaultMatrice() {
@@ -16419,21 +16465,21 @@ function defaultViePlanification() {
 
 function defaultElevesFichier() {
   return [
-    { id:'el1', matricule:'NIA-2026-00001', nom:'OUATTARA',  prenoms:'Aminata',     sexe:'F', dateN:'2018-03-12', lieuN:'Niakara',   ecole:'EPP Niakara 1 B', niveau:'CE1', extrait:'OUI', pere:'OUATTARA Ibrahim',  mere:'TOURE Salimata',   tel:'0701234567' },
-    { id:'el2', matricule:'NIA-2026-00002', nom:'KONE',      prenoms:'Mamadou',     sexe:'M', dateN:'2017-08-22', lieuN:'Niakara',   ecole:'EPP Niakara 2',   niveau:'CE2', extrait:'OUI', pere:'KONE Adama',         mere:'COULIBALY Awa',     tel:'0507845632' },
+    { id:'el1', matricule:'NIA-2026-00001', nom:'OUATTARA',  prenoms:'Aminata',     sexe:'F', dateN:'2018-03-12', lieuN:'Tengrela',   ecole:'EPP Tengrela 1 B', niveau:'CE1', extrait:'OUI', pere:'OUATTARA Ibrahim',  mere:'TOURE Salimata',   tel:'0701234567' },
+    { id:'el2', matricule:'NIA-2026-00002', nom:'KONE',      prenoms:'Mamadou',     sexe:'M', dateN:'2017-08-22', lieuN:'Tengrela',   ecole:'EPP Tengrela 2',   niveau:'CE2', extrait:'OUI', pere:'KONE Adama',         mere:'COULIBALY Awa',     tel:'0507845632' },
     { id:'el3', matricule:'NIA-2026-00003', nom:'TRAORE',    prenoms:'Fatoumata',   sexe:'F', dateN:'2019-01-05', lieuN:'Tortiya',   ecole:'Maternelle Les Colombes Tortiya', niveau:'MGS', extrait:'NON', pere:'TRAORE Vassiogo', mere:'BAKAYOKO Mariam', tel:'0102345678' },
-    { id:'el4', matricule:'NIA-2026-00004', nom:'DIABATE',   prenoms:'Souleymane',  sexe:'M', dateN:'2016-11-30', lieuN:'Niakara',   ecole:'EPP Niakara 3',   niveau:'CM1', extrait:'OUI', pere:'DIABATE Karim',      mere:'KONE Aïssata',       tel:'0708912345' },
+    { id:'el4', matricule:'NIA-2026-00004', nom:'DIABATE',   prenoms:'Souleymane',  sexe:'M', dateN:'2016-11-30', lieuN:'Tengrela',   ecole:'EPP Tengrela 3',   niveau:'CM1', extrait:'OUI', pere:'DIABATE Karim',      mere:'KONE Aïssata',       tel:'0708912345' },
     { id:'el5', matricule:'NIA-2026-00005', nom:'COULIBALY', prenoms:'Aïcha',       sexe:'F', dateN:'2018-06-18', lieuN:'Arikokaha', ecole:'Maternelle Arikokaha', niveau:'MGS', extrait:'NON', pere:'COULIBALY Mory',   mere:'OUATTARA Mariam',   tel:'0102233445' },
-    { id:'el6', matricule:'NIA-2026-00006', nom:'YEO',       prenoms:'Ibrahim',     sexe:'M', dateN:'2015-04-09', lieuN:'Niakara',   ecole:'EPP Niakara Château', niveau:'CM2', extrait:'OUI', pere:'YEO Lassana',      mere:'BAMBA Awa',           tel:'0759482736' },
+    { id:'el6', matricule:'NIA-2026-00006', nom:'YEO',       prenoms:'Ibrahim',     sexe:'M', dateN:'2015-04-09', lieuN:'Tengrela',   ecole:'EPP Tengrela Château', niveau:'CM2', extrait:'OUI', pere:'YEO Lassana',      mere:'BAMBA Awa',           tel:'0759482736' },
   ];
 }
 
 function defaultRecrutementCP1() {
   return [
-    { id:'r1', ecole:'EPP Niakara 1 B',        prG:42, prF:38, recG:39, recF:36, refG:3, refF:2, redG:5,  redF:4 },
-    { id:'r2', ecole:'EPP Niakara 2',          prG:35, prF:33, recG:32, recF:31, refG:3, refF:2, redG:4,  redF:3 },
-    { id:'r3', ecole:'EPP Niakara 3',          prG:48, prF:45, recG:44, recF:42, refG:4, refF:3, redG:6,  redF:5 },
-    { id:'r4', ecole:'EPP Niakara Château',    prG:38, prF:36, recG:35, recF:33, refG:3, refF:3, redG:5,  redF:4 },
+    { id:'r1', ecole:'EPP Tengrela 1 B',        prG:42, prF:38, recG:39, recF:36, refG:3, refF:2, redG:5,  redF:4 },
+    { id:'r2', ecole:'EPP Tengrela 2',          prG:35, prF:33, recG:32, recF:31, refG:3, refF:2, redG:4,  redF:3 },
+    { id:'r3', ecole:'EPP Tengrela 3',          prG:48, prF:45, recG:44, recF:42, refG:4, refF:3, redG:6,  redF:5 },
+    { id:'r4', ecole:'EPP Tengrela Château',    prG:38, prF:36, recG:35, recF:33, refG:3, refF:3, redG:5,  redF:4 },
     { id:'r5', ecole:'EPP Kanawolo',           prG:30, prF:28, recG:28, recF:26, refG:2, refF:2, redG:3,  redF:2 },
     { id:'r6', ecole:'EPP Arikokaha',          prG:22, prF:20, recG:20, recF:18, refG:2, refF:2, redG:2,  redF:2 },
   ];
@@ -16441,10 +16487,10 @@ function defaultRecrutementCP1() {
 
 function defaultRecrutementMater() {
   return [
-    { id:'rm1', ecole:'Maternelle Municipale Niakara', psG:11, psF:9, msG:25, msF:24, gsG:31, gsF:26, refG:0, refF:0 },
-    { id:'rm2', ecole:'Maternelle Niakara Résidentiel',psG:15, psF:13, msG:18, msF:10, gsG:24, gsF:16, refG:0, refF:0 },
-    { id:'rm3', ecole:'Maternelle Niakara 3',          psG:8,  psF:7,  msG:21, msF:17, gsG:37, gsF:24, refG:0, refF:0 },
-    { id:'rm4', ecole:'Maternelle Niakara Château',    psG:4,  psF:3,  msG:14, msF:13, gsG:13, gsF:19, refG:0, refF:0 },
+    { id:'rm1', ecole:'Maternelle Municipale Tengrela', psG:11, psF:9, msG:25, msF:24, gsG:31, gsF:26, refG:0, refF:0 },
+    { id:'rm2', ecole:'Maternelle Tengrela Résidentiel',psG:15, psF:13, msG:18, msF:10, gsG:24, gsF:16, refG:0, refF:0 },
+    { id:'rm3', ecole:'Maternelle Tengrela 3',          psG:8,  psF:7,  msG:21, msF:17, gsG:37, gsF:24, refG:0, refF:0 },
+    { id:'rm4', ecole:'Maternelle Tengrela Château',    psG:4,  psF:3,  msG:14, msF:13, gsG:13, gsF:19, refG:0, refF:0 },
     { id:'rm5', ecole:'Maternelle Angolokaha',         psG:16, psF:12, msG:23, msF:20, gsG:21, gsF:27, refG:0, refF:0 },
     { id:'rm6', ecole:'Maternelle Ouéréguékaha',       psG:13, psF:14, msG:14, msF:14, gsG:10, gsF:15, refG:0, refF:0 },
   ];
@@ -16454,17 +16500,17 @@ function defaultPNAPAS() {
   return [
     { id:'pn1', activite:'Atelier de formation des enseignants - Lecture',  responsable:'CPI TRAORE Aminata',  ecoles:8,  date:'2026-10-15', statut:'Planifiée' },
     { id:'pn2', activite:'Suivi pédagogique - Mathématiques CE',            responsable:'CPI KOUASSI Pascal',  ecoles:12, date:'2026-11-20', statut:'En cours' },
-    { id:'pn3', activite:'Évaluation des acquis fondamentaux',              responsable:'IEPP NIAKARA',         ecoles:22, date:'2027-02-10', statut:'À venir' },
-    { id:'pn4', activite:'Restitution des résultats PNAPAS T1',             responsable:'IEPP NIAKARA',         ecoles:22, date:'2026-12-18', statut:'Planifiée' },
+    { id:'pn3', activite:'Évaluation des acquis fondamentaux',              responsable:'IEPP TENGRELA',         ecoles:22, date:'2027-02-10', statut:'À venir' },
+    { id:'pn4', activite:'Restitution des résultats PNAPAS T1',             responsable:'IEPP TENGRELA',         ecoles:22, date:'2026-12-18', statut:'Planifiée' },
   ];
 }
 
 function defaultASER() {
   return [
-    { id:'as1', ecole:'EPP Niakara 1 B',     niveau:'CE1', testes:68, lecture:42, calcul:38, score:58.8 },
-    { id:'as2', ecole:'EPP Niakara 2',       niveau:'CE1', testes:55, lecture:36, calcul:30, score:60.0 },
-    { id:'as3', ecole:'EPP Niakara 3',       niveau:'CM1', testes:72, lecture:55, calcul:48, score:71.5 },
-    { id:'as4', ecole:'EPP Niakara Château', niveau:'CM2', testes:64, lecture:52, calcul:46, score:76.6 },
+    { id:'as1', ecole:'EPP Tengrela 1 B',     niveau:'CE1', testes:68, lecture:42, calcul:38, score:58.8 },
+    { id:'as2', ecole:'EPP Tengrela 2',       niveau:'CE1', testes:55, lecture:36, calcul:30, score:60.0 },
+    { id:'as3', ecole:'EPP Tengrela 3',       niveau:'CM1', testes:72, lecture:55, calcul:48, score:71.5 },
+    { id:'as4', ecole:'EPP Tengrela Château', niveau:'CM2', testes:64, lecture:52, calcul:46, score:76.6 },
     { id:'as5', ecole:'EPP Kanawolo',        niveau:'CE2', testes:48, lecture:30, calcul:25, score:57.3 },
     { id:'as6', ecole:'EPP Arikokaha',       niveau:'CP2', testes:38, lecture:22, calcul:20, score:55.3 },
   ];
@@ -16958,7 +17004,7 @@ function renderEtatCompositions() {
   const canEdit = compoCanEdit();
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,#7B2CBF 0%,#4A1376 100%)">
-      <h3>État des <em>compositions</em> — IEPP NIAKARA</h3>
+      <h3>État des <em>compositions</em> — IEPP TENGRELA</h3>
       <p>Résultats des compositions par école et par niveau (CP1 → CM2). Saisissez les Inscrits, Absents et Admis (Garçons/Filles) ; les Présents, Échecs et les taux d'admission/échec sont calculés automatiquement. Ajout, modification, suppression, import/export Excel et impression.</p>
     </div>
 
@@ -17011,7 +17057,7 @@ function renderEtatCompositions() {
       </div>
     </div>
     <div style="display:flex;justify-content:flex-end;margin-top:12px;font-style:italic;color:var(--ink-soft);font-size:12.5px">
-      <span>IEPP NIAKARA — Composition ${compoCur} · ${new Date().toLocaleDateString('fr-FR')}</span>
+      <span>IEPP TENGRELA — Composition ${compoCur} · ${new Date().toLocaleDateString('fr-FR')}</span>
     </div>
   `);
   renderCompoBody();
@@ -17143,7 +17189,7 @@ function compoExport(){
     'Échecs G':c.echG,'Échecs F':c.echF,'Échecs T':c.ech,
     'Matière faible':r.matiere||'',"Taux d'Admis %":c.tAdm,"Taux d'Échec %":c.tEch };
   });
-  exportRowsToExcel(rows,'etat_composition_'+compoCur+'_iepp_niakara','Composition '+compoCur);
+  exportRowsToExcel(rows,'etat_composition_'+compoCur+'_iepp_tengrela','Composition '+compoCur);
 }
 function compoImport(ev){
   importRowsFromFile(ev,(rows)=>{
@@ -17176,16 +17222,16 @@ function compoPrint(){
   const T={ins:0,abs:0,pre:0,adm:0,ech:0}; list.forEach(r=>{const c=compoCalc(r);['ins','abs','pre','adm','ech'].forEach(k=>T[k]+=c[k]);});
   const w=window.open('','_blank');
   if(!w){ toast('Autorisez les fenêtres pop-up pour imprimer','error'); return; }
-  w.document.write(`<html><head><title>État Composition ${compoCur} — IEPP NIAKARA</title>
+  w.document.write(`<html><head><title>État Composition ${compoCur} — IEPP TENGRELA</title>
     <style>body{font-family:Arial,sans-serif;padding:18px;color:#1A1B25}h2{text-align:center;margin:2px}
     .s{text-align:center;color:#555;margin-bottom:12px;font-size:13px}
     table{border-collapse:collapse;width:100%;font-size:11px}th,td{border:1px solid #999;padding:4px 6px;text-align:center}
     th{background:#EFE0FA}tr:last-child{font-weight:bold;background:#f0f0f0}.foot{margin-top:18px;text-align:right;font-style:italic}</style></head><body>
-    <h2>ÉTAT DE LA COMPOSITION N°${compoCur} — IEPP NIAKARA</h2>
+    <h2>ÉTAT DE LA COMPOSITION N°${compoCur} — IEPP TENGRELA</h2>
     <div class="s">Année scolaire ${new Date().getFullYear()-1}-${new Date().getFullYear()} · Résultats par école et par niveau</div>
     <table><thead><tr><th>N°</th><th>École</th><th>Niveau</th><th>Inscrits</th><th>Absents</th><th>Présents</th><th>Admis</th><th>Échecs</th><th>Matière faible</th><th>% Adm</th><th>% Éch</th></tr></thead>
     <tbody>${rowsHtml}<tr><td colspan="3">TOTAL</td><td>${T.ins}</td><td>${T.abs}</td><td>${T.pre}</td><td>${T.adm}</td><td>${T.ech}</td><td></td><td>${pct(T.adm,T.pre)}%</td><td>${pct(T.ech,T.pre)}%</td></tr></tbody></table>
-    <div class="foot">Fait à Niakara, le ${new Date().toLocaleDateString('fr-FR')}</div>
+    <div class="foot">Fait à Tengrela, le ${new Date().toLocaleDateString('fr-FR')}</div>
     </body></html>`);
   w.document.close(); w.focus(); setTimeout(()=>w.print(),300);
 }
@@ -17440,12 +17486,12 @@ function openAutoReport(meta, sections) {
     <div class="doc" id="doc" contenteditable="true">
       <div class="hd" contenteditable="false">
         <div class="min">Ministère de l'Éducation Nationale, de l'Alphabétisation et de l'Enseignement Technique</div>
-        <div class="min">IEPP ${escapeHtml(state.activeIepp||'NIAKARA')}</div>
+        <div class="min">IEPP ${escapeHtml(state.activeIepp||'TENGRELA')}</div>
         <h1>${escapeHtml(meta.titre)}</h1>
         <div class="sub">${escapeHtml(meta.sous||'')}</div>
       </div>
       <div id="body-zone">${secHtml}</div>
-      <div class="foot">Fait à ${escapeHtml((state.activeIepp||'Niakara').replace(/^IEPP\s+/,''))}, le ${today}</div>
+      <div class="foot">Fait à ${escapeHtml((state.activeIepp||'Tengrela').replace(/^IEPP\s+/,''))}, le ${today}</div>
       <div class="auto">Document produit par génération automatique locale de la plateforme (IA ordinaire, sans service externe) ou saisi manuellement. À relire et valider avant diffusion.</div>
     </div>
     <script>
@@ -17474,7 +17520,7 @@ function reportExamens() {
     { titre:'Rapport — Examens & Concours', sous:`${d.length} centre(s) · synthèse des résultats` },
     [
       { titre:'1. Introduction', texte: aiPhrase([
-        `Le présent rapport dresse la synthèse des examens et concours suivis par l'IEPP ${state.activeIepp||'Niakara'}.`,
+        `Le présent rapport dresse la synthèse des examens et concours suivis par l'IEPP ${state.activeIepp||'Tengrela'}.`,
         `Il porte sur ${d.length} centre(s) d'examen totalisant ${tot.i} inscrit(s).`]) },
       { titre:'2. Résultats globaux', texte: aiPhrase([
         `Sur ${tot.i} candidats inscrits, ${tot.p} se sont présentés et ${tot.ad} ont été admis,`,
@@ -17498,7 +17544,7 @@ function reportCPI() {
     { titre:'Rapport — Visites de classe (CPI)', sous:`${d.length} visite(s) pédagogique(s)` },
     [
       { titre:'1. Contexte', texte: aiPhrase([
-        `Ce rapport rend compte des visites de classe conduites par les Conseillers Pédagogiques de l'IEPP ${state.activeIepp||'Niakara'}.`,
+        `Ce rapport rend compte des visites de classe conduites par les Conseillers Pédagogiques de l'IEPP ${state.activeIepp||'Tengrela'}.`,
         `Au total, ${d.length} visite(s) ont été réalisée(s).`]) },
       { titre:'2. Synthèse des observations', texte: aiPhrase([
         moy?`La note moyenne attribuée aux enseignants visités est de ${moy}/20.`:'',
@@ -17520,7 +17566,7 @@ function reportVieScolaire() {
     { titre:'Rapport — Vie scolaire', sous:`${d.length} demande(s) / dossier(s) suivi(s)` },
     [
       { titre:'1. Objet', texte: aiPhrase([
-        `Le présent rapport présente le suivi de la vie scolaire de l'IEPP ${state.activeIepp||'Niakara'},`,
+        `Le présent rapport présente le suivi de la vie scolaire de l'IEPP ${state.activeIepp||'Tengrela'},`,
         `notamment la gestion des absences et des demandes administratives (${d.length} dossier(s)).`]) },
       { titre:'2. État des dossiers', texte: aiPhrase([
         `Sur ${d.length} demande(s), ${validees} ont été validée(s) et ${enAttente} sont en attente de traitement.`]),
@@ -17614,7 +17660,7 @@ function ieppManagerCard() {
 function ieppForm() {
   openModal('Créer une circonscription (IEPP)', `
     <div class="field"><label>Nom de l'IEPP</label><input id="iepp-name" placeholder="ex : IEPP Dabakala"></div>
-    <div class="field"><label>DRENAET de rattachement</label><input id="iepp-dren" placeholder="ex : DRENAET Katiola"></div>
+    <div class="field"><label>DRENAET de rattachement</label><input id="iepp-dren" placeholder="ex : DRENAET Boundiali"></div>
     <p class="text-xs text-muted" style="margin:4px 0 0">Un espace de données vierge et cloisonné sera créé pour cette IEPP. Vous pourrez ensuite « provisionner » ses comptes d'accès en un clic.</p>
   `, `
     <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
@@ -17688,14 +17734,14 @@ state.ceapCandidates = load('ceapCandidates', []);
    base (Inscrits/Absents/Admis · Garçons/Filles) + matière la plus faible.
    Présents, Échecs et taux sont calculés automatiquement.
    ================================================================== */
-const COMPO_ECOLES = ["EPC Niakara","EPP Adamakaha","EPP Arikokaha","EPP Badiokaha","EPP Dahiri Camara de Kafiné","EPP Doussoulokaha","EPP Folofonkaha","EPP Horo Titchiéta D'Angolokaha","EPP Kanawolo 1","EPP Kanawolo 2","EPP Kanawolo 3","EPP Kationron","EPP Kiohan","EPP Kolokaha","EPP Kouadio Koné","EPP Koulokaha","EPP Latokaha","EPP Loho","EPP Lotialga","EPP Malèhè Toure","EPP Nabédjakaha","EPP Nambanakaha","EPP Nangoniékaha","EPP Nanlo Bamba 1","EPP Nanlo Bamba 2","EPP Nanwokaha","EPP Niakara 2","EPP Niakara 3","EPP Niakara Château 1","EPP Niakara Château 2","EPP Niakara Résidentiel 1","EPP Niakara Résidentiel 2","EPP Niangbo","EPP Niédiékaha 1","EPP Niédiékaha 2","EPP Nienrentenkaha","EPP Ouéréguékaha 1","EPP Ouéréguékaha 2","EPP Pèkaha","EPP Pétionnara 1","EPP Pétionnara 2","EPP Pétonkaha","EPP SanKadjokaha","EPP Sépikaha 1","EPP Sépikaha 2","EPP Sépikaha 3","EPP Sérigbokaha","EPP Sinkaha","EPP Ténindiéri","EPP Tiémoko Koné 1","EPP Tiémoko Koné 2","EPP Timorokaha","EPP Tortiya 1A","EPP Tortiya 1B","EPP Tortiya 2A","EPP Tortiya 2B","EPP Tortiya Municipalité","EPP Yakoukaha"];
+const COMPO_ECOLES = ["EPC Tengrela","EPP Adamakaha","EPP Arikokaha","EPP Badiokaha","EPP Dahiri Camara de Kafiné","EPP Doussoulokaha","EPP Folofonkaha","EPP Horo Titchiéta D'Angolokaha","EPP Kanawolo 1","EPP Kanawolo 2","EPP Kanawolo 3","EPP Kationron","EPP Kiohan","EPP Kolokaha","EPP Kouadio Koné","EPP Koulokaha","EPP Latokaha","EPP Loho","EPP Lotialga","EPP Malèhè Toure","EPP Nabédjakaha","EPP Nambanakaha","EPP Nangoniékaha","EPP Nanlo Bamba 1","EPP Nanlo Bamba 2","EPP Nanwokaha","EPP Tengrela 2","EPP Tengrela 3","EPP Tengrela Château 1","EPP Tengrela Château 2","EPP Tengrela Résidentiel 1","EPP Tengrela Résidentiel 2","EPP Niangbo","EPP Niédiékaha 1","EPP Niédiékaha 2","EPP Nienrentenkaha","EPP Ouéréguékaha 1","EPP Ouéréguékaha 2","EPP Pèkaha","EPP Pétionnara 1","EPP Pétionnara 2","EPP Pétonkaha","EPP SanKadjokaha","EPP Sépikaha 1","EPP Sépikaha 2","EPP Sépikaha 3","EPP Sérigbokaha","EPP Sinkaha","EPP Ténindiéri","EPP Tiémoko Koné 1","EPP Tiémoko Koné 2","EPP Timorokaha","EPP Tortiya 1A","EPP Tortiya 1B","EPP Tortiya 2A","EPP Tortiya 2B","EPP Tortiya Municipalité","EPP Yakoukaha"];
 const COMPO_NIVEAUX = ['CP1','CP2','CE1','CE2','CM1','CM2'];
 function defaultCompositions() {
   // Composition 1 amorcée avec quelques lignes d'exemple tirées du fichier ; les autres vides.
   return {
     '1': [
-      { id:'c1-1', ecole:'EPC Niakara',   niveau:'CP1', insG:37, absG:2, admG:33, insF:36, absF:0, admF:33, matiere:'Lecture' },
-      { id:'c1-2', ecole:'EPC Niakara',   niveau:'CP2', insG:26, absG:1, admG:24, insF:13, absF:0, admF:12, matiere:'Lecture' },
+      { id:'c1-1', ecole:'EPC Tengrela',   niveau:'CP1', insG:37, absG:2, admG:33, insF:36, absF:0, admF:33, matiere:'Lecture' },
+      { id:'c1-2', ecole:'EPC Tengrela',   niveau:'CP2', insG:26, absG:1, admG:24, insF:13, absF:0, admF:12, matiere:'Lecture' },
       { id:'c1-3', ecole:'EPP Adamakaha', niveau:'CP1', insG:9,  absG:3, admG:6,  insF:16, absF:4, admF:12, matiere:'Écriture' },
       { id:'c1-4', ecole:'EPP Arikokaha', niveau:'CP1', insG:26, absG:0, admG:22, insF:35, absF:0, admF:31, matiere:'Écriture' },
     ],
@@ -17723,14 +17769,14 @@ function defaultEffPrescolaire() {
     ['Maternelle Kanawolo',0,0,13,18,13,20],
     ['Maternelle Latokaha',2,3,3,5,18,16],
     ['Maternelle Les Colombes Tortiya',3,4,11,13,11,21],
-    ['Maternelle Municipale Niakara',11,9,25,24,31,26],
+    ['Maternelle Municipale Tengrela',11,9,25,24,31,26],
     ['Maternelle Nambanakaha',0,0,13,15,12,13],
     ['Maternelle Nangoniékaha',0,0,8,6,6,5],
-    ['Maternelle Niakara 1 B',4,9,16,14,28,18],
-    ['Maternelle Niakara 2',6,8,8,17,13,19],
-    ['Maternelle Niakara 3',8,7,21,17,37,24],
-    ['Maternelle Niakara Château',4,3,14,13,13,19],
-    ['Maternelle Niakara Résidentiel',15,13,18,10,24,16],
+    ['Maternelle Tengrela 1 B',4,9,16,14,28,18],
+    ['Maternelle Tengrela 2',6,8,8,17,13,19],
+    ['Maternelle Tengrela 3',8,7,21,17,37,24],
+    ['Maternelle Tengrela Château',4,3,14,13,13,19],
+    ['Maternelle Tengrela Résidentiel',15,13,18,10,24,16],
     ['Maternelle Niangbo',0,0,2,4,9,16],
     ['Maternelle Niédiékaha',7,7,10,12,3,9],
     ['Maternelle Ouéréguékaha',13,14,14,14,10,15],
@@ -17779,26 +17825,26 @@ state.effMeta = load('effMeta', { lastSync: null });
 function defaultCarteScolaire() {
   const mk = (id, niveau, dep, sp, loc, denom, zone, statut, eff, cl, extra) =>
     Object.assign({ id, niveau, departement:dep, sprefecture:sp, localite:loc, denomination:denom,
-      zone, statut, effectif:eff, classes:cl, iepp:'NIAKARA',
+      zone, statut, effectif:eff, classes:cl, iepp:'TENGRELA',
       superficie:'', population:'', dateOuverture:'', financement:'', cout:'', observations:'' }, extra||{});
   return [
     // Préscolaire
-    mk('cs-p1','prescolaire','NIAKARA','NIAKARA','Niakara','Maternelle Municipale Niakara','U','Public',126,3),
-    mk('cs-p2','prescolaire','NIAKARA','NIAKARA','Niakara','Maternelle Niakara Résidentiel','U','Public',96,3),
-    mk('cs-p3','prescolaire','NIAKARA','NIAKARA','Niakara','Maternelle Niakara 3','U','Public',114,3),
-    mk('cs-p4','prescolaire','NIAKARA','ARIKOKAHA','Arikokaha','Maternelle Arikokaha','R','Public',39,2),
-    mk('cs-p5','prescolaire','NIAKARA','KANAWOLO','Kanawolo','Maternelle Kanawolo','R','Public',64,2),
+    mk('cs-p1','prescolaire','TENGRELA','TENGRELA','Tengrela','Maternelle Municipale Tengrela','U','Public',126,3),
+    mk('cs-p2','prescolaire','TENGRELA','TENGRELA','Tengrela','Maternelle Tengrela Résidentiel','U','Public',96,3),
+    mk('cs-p3','prescolaire','TENGRELA','TENGRELA','Tengrela','Maternelle Tengrela 3','U','Public',114,3),
+    mk('cs-p4','prescolaire','TENGRELA','ARIKOKAHA','Arikokaha','Maternelle Arikokaha','R','Public',39,2),
+    mk('cs-p5','prescolaire','TENGRELA','KANAWOLO','Kanawolo','Maternelle Kanawolo','R','Public',64,2),
     // Primaire
-    mk('cs-r1','primaire','NIAKARA','NIAKARA','Niakara','EPP Niakara 1 B','U','Public',312,6),
-    mk('cs-r2','primaire','NIAKARA','NIAKARA','Niakara','EPP Niakara 2','U','Public',298,6),
-    mk('cs-r3','primaire','NIAKARA','NIAKARA','Niakara','EPP Niakara 3','U','Public',345,6),
-    mk('cs-r4','primaire','NIAKARA','NIAKARA','Niakara','EPP Niakara Château','U','Public',286,6),
-    mk('cs-r5','primaire','NIAKARA','KANAWOLO','Kanawolo','EPP Kanawolo','R','Public',264,6),
-    mk('cs-r6','primaire','NIAKARA','ARIKOKAHA','Arikokaha','EPP Arikokaha','R','Public',198,5),
-    mk('cs-r7','primaire','NIAKARA','TORTIYA','Tortiya','EPP Privée Tortiya','U','Privé',308,6),
+    mk('cs-r1','primaire','TENGRELA','TENGRELA','Tengrela','EPP Tengrela 1 B','U','Public',312,6),
+    mk('cs-r2','primaire','TENGRELA','TENGRELA','Tengrela','EPP Tengrela 2','U','Public',298,6),
+    mk('cs-r3','primaire','TENGRELA','TENGRELA','Tengrela','EPP Tengrela 3','U','Public',345,6),
+    mk('cs-r4','primaire','TENGRELA','TENGRELA','Tengrela','EPP Tengrela Château','U','Public',286,6),
+    mk('cs-r5','primaire','TENGRELA','KANAWOLO','Kanawolo','EPP Kanawolo','R','Public',264,6),
+    mk('cs-r6','primaire','TENGRELA','ARIKOKAHA','Arikokaha','EPP Arikokaha','R','Public',198,5),
+    mk('cs-r7','primaire','TENGRELA','TORTIYA','Tortiya','EPP Privée Tortiya','U','Privé',308,6),
     // Secondaire (exemples — relèvent de la DRENAET, saisissables ici pour la carte locale)
-    mk('cs-s1','secondaire','NIAKARA','NIAKARA','Niakara','Collège de Proximité de Niakara','U','Public',420,8),
-    mk('cs-s2','secondaire','NIAKARA','KANAWOLO','Kanawolo','Collège de Proximité de Kanawolo','R','Public',180,4),
+    mk('cs-s1','secondaire','TENGRELA','TENGRELA','Tengrela','Collège de Proximité de Tengrela','U','Public',420,8),
+    mk('cs-s2','secondaire','TENGRELA','KANAWOLO','Kanawolo','Collège de Proximité de Kanawolo','R','Public',180,4),
   ];
 }
 state.carteScolaire = load('carteScolaire', defaultCarteScolaire());
@@ -17937,7 +17983,7 @@ function renderMatrice() {
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,var(--orange) 0%,var(--orange-deep) 100%)">
       <h3>Matrice d'<em>activités</em> du Correspondant Fichier</h3>
-      <p>Plan d'activités annuel du Service de la Scolarité et des Statistiques — IEPP NIAKARA · DRENAET KATIOLA · MENAET. Document modifiable, imprimable, importable et exportable en Excel.</p>
+      <p>Plan d'activités annuel du Service de la Scolarité et des Statistiques — IEPP TENGRELA · DRENAET BOUNDIALI · MENAET. Document modifiable, imprimable, importable et exportable en Excel.</p>
     </div>
 
     <div class="toolbar">
@@ -17977,7 +18023,7 @@ function renderMatrice() {
     </div>
 
     <div style="display:flex;justify-content:flex-end;gap:14px;margin-top:14px;font-style:italic;color:var(--ink-soft);font-size:12.5px">
-      <span>Fait à Niakara, le ${new Date().toLocaleDateString('fr-FR')}</span>
+      <span>Fait à Tengrela, le ${new Date().toLocaleDateString('fr-FR')}</span>
     </div>
   `);
   renderMatriceBody();
@@ -18083,7 +18129,7 @@ function exportMatriceExcel(rows) {
   const data = (Array.isArray(rows) ? rows : state.matrice).map(m => ({
     Trimestre: m.trimestre, 'Période': m.periode, 'Activité': m.activite, Observation: m.observation||''
   }));
-  exportRowsToExcel(data, 'matrice_activites_iepp_niakara', 'Matrice');
+  exportRowsToExcel(data, 'matrice_activites_iepp_tengrela', 'Matrice');
 }
 function exportMatriceCSV() { exportMatriceExcel(); }
 function importMatriceExcel(ev) {
@@ -18157,7 +18203,7 @@ function renderServiceMatrice(svc) {
     </div>
 
     <div style="display:flex;justify-content:flex-end;gap:14px;margin-top:14px;font-style:italic;color:var(--ink-soft);font-size:12.5px">
-      <span>Fait à Niakara, le ${new Date().toLocaleDateString('fr-FR')}</span>
+      <span>Fait à Tengrela, le ${new Date().toLocaleDateString('fr-FR')}</span>
     </div>
   `);
   renderServiceMatriceBody(svc);
@@ -18255,7 +18301,7 @@ function svcMatExport(svc, full) {
     cfg.cols.forEach(c => { o[c.label] = r[c.key]||''; });
     return o;
   });
-  exportRowsToExcel(rows, 'matrice_'+svcSafeName(cfg.label)+'_iepp_niakara', cfg.label.slice(0,28));
+  exportRowsToExcel(rows, 'matrice_'+svcSafeName(cfg.label)+'_iepp_tengrela', cfg.label.slice(0,28));
 }
 function svcMatImport(svc, ev) {
   const cfg = SERVICES[svc];
@@ -18421,7 +18467,7 @@ function renderFichierEcoles() {
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,var(--blue) 0%,var(--blue-deep) 100%)">
       <h3>Fichier des <em>écoles</em> avec codes d'identification</h3>
-      <p>Gestion centralisée des établissements scolaires de l'IEPP NIAKARA : ajout, modification, suppression. Import / export Excel et sélection multiple pris en charge.</p>
+      <p>Gestion centralisée des établissements scolaires de l'IEPP TENGRELA : ajout, modification, suppression. Import / export Excel et sélection multiple pris en charge.</p>
     </div>
 
     <div class="toolbar">
@@ -18502,13 +18548,13 @@ function exportEcolesExcel(rows) {
     Code: e.code, Nom: e.nom, Commune: e.commune, Directeur: e.directeur,
     Effectif: e.effectif, Classes: e.classes, Statut: e.statut
   }));
-  exportRowsToExcel(data, 'fichier_ecoles_iepp_niakara', 'Écoles');
+  exportRowsToExcel(data, 'fichier_ecoles_iepp_tengrela', 'Écoles');
 }
 function exportEcolesCSV() { exportEcolesExcel(); }
 /* ----- Aperçu PDF / Word / Impression — Fichier des écoles ----- */
 function fecExportList() { return fecFiltered(); }
 function fecPrint() {
-  const list = fecExportList(); const ieppName = state.activeIepp || 'IEPP NIAKARA';
+  const list = fecExportList(); const ieppName = state.activeIepp || 'IEPP TENGRELA';
   const w = window.open('', '_blank'); if (!w) { toast('Autorisez les pop-up', 'error'); return; }
   const totEff = list.reduce((a,e)=>a+(+e.effectif||0),0);
   const totCl = list.reduce((a,e)=>a+(+e.classes||0),0);
@@ -18517,7 +18563,7 @@ function fecPrint() {
   w.document.close();
 }
 function fecWord() {
-  const list = fecExportList(); const ieppName = state.activeIepp || 'IEPP NIAKARA';
+  const list = fecExportList(); const ieppName = state.activeIepp || 'IEPP TENGRELA';
   const totEff = list.reduce((a,e)=>a+(+e.effectif||0),0);
   const totCl = list.reduce((a,e)=>a+(+e.classes||0),0);
   const head = ['Code école','Nom','Commune','Directeur','Effectif','Classes','Statut'].map(h=>`<th style="background:#1F4E79;color:#fff;border:1px solid #999;padding:6px">${h}</th>`).join('');
@@ -18528,7 +18574,7 @@ function fecWord() {
   document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(url), 1000); toast('Document Word généré ✓', 'success');
 }
 function fecPdfView() {
-  const list = fecExportList(); const ieppName = state.activeIepp || 'IEPP NIAKARA';
+  const list = fecExportList(); const ieppName = state.activeIepp || 'IEPP TENGRELA';
   const logo = (typeof ARMOIRIE_MENAET_B64 !== 'undefined') ? ARMOIRIE_MENAET_B64 : '';
   const totEff = list.reduce((a,e)=>a+(+e.effectif||0),0);
   const totCl = list.reduce((a,e)=>a+(+e.classes||0),0);
@@ -18785,7 +18831,7 @@ function exportElevesCSV() {
   state.elevesFichier.forEach(e => {
     csv += `"${e.matricule}";"${e.nom}";"${e.prenoms}";"${e.sexe}";"${e.dateN}";"${e.lieuN||''}";"${e.ecole}";"${e.niveau}";"${e.pere||''}";"${e.mere||''}";"${e.tel||''}";"${e.extrait}"\n`;
   });
-  downloadFile(csv, 'fichier_eleves_iepp_niakara.csv', 'text/csv');
+  downloadFile(csv, 'fichier_eleves_iepp_tengrela.csv', 'text/csv');
   toast('Export CSV téléchargé','success');
 }
 
@@ -18817,7 +18863,7 @@ function elBulkExport() {
     'Père': e.pere || '', 'Mère': e.mere || '', 'Téléphone': e.tel || '',
     Extrait: e.extrait
   }));
-  exportRowsToExcel(rows, ids.length ? `eleves_selection_${ids.length}` : 'fichier_eleves_iepp_niakara', 'Élèves');
+  exportRowsToExcel(rows, ids.length ? `eleves_selection_${ids.length}` : 'fichier_eleves_iepp_tengrela', 'Élèves');
   logAction('export-eleves', `Export ${list.length} élève(s)`);
 }
 function exportElevesExcel() {
@@ -18948,7 +18994,7 @@ function csExportSelectionExcel() {
     'École': e.ecole, Niveau: e.niveau,
     'Année scolaire': '2026-2027'
   }));
-  exportRowsToExcel(rows, ids.length ? `cartes_selection_${ids.length}` : 'cartes_scolaires_iepp_niakara', 'Cartes scolaires');
+  exportRowsToExcel(rows, ids.length ? `cartes_selection_${ids.length}` : 'cartes_scolaires_iepp_tengrela', 'Cartes scolaires');
   toast(`${list.length} carte(s) exportée(s)`,'success');
 }
 function carteEleveHTML(e) {
@@ -18967,7 +19013,7 @@ function carteEleveHTML(e) {
           <div class="carte-header" style="text-align:left;padding:0;margin-bottom:6px">
             <div style="font-size:9px;font-weight:700;letter-spacing:.06em">RÉPUBLIQUE DE CÔTE D'IVOIRE</div>
             <div style="font-size:8px;font-style:italic;color:var(--orange-deep)">Union — Discipline — Travail</div>
-            <div style="font-size:9px;font-weight:700;margin-top:4px;color:var(--blue-deep)">MENAET · IEPP ${escapeHtml((state.activeIepp||'NIAKARA').replace(/^IEPP\s+/,''))}</div>
+            <div style="font-size:9px;font-weight:700;margin-top:4px;color:var(--blue-deep)">MENAET · IEPP ${escapeHtml((state.activeIepp||'TENGRELA').replace(/^IEPP\s+/,''))}</div>
             <div style="font-size:11px;font-weight:800;font-family:'Fraunces',serif;margin-top:4px">CARTE D'IDENTITÉ SCOLAIRE</div>
           </div>
           <div class="carte-info ci-f">
@@ -19052,7 +19098,7 @@ function renderStatRecrutement() {
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,var(--orange) 0%,var(--orange-deep) 100%)">
       <h3>Points de <em>recrutement</em> · CP1 et Préscolaire</h3>
-      <p>Année scolaire 2026-2027 — IEPP NIAKARA. Saisie école par école des présentés, recrutés, refusés et redoublants. ${canEdit?'Ajout, modification, suppression et impression du point par jour ou par semaine.':''}</p>
+      <p>Année scolaire 2026-2027 — IEPP TENGRELA. Saisie école par école des présentés, recrutés, refusés et redoublants. ${canEdit?'Ajout, modification, suppression et impression du point par jour ou par semaine.':''}</p>
     </div>
 
     <div class="tabs">
@@ -19242,7 +19288,7 @@ function recForm(scope, id) {
     </div>`).join('');
   openModal(id ? "Modifier le point de l'école" : 'Ajouter une école', `
     <div class="form-row">
-      <div class="field" style="flex:2"><label>${scope==='cp1'?'École':'École maternelle'}</label><input id="recf-ecole" value="${escapeHtml(r.ecole||'')}" placeholder="${scope==='cp1'?'ex : EPP Niakara 1 B':'ex : Maternelle Niakara 3'}"></div>
+      <div class="field" style="flex:2"><label>${scope==='cp1'?'École':'École maternelle'}</label><input id="recf-ecole" value="${escapeHtml(r.ecole||'')}" placeholder="${scope==='cp1'?'ex : EPP Tengrela 1 B':'ex : Maternelle Tengrela 3'}"></div>
       <div class="field"><label>Date du point</label><input id="recf-date" type="date" value="${r.date||recToday()}"></div>
     </div>
     ${fields}
@@ -19285,7 +19331,7 @@ function recExport(scope) {
   let rows;
   if (scope==='cp1') rows = list.map((r,i)=>({'N°':i+1,'École':r.ecole,'Date':r.date,'Présentés G':nint(r.prG),'Présentés F':nint(r.prF),'Recrutés G':nint(r.recG),'Recrutés F':nint(r.recF),'Refusés G':nint(r.refG),'Refusés F':nint(r.refF),'Redoublants G':nint(r.redG),'Redoublants F':nint(r.redF)}));
   else rows = list.map((r,i)=>({'N°':i+1,'École':r.ecole,'Date':r.date,'PS G':nint(r.psG),'PS F':nint(r.psF),'MS G':nint(r.msG),'MS F':nint(r.msF),'GS G':nint(r.gsG),'GS F':nint(r.gsF),'Refusés G':nint(r.refG),'Refusés F':nint(r.refF)}));
-  exportRowsToExcel(rows, 'recrutement_'+scope+'_iepp_niakara', scope==='cp1'?'CP1':'Maternelle');
+  exportRowsToExcel(rows, 'recrutement_'+scope+'_iepp_tengrela', scope==='cp1'?'CP1':'Maternelle');
 }
 function recImport(scope, ev) {
   importRowsFromFile(ev, (rows)=>{
@@ -19306,7 +19352,7 @@ function recImport(scope, ev) {
 function recPrint(scope) {
   const table = document.getElementById('rec-'+scope+'-table');
   if (!table) { window.print(); return; }
-  const titre = (scope==='cp1'?'POINT DE RECRUTEMENT CP1':'POINT DE RECRUTEMENT PRÉSCOLAIRE') + ' — IEPP NIAKARA';
+  const titre = (scope==='cp1'?'POINT DE RECRUTEMENT CP1':'POINT DE RECRUTEMENT PRÉSCOLAIRE') + ' — IEPP TENGRELA';
   const sous = recScopeLabel(scope);
   const w = window.open('', '_blank');
   w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>${titre}</title>
@@ -19324,7 +19370,7 @@ function recPrint(scope) {
     </style></head><body>
     <h1>${titre}</h1><div class="sub">${sous} — Année scolaire 2026-2027</div>
     ${table.outerHTML}
-    <div class="foot">Fait à Niakara, le ${new Date().toLocaleDateString('fr-FR')}</div>
+    <div class="foot">Fait à Tengrela, le ${new Date().toLocaleDateString('fr-FR')}</div>
     </body></html>`);
   w.document.close();
   setTimeout(()=>{ w.focus(); w.print(); }, 350);
@@ -19335,22 +19381,22 @@ function renderRecrutementSynthese() {
   tMat.i = tMat.d - tMat.n;
   return `
     <div class="card mb-3">
-      <div class="card-header"><div><div class="card-title">Synthèse des inscriptions au CP1 et au Préscolaire</div><div class="card-sub">Année scolaire 2026-2027 — IEPP NIAKARA</div></div></div>
+      <div class="card-header"><div><div class="card-title">Synthèse des inscriptions au CP1 et au Préscolaire</div><div class="card-sub">Année scolaire 2026-2027 — IEPP TENGRELA</div></div></div>
       <div style="margin-bottom:18px">
         <h4 style="font-family:'Fraunces',serif;color:var(--blue-deep);margin-bottom:8px">I — Points des recrutements au CP1</h4>
         <table style="width:100%;border-collapse:collapse">
           <thead><tr style="background:var(--blue-soft)"><th style="padding:8px;text-align:left">IEPP</th><th style="padding:8px">Demandes</th><th style="padding:8px">Inscrits</th><th style="padding:8px">Non-inscrits</th><th style="padding:8px;text-align:left">Raisons</th></tr></thead>
-          <tbody><tr><td style="padding:8px" class="fw-7">NIAKARA</td><td style="padding:8px;text-align:center;font-weight:700">${tCP1.d}</td><td style="padding:8px;text-align:center;font-weight:700;color:var(--green-deep)">${tCP1.i}</td><td style="padding:8px;text-align:center;font-weight:700;color:var(--danger)">${tCP1.n}</td><td style="padding:8px;font-size:12px;font-style:italic">Enfants trop jeunes et capacité d'accueil insuffisante</td></tr></tbody>
+          <tbody><tr><td style="padding:8px" class="fw-7">TENGRELA</td><td style="padding:8px;text-align:center;font-weight:700">${tCP1.d}</td><td style="padding:8px;text-align:center;font-weight:700;color:var(--green-deep)">${tCP1.i}</td><td style="padding:8px;text-align:center;font-weight:700;color:var(--danger)">${tCP1.n}</td><td style="padding:8px;font-size:12px;font-style:italic">Enfants trop jeunes et capacité d'accueil insuffisante</td></tr></tbody>
         </table>
       </div>
       <div>
         <h4 style="font-family:'Fraunces',serif;color:var(--orange-deep);margin-bottom:8px">II — Points des recrutements au Préscolaire</h4>
         <table style="width:100%;border-collapse:collapse">
           <thead><tr style="background:var(--orange-soft)"><th style="padding:8px;text-align:left">IEPP</th><th style="padding:8px">Demandes</th><th style="padding:8px">Inscrits</th><th style="padding:8px">Non-inscrits</th><th style="padding:8px;text-align:left">Raisons</th></tr></thead>
-          <tbody><tr><td style="padding:8px" class="fw-7">NIAKARA</td><td style="padding:8px;text-align:center;font-weight:700">${tMat.d}</td><td style="padding:8px;text-align:center;font-weight:700;color:var(--green-deep)">${tMat.i}</td><td style="padding:8px;text-align:center;font-weight:700;color:var(--danger)">${tMat.n}</td><td style="padding:8px;font-size:12px;font-style:italic">Enfants trop jeunes</td></tr></tbody>
+          <tbody><tr><td style="padding:8px" class="fw-7">TENGRELA</td><td style="padding:8px;text-align:center;font-weight:700">${tMat.d}</td><td style="padding:8px;text-align:center;font-weight:700;color:var(--green-deep)">${tMat.i}</td><td style="padding:8px;text-align:center;font-weight:700;color:var(--danger)">${tMat.n}</td><td style="padding:8px;font-size:12px;font-style:italic">Enfants trop jeunes</td></tr></tbody>
         </table>
       </div>
-      <div style="text-align:right;margin-top:18px;font-style:italic;color:var(--ink-soft);font-size:13px">Fait à Niakara, le ${new Date().toLocaleDateString('fr-FR')}</div>
+      <div style="text-align:right;margin-top:18px;font-style:italic;color:var(--ink-soft);font-size:13px">Fait à Tengrela, le ${new Date().toLocaleDateString('fr-FR')}</div>
     </div>
   `;
 }
@@ -19360,7 +19406,7 @@ function renderRecrutementSynthese() {
 /* ===== BLOCK 5 : block5_situation_effectifs.js ===== */
 /* ==================================================================
    MODULE : Situation statistique (M-CORR-06)
-   Données issues du fichier Excel SITUATION_STATISTIQUES (IEPP Niakara)
+   Données issues du fichier Excel SITUATION_STATISTIQUES (IEPP TENGRELA)
    ================================================================== */
 function defaultStatSituationReg() {
   return {
@@ -19450,7 +19496,7 @@ function statSitToolbar(key) {
 function renderStatSituation() {
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,var(--blue) 0%,var(--blue-deep) 100%)">
-      <h3>Situation <em>statistique</em> de l'IEPP NIAKARA</h3>
+      <h3>Situation <em>statistique</em> de l'IEPP TENGRELA</h3>
       <p>Reproduction fidèle de la fiche officielle DESPS : <strong>I.</strong> Situation statistique (écoles, classes, élèves) · <strong>II.</strong> État des niveaux (nombre de classes) · <strong>III.</strong> État des effectifs par niveaux. Chaque tableau est entièrement modifiable (ajout, modification, suppression, import/export Excel-Word-PDF, impression). Les effectifs (section III) peuvent être synchronisés depuis « État des effectifs ».</p>
     </div>
 
@@ -19719,7 +19765,7 @@ function statSitExportRows(key) {
 function statSitTitle(key){ return STATSIT_CFG[key].titre; }
 function statSitExcel(key){ exportRowsToExcel(statSitExportRows(key),'situation_'+key,statSitTitle(key).slice(0,28)); }
 function statSitWord(key) {
-  const rows=statSitExportRows(key); const ieppName=state.activeIepp||'IEPP NIAKARA';
+  const rows=statSitExportRows(key); const ieppName=state.activeIepp||'IEPP TENGRELA';
   const cols=rows.length?Object.keys(rows[0]):['Libellé'];
   const head=cols.map(c=>`<th style="background:var(--blue,#1F4E79);color:#fff;border:1px solid #999;padding:6px">${escapeHtml(c)}</th>`).join('').replace(/var\(--blue,#1F4E79\)/g,'#1F4E79');
   const bd=rows.map(r=>`<tr>${cols.map(c=>`<td style="border:1px solid #999;padding:6px">${escapeHtml(String(r[c]??''))}</td>`).join('')}</tr>`).join('');
@@ -19727,7 +19773,7 @@ function statSitWord(key) {
   const blob=new Blob(['\ufeff',html],{type:'application/msword'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='Situation_'+key+'.doc';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Word généré ✓','success');
 }
 function statSitPrint(key) {
-  const rows=statSitExportRows(key); const ieppName=state.activeIepp||'IEPP NIAKARA';
+  const rows=statSitExportRows(key); const ieppName=state.activeIepp||'IEPP TENGRELA';
   const w=window.open('','_blank'); if(!w){toast('Autorisez les pop-up','error');return;}
   const cols=rows.length?Object.keys(rows[0]):['Libellé'];
   const head=cols.map(c=>`<th>${escapeHtml(c)}</th>`).join('');
@@ -19736,7 +19782,7 @@ function statSitPrint(key) {
   w.document.close();
 }
 function statSitPdfView(key) {
-  const rows=statSitExportRows(key); const ieppName=state.activeIepp||'IEPP NIAKARA';
+  const rows=statSitExportRows(key); const ieppName=state.activeIepp||'IEPP TENGRELA';
   const logo=(typeof ARMOIRIE_MENAET_B64!=='undefined')?ARMOIRIE_MENAET_B64:'';
   const cols=rows.length?Object.keys(rows[0]):['Libellé'];
   const head=cols.map(c=>`<th style="padding:7px;border:1px solid #1F4E79;font-size:11px">${escapeHtml(c)}</th>`).join('');
@@ -19817,7 +19863,7 @@ function statSitAllSectionsHtml(forPrint) {
   }).join('');
 }
 function statSitPrintAll() {
-  const ieppName=state.activeIepp||'IEPP NIAKARA';
+  const ieppName=state.activeIepp||'IEPP TENGRELA';
   const w=window.open('','_blank'); if(!w){toast('Autorisez les pop-up','error');return;}
   w.document.write(`<html><head><meta charset="utf-8"><title>Situation statistique complète</title><style>body{font-family:Arial,sans-serif;margin:18px;color:#1F2937}h2{color:#1F4E79;text-align:center}@page{size:landscape}@media print{button{display:none}}</style></head><body>
     <div style="text-align:center;font-size:11px;color:#555">République de Côte d'Ivoire · MENAET · ${escapeHtml(ieppName)}</div>
@@ -19828,7 +19874,7 @@ function statSitPrintAll() {
   w.document.close();
 }
 function statSitWordAll() {
-  const ieppName=state.activeIepp||'IEPP NIAKARA';
+  const ieppName=state.activeIepp||'IEPP TENGRELA';
   const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Situation statistique</title></head><body>
     <p style="text-align:center;font-size:11px">République de Côte d'Ivoire · MENAET · ${escapeHtml(ieppName)}</p>
     <h2 style="color:#1F4E79;text-align:center">Situation statistique complète</h2>
@@ -19837,7 +19883,7 @@ function statSitWordAll() {
   const blob=new Blob(['\ufeff',html],{type:'application/msword'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='Situation_statistique_complete.doc';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Word complet généré ✓','success');
 }
 function statSitPdfViewAll() {
-  const ieppName=state.activeIepp||'IEPP NIAKARA';
+  const ieppName=state.activeIepp||'IEPP TENGRELA';
   const logo=(typeof ARMOIRIE_MENAET_B64!=='undefined')?ARMOIRIE_MENAET_B64:'';
   const content=`<div style="max-width:1500px;max-height:90vh;overflow:auto;background:white;padding:22px;border-radius:6px">
     <div style="text-align:center;border-bottom:2px solid #1F4E79;padding-bottom:10px;margin-bottom:8px">${logo?`<img src="${logo}" style="max-width:230px;margin-bottom:6px">`:''}
@@ -20053,31 +20099,31 @@ function effrExportRows(level){
 function effrTitle(level){ return level==='mater'?'État des effectifs — Maternelle':'État des effectifs — Primaire'; }
 function effrExcel(level){ exportRowsToExcel(effrExportRows(level),'etat_effectifs_'+level,effrTitle(level).slice(0,28)); }
 function effrWord(level){
-  const rows=effrExportRows(level); const m=effrMeta(level); const ieppName=state.activeIepp||'IEPP NIAKARA';
+  const rows=effrExportRows(level); const m=effrMeta(level); const ieppName=state.activeIepp||'IEPP TENGRELA';
   const cols=rows.length?Object.keys(rows[0]):['Cours'];
   const head=cols.map(c=>`<th style="background:#1F7A33;color:#fff;border:1px solid #999;padding:5px;font-size:8pt">${escapeHtml(c)}</th>`).join('');
   const bd=rows.map(r=>`<tr>${cols.map(c=>`<td style="border:1px solid #999;padding:5px;font-size:8pt">${escapeHtml(String(r[c]??''))}</td>`).join('')}</tr>`).join('');
-  const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body><p style="text-align:center;font-size:10pt">République de Côte d'Ivoire · MENAET · DRENA Katiola · ${escapeHtml(ieppName)}</p><h2 style="color:#1F7A33;text-align:center">${escapeHtml(effrTitle(level))}</h2><p style="font-size:10pt">${escapeHtml(level==='mater'?'Maternelle':'École')} : <b>${escapeHtml(m.ecole||'………')}</b> · Année : ${escapeHtml(m.annee||'………')} · Secteur : ${escapeHtml(m.secteur||'………')}</p><table style="border-collapse:collapse"><thead><tr>${head}</tr></thead><tbody>${bd||`<tr><td colspan="${cols.length}">Aucune donnée</td></tr>`}</tbody></table></body></html>`;
+  const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body><p style="text-align:center;font-size:10pt">République de Côte d'Ivoire · MENAET · DRENA Boundiali · ${escapeHtml(ieppName)}</p><h2 style="color:#1F7A33;text-align:center">${escapeHtml(effrTitle(level))}</h2><p style="font-size:10pt">${escapeHtml(level==='mater'?'Maternelle':'École')} : <b>${escapeHtml(m.ecole||'………')}</b> · Année : ${escapeHtml(m.annee||'………')} · Secteur : ${escapeHtml(m.secteur||'………')}</p><table style="border-collapse:collapse"><thead><tr>${head}</tr></thead><tbody>${bd||`<tr><td colspan="${cols.length}">Aucune donnée</td></tr>`}</tbody></table></body></html>`;
   const blob=new Blob(['\ufeff',html],{type:'application/msword'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='Etat_effectifs_'+level+'.doc';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Word généré ✓','success');
 }
 function effrPrint(level){
-  const rows=effrExportRows(level); const m=effrMeta(level); const ieppName=state.activeIepp||'IEPP NIAKARA';
+  const rows=effrExportRows(level); const m=effrMeta(level); const ieppName=state.activeIepp||'IEPP TENGRELA';
   const w=window.open('','_blank'); if(!w){toast('Autorisez les pop-up','error');return;}
   const cols=rows.length?Object.keys(rows[0]):['Cours'];
   const head=cols.map(c=>`<th>${escapeHtml(c)}</th>`).join('');
   const bd=rows.map(r=>`<tr>${cols.map(c=>`<td>${escapeHtml(String(r[c]??''))}</td>`).join('')}</tr>`).join('');
-  w.document.write(`<html><head><meta charset="utf-8"><title>${escapeHtml(effrTitle(level))}</title><style>body{font-family:Arial;margin:16px;font-size:9px;color:#1F2937}h2{color:#1F7A33}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:3px;text-align:center}thead{background:#1F7A33;color:#fff}td:first-child,td:nth-child(2){text-align:left}@page{size:landscape}</style></head><body><div style="text-align:center"><div style="font-size:10px">République de Côte d'Ivoire · MENAET · DRENA Katiola · ${escapeHtml(ieppName)}</div><h2>${escapeHtml(effrTitle(level))}</h2></div><p style="font-size:11px">${escapeHtml(level==='mater'?'Maternelle':'École')} : <b>${escapeHtml(m.ecole||'………………')}</b> · Année : ${escapeHtml(m.annee||'……/……')} · Secteur : ${escapeHtml(m.secteur||'………')} · Date création : ${escapeHtml(m.dateCreation||'………')}</p><table><thead><tr>${head}</tr></thead><tbody>${bd||`<tr><td colspan="${cols.length}">Aucune donnée</td></tr>`}</tbody></table><script>window.onload=function(){window.print();}<\/script></body></html>`);
+  w.document.write(`<html><head><meta charset="utf-8"><title>${escapeHtml(effrTitle(level))}</title><style>body{font-family:Arial;margin:16px;font-size:9px;color:#1F2937}h2{color:#1F7A33}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:3px;text-align:center}thead{background:#1F7A33;color:#fff}td:first-child,td:nth-child(2){text-align:left}@page{size:landscape}</style></head><body><div style="text-align:center"><div style="font-size:10px">République de Côte d'Ivoire · MENAET · DRENA Boundiali · ${escapeHtml(ieppName)}</div><h2>${escapeHtml(effrTitle(level))}</h2></div><p style="font-size:11px">${escapeHtml(level==='mater'?'Maternelle':'École')} : <b>${escapeHtml(m.ecole||'………………')}</b> · Année : ${escapeHtml(m.annee||'……/……')} · Secteur : ${escapeHtml(m.secteur||'………')} · Date création : ${escapeHtml(m.dateCreation||'………')}</p><table><thead><tr>${head}</tr></thead><tbody>${bd||`<tr><td colspan="${cols.length}">Aucune donnée</td></tr>`}</tbody></table><script>window.onload=function(){window.print();}<\/script></body></html>`);
   w.document.close();
 }
 function effrPdfView(level){
-  const rows=effrExportRows(level); const m=effrMeta(level); const ieppName=state.activeIepp||'IEPP NIAKARA';
+  const rows=effrExportRows(level); const m=effrMeta(level); const ieppName=state.activeIepp||'IEPP TENGRELA';
   const logo=(typeof ARMOIRIE_MENAET_B64!=='undefined')?ARMOIRIE_MENAET_B64:'';
   const cols=rows.length?Object.keys(rows[0]):['Cours'];
   const head=cols.map(c=>`<th style="padding:5px;border:1px solid #1F7A33;font-size:10px">${escapeHtml(c)}</th>`).join('');
   const bd=rows.map(r=>`<tr>${cols.map(c=>`<td style="padding:5px;border:1px solid #ddd;font-size:10px;text-align:center">${escapeHtml(String(r[c]??''))}</td>`).join('')}</tr>`).join('');
   const content=`<div style="max-width:1500px;max-height:90vh;overflow:auto;background:white;padding:22px;border-radius:6px;font-size:12px">
     <div style="text-align:center;margin-bottom:16px;border-bottom:2px solid #1F7A33;padding-bottom:10px">${logo?`<img src="${logo}" style="max-width:220px;margin-bottom:6px">`:''}
-    <div style="font-size:11px;color:#555">République de Côte d'Ivoire · MENAET · DRENA Katiola · ${escapeHtml(ieppName)}</div>
+    <div style="font-size:11px;color:#555">République de Côte d'Ivoire · MENAET · DRENA Boundiali · ${escapeHtml(ieppName)}</div>
     <h2 style="font-size:15px;color:#1F7A33;margin:6px 0;text-transform:uppercase">${escapeHtml(effrTitle(level))}</h2>
     <div style="font-size:11px;color:#555">${escapeHtml(level==='mater'?'Maternelle':'École')} : <b>${escapeHtml(m.ecole||'………')}</b> · Année : ${escapeHtml(m.annee||'……/……')} · Secteur : ${escapeHtml(m.secteur||'………')}</div></div>
     <table style="width:100%;border-collapse:collapse;margin-bottom:16px"><thead><tr style="background:#1F7A33;color:white">${head}</tr></thead><tbody>${bd||`<tr><td colspan="${cols.length}">Aucune donnée</td></tr>`}</tbody></table>
@@ -20109,7 +20155,7 @@ function renderStatEffectifs() {
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,var(--green) 0%,var(--green-deep) 100%)">
       <h3>État de l'<em>effectif</em> par niveau et par école</h3>
-      <p>Tableaux statistiques éditables — préscolaire (MPS/MMS/MGS) et primaire (CP1→CM2), saisis école par école — IEPP NIAKARA. Le Correspondant statistique peut corriger les données : ajout, modification, suppression, puis synchronisation à partir des remontées des écoles.</p>
+      <p>Tableaux statistiques éditables — préscolaire (MPS/MMS/MGS) et primaire (CP1→CM2), saisis école par école — IEPP TENGRELA. Le Correspondant statistique peut corriger les données : ajout, modification, suppression, puis synchronisation à partir des remontées des écoles.</p>
     </div>
 
     ${canEdit ? `<div class="card" style="border-left:4px solid var(--green);margin-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
@@ -20273,7 +20319,7 @@ function effPresForm(id) {
   const r = id ? state.effPrescolaire.find(x=>x.id===id) : {nom:'',psG:0,psF:0,msG:0,msF:0,gsG:0,gsF:0};
   const num = (k,lab)=>`<div class="field"><label>${lab}</label><input id="efpf-${k}" type="number" min="0" value="${nint(r[k])}"></div>`;
   openModal(id ? "Modifier l'effectif de l'école" : 'Ajouter une école (préscolaire)', `
-    <div class="field"><label>Nom de la maternelle</label><input id="efpf-nom" value="${escapeHtml(r.nom||'')}" placeholder="ex : Maternelle Niakara 1 B"></div>
+    <div class="field"><label>Nom de la maternelle</label><input id="efpf-nom" value="${escapeHtml(r.nom||'')}" placeholder="ex : Maternelle Tengrela 1 B"></div>
     <div style="font-size:12px;font-weight:700;color:var(--orange-deep);margin:6px 0 2px">MPS — Petite section</div>
     <div class="form-row">${num('psG','Garçons')}${num('psF','Filles')}</div>
     <div style="font-size:12px;font-weight:700;color:var(--green-deep);margin:6px 0 2px">MMS — Moyenne section</div>
@@ -20319,7 +20365,7 @@ function effPresExport() {
     'MGS G':nint(r.gsG),'MGS F':nint(r.gsF),
     'Total':nint(r.psG)+nint(r.psF)+nint(r.msG)+nint(r.msF)+nint(r.gsG)+nint(r.gsF)
   }));
-  exportRowsToExcel(rows, 'etat_effectif_prescolaire_iepp_niakara', 'Préscolaire');
+  exportRowsToExcel(rows, 'etat_effectif_prescolaire_iepp_tengrela', 'Préscolaire');
 }
 function effPresImport(ev) {
   importRowsFromFile(ev, (rows) => {
@@ -20428,7 +20474,7 @@ function effPrimForm(id) {
       <div class="field"><label>Filles</label><input id="efrf-${n.key}F" type="number" min="0" value="${nint(r[n.key+'F'])}"></div>
     </div>`).join('');
   openModal(id ? "Modifier l'effectif de l'école" : 'Ajouter une école (primaire)', `
-    <div class="field"><label>Nom de l'école primaire</label><input id="efrf-nom" value="${escapeHtml(r.nom||'')}" placeholder="ex : EPP Niakara 1 B"></div>
+    <div class="field"><label>Nom de l'école primaire</label><input id="efrf-nom" value="${escapeHtml(r.nom||'')}" placeholder="ex : EPP Tengrela 1 B"></div>
     ${block}
   `, `
     <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
@@ -20471,7 +20517,7 @@ function effPrimExport() {
     o['Total'] = effPrimRowTotalG(r)+effPrimRowTotalF(r);
     return o;
   });
-  exportRowsToExcel(rows, 'etat_effectif_primaire_iepp_niakara', 'Primaire');
+  exportRowsToExcel(rows, 'etat_effectif_primaire_iepp_tengrela', 'Primaire');
 }
 function effPrimImport(ev) {
   importRowsFromFile(ev, (rows) => {
@@ -20502,8 +20548,8 @@ function syncEffectifsFromRemontees() {
   const refPres = [
     'Maternelle Arikokaha','Maternelle Angolokaha','Maternelle Badiokaha','Maternelle Dossoulokaha',
     'Maternelle Folofonkaha','Maternelle Kanawolo','Maternelle Latokaha','Maternelle Les Colombes Tortiya',
-    'Maternelle Municipale Niakara','Maternelle Nambanakaha','Maternelle Nangoniékaha','Maternelle Niakara 1 B',
-    'Maternelle Niakara 2','Maternelle Niakara 3','Maternelle Niakara Château','Maternelle Niakara Résidentiel',
+    'Maternelle Municipale Tengrela','Maternelle Nambanakaha','Maternelle Nangoniékaha','Maternelle Tengrela 1 B',
+    'Maternelle Tengrela 2','Maternelle Tengrela 3','Maternelle Tengrela Château','Maternelle Tengrela Résidentiel',
     'Maternelle Niangbo','Maternelle Niédiékaha','Maternelle Ouéréguékaha'
   ];
   const exP = new Set((state.effPrescolaire||[]).map(r=>r.nom.trim().toLowerCase()));
@@ -20691,7 +20737,7 @@ function sansExtExportRows(){
 }
 function sansExtExcel(){ exportRowsToExcel(sansExtExportRows(),'eleves_sans_extrait','Sans extrait'); }
 function sansExtWord(){
-  const rows=sansExtExportRows(); const ieppName=state.activeIepp||'IEPP NIAKARA';
+  const rows=sansExtExportRows(); const ieppName=state.activeIepp||'IEPP TENGRELA';
   const cols=['Matricule','Nom','Prénoms','Sexe','Date naissance','École','Niveau','Père','Mère','Téléphone'];
   const head=cols.map(c=>`<th style="background:#C72760;color:#fff;border:1px solid #999;padding:5px;font-size:10pt">${escapeHtml(c)}</th>`).join('');
   const bd=rows.map(r=>`<tr>${cols.map(c=>`<td style="border:1px solid #999;padding:5px;font-size:9pt">${escapeHtml(String(r[c]??''))}</td>`).join('')}</tr>`).join('');
@@ -20699,7 +20745,7 @@ function sansExtWord(){
   const blob=new Blob(['\ufeff',html],{type:'application/msword'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='Eleves_sans_extrait.doc';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Word généré ✓','success');
 }
 function sansExtPrint(){
-  const rows=sansExtExportRows(); const ieppName=state.activeIepp||'IEPP NIAKARA';
+  const rows=sansExtExportRows(); const ieppName=state.activeIepp||'IEPP TENGRELA';
   const w=window.open('','_blank'); if(!w){toast('Autorisez les pop-up','error');return;}
   const cols=['Matricule','Nom','Prénoms','Sexe','Date naissance','École','Niveau','Père','Mère','Téléphone'];
   const head=cols.map(c=>`<th>${escapeHtml(c)}</th>`).join('');
@@ -20708,7 +20754,7 @@ function sansExtPrint(){
   w.document.close();
 }
 function sansExtPdfView(){
-  const rows=sansExtExportRows(); const ieppName=state.activeIepp||'IEPP NIAKARA';
+  const rows=sansExtExportRows(); const ieppName=state.activeIepp||'IEPP TENGRELA';
   const logo=(typeof ARMOIRIE_MENAET_B64!=='undefined')?ARMOIRIE_MENAET_B64:'';
   const cols=['Matricule','Nom','Prénoms','Sexe','Date naissance','École','Niveau','Téléphone'];
   const head=cols.map(c=>`<th style="padding:7px;border:1px solid #C72760;font-size:11px">${escapeHtml(c)}</th>`).join('');
@@ -21323,7 +21369,7 @@ function exportRemonteesCSV() {
     const taux = Math.round((e.fichesRecues/e.fichesAttendues)*100);
     csv += `"${e.code}";"${e.nom}";${e.fichesAttendues};${e.fichesRecues};${taux}%\n`;
   });
-  downloadFile(csv, 'remontees_fiches_iepp_niakara.csv', 'text/csv');
+  downloadFile(csv, 'remontees_fiches_iepp_tengrela.csv', 'text/csv');
   toast('Suivi exporté','success');
 }
 
@@ -21369,7 +21415,7 @@ function renderCarteScolaire(type) {
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,var(--${m.color}) 0%,var(--${m.color}-deep) 100%)">
       <h3>${m.icon} Carte scolaire — <em>${m.titre}</em></h3>
-      <p>Établissements ${m.titre.toLowerCase()}s de la circonscription IEPP NIAKARA. ${canEdit?'Formulaire de remplissage : ajout, modification, suppression, import/export Excel et impression.':'Liste des établissements remontés.'}</p>
+      <p>Établissements ${m.titre.toLowerCase()}s de la circonscription IEPP TENGRELA. ${canEdit?'Formulaire de remplissage : ajout, modification, suppression, import/export Excel et impression.':'Liste des établissements remontés.'}</p>
     </div>
     <div id="carte-stats-${type}" class="stat-grid"></div>
     <div class="toolbar no-print">
@@ -21396,7 +21442,7 @@ function renderCarteScolaire(type) {
         <tbody id="carte-${type}-body"></tbody>
       </table>
     </div></div>
-    <div style="text-align:right;margin-top:12px;font-style:italic;color:var(--ink-soft);font-size:12.5px">Fait à Niakara, le ${new Date().toLocaleDateString('fr-FR')}</div>
+    <div style="text-align:right;margin-top:12px;font-style:italic;color:var(--ink-soft);font-size:12.5px">Fait à Tengrela, le ${new Date().toLocaleDateString('fr-FR')}</div>
   `);
   renderCarteBody(type);
 }
@@ -21454,7 +21500,7 @@ function carteSelectAllDelete(type) {
 }
 function carteForm(type, id) {
   const m = CARTE_META[type];
-  const e = id ? state.carteScolaire.find(x=>x.id===id) : { niveau:type, statut:'Public', zone:'U', iepp:'NIAKARA' };
+  const e = id ? state.carteScolaire.find(x=>x.id===id) : { niveau:type, statut:'Public', zone:'U', iepp:'TENGRELA' };
   const fld = (k,lab,opts)=>{
     if (k==='statut') return `<div class="field"><label>Statut</label><select id="cf-statut">${['Public','Privé','Communautaire'].map(s=>`<option ${e.statut===s?'selected':''}>${s}</option>`).join('')}</select></div>`;
     if (k==='zone') return `<div class="field"><label>Zone</label><select id="cf-zone"><option value="U" ${e.zone==='U'?'selected':''}>Urbaine (U)</option><option value="R" ${e.zone==='R'?'selected':''}>Rurale (R)</option></select></div>`;
@@ -21462,7 +21508,7 @@ function carteForm(type, id) {
     return `<div class="field"><label>${lab}</label><input id="cf-${k}" type="${t}" ${opts&&opts.num?'min="0"':''} value="${escapeHtml(e[k]||'')}"></div>`;
   };
   openModal(id ? "Modifier l'école" : `Ajouter une école — ${m.titre}`, `
-    <div class="field"><label>Dénomination de l'école</label><input id="cf-denomination" value="${escapeHtml(e.denomination||'')}" placeholder="ex : EPP Niakara 1 B"></div>
+    <div class="field"><label>Dénomination de l'école</label><input id="cf-denomination" value="${escapeHtml(e.denomination||'')}" placeholder="ex : EPP Tengrela 1 B"></div>
     <div class="form-row">${fld('localite','Localité')}${fld('sprefecture','S/Préfecture ou Commune')}</div>
     <div class="form-row">${fld('zone')}${fld('statut')}</div>
     <div class="form-row">${fld('effectif','Effectif',{num:true})}${fld('classes','Nombre de classes',{num:true})}</div>
@@ -21485,7 +21531,7 @@ function carteSave(type, id) {
   if (!denomination) { toast("La dénomination de l'école est obligatoire",'error'); return; }
   const g = k => { const el=document.getElementById('cf-'+k); return el?el.value.trim():''; };
   const data = {
-    niveau:type, iepp:'NIAKARA', denomination,
+    niveau:type, iepp:'TENGRELA', denomination,
     localite:g('localite'), sprefecture:g('sprefecture'), zone:g('zone'), statut:g('statut'),
     effectif:nint(g('effectif')), classes:nint(g('classes')),
     departement:g('departement'), superficie:g('superficie'), population:g('population'),
@@ -21515,11 +21561,11 @@ function carteDelete(type, id) {
 function carteExport(type) {
   const rows = carteFiltered(type).map((e,i)=>({
     'N°':i+1, 'Département':e.departement||'', 'S/Préfecture ou Commune':e.sprefecture||'', 'Localité':e.localite||'',
-    'IEPP':e.iepp||'NIAKARA', "Dénomination de l'école":e.denomination||'', 'Zone':e.zone||'', 'Statut':e.statut||'',
+    'IEPP':e.iepp||'TENGRELA', "Dénomination de l'école":e.denomination||'', 'Zone':e.zone||'', 'Statut':e.statut||'',
     'Effectif':nint(e.effectif), 'Classes':nint(e.classes), 'Superficie':e.superficie||'', 'Population (6-11 ans)':e.population||'',
     "Date d'ouverture":e.dateOuverture||'', 'Financement':e.financement||'', 'Coût estimatif':e.cout||'', 'Observations':e.observations||''
   }));
-  exportRowsToExcel(rows, 'carte_scolaire_'+type+'_iepp_niakara', CARTE_META[type].titre);
+  exportRowsToExcel(rows, 'carte_scolaire_'+type+'_iepp_tengrela', CARTE_META[type].titre);
 }
 function carteImport(type, ev) {
   importRowsFromFile(ev, (rows)=>{
@@ -21529,7 +21575,7 @@ function carteImport(type, ev) {
       const denomination = pick(raw,['denomination','ecole','nom','etablissement']);
       if (!denomination || /neant/i.test(denomination)) return;
       state.carteScolaire.push({
-        id:'cs-'+uid()+'_'+(n++), niveau:type, iepp:pick(raw,['iepp'])||'NIAKARA',
+        id:'cs-'+uid()+'_'+(n++), niveau:type, iepp:pick(raw,['iepp'])||'TENGRELA',
         denomination,
         localite:pick(raw,['localite']), sprefecture:pick(raw,['sprefecture','commune','prefecture']),
         zone:(pick(raw,['zone'])||'').toUpperCase().slice(0,1)||'',
@@ -21562,10 +21608,10 @@ function cartePrint(type) {
       .no-print{display:none !important}
       .foot{margin-top:16px;text-align:right;font-style:italic;font-size:11px}
     </style></head><body>
-    <h1>CARTE SCOLAIRE — ${m.titre.toUpperCase()} — IEPP NIAKARA</h1>
+    <h1>CARTE SCOLAIRE — ${m.titre.toUpperCase()} — IEPP TENGRELA</h1>
     <div class="sub">Année scolaire 2026-2027 — ${carteList(type).length} établissement(s)</div>
     ${table.outerHTML}
-    <div class="foot">Fait à Niakara, le ${new Date().toLocaleDateString('fr-FR')}</div>
+    <div class="foot">Fait à Tengrela, le ${new Date().toLocaleDateString('fr-FR')}</div>
     </body></html>`);
   w.document.close();
   setTimeout(()=>{ w.focus(); w.print(); }, 350);
@@ -21589,7 +21635,7 @@ function defaultPnapasForm() {
     titre: "POST-TEST DE LA FORMATION — Formation des formateurs régionaux sur l'hybridation et la remédiation au CE1-CM2",
     questions: [
       { id:'sec_ctx', type:'section', label:'Contexte' },
-      { id:'drenaet', type:'select', label:'DRENAET', options:['DRENAET Katiola','DRENAET Bouaké 1','DRENAET Bouaké 2','DRENAET Mankono','DRENAET Korhogo','DRENAET Bouna','DRENAET Boundiali','DRENAET Bondoukou','Autre'], req:true },
+      { id:'drenaet', type:'select', label:'DRENAET', options:['DRENAET Boundiali','DRENAET Bouaké 1','DRENAET Bouaké 2','DRENAET Mankono','DRENAET Korhogo','DRENAET Bouna','DRENAET Boundiali','DRENAET Bondoukou','Autre'], req:true },
       { id:'iepp', type:'text', label:'IEPP', req:true },
       { id:'cafop', type:'text', label:'CAFOP' },
       { id:'coges', type:'text', label:'COGES' },
@@ -21947,7 +21993,7 @@ function reportPnapas(){
     { titre:'Rapport — Activités PNAPAS (Pré-test / Post-test / Évaluation)', sous:`${(state.pnapasResponses||[]).length} réponse(s) collectée(s)` },
     [
       { titre:'1. Introduction', texte: aiPhrase([
-        `Ce rapport présente les résultats du dispositif PNAPAS pour l'IEPP ${state.activeIepp||'Niakara'}.`,
+        `Ce rapport présente les résultats du dispositif PNAPAS pour l'IEPP ${state.activeIepp||'Tengrela'}.`,
         `Il s'appuie sur ${s.pre.length} réponse(s) au pré-test, ${s.post.length} au post-test et ${s.ev.length} évaluation(s) de la formation.`]) },
       { titre:'2. Résultats Pré-test / Post-test', texte: aiPhrase([
         `Le score moyen passe de ${s.preAvg}/${s.max} au pré-test à ${s.postAvg}/${s.max} au post-test,`,
@@ -22257,7 +22303,7 @@ function immatRequestForm() {
       <div class="field"><label>Date de naissance *</label><input id="ir-dn" type="date"></div>
     </div>
     <div class="form-row">
-      <div class="field"><label>Lieu de naissance</label><input id="ir-ln" placeholder="Niakara, Tortiya..."></div>
+      <div class="field"><label>Lieu de naissance</label><input id="ir-ln" placeholder="Tengrela, Tortiya..."></div>
       <div class="field"><label>Niveau souhaité</label>
         <select id="ir-niv">
           <option value="${u.classe}" selected>${u.classe} (ma classe)</option>
@@ -23995,7 +24041,7 @@ function ecExportPDF() {
 function ecCartoHtml() {
   const withGps = state.ecoles.filter(e => e.lat != null && e.lng != null);
   const without = state.ecoles.filter(e => e.lat == null || e.lng == null);
-  // Centroid for map embed (default Niakara, Côte d'Ivoire)
+  // Centroid for map embed (default Tengrela, Côte d'Ivoire)
   const lat0 = withGps.length ? withGps.reduce((a,e)=>a+e.lat,0)/withGps.length : 8.6634;
   const lng0 = withGps.length ? withGps.reduce((a,e)=>a+e.lng,0)/withGps.length : -5.2906;
   const span = 0.2;
@@ -24945,7 +24991,7 @@ function pnapasGuestFill() {
   const sb = document.querySelector('.sidebar'); if (sb) sb.style.display='none';
   const tb = document.querySelector('.topbar'); if (tb) tb.style.display='none';
   const main = document.querySelector('.main'); if (main) main.style.margin='0';
-  if (!state.user) state.user = { name:'Invité', role:'invite', iepp:(state.activeIepp||'IEPP Niakara'), drenaet:'' };
+  if (!state.user) state.user = { name:'Invité', role:'invite', iepp:(state.activeIepp||'IEPP TENGRELA'), drenaet:'' };
   if (!state.pnapasForm || !state.pnapasForm.questions) state.pnapasForm = load('pnapasForm', defaultPnapasForm());
   const c = document.getElementById('content');
   c.innerHTML = `
@@ -25025,7 +25071,7 @@ function absRequestForm() {
       <div class="field"><label>Date début *</label><input id="abr-du" type="date" value="${today}"></div>
       <div class="field"><label>Date fin *</label><input id="abr-au" type="date" value="${today}"></div>
     </div>
-    <div class="field"><label>Lieu de destination *</label><input id="abr-lieu" placeholder="ex : Katiola"></div>
+    <div class="field"><label>Lieu de destination *</label><input id="abr-lieu" placeholder="ex : Boundiali"></div>
     <div class="field"><label>Motif *</label>
       <textarea id="abr-motif" rows="2" style="resize:vertical;width:100%;padding:10px;border:1.5px solid var(--line);border-radius:8px" placeholder="ex : problème familial, maladie, formation, événement administratif…"></textarea>
     </div>
@@ -25340,7 +25386,7 @@ function guideSections() {
 }
 function guideInnerHtml(forPrint) {
   const u = state.user || {};
-  const ieppName = state.activeIepp || 'IEPP NIAKARA';
+  const ieppName = state.activeIepp || 'IEPP TENGRELA';
   const logo = (typeof ARMOIRIE_MENAET_B64 !== 'undefined') ? ARMOIRIE_MENAET_B64 : '';
   const secs = guideSections().map(s=>`
     <section style="margin-bottom:16px;page-break-inside:avoid">
@@ -25384,6 +25430,56 @@ function downloadGuidePDF() {
   toast('Ouverture du guide — choisissez « Enregistrer en PDF »', 'success');
 }
 
+/* ==================================================================
+   RÉINITIALISATION DES DONNÉES DE LA CIRCONSCRIPTION ACTIVE
+   Efface les données scopées (écoles, effectifs, fiches, registres…)
+   de l'IEPP courante et réinstalle les données officielles seedées.
+   Les COMPTES (globaux) ne sont pas touchés.
+   ================================================================== */
+function openResetCirconscription() {
+  var ieppName = (typeof state!=='undefined' && state.activeIepp) ? state.activeIepp : 'IEPP TENGRELA';
+  var role = (typeof state!=='undefined' && state.user) ? state.user.role : '';
+  var allowed = ['superadmin'];
+  if (typeof openModal !== 'function') { if(role==='superadmin' && confirm('Réinitialiser les données de '+ieppName+' ?')) doResetCirconscription(); return; }
+  if (allowed.indexOf(role) === -1) {
+    openModal('Action réservée au Grand Administrateur',
+      '<p style="font-size:13px">La réinitialisation des données d\'une circonscription est accessible uniquement depuis l\'espace du <strong>Grand Administrateur</strong>.</p>',
+      '<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
+    return;
+  }
+  openModal('♻️ Réinitialiser les données — '+escapeHtml(ieppName), `
+    <div style="font-size:13px;line-height:1.55">
+      <div style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:12px;color:#B91C1C;margin-bottom:12px">
+        ⚠️ <strong>Attention.</strong> Cette action efface toutes les données saisies pour la circonscription <strong>${escapeHtml(ieppName)}</strong> (écoles, effectifs, fiches, registres des services, remontées, corbeille…) sur cet appareil, puis <strong>réinstalle les données officielles</strong> (carte scolaire et effectifs par classe).
+      </div>
+      <p style="margin:6px 0">Les <strong>comptes utilisateurs</strong> ne sont pas modifiés. Cette opération est <strong>irréversible</strong>.</p>
+      <p style="margin:10px 0 4px">Pour confirmer, saisissez <code style="background:#F1F5F9;padding:1px 6px;border-radius:4px">REINITIALISER</code> :</p>
+      <input id="reset-confirm" class="fiche-input" placeholder="REINITIALISER" style="text-transform:uppercase" autocomplete="off">
+    </div>`,
+    `<button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+     <button class="btn" style="background:#DC2626;border-color:#DC2626;color:#fff" onclick="confirmResetCirconscription()">♻️ Réinitialiser définitivement</button>`);
+}
+function confirmResetCirconscription() {
+  var v = (document.getElementById('reset-confirm')||{}).value || '';
+  if (v.trim().toUpperCase() !== 'REINITIALISER') { toast('Veuillez saisir REINITIALISER pour confirmer.','error'); return; }
+  doResetCirconscription();
+}
+function doResetCirconscription() {
+  try {
+    var scope = (typeof activeScope !== 'undefined' && activeScope) ? activeScope : scopeSlug((state&&state.activeIepp)||'IEPP TENGRELA');
+    // 1. Effacer toutes les clés scopées de la circonscription active
+    (SCOPED_KEY_LIST || []).forEach(function(k){
+      try { localStorage.removeItem(KEY + scope + '_' + k); } catch(e){}
+    });
+    // 2. Réarmer l'amorce des données officielles (écoles + effectifs)
+    try { localStorage.removeItem(KEY + 'tengrela_dataver'); } catch(e){}
+    if (typeof toast === 'function') toast('Réinitialisation en cours…','success');
+    setTimeout(function(){ location.reload(); }, 400);
+  } catch(e) {
+    console.error('reset', e);
+    if (typeof toast === 'function') toast('Erreur lors de la réinitialisation.','error');
+  }
+}
 autoLogin();
 /* Ouverture directe d'une fiche via lien partageable (#fiche=...) */
 try { if (typeof ficheCheckHashLink === 'function') ficheCheckHashLink(); } catch(e) { console.warn('ficheCheckHashLink', e); }
