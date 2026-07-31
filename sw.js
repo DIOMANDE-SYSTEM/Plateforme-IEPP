@@ -1,7 +1,7 @@
 /* Service Worker — IEPP TENGRELA
    Met l'application en cache pour un fonctionnement 100 % hors-ligne.
    Après la 1re ouverture (avec internet), l'appli fonctionne sans connexion. */
-const CACHE = 'iepp-tengrela-v1';
+const CACHE = 'iepp-tengrela-v3';
 const ASSETS = [
   './',
   './index.html',
