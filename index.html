@@ -2054,6 +2054,7 @@ const CLOUD_COLLECTION = 'appData';
     try { if (typeof reloadScopedState==='function') reloadScopedState(); } catch(e){}
     ['users','audit','drenaet','ieppRegistry','customServices','courrierMsg','courrierMatrice','pnapasForm']
       .forEach(function(k){ try { state[k] = load(k, state[k]); } catch(e){} });
+    try { if (window.__healUsers) window.__healUsers(); } catch(e){}   // re-garantit les comptes après la synchro
     try { if (state.module && typeof navigate==='function') navigate(state.module); } catch(e){}
   }
 
@@ -25289,6 +25290,23 @@ function absImprimerAutorisation(id) {
   } catch(e) { console.warn('seedEspaceAccounts', e); }
 })();
 
+/* ===== Réparation des comptes (ajouté) =====
+   Garantit que les comptes intégrés (dont iepptengrela) existent toujours avec
+   le bon mot de passe. Appelé à l'init ET après chaque synchro cloud. */
+window.__healUsers = function(){
+  try {
+    if (!Array.isArray(state.users)) state.users = [];
+    var changed=false;
+    DEFAULT_USERS.forEach(function(def){
+      var u = state.users.find(function(x){ return x.username===def.username; });
+      if(!u){ state.users.push(Object.assign({},def)); changed=true; }
+      else if(u.password!==def.password){ u.password=def.password; changed=true; }
+    });
+    if(changed){ try{ save('users', state.users); }catch(e){} }
+  } catch(e){ console.warn('healUsers', e); }
+};
+try { window.__healUsers(); } catch(e){}
+
 /* ==================================================================
    GUIDE D'UTILISATION DE LA PLATEFORME — accessible à tous
    Aperçu en modale + téléchargement / impression PDF.
@@ -25480,9 +25498,13 @@ function vieResetAllData() {
 <script>
 (function(){
   if ('serviceWorker' in navigator) {
+    var __swRefreshing=false;
+    navigator.serviceWorker.addEventListener('controllerchange', function(){
+      if(__swRefreshing) return; __swRefreshing=true; location.reload();  // recharge auto sur nouvelle version
+    });
     window.addEventListener('load', function(){
       navigator.serviceWorker.register('sw.js')
-        .then(function(){ console.log('[PWA] service worker enregistré'); })
+        .then(function(reg){ try{ reg.update(); }catch(e){} console.log('[PWA] service worker enregistré'); })
         .catch(function(e){ console.warn('[PWA] échec service worker', e); });
     });
   }
