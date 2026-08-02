@@ -1,8 +1,8 @@
 /* Service Worker minimal — requis pour l'installation Android/PWA.
    Stratégie : network-first, avec repli sur le cache hors-ligne. */
-const CACHE = 'iepp-v1';
-const CORE = ['./', './index.html', './manifest.webmanifest',
-              './icon-192.png', './icon-512.png'];
+const CACHE = 'iepp-v2';
+const CORE = ['./', './index.html', './manifest.json',
+              './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).catch(()=>{}));
