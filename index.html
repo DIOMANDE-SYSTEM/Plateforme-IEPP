@@ -1151,6 +1151,9 @@ function vieResetAllData() {
       <label>Mot de passe</label>
       <input type="password" id="login-pass" autocomplete="current-password" placeholder="Votre mot de passe" value="">
     </div>
+    <label for="login-remember" style="display:flex;align-items:center;gap:8px;margin:-4px 0 14px;font-size:13.5px;color:#334155;cursor:pointer;user-select:none">
+      <input type="checkbox" id="login-remember" checked style="width:16px;height:16px;accent-color:#0A4DA6;cursor:pointer;flex:none"> Se souvenir de mon identifiant et de mon mot de passe
+    </label>
     <button class="btn btn-primary btn-block" onclick="doLogin()">Se connecter →</button>
 
     <div class="login-footer">
@@ -2954,6 +2957,12 @@ function doLogin() {
   }
   state.user = found;
   save('current_user', found.username);
+  /* « Se souvenir de moi » : mémorise (ou efface) l'identifiant + mot de passe sur CET appareil */
+  try {
+    var _rem = document.getElementById('login-remember');
+    if (_rem && _rem.checked) { localStorage.setItem(KEY+'remember', JSON.stringify({ u: found.username, p: p })); }
+    else { localStorage.removeItem(KEY+'remember'); }
+  } catch(e){}
   logAction('login', 'Connexion réussie');
   err.classList.remove('show');
   startApp();
@@ -2966,6 +2975,23 @@ function logout() {
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('login-user').value = '';
   document.getElementById('login-pass').value = '';
+  /* Après déconnexion, si « Se souvenir de moi » était actif, on re-remplit les champs */
+  try { prefillLogin(); } catch(e){}
+}
+
+/* Pré-remplit l'écran de connexion avec les identifiants mémorisés sur cet appareil */
+function prefillLogin(){
+  try {
+    var raw = localStorage.getItem(KEY+'remember');
+    var uEl = document.getElementById('login-user');
+    var pEl = document.getElementById('login-pass');
+    var cEl = document.getElementById('login-remember');
+    if (!raw){ if (cEl) cEl.checked = false; return; }
+    var r = JSON.parse(raw);
+    if (uEl && r.u) uEl.value = r.u;
+    if (pEl && r.p != null) pEl.value = r.p;
+    if (cEl) cEl.checked = true;
+  } catch(e){}
 }
 
 function autoLogin() {
@@ -25605,6 +25631,7 @@ function doResetCirconscription() {
   }
 }
 autoLogin();
+try { prefillLogin(); } catch(e){}
 /* Ouverture directe d'une fiche via lien partageable (#fiche=...) */
 try { if (typeof ficheCheckHashLink === 'function') ficheCheckHashLink(); } catch(e) { console.warn('ficheCheckHashLink', e); }
 window.addEventListener('hashchange', function(){ try { if (typeof ficheCheckHashLink === 'function') ficheCheckHashLink(); } catch(e){} });
@@ -25660,7 +25687,7 @@ function vieResetAllData() {
 }
 
 </script>
-<button id="btn-install-pwa" style="display:none;position:fixed;bottom:16px;left:16px;z-index:99999;background:#e8730c;color:#fff;border:none;border-radius:999px;padding:12px 18px;font:600 14px system-ui,sans-serif;box-shadow:0 6px 18px rgba(15,23,42,.25);cursor:pointer">📲 Installer l'application</button>
+<button id="btn-install-pwa" style="display:none;position:fixed;top:10px;right:10px;z-index:100001;background:#e8730c;color:#fff;border:none;border-radius:999px;padding:9px 15px;font:600 13px system-ui,sans-serif;box-shadow:0 6px 18px rgba(15,23,42,.28);cursor:pointer">📲 Installer</button>
 <script>
 (function(){
   if ('serviceWorker' in navigator) {
