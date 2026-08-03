@@ -1738,7 +1738,7 @@ const KEY = 'iepp_';
    Clés SCOPÉES  = stockées par IEPP : iepp_c_<slug>_<clé>.
    La DRENAET bascule entre ses IEPP ; le Superadmin entre toutes.
    ================================================================== */
-const GLOBAL_KEYS = new Set(['users','audit','customServices','current_user','drenaet','active_iepp','ieppRegistry','pnapasForm','courrierMsg','courrierMatrice']);
+const GLOBAL_KEYS = new Set(['users','usersDeleted','audit','customServices','current_user','drenaet','active_iepp','ieppRegistry','pnapasForm','courrierMsg','courrierMatrice']);
 const SCOPED_KEY_LIST = ['ecoles','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','cpppBulletins'];
 function scopeSlug(iepp){
   return 'c_' + String(iepp||'IEPP TENGRELA').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
@@ -1970,7 +1970,7 @@ function saveAll() {
 const firebaseConfig = {
   apiKey:            "AIzaSyCYLjb4eCi176D1ViNTcHQp1YqMU3oPH-A",
   authDomain:        "plateforme-iepp.firebaseapp.com",
-  projectId:         "VOTRE_PROJET"   /* CLOUD DÉSACTIVÉ (local fiable) ; remettre "plateforme-iepp" pour réactiver */,
+  projectId:         "plateforme-iepp"   /* CLOUD ACTIVÉ — synchronisation en ligne */,
   storageBucket:     "plateforme-iepp.firebasestorage.app",
   messagingSenderId: "896625647159",
   appId:             "1:896625647159:web:d74e5d681ef9f84d0ce9b2",
@@ -4208,6 +4208,8 @@ function userSave(username) {
       data.iepp = me.iepp; data.drenaet = me.drenaet;    // sa circonscription
     }
     state.users.push(data);
+    /* Un compte recréé n'est plus « supprimé » : on lève la tombstone */
+    try { var _d = load('usersDeleted', []) || []; var _i = _d.indexOf(data.username); if (_i > -1){ _d.splice(_i,1); save('usersDeleted', _d); } } catch(e){}
     logAction('create-user', `Création compte : ${data.username} (${ROLES[data.role].label})`);
     toast('Compte créé', 'success');
   }
@@ -4223,6 +4225,8 @@ function userDelete(username) {
   trashItemUser(u);
   state.users = state.users.filter(x=>x.username!==username);
   save('users', state.users);
+  /* Mémorise la suppression (synchronisée) pour empêcher toute résurrection du compte */
+  try { var _d = load('usersDeleted', []) || []; if (_d.indexOf(username) === -1){ _d.push(username); save('usersDeleted', _d); } } catch(e){}
   logAction('delete-user', `Suppression compte : ${username}`);
   toast('Compte envoyé à la corbeille', 'success');
   if (document.getElementById('us-body')) renderUsersBody();
@@ -23231,6 +23235,10 @@ function corbeilleRestore(trashId) {
   }
   state[tr.parentKey].push(tr.data);
   save(tr.parentKey, state[tr.parentKey]);
+  /* Compte restauré depuis la corbeille : on lève la tombstone éventuelle */
+  if (tr.parentKey === 'users' && tr.data && tr.data.username){
+    try { var _d = load('usersDeleted', []) || []; var _i = _d.indexOf(tr.data.username); if (_i > -1){ _d.splice(_i,1); save('usersDeleted', _d); } } catch(e){}
+  }
   state.corbeille = state.corbeille.filter(x => x.id !== trashId);
   save('corbeille', state.corbeille);
   logAction('trash-restore', `[${tr.type}] ${tr.label} restauré`);
@@ -25367,40 +25375,50 @@ function absImprimerAutorisation(id) {
    On garantit ici que chaque compte d'espace existe avec le bon rôle et le bon
    mot de passe, sans toucher aux comptes d'administration ni aux comptes créés
    manuellement par l'utilisateur. */
+/* Liste des comptes supprimés « en ligne » (tombstones synchronisés) */
+function usersTombstones(){ try { return load('usersDeleted', []) || []; } catch(e){ return []; } }
+
 (function seedEspaceAccounts(){
   try {
     if (!Array.isArray(state.users)) return;
-    const ESPACE_USERNAMES = ['examens','cpi','viescolaire','rh','coges','economat','courrier','archiviste','correspstat','cartescolaire','suivieval','secretariat','cantine','smoss','bibliotheque'];
+    var dead = usersTombstones();
     let changed = false;
+    /* Ajoute UNIQUEMENT les comptes système absents ET non supprimés.
+       On ne réécrit plus les comptes existants → les modifications de
+       l'administrateur (mot de passe, rôle, nom…) ne sont plus effacées. */
     DEFAULT_USERS.forEach(def => {
+      if (dead.indexOf(def.username) !== -1) return;      // compte supprimé : on respecte
       const existing = state.users.find(u => u.username === def.username);
-      if (!existing) {
-        state.users.push(Object.assign({}, def));
-        changed = true;
-      } else if (ESPACE_USERNAMES.includes(def.username)) {
-        if (existing.role !== def.role || existing.password !== def.password) {
-          existing.role = def.role;
-          existing.password = def.password;
-          changed = true;
-        }
-      }
+      if (!existing) { state.users.push(Object.assign({}, def)); changed = true; }
     });
     if (changed) save('users', state.users);
   } catch(e) { console.warn('seedEspaceAccounts', e); }
 })();
 
-/* ===== Réparation des comptes système (ajouté) ===== */
+/* ===== Réparation des comptes système — respecte les suppressions en ligne ===== */
 window.__healUsers = function(){
   try {
     if (!Array.isArray(state.users)) state.users = [];
+    var dead = usersTombstones();
     var changed=false;
+    /* 1) Purge les comptes supprimés en ligne (empêche leur résurrection après synchro) */
+    if (dead.length){
+      var before = state.users.length;
+      state.users = state.users.filter(function(u){ return dead.indexOf(u.username) === -1; });
+      if (state.users.length !== before) changed = true;
+    }
+    /* 2) N'ajoute que les comptes système absents et NON supprimés — sans écraser les modifs */
     DEFAULT_USERS.forEach(function(def){
+      if (dead.indexOf(def.username) !== -1) return;
       var u = state.users.find(function(x){ return x.username===def.username; });
       if(!u){ state.users.push(Object.assign({},def)); changed=true; }
-      else { ['password','name','role','iepp','drenaet','email','contact'].forEach(function(fld){
-        if(def[fld]!==undefined && u[fld]!==def[fld]){ u[fld]=def[fld]; changed=true; }
-      }); }
     });
+    /* 3) Anti-verrouillage : garantir au moins un compte superadmin (sauf suppression volontaire) */
+    var hasSuper = state.users.some(function(x){ return x.role==='superadmin'; });
+    if(!hasSuper && dead.indexOf('superadmin')===-1){
+      var sa = DEFAULT_USERS.find(function(d){ return d.username==='superadmin'; });
+      if(sa){ state.users.push(Object.assign({},sa)); changed=true; }
+    }
     if(changed){ try{ save('users', state.users); }catch(e){} }
   } catch(e){ console.warn('healUsers', e); }
 };
@@ -25653,9 +25671,54 @@ function vieResetAllData() {
     });
   }
   var deferred=null, btn=document.getElementById('btn-install-pwa');
-  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); deferred=e; if(btn) btn.style.display='block'; });
-  if(btn) btn.addEventListener('click', function(){ if(!deferred) return; deferred.prompt(); deferred.userChoice.finally(function(){ deferred=null; btn.style.display='none'; }); });
-  window.addEventListener('appinstalled', function(){ if(btn) btn.style.display='none'; });
+
+  /* Déjà installée (lancée en mode application) ? on masque le bouton. */
+  function isInstalled(){
+    return window.matchMedia('(display-mode: standalone)').matches
+        || window.matchMedia('(display-mode: minimal-ui)').matches
+        || window.navigator.standalone === true;
+  }
+
+  /* Fenêtre d'aide affichée quand le navigateur ne propose pas l'installation
+     automatique (iPhone/iPad, ou Android/PC selon le moment). */
+  function showInstallHelp(){
+    var ua = navigator.userAgent || '';
+    var isIOS = /iphone|ipad|ipod/i.test(ua) || (/(macintosh)/i.test(ua) && 'ontouchend' in document);
+    var isAndroid = /android/i.test(ua);
+    var steps = isIOS
+      ? '<b>Sur iPhone / iPad (Safari)</b><ol style="margin:8px 0 0;padding-left:20px"><li>Touchez le bouton <b>Partager</b> ⬆️ en bas de l\'écran.</li><li>Choisissez <b>« Sur l\'écran d\'accueil »</b>.</li><li>Touchez <b>Ajouter</b>.</li></ol>'
+      : isAndroid
+      ? '<b>Sur Android (Chrome)</b><ol style="margin:8px 0 0;padding-left:20px"><li>Touchez le menu <b>⋮</b> en haut à droite.</li><li>Choisissez <b>« Installer l\'application »</b> (ou « Ajouter à l\'écran d\'accueil »).</li><li>Confirmez avec <b>Installer</b>.</li></ol>'
+      : '<b>Sur ordinateur (Chrome / Edge)</b><ol style="margin:8px 0 0;padding-left:20px"><li>Cliquez sur l\'icône d\'installation <b>⊕</b> à droite de la barre d\'adresse.</li><li>Ou menu <b>⋮</b> → <b>« Installer Mon IEPP… »</b>.</li><li>Confirmez avec <b>Installer</b>.</li></ol>';
+    var ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.innerHTML = '<div style="background:#fff;max-width:380px;width:100%;border-radius:16px;padding:22px 22px 18px;box-shadow:0 24px 60px rgba(0,0,0,.35);font:400 14px/1.5 system-ui,sans-serif;color:#1A1B25">'
+      + '<div style="font:700 16px system-ui;color:#0A4DA6;margin-bottom:6px">📲 Installer « Mon IEPP »</div>'
+      + '<div>' + steps + '</div>'
+      + '<button id="pwa-help-close" style="margin-top:16px;width:100%;background:#0A4DA6;color:#fff;border:none;border-radius:9px;padding:11px;font:600 14px system-ui;cursor:pointer">J\'ai compris</button>'
+      + '</div>';
+    ov.addEventListener('click', function(e){ if(e.target===ov) ov.remove(); });
+    document.body.appendChild(ov);
+    var c = document.getElementById('pwa-help-close'); if(c) c.addEventListener('click', function(){ ov.remove(); });
+  }
+
+  /* Le navigateur signale que l'installation automatique est disponible. */
+  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); deferred=e; });
+
+  /* Bouton toujours visible tant que l'appli n'est pas installée → toujours trouvable. */
+  function refreshInstallBtn(){ if(btn) btn.style.display = isInstalled() ? 'none' : 'block'; }
+  refreshInstallBtn();
+  try { window.matchMedia('(display-mode: standalone)').addEventListener('change', refreshInstallBtn); } catch(e){}
+
+  if(btn) btn.addEventListener('click', function(){
+    if(deferred){
+      deferred.prompt();
+      deferred.userChoice.finally(function(){ deferred=null; refreshInstallBtn(); });
+    } else {
+      showInstallHelp();   // repli : instructions manuelles selon l'appareil
+    }
+  });
+  window.addEventListener('appinstalled', function(){ deferred=null; if(btn) btn.style.display='none'; });
 })();
 </script>
 </body>
