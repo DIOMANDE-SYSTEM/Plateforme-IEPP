@@ -1708,6 +1708,7 @@ const DEFAULT_USERS = [
   { username:'Directeur DRENAET Boundiali',     password:'drenaet2026', name:'Directeur DRENAET Boundiali',     role:'drenaet',    email:'dr.boundiali@menaet.ci', iepp:'TOUTES', drenaet:'DRENAET Boundiali' },
   { username:'inspecteur',  password:'inspecteur2026', name:'KOUASSI Jean-Marc',             role:'inspecteur', email:'inspecteur@iepp.ci',   iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
   { username:'iepptengrela', password:'iepptengrela2026', name:'TRAORE Bamory', role:'inspecteur', email:'iepp.tengrela@menaet.ci', iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', contact:'0701397491' },
+  { username:'ieppyezimala', password:'ieppyezimala2026', name:'Inspecteur IEPP Yezimala', role:'inspecteur', email:'iepp.yezimala@menaet.ci', iepp:'IEPP YEZIMALA', drenaet:'DRENAET de Bondoukou', contact:'' },
   { username:'cpi',         password:'cpi2026', name:'TRAORE Aminata',                role:'cpi',         email:'cpi@iepp.ci',          iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
   { username:'directeur',   password:'directeur2026', name:'DIABATE Souleymane',            role:'directeur',   email:'directeur@iepp.ci',    iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', ecole:'EPP BASSO' },
   { username:'instituteur', password:'instituteur2026', name:'BAMBA Mariam',                  role:'instituteur', email:'instituteur@iepp.ci',  iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', ecole:'EPP BASSO', classe:'CE1' },
@@ -1742,7 +1743,7 @@ const KEY = 'iepp_';
    La DRENAET bascule entre ses IEPP ; le Superadmin entre toutes.
    ================================================================== */
 const GLOBAL_KEYS = new Set(['users','usersDeleted','audit','customServices','current_user','drenaet','active_iepp','ieppRegistry','pnapasForm','courrierMsg','courrierMatrice']);
-const SCOPED_KEY_LIST = ['ecoles','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','cpppBulletins'];
+const SCOPED_KEY_LIST = ['ecoles','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','cpppBulletins','pointage'];
 function scopeSlug(iepp){
   return 'c_' + String(iepp||'IEPP TENGRELA').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 }
@@ -1872,6 +1873,7 @@ const SCOPED_STATE = [
   ['dirTels', ()=>({})],
   ['cppp', defaultCPPP],
   ['cpppBulletins', defaultCpppBulletins],
+  ['pointage', ()=>[]],
 ];
 function emptyLike(k) {
   if (k === 'cogesReg') return {};
@@ -1953,7 +1955,7 @@ function refreshScopeSelector() {
   }
 }
 function saveAll() {
-  ['users','ecoles','effectifs','personnel','absences','visites','examens','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','audit','matrice','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','drenaet','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','compositions','pnapasForm','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp'].forEach(k=>save(k,state[k]));
+  ['users','ecoles','effectifs','personnel','absences','visites','examens','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','audit','matrice','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','drenaet','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','compositions','pnapasForm','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','pointage'].forEach(k=>save(k,state[k]));
 }
 
 /* ==================================================================
@@ -7120,7 +7122,7 @@ function rhRenderPane() {
   const p = document.getElementById('rh-pane'); if (!p) return;
   if (rhTab==='personnel')     { p.innerHTML = rhPersonnelHtml(); renderRHBody(); }
   else if (rhTab==='affectations') { p.innerHTML = rhAffectationsHtml(); rhAffRenderBody(); }
-  else if (rhTab==='presences')    { p.innerHTML = rhPresencesHtml(); }
+  else if (rhTab==='presences')    { p.innerHTML = rhPointHtml() + rhPresencesHtml(); }
   else if (rhTab==='dossiers')     { p.innerHTML = rhDossiersHtml(); rhDossRenderBody(); }
   else if (rhTab==='statistiques') { p.innerHTML = rhStatistiquesHtml(); }
   else if (rhTab==='rapports')     { p.innerHTML = rhRapportsHtml(); }
@@ -7454,6 +7456,265 @@ function rhMatriceImport(ev) {
 }
 
 /* ===== Onglet 3 : Présences & Absences ===== */
+
+/* ===================================================================
+   POINTAGE JOURNALIER — Présences / Absences des agents & enseignants
+   Relié aux autorisations d'absence validées. Stats anneau + barres +
+   tableau. CRUD + import/export Excel/CSV + impression.
+   =================================================================== */
+let rhPointDate = new Date().toISOString().slice(0,10);
+let rhPointEcole = '';
+let rhPointFonction = '';
+
+const RH_POINT_STATUTS = [
+  { key:'present',  label:'Présent',          color:'#16a34a' },
+  { key:'retard',   label:'Retard',           color:'#f59e0b' },
+  { key:'autorise', label:'Absent autorisé',  color:'#2563eb' },
+  { key:'mission',  label:'Mission/Service',  color:'#7c3aed' },
+  { key:'absent',   label:'Absent',           color:'#dc2626' },
+];
+function rhPointMeta(k){ return RH_POINT_STATUTS.find(s=>s.key===k) || RH_POINT_STATUTS[0]; }
+function rhPointFr(iso){ if(!iso) return ''; var p=String(iso).split('-'); return p.length===3 ? p[2]+'/'+p[1]+'/'+p[0] : iso; }
+function rhNormDate(v){
+  if(v==null||v==='') return '';
+  if(typeof v==='number'){ var d=new Date(Math.round((v-25569)*86400*1000)); return isNaN(d)?'':d.toISOString().slice(0,10); }
+  var s=String(v); var m=s.match(/(\d{4})-(\d{2})-(\d{2})/); if(m) return m[0];
+  var m2=s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/); if(m2){ return m2[3]+'-'+('0'+m2[2]).slice(-2)+'-'+('0'+m2[1]).slice(-2); }
+  var d2=new Date(s); return isNaN(d2)?'':d2.toISOString().slice(0,10);
+}
+
+/* Autorisation d'absence VALIDÉE couvrant la date pour cet agent */
+function rhAbsCouvre(nom, dateISO){
+  return (state.absences||[]).find(function(a){
+    return a && a.demandeur===nom && /valid/i.test(a.statut||'') && a.du && a.au && dateISO>=a.du && dateISO<=a.au;
+  });
+}
+function rhPointGet(agentId, dateISO){ return (state.pointage||[]).find(function(p){ return p.agentId===agentId && p.date===dateISO; }); }
+function rhPointDefaut(agent, dateISO){
+  var a = rhAbsCouvre(agent.nom, dateISO);
+  if (a) return { statut:'autorise', motif:a.motif||"Autorisation d'absence validée", autorisationId:a.id };
+  return { statut:'present', motif:'', autorisationId:'' };
+}
+function rhPointAgents(){
+  var list = (state.personnel||[]).slice();
+  if (rhPointEcole)    list = list.filter(function(p){ return p.ecole===rhPointEcole; });
+  if (rhPointFonction) list = list.filter(function(p){ return p.fonction===rhPointFonction; });
+  return list;
+}
+function rhPointRows(dateISO){
+  return rhPointAgents().map(function(ag){
+    var rec = rhPointGet(ag.id, dateISO);
+    var def = rhPointDefaut(ag, dateISO);
+    var cov = rhAbsCouvre(ag.nom, dateISO);
+    return {
+      agentId:ag.id, nom:ag.nom, fonction:ag.fonction, ecole:ag.ecole,
+      statut: rec ? rec.statut : def.statut,
+      motif:  rec ? (rec.motif||'') : def.motif,
+      autorise: !!cov, saved: !!rec
+    };
+  });
+}
+
+/* ---- Écritures (création / modification / suppression) ---- */
+function rhPointUpsert(agentId, dateISO, patch){
+  var ag = (state.personnel||[]).find(function(p){ return p.id===agentId; }); if(!ag) return;
+  state.pointage = state.pointage || [];
+  var rec = rhPointGet(agentId, dateISO);
+  if(!rec){
+    var def = rhPointDefaut(ag, dateISO);
+    rec = { id:uid(), date:dateISO, agentId:agentId, nom:ag.nom, fonction:ag.fonction, ecole:ag.ecole, statut:def.statut, motif:def.motif };
+    state.pointage.push(rec);
+  }
+  Object.keys(patch||{}).forEach(function(k){ rec[k]=patch[k]; });
+  save('pointage', state.pointage);
+  return rec;
+}
+window.rhPointSetStatut = function(agentId, statut){ rhPointUpsert(agentId, rhPointDate, {statut:statut}); rhRenderPane(); };
+window.rhPointSetMotif  = function(agentId, motif){ rhPointUpsert(agentId, rhPointDate, {motif:motif}); }; /* pas de re-render : on garde le focus */
+window.rhPointSaveAll = function(){
+  var d = rhPointDate;
+  rhPointRows(d).forEach(function(r){ if(!rhPointGet(r.agentId,d)) rhPointUpsert(r.agentId, d, {statut:r.statut, motif:r.motif}); });
+  toast('Pointage du '+rhPointFr(d)+' enregistré','success'); rhRenderPane();
+};
+window.rhPointClearDay = function(){
+  var d = rhPointDate;
+  if(!confirm('Supprimer tout le pointage du '+rhPointFr(d)+' ?')) return;
+  state.pointage = (state.pointage||[]).filter(function(p){ return p.date!==d; });
+  save('pointage', state.pointage); toast('Pointage du jour supprimé','success'); rhRenderPane();
+};
+window.rhPointDelete = function(agentId){
+  var d = rhPointDate;
+  state.pointage = (state.pointage||[]).filter(function(p){ return !(p.date===d && p.agentId===agentId); });
+  save('pointage', state.pointage); rhRenderPane();
+};
+window.rhPointDateChange = function(v){ rhPointDate = v || new Date().toISOString().slice(0,10); rhRenderPane(); };
+window.rhPointEcoleChange = function(v){ rhPointEcole = v; rhRenderPane(); };
+window.rhPointFonctionChange = function(v){ rhPointFonction = v; rhRenderPane(); };
+
+/* ---- Ajout / modification via fenêtre ---- */
+window.rhPointAddModal = function(){
+  var ags = (state.personnel||[]);
+  if(!ags.length){ toast('Aucun agent enregistré','error'); return; }
+  openModal("Ajouter / modifier un pointage",
+    '<div style="display:grid;gap:12px">'
+    + '<label style="font-size:13px;font-weight:600">Date<br><input type="date" id="pm-date" value="'+rhPointDate+'" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:7px"></label>'
+    + '<label style="font-size:13px;font-weight:600">Agent<br><select id="pm-agent" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:7px">'+ags.map(function(a){return '<option value="'+a.id+'">'+escapeHtml(a.nom)+' — '+escapeHtml(a.fonction)+'</option>';}).join('')+'</select></label>'
+    + '<label style="font-size:13px;font-weight:600">Statut<br><select id="pm-statut" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:7px">'+RH_POINT_STATUTS.map(function(s){return '<option value="'+s.key+'">'+s.label+'</option>';}).join('')+'</select></label>'
+    + '<label style="font-size:13px;font-weight:600">Motif / observation<br><input type="text" id="pm-motif" placeholder="(facultatif)" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:7px"></label>'
+    + '</div>',
+    '<button class="btn btn-primary" onclick="rhPointAddSave()">Enregistrer</button>');
+};
+window.rhPointAddSave = function(){
+  var date = rhNormDate(document.getElementById('pm-date').value) || rhPointDate;
+  var agentId = document.getElementById('pm-agent').value;
+  var statut = document.getElementById('pm-statut').value;
+  var motif = document.getElementById('pm-motif').value || '';
+  rhPointUpsert(agentId, date, {statut:statut, motif:motif});
+  if(typeof closeModal==='function') closeModal();
+  rhPointDate = date; toast('Pointage enregistré','success'); rhRenderPane();
+};
+
+/* ---- Import / export / impression ---- */
+window.rhPointExport = function(){
+  var d = rhPointDate;
+  var rows = rhPointRows(d).map(function(r){ return { 'Date':rhPointFr(d), 'Agent':r.nom, 'Fonction':r.fonction, 'École':r.ecole, 'Statut':rhPointMeta(r.statut).label, 'Motif':r.motif }; });
+  exportRowsToExcel(rows, 'pointage_'+d, 'Pointage '+d);
+};
+window.rhPointExportAll = function(){
+  var rows = (state.pointage||[]).slice().sort(function(a,b){ return a.date<b.date?-1:1; }).map(function(p){ return { 'Date':p.date, 'Agent':p.nom, 'Fonction':p.fonction, 'École':p.ecole, 'Statut':rhPointMeta(p.statut).label, 'Motif':p.motif||'' }; });
+  exportRowsToExcel(rows, 'pointage_historique', 'Historique pointage');
+};
+window.rhPointImport = function(ev){
+  importRowsFromFile(ev, function(rows){
+    if(!rows || !rows.length){ toast('Fichier vide ou illisible','error'); return; }
+    state.pointage = state.pointage || [];
+    var n = 0;
+    rows.forEach(function(r){
+      var date = rhNormDate(r['Date']||r['date']||r['DATE']||'');
+      var nom  = String(r['Agent']||r['agent']||r['Nom']||r['NOM']||'').trim();
+      if(!date || !nom) return;
+      var ag = (state.personnel||[]).find(function(p){ return p.nom.toLowerCase()===nom.toLowerCase(); });
+      var lbl = String(r['Statut']||r['statut']||'Présent').trim().toLowerCase();
+      var meta = RH_POINT_STATUTS.find(function(s){ return s.label.toLowerCase()===lbl || s.key===lbl; }) || RH_POINT_STATUTS[0];
+      var motif = String(r['Motif']||r['motif']||'');
+      var rec = state.pointage.find(function(p){ return p.date===date && ((ag&&p.agentId===ag.id) || p.nom.toLowerCase()===nom.toLowerCase()); });
+      if(!rec){ state.pointage.push({ id:uid(), date:date, agentId:ag?ag.id:'', nom:ag?ag.nom:nom, fonction:ag?ag.fonction:(r['Fonction']||r['fonction']||''), ecole:ag?ag.ecole:(r['École']||r['Ecole']||r['ecole']||''), statut:meta.key, motif:motif }); }
+      else { rec.statut=meta.key; rec.motif=motif; }
+      n++;
+    });
+    save('pointage', state.pointage); toast(n+' pointage(s) importé(s)','success'); rhRenderPane();
+  });
+};
+window.rhPointPrint = function(){
+  var d = rhPointDate, rows = rhPointRows(d);
+  var trs = rows.map(function(r,i){ return '<tr><td>'+(i+1)+'</td><td>'+escapeHtml(r.nom)+'</td><td>'+escapeHtml(r.fonction)+'</td><td>'+escapeHtml(r.ecole)+'</td><td>'+rhPointMeta(r.statut).label+'</td><td>'+escapeHtml(r.motif)+'</td></tr>'; }).join('');
+  var w = window.open('','_blank'); if(!w){ toast('Autorisez les fenêtres pop-up pour imprimer','error'); return; }
+  w.document.write('<html><head><meta charset="utf-8"><title>Pointage '+rhPointFr(d)+'</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h2{color:#0A4DA6;margin:0 0 2px}p{color:#555;margin:0 0 14px;font-size:13px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #999;padding:6px 8px;text-align:left}th{background:#0A4DA6;color:#fff}</style></head><body><h2>Fiche de pointage — '+rhPointFr(d)+'</h2><p>IEPP TENGRELA · DRENAET Boundiali</p><table><thead><tr><th>N°</th><th>Agent</th><th>Fonction</th><th>École</th><th>Statut</th><th>Motif</th></tr></thead><tbody>'+trs+'</tbody></table></body></html>');
+  w.document.close(); setTimeout(function(){ w.print(); }, 300);
+};
+
+/* ---- Statistiques : cartes + anneau + barres + tableau ---- */
+function rhPointStatsHtml(dateISO){
+  var rows = rhPointRows(dateISO);
+  var total = rows.length;
+  var c = {present:0,retard:0,autorise:0,mission:0,absent:0};
+  rows.forEach(function(r){ c[r.statut]=(c[r.statut]||0)+1; });
+  var presentEff = c.present + c.retard;
+  var taux = total ? Math.round(presentEff/total*100) : 0;
+
+  var kpi = '<div class="stat-grid" style="margin-bottom:14px">'
+    + '<div class="stat s-blue"><div class="stat-label">Effectif du jour</div><div class="stat-value">'+total+'</div></div>'
+    + '<div class="stat s-green"><div class="stat-label">Présents</div><div class="stat-value">'+c.present+'</div></div>'
+    + '<div class="stat s-orange"><div class="stat-label">Retards</div><div class="stat-value">'+c.retard+'</div></div>'
+    + '<div class="stat s-blue"><div class="stat-label">Absents autorisés</div><div class="stat-value">'+c.autorise+'</div></div>'
+    + '<div class="stat s-purple"><div class="stat-label">Mission/Service</div><div class="stat-value">'+c.mission+'</div></div>'
+    + '<div class="stat s-red"><div class="stat-label">Absents</div><div class="stat-value">'+c.absent+'</div></div>'
+    + '<div class="stat s-green"><div class="stat-label">Taux de présence</div><div class="stat-value">'+taux+'%</div></div>'
+    + '</div>';
+
+  var donut = statDonutCard('Répartition du jour', presentEff, total, '#16a34a', [
+    {label:'Présent', value:c.present, color:'#16a34a'},
+    {label:'Retard', value:c.retard, color:'#f59e0b'},
+    {label:'Absent autorisé', value:c.autorise, color:'#2563eb'},
+    {label:'Mission/Service', value:c.mission, color:'#7c3aed'},
+    {label:'Absent', value:c.absent, color:'#dc2626'},
+  ]);
+
+  var parEcole = {};
+  rows.forEach(function(r){ if(r.statut==='absent'||r.statut==='autorise'){ parEcole[r.ecole]=(parEcole[r.ecole]||0)+1; } });
+  var barsItems = Object.keys(parEcole).map(function(e){ return {label:e, value:parEcole[e], color:'#dc2626'}; });
+  var barsEcole = barsItems.length ? statBarsCard('Absences par école (jour)', barsItems, '#dc2626')
+    : '<div class="card" style="padding:16px"><div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#6B7280;margin-bottom:8px">Absences par école (jour)</div><div class="text-muted" style="font-size:13px">Aucune absence ce jour.</div></div>';
+
+  var byDay = {};
+  (state.pointage||[]).forEach(function(p){ byDay[p.date]=byDay[p.date]||{pres:0,tot:0}; byDay[p.date].tot++; if(p.statut==='present'||p.statut==='retard') byDay[p.date].pres++; });
+  var days = Object.keys(byDay).sort().slice(-10);
+  var trendItems = days.map(function(dd){ return {label:rhPointFr(dd), value:byDay[dd].pres, color:'#16a34a'}; });
+  var trend = days.length ? statBarsCard('Présents par jour (10 derniers pointages)', trendItems, '#16a34a')
+    : '<div class="card" style="padding:16px"><div style="font-size:12px;font-weight:700;text-transform:uppercase;color:#6B7280;margin-bottom:8px">Historique</div><div class="text-muted" style="font-size:13px">Aucun pointage enregistré pour le moment.</div></div>';
+
+  var recap = '<div class="card" style="padding:0;margin-top:14px"><div class="table-wrap" style="border:none"><table><thead><tr><th>Statut</th><th style="text-align:center">Effectif</th><th style="text-align:center">Part</th></tr></thead><tbody>'
+    + RH_POINT_STATUTS.map(function(s){ var v=c[s.key]||0; var pct=total?Math.round(v/total*100):0; return '<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+s.color+';margin-right:7px"></span>'+s.label+'</td><td style="text-align:center;font-weight:700">'+v+'</td><td style="text-align:center">'+pct+'%</td></tr>'; }).join('')
+    + '<tr style="background:#f8fafc;font-weight:700"><td>Total</td><td style="text-align:center">'+total+'</td><td style="text-align:center">100%</td></tr>'
+    + '</tbody></table></div></div>';
+
+  return kpi
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">'+donut+barsEcole+trend+'</div>'
+    + recap;
+}
+
+/* ---- Vue principale du pointage ---- */
+function rhPointHtml(){
+  var d = rhPointDate;
+  var rows = rhPointRows(d);
+  var ecoles = Array.from(new Set((state.personnel||[]).map(function(p){return p.ecole;}).filter(Boolean))).sort();
+  var fonctions = Array.from(new Set((state.personnel||[]).map(function(p){return p.fonction;}).filter(Boolean))).sort();
+  var optStatut = function(cur){ return RH_POINT_STATUTS.map(function(s){ return '<option value="'+s.key+'" '+(s.key===cur?'selected':'')+'>'+s.label+'</option>'; }).join(''); };
+  var body = rows.map(function(r,i){
+    var meta = rhPointMeta(r.statut);
+    return '<tr>'
+      + '<td style="text-align:center;color:#94a3b8">'+(i+1)+'</td>'
+      + '<td><strong>'+escapeHtml(r.nom)+'</strong></td>'
+      + '<td>'+escapeHtml(r.fonction)+'</td>'
+      + '<td>'+escapeHtml(r.ecole)+'</td>'
+      + '<td><select onchange="rhPointSetStatut(\''+r.agentId+'\', this.value)" style="border:1px solid #d1d5db;border-radius:6px;padding:5px 8px;font-weight:700;color:'+meta.color+'">'+optStatut(r.statut)+'</select>'
+        + (r.autorise ? ' <span class="badge badge-blue" title="Autorisation d\'absence validée">🔒 Autorisée</span>' : '')
+      + '</td>'
+      + '<td><input type="text" value="'+escapeHtml(r.motif)+'" onchange="rhPointSetMotif(\''+r.agentId+'\', this.value)" placeholder="—" style="width:100%;border:1px solid #e5e7eb;border-radius:6px;padding:5px 7px"></td>'
+      + '<td style="text-align:center">'+(r.saved ? '<button class="icon-btn" title="Supprimer ce pointage" onclick="rhPointDelete(\''+r.agentId+'\')" style="background:#FDE8E8;color:#dc2626">🗑️</button>' : '<span class="badge" style="background:#f1f5f9;color:#94a3b8">non enreg.</span>')+'</td>'
+      + '</tr>';
+  }).join('');
+
+  return ''
+  + '<div class="card" style="padding:16px;margin-bottom:16px;border-top:4px solid #0A4DA6">'
+  +   '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px">'
+  +     '<h3 style="margin:0;font-size:16px;color:#0A4DA6">🕒 Pointage journalier</h3>'
+  +     '<span class="text-xs text-muted">Présence / absence des agents et enseignants — les autorisations d\'absence validées sont appliquées automatiquement.</span>'
+  +   '</div>'
+  +   '<div class="toolbar" style="gap:8px;flex-wrap:wrap;align-items:center">'
+  +     '<label style="font-size:12px;font-weight:600">Date <input type="date" value="'+d+'" onchange="rhPointDateChange(this.value)" style="margin-left:4px;padding:6px 8px;border:1px solid #d1d5db;border-radius:6px"></label>'
+  +     '<select onchange="rhPointEcoleChange(this.value)" style="padding:6px 8px;border:1px solid #d1d5db;border-radius:6px"><option value="">Toutes les écoles</option>'+ecoles.map(function(e){return '<option value="'+escapeHtml(e)+'" '+(e===rhPointEcole?'selected':'')+'>'+escapeHtml(e)+'</option>';}).join('')+'</select>'
+  +     '<select onchange="rhPointFonctionChange(this.value)" style="padding:6px 8px;border:1px solid #d1d5db;border-radius:6px"><option value="">Toutes les fonctions</option>'+fonctions.map(function(f){return '<option value="'+escapeHtml(f)+'" '+(f===rhPointFonction?'selected':'')+'>'+escapeHtml(f)+'</option>';}).join('')+'</select>'
+  +     '<div style="flex:1"></div>'
+  +     '<button class="btn" onclick="rhPointAddModal()">+ Ajouter</button>'
+  +     '<button class="btn btn-primary" onclick="rhPointSaveAll()">💾 Enregistrer le jour</button>'
+  +     '<button class="btn" onclick="rhPointClearDay()" style="color:#dc2626;border-color:#f0b3b3">🧹 Vider le jour</button>'
+  +     '<label class="btn" style="cursor:pointer;margin:0">📥 Importer<input type="file" accept=".xlsx,.xls,.csv" onchange="rhPointImport(event)" style="display:none"></label>'
+  +     '<button class="btn btn-green" onclick="rhPointExport()">⬇️ Excel (jour)</button>'
+  +     '<button class="btn" onclick="rhPointExportAll()">⬇️ Historique</button>'
+  +     '<button class="btn" onclick="rhPointPrint()">🖨️ Imprimer</button>'
+  +   '</div>'
+  + '</div>'
+  + rhPointStatsHtml(d)
+  + '<div class="card" style="padding:0;margin-top:14px"><div class="table-wrap" style="border:none"><table>'
+  +   '<thead><tr><th style="width:44px">N°</th><th>Agent</th><th>Fonction</th><th>École</th><th style="width:240px">Statut du jour</th><th>Motif / observation</th><th style="width:64px"></th></tr></thead>'
+  +   '<tbody>'+(body || '<tr><td colspan="7" class="table-empty">Aucun agent pour ce filtre.</td></tr>')+'</tbody>'
+  + '</table></div></div>'
+  + '<hr style="margin:22px 0;border:none;border-top:1px dashed #e5e7eb">'
+  + '<h3 style="font-size:14px;color:#6B7280;margin:0 0 8px">📊 Vue cumulée des absences (autorisations)</h3>';
+}
+
+
 function rhPresencesHtml() {
   const personnel = state.personnel||[];
   const absences = state.absences||[];
@@ -25712,6 +25973,45 @@ window.cloudForcePush = function(){
   if (typeof toast === 'function') toast(n + ' bloc(s) envoyé(s) vers le cloud', 'success');
   else alert(n + ' bloc(s) envoyé(s) vers le cloud. Rechargez ensuite l\'appareil en ligne.');
 };
+
+
+/* ===== Amorçage unique : nouvelle circonscription IEPP YEZIMALA (DRENAET de Bondoukou) ===== */
+(function seedIeppYezimala(){
+  try {
+    var FLAG = KEY + 'seed_yezimala_v1';
+    if (localStorage.getItem(FLAG)) return;              /* déjà amorcé sur cet appareil */
+    var IEPP='IEPP YEZIMALA', DREN='DRENAET de Bondoukou', CODE='000368';
+    var scope = scopeSlug(IEPP);
+
+    /* 1) Registre des circonscriptions (clé globale) */
+    state.ieppRegistry = state.ieppRegistry || [];
+    if (!state.ieppRegistry.some(function(r){ return String(r.name||'').toLowerCase()===IEPP.toLowerCase(); })){
+      state.ieppRegistry.push({ name:IEPP, drenaet:DREN, code:CODE });
+      save('ieppRegistry', state.ieppRegistry);
+    }
+
+    /* 2) Écoles du scope YEZIMALA — seedées uniquement si le scope est vide */
+    var ecKey = KEY + scope + '_ecoles';
+    var ecCur=null; try{ ecCur=JSON.parse(localStorage.getItem(ecKey)||'null'); }catch(e){}
+    if (!ecCur || !ecCur.length){
+      var SEED_EC = [{"id": "eyz01", "nom": "MATERNELLE YEZIMALA", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "YEZIMALA"}, {"id": "eyz02", "nom": "EPP SAVAGNERE", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "YEZIMALA"}, {"id": "eyz03", "nom": "EPP SANAGA", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "YEZIMALA"}, {"id": "eyz04", "nom": "EPP KOGORA", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "YEZIMALA"}, {"id": "eyz05", "nom": "EPP YEZIMALA 1", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "YEZIMALA"}, {"id": "eyz06", "nom": "EPP YEZIMALA 2", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "YEZIMALA"}, {"id": "eyz07", "nom": "EPP YEZIMALA 1 (bis)", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "YEZIMALA"}, {"id": "eyz08", "nom": "MATERNELLE SEPINGO", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "SAPLI-SEPINGO"}, {"id": "eyz09", "nom": "EPP SAVAGNERE (Sapli-Sepingo)", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "SAPLI-SEPINGO"}, {"id": "eyz10", "nom": "EPP SAPLI 1", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "SAPLI-SEPINGO"}, {"id": "eyz11", "nom": "EPP SAPLI 2", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "SAPLI-SEPINGO"}, {"id": "eyz12", "nom": "EPP SAPLI 3", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "SAPLI-SEPINGO"}, {"id": "eyz13", "nom": "EPP SAPLI 4", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "SAPLI-SEPINGO"}, {"id": "eyz14", "nom": "EPP SEPINGO 1", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "SAPLI-SEPINGO"}, {"id": "eyz15", "nom": "EPP SEPINGO 2", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "SAPLI-SEPINGO"}, {"id": "eyz16", "nom": "EPP SEPINGO 3", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "SAPLI-SEPINGO"}, {"id": "eyz17", "nom": "MATERNELLE GANKRO", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "GANKRO"}, {"id": "eyz18", "nom": "EPP GANKRO 1", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "GANKRO"}, {"id": "eyz19", "nom": "EPP GANKRO 2", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "GANKRO"}, {"id": "eyz20", "nom": "EPP DJOBRI", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "GANKRO"}, {"id": "eyz21", "nom": "EPP AMPOUNOU", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "GANKRO"}, {"id": "eyz22", "nom": "EPP BEREDA", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "GANKRO"}, {"id": "eyz23", "nom": "EPP WANGALE", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "GANKRO"}, {"id": "eyz24", "nom": "EPP DAGBOLOYO", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "GANKRO"}];
+      localStorage.setItem(ecKey, JSON.stringify(SEED_EC));
+      if (window.__cloudPush){ try{ window.__cloudPush(ecKey, SEED_EC); }catch(e){} }
+    }
+
+    /* 3) Secteurs CPPP du scope — seedés si vide (noms de CPS à renseigner ensuite) */
+    var cpKey = KEY + scope + '_cppp';
+    var cpCur=null; try{ cpCur=JSON.parse(localStorage.getItem(cpKey)||'null'); }catch(e){}
+    if (!cpCur || !cpCur.length){
+      var SEED_CP = [{"id": "cpyz1", "nom": "(à renseigner)", "fonction": "CPS", "tel": "", "email": "", "secteurs": ["YEZIMALA"]}, {"id": "cpyz2", "nom": "(à renseigner)", "fonction": "CPS", "tel": "", "email": "", "secteurs": ["SAPLI-SEPINGO"]}, {"id": "cpyz3", "nom": "(à renseigner)", "fonction": "CPS", "tel": "", "email": "", "secteurs": ["GANKRO"]}];
+      localStorage.setItem(cpKey, JSON.stringify(SEED_CP));
+      if (window.__cloudPush){ try{ window.__cloudPush(cpKey, SEED_CP); }catch(e){} }
+    }
+
+    localStorage.setItem(FLAG,'1');
+  } catch(e){ console.warn('seedIeppYezimala', e); }
+})();
+
 
 autoLogin();
 try { prefillLogin(); } catch(e){}
