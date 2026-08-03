@@ -2073,7 +2073,14 @@ const CLOUD_COLLECTION = 'appData';
         if (snap.exists){
           const data = snap.data();
           if (data && typeof data.json === 'string'){
-            localStorage.setItem(fullKey, data.json);   // le cloud fait foi
+            const localRaw = localStorage.getItem(fullKey);
+            if (cloudIsEmptierThanLocal(data.json, localRaw)){
+              /* Garde-fou : le cloud est VIDE alors que le local contient des données
+                 → on ne détruit pas le local ; au contraire on renvoie le local au cloud. */
+              await withTimeout(ref.set({ json: localRaw, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }), 15000, fullKey);
+            } else {
+              localStorage.setItem(fullKey, data.json);   // le cloud fait foi
+            }
           }
         } else {
           const local = localStorage.getItem(fullKey);   // amorçage du cloud
@@ -16894,6 +16901,16 @@ function renderParametres() {
 
     ${ieppManagerCard()}
 
+    <div class="card" style="border:2px solid #2A9D8F;background:#fff;padding:16px;margin-bottom:16px">
+      <h3 style="font-size:15px;margin:0 0 6px;color:#1d7d70">🛟 Sauvegarde &amp; Synchronisation cloud</h3>
+      <p class="text-xs text-muted" style="margin:0 0 12px">Protégez vos données et maîtrisez leur envoi en ligne. <strong>« Envoyer vers le cloud »</strong> écrase la version en ligne par celle de CET appareil : à lancer depuis l'appareil qui contient les <strong>bonnes</strong> données (écoles / élèves complets).</p>
+      <div class="toolbar" style="gap:8px;flex-wrap:wrap;justify-content:flex-start">
+        <button class="btn btn-orange" onclick="exportBackup()">💾 Exporter une sauvegarde (fichier)</button>
+        <button class="btn" onclick="importBackup()">📥 Importer une sauvegarde</button>
+        <button class="btn" style="background:#2A9D8F;color:#fff;border-color:#2A9D8F" onclick="cloudForcePush()">☁️⬆️ Envoyer mes données vers le cloud</button>
+      </div>
+    </div>
+
     <h3 style="font-size:15px;margin:4px 0 8px">🧩 Services du système</h3>
     <div class="toolbar">
       <div style="flex:1"></div>
@@ -25630,6 +25647,72 @@ function doResetCirconscription() {
     if (typeof toast === 'function') toast('Erreur lors de la réinitialisation.','error');
   }
 }
+/* ===== Sauvegarde, restauration et envoi forcé vers le cloud ===== */
+function backupKeyList(){
+  var list=[];
+  try { GLOBAL_KEYS.forEach(function(k){ if(k!=='current_user' && k!=='active_iepp' && k!=='remember') list.push(k); }); } catch(e){}
+  try { SCOPED_KEY_LIST.forEach(function(k){ list.push(k); }); } catch(e){}
+  return list;
+}
+/* true si la valeur cloud est VIDE alors que le local contient des données */
+function cloudIsEmptierThanLocal(cloudJson, localRaw){
+  if (localRaw == null) return false;
+  try {
+    var c = JSON.parse(cloudJson), l = JSON.parse(localRaw);
+    var cl = Array.isArray(c) ? c.length : (c && typeof c==='object' ? Object.keys(c).length : (c?1:0));
+    var ll = Array.isArray(l) ? l.length : (l && typeof l==='object' ? Object.keys(l).length : (l?1:0));
+    return cl === 0 && ll > 0;
+  } catch(e){ return false; }
+}
+window.exportBackup = function(){
+  try {
+    var dump = { _meta:{ app:'Plateforme-IEPP', scope:activeScope, date:new Date().toISOString() }, data:{} };
+    backupKeyList().forEach(function(k){
+      var fk = storeKey(k), v = localStorage.getItem(fk);
+      if (v !== null) dump.data[fk] = v;
+    });
+    var blob = new Blob([JSON.stringify(dump)], {type:'application/json'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'sauvegarde_IEPP_' + activeScope + '_' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+    if (typeof toast === 'function') toast('Sauvegarde téléchargée', 'success'); else alert('Sauvegarde téléchargée.');
+  } catch(e){ alert('Erreur lors de l\'export : ' + e.message); }
+};
+window.importBackup = function(){
+  var inp = document.createElement('input'); inp.type='file'; inp.accept='.json,application/json';
+  inp.onchange = function(){
+    var f = inp.files && inp.files[0]; if(!f) return;
+    var r = new FileReader();
+    r.onload = function(){
+      var obj; try { obj = JSON.parse(r.result); } catch(e){ alert('Fichier illisible ou invalide.'); return; }
+      var data = (obj && obj.data) ? obj.data : obj;
+      var keys = Object.keys(data||{}).filter(function(k){ return typeof data[k]==='string'; });
+      if (!keys.length){ alert('Aucune donnée exploitable dans ce fichier.'); return; }
+      if (!confirm(keys.length + ' bloc(s) vont REMPLACER les données de cet appareil, puis être envoyés au cloud. Continuer ?')) return;
+      keys.forEach(function(fk){ try { localStorage.setItem(fk, data[fk]); } catch(e){} });
+      try { if (window.__cloudPush){ keys.forEach(function(fk){ try { window.__cloudPush(fk, JSON.parse(data[fk])); } catch(e){} }); } } catch(e){}
+      alert('Restauration effectuée (' + keys.length + ' blocs). La page va se recharger.');
+      setTimeout(function(){ location.reload(); }, 1200);
+    };
+    r.readAsText(f);
+  };
+  inp.click();
+};
+window.cloudForcePush = function(){
+  if (!window.__cloudPush){ alert('La synchronisation cloud n\'est pas disponible.'); return; }
+  var nEc = 0; try { nEc = (state.ecoles||[]).length; } catch(e){}
+  if (!confirm('Envoyer TOUTES les données de cet appareil vers le cloud ?\n\nLa version en ligne sera REMPLACÉE par celle-ci (' + nEc + ' école(s) sur cet appareil).\nÀ lancer depuis l\'appareil qui a les BONNES données.')) return;
+  var n = 0;
+  backupKeyList().forEach(function(k){
+    var fk = storeKey(k), v = localStorage.getItem(fk);
+    if (v !== null){ try { window.__cloudPush(fk, JSON.parse(v)); n++; } catch(e){} }
+  });
+  if (typeof toast === 'function') toast(n + ' bloc(s) envoyé(s) vers le cloud', 'success');
+  else alert(n + ' bloc(s) envoyé(s) vers le cloud. Rechargez ensuite l\'appareil en ligne.');
+};
+
 autoLogin();
 try { prefillLogin(); } catch(e){}
 /* Ouverture directe d'une fiche via lien partageable (#fiche=...) */
