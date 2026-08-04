@@ -1710,6 +1710,7 @@ const DEFAULT_USERS = [
   { username:'inspecteur',  password:'inspecteur2026', name:'KOUASSI Jean-Marc',             role:'inspecteur', email:'inspecteur@iepp.ci',   iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
   { username:'iepptengrela', password:'iepptengrela2026', name:'TRAORE Bamory', role:'inspecteur', email:'iepp.tengrela@menaet.ci', iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', contact:'0701397491' },
   { username:'ieppyezimala', password:'ieppyezimala2026', name:'Inspecteur IEPP Yezimala', role:'inspecteur', email:'iepp.yezimala@menaet.ci', iepp:'IEPP YEZIMALA', drenaet:'DRENAET de Bondoukou', contact:'' },
+  { username:'testferkenord', password:'testferkenord2026', name:'Compte test IEPP Ferkessédougou Nord', role:'inspecteur', email:'', iepp:'IEPP FERKESSEDOUGOU Nord', drenaet:'DRENA-ET Ferkessédougou', contact:'', test:true, expire:'2026-08-18' },
   { username:'cpi',         password:'cpi2026', name:'TRAORE Aminata',                role:'cpi',         email:'cpi@iepp.ci',          iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
   { username:'directeur',   password:'directeur2026', name:'DIABATE Souleymane',            role:'directeur',   email:'directeur@iepp.ci',    iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', ecole:'EPP BASSO' },
   { username:'instituteur', password:'instituteur2026', name:'BAMBA Mariam',                  role:'instituteur', email:'instituteur@iepp.ci',  iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', ecole:'EPP BASSO', classe:'CE1' },
@@ -2131,7 +2132,12 @@ const CLOUD_COLLECTION = 'appData';
         json: JSON.stringify(val),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }).then(function(){ console.log('[Cloud] ✔ poussé', fullKey); })
-        .catch(function(e){ console.warn('[Cloud] push échoué', fullKey, e); });
+        .catch(function(e){
+          console.warn('[Cloud] push échoué', fullKey, e);
+          var c = ((e && (e.code||e.message))||'') + '';
+          if (/permission|denied|insufficient/i.test(c)) { setStatus('⚠ Règles cloud à publier', '#E63946'); }
+          else if (/unavailable|network/i.test(c)) { setStatus('Hors ligne (local)', '#E63946'); }
+        });
     } catch(e){ console.warn('[Cloud] push erreur', e); }
   }
 
@@ -2248,6 +2254,27 @@ const CLOUD_COLLECTION = 'appData';
   }
 
   /* Re-synchroniser au changement de circonscription */
+  /* Diagnostic en direct : teste si le cloud accepte vraiment d'enregistrer */
+  window.__cloudDiagnostic = async function(){
+    var out = { ok:false, msg:'', code:'' };
+    try {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false){ out.msg='hors-ligne'; return out; }
+      if (typeof firebase === 'undefined' || !db){ out.msg='non-charge'; return out; }
+      var ref = db.collection(CLOUD_COLLECTION).doc('__diagnostic_test');
+      var stamp = Date.now();
+      await withTimeout(ref.set({ json: JSON.stringify({ test: stamp }), updatedAt: firebase.firestore.FieldValue.serverTimestamp() }), 12000, 'diag-write');
+      var snap = await withTimeout(ref.get(), 12000, 'diag-read');
+      var relu = snap.exists && snap.data() && JSON.parse(snap.data().json||'{}').test === stamp;
+      try { await withTimeout(ref.delete(), 12000, 'diag-del'); } catch(e){}
+      out.ok = !!relu; out.msg = relu ? 'ok' : 'lecture-ko';
+    } catch(e){
+      out.code = ((e && (e.code||e.message))||'') + '';
+      out.msg = /permission|denied|insufficient/i.test(out.code) ? 'regles'
+              : /unavailable|network|offline/i.test(out.code) ? 'reseau' : 'erreur';
+    }
+    return out;
+  };
+
   window.__cloudResyncScope = async function(){
     if (!cloudReady) return;
     setStatus('Synchronisation…', '#F4A261');
@@ -3079,6 +3106,21 @@ function doLogin() {
     err.classList.add('show');
     return;
   }
+  /* Compte désactivé manuellement */
+  if (found.actif === false) {
+    err.textContent = '⛔ Ce compte est désactivé. Contactez l\'administrateur.';
+    err.classList.add('show');
+    return;
+  }
+  /* Compte test arrivé à échéance → désactivation automatique */
+  if (found.expire) {
+    var _fin = new Date(found.expire + 'T23:59:59');
+    if (!isNaN(_fin) && Date.now() > _fin.getTime()) {
+      err.textContent = '⏳ Ce compte test a expiré le ' + found.expire.split('-').reverse().join('/') + '. Il est désormais désactivé.';
+      err.classList.add('show');
+      return;
+    }
+  }
   state.user = found;
   save('current_user', found.username);
   /* « Se souvenir de moi » : mémorise (ou efface) l'identifiant + mot de passe sur CET appareil */
@@ -3612,7 +3654,7 @@ function dashScopedData() {
 function renderDashboard() {
   const u = state.user;
   const d = dashScopedData();
-  const totalEleves = d.effectifs.reduce((a,b)=>a+(b.total||0), 0) || d.eleves.length;
+  const totalEleves = d.effectifs.reduce((a,b)=>a+(b.total||0), 0) || (d.ecoles||[]).reduce((a,b)=>a+(Number(b.effectif)||0),0) || d.eleves.length;
   const garcons = d.effectifs.reduce((a,b)=>a+(b.garcons||0), 0) || d.eleves.filter(e=>e.sexe==='M').length;
   const filles  = d.effectifs.reduce((a,b)=>a+(b.filles ||0), 0) || d.eleves.filter(e=>e.sexe==='F').length;
   const totalEcoles = d.ecoles.length;
@@ -4699,6 +4741,10 @@ function renderStats() {
   const totalG = state.effectifs.reduce((a,b)=>a+b.garcons,0);
   const totalF = state.effectifs.reduce((a,b)=>a+b.filles,0);
   const total = totalG + totalF;
+  /* Repli : si aucun effectif détaillé (École·Niveau·Garçons·Filles), on affiche la somme des effectifs saisis sur les fiches écoles */
+  const effEcoles = (state.ecoles||[]).reduce((a,b)=>a+(Number(b.effectif)||0),0);
+  const effAffiche = total || effEcoles;
+  const effDepuisFiches = (total===0 && effEcoles>0);
   const tauxCEPE = tauxReussiteCEPE();
   const anneeRef = statAnneeCourante();
   const vp = statVentilationPersonnel();
@@ -4739,7 +4785,7 @@ function renderStats() {
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
         <div class="stat"><div class="stat-label">Écoles</div><div class="stat-value">${nbEcoles}</div></div>
-        <div class="stat s-orange"><div class="stat-label">Élèves</div><div class="stat-value">${total.toLocaleString('fr-FR')}</div></div>
+        <div class="stat s-orange"><div class="stat-label">Élèves</div><div class="stat-value">${effAffiche.toLocaleString('fr-FR')}</div>${effDepuisFiches?'<div class="stat-delta">d\'après les fiches écoles</div>':''}</div>
         <div class="stat s-green"><div class="stat-label">Personnel total</div><div class="stat-value">${vp.total.t}</div><div class="stat-delta">${vp.total.h} H · ${vp.total.f} F</div></div>
         <div class="stat s-purple"><div class="stat-label">Administratifs</div><div class="stat-value">${vp.admin.t}</div><div class="stat-delta">${vp.admin.h} H · ${vp.admin.f} F</div></div>
         <div class="stat s-pink"><div class="stat-label">Craie en main</div><div class="stat-value">${vp.craiePub.t + vp.craiePriv.t}</div><div class="stat-delta">Public ${vp.craiePub.t} · Privé ${vp.craiePriv.t}</div></div>
@@ -4747,9 +4793,9 @@ function renderStats() {
     </div>
 
     <div class="stat-grid">
-      <div class="stat s-orange"><div class="stat-label">Effectif total</div><div class="stat-value">${total.toLocaleString('fr-FR')}</div></div>
-      <div class="stat"><div class="stat-label">Garçons</div><div class="stat-value">${totalG.toLocaleString('fr-FR')}</div><div class="stat-delta">${total>0?Math.round(totalG/total*100):0}% de l'effectif</div></div>
-      <div class="stat s-pink"><div class="stat-label">Filles</div><div class="stat-value">${totalF.toLocaleString('fr-FR')}</div><div class="stat-delta">${total>0?Math.round(totalF/total*100):0}% de l'effectif</div></div>
+      <div class="stat s-orange"><div class="stat-label">Effectif total</div><div class="stat-value">${effAffiche.toLocaleString('fr-FR')}</div>${effDepuisFiches?'<div class="stat-delta">d\'après les fiches écoles</div>':''}</div>
+      <div class="stat"><div class="stat-label">Garçons</div><div class="stat-value">${totalG.toLocaleString('fr-FR')}</div><div class="stat-delta">${effDepuisFiches?'détail à importer':(total>0?Math.round(totalG/total*100):0)+'% de l\'effectif'}</div></div>
+      <div class="stat s-pink"><div class="stat-label">Filles</div><div class="stat-value">${totalF.toLocaleString('fr-FR')}</div><div class="stat-delta">${effDepuisFiches?'détail à importer':(total>0?Math.round(totalF/total*100):0)+'% de l\'effectif'}</div></div>
       <div class="stat s-green"><div class="stat-label">Taux d'admission CEPE</div><div class="stat-value">${tauxCEPE}%</div></div>
     </div>
 
@@ -17284,6 +17330,7 @@ function renderParametres() {
         <button class="btn btn-orange" onclick="exportBackup()">💾 Exporter une sauvegarde (fichier)</button>
         <button class="btn" onclick="importBackup()">📥 Importer une sauvegarde</button>
         <button class="btn" style="background:#0A4DA6;color:#fff;border-color:#0A4DA6" onclick="syncNowMerge()">🔄 Synchroniser maintenant</button>
+        <button class="btn" style="background:#7C3AED;color:#fff;border-color:#7C3AED" onclick="cloudDiagnostic()">🩺 Tester la connexion cloud</button>
         <button class="btn" style="background:#2A9D8F;color:#fff;border-color:#2A9D8F" onclick="cloudForcePush()">☁️⬆️ Envoyer mes données vers le cloud</button>
       </div>
     </div>
@@ -26118,7 +26165,7 @@ window.cloudForcePush = function(){
     var ecCur=null; try{ ecCur=JSON.parse(localStorage.getItem(ecKey)||'null'); }catch(e){}
     if (!ecCur || !ecCur.length){
       var SEED_EC = [{"id": "eyz01", "nom": "MATERNELLE YEZIMALA", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "YEZIMALA"}, {"id": "eyz02", "nom": "EPP SAVAGNERE", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "YEZIMALA"}, {"id": "eyz03", "nom": "EPP SANAGA", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "YEZIMALA"}, {"id": "eyz04", "nom": "EPP KOGORA", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "YEZIMALA"}, {"id": "eyz05", "nom": "EPP YEZIMALA 1", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "YEZIMALA"}, {"id": "eyz06", "nom": "EPP YEZIMALA 2", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "YEZIMALA"}, {"id": "eyz07", "nom": "EPP YEZIMALA 1 (bis)", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "YEZIMALA"}, {"id": "eyz08", "nom": "MATERNELLE SEPINGO", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "SAPLI-SEPINGO"}, {"id": "eyz09", "nom": "EPP SAVAGNERE (Sapli-Sepingo)", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "SAPLI-SEPINGO"}, {"id": "eyz10", "nom": "EPP SAPLI 1", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "SAPLI-SEPINGO"}, {"id": "eyz11", "nom": "EPP SAPLI 2", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "SAPLI-SEPINGO"}, {"id": "eyz12", "nom": "EPP SAPLI 3", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "SAPLI-SEPINGO"}, {"id": "eyz13", "nom": "EPP SAPLI 4", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "SAPLI-SEPINGO"}, {"id": "eyz14", "nom": "EPP SEPINGO 1", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "SAPLI-SEPINGO"}, {"id": "eyz15", "nom": "EPP SEPINGO 2", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "SAPLI-SEPINGO"}, {"id": "eyz16", "nom": "EPP SEPINGO 3", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "SAPLI-SEPINGO"}, {"id": "eyz17", "nom": "MATERNELLE GANKRO", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "GANKRO"}, {"id": "eyz18", "nom": "EPP GANKRO 1", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "GANKRO"}, {"id": "eyz19", "nom": "EPP GANKRO 2", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "GANKRO"}, {"id": "eyz20", "nom": "EPP DJOBRI", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "GANKRO"}, {"id": "eyz21", "nom": "EPP AMPOUNOU", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "GANKRO"}, {"id": "eyz22", "nom": "EPP BEREDA", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "GANKRO"}, {"id": "eyz23", "nom": "EPP WANGALE", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "GANKRO"}, {"id": "eyz24", "nom": "EPP DAGBOLOYO", "code": "", "commune": "", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public", "secteur": "GANKRO"}];
-      localStorage.setItem(ecKey, JSON.stringify(SEED_EC));
+      localStorage.setItem(ecKey, JSON.stringify(completerClassesEcoles(SEED_EC)));
       if (window.__cloudPush){ try{ window.__cloudPush(ecKey, SEED_EC); }catch(e){} }
     }
 
@@ -26144,6 +26191,30 @@ window.updateSyncBadge = function(txt, color){
     b.style.background = (color==='#2A9D8F') ? '#DCFCE7' : (color==='#E63946' ? '#FEE2E2' : '#FEF3C7');
     b.style.color = color; b.style.borderColor = 'transparent';
   } catch(e){}
+};
+window.cloudDiagnostic = async function(){
+  if (typeof toast==='function') toast('Test du cloud en cours…','info');
+  if (!window.__cloudDiagnostic){ alert('Diagnostic indisponible (cloud pas encore chargé). Réessayez dans quelques secondes.'); return; }
+  var r = await window.__cloudDiagnostic();
+  var title, body;
+  if (r.ok){
+    title='✅ Cloud OK';
+    body='<p>Écriture, lecture et suppression en ligne <b>fonctionnent</b>. Vos données <b>sont bien enregistrées</b> dans le cloud.</p><p style="color:#667;font-size:13px">Si « en ligne » et « poste » diffèrent encore, c\'est une question de <b>même IEPP</b> connectée des deux côtés et de <b>synchronisation</b> — appuyez sur 🔄 Synchroniser sur les deux appareils.</p>';
+  } else if (r.msg==='regles'){
+    title='❌ Règles Firestore à publier';
+    body='<p><b>Voilà la cause.</b> Firebase <b>refuse l\'enregistrement</b> : les règles de sécurité sont fermées ou expirées. C\'est pour ça que vos données ne restent pas en ligne.</p><p>À corriger : console Firebase → <b>Firestore Database</b> → onglet <b>Règles</b> → coller les règles ouvertes → <b>Publier</b>.</p>';
+  } else if (r.msg==='reseau' || r.msg==='hors-ligne'){
+    title='📴 Hors ligne';
+    body='<p>Pas de connexion au serveur pour le moment. Vérifiez votre <b>Internet</b> et réessayez.</p>';
+  } else if (r.msg==='non-charge'){
+    title='⏳ Cloud pas encore prêt';
+    body='<p>La connexion Firebase n\'est pas encore établie. Attendez quelques secondes après l\'ouverture de la plateforme, puis réessayez.</p>';
+  } else {
+    title='⚠️ Problème cloud';
+    body='<p>L\'enregistrement en ligne a échoué.</p><p style="color:#667;font-size:13px">Détail technique : '+ (r.code||r.msg||'inconnu') +'</p>';
+  }
+  if (typeof openModal==='function') openModal(title, body, '<button class="btn btn-primary" onclick="closeModal()">Fermer</button>');
+  else alert(title.replace(/[^\x20-\x7Eéàèù]/g,'')+'\n\n'+body.replace(/<[^>]+>/g,''));
 };
 window.syncNowTop = function(){
   var btn = document.getElementById('sync-now-top');
@@ -26174,6 +26245,64 @@ function autoSyncTick(){
 setInterval(autoSyncTick, 90000);                                       /* toutes les 90 secondes */
 window.addEventListener('online',  function(){ if (window.updateSyncBadge) window.updateSyncBadge('Reconnexion…','#F4A261'); setTimeout(autoSyncTick, 1500); });
 window.addEventListener('offline', function(){ if (window.updateSyncBadge) window.updateSyncBadge('Hors ligne (local)','#E63946'); });
+
+
+/* Nombre de classes selon le type : préscolaire/maternelle = 3 ; primaire (EPP/EPC/EPV/communautaire) = 6 */
+function classesParType(nom){
+  var n = String(nom||'').toLowerCase();
+  if (n.indexOf('prescol')>-1 || n.indexOf('préscol')>-1 || n.indexOf('maternel')>-1 || n.indexOf('cpc')===0 || n.indexOf(' cpc')>-1) return 3;
+  return 6;
+}
+/* Complète le champ `classes` des écoles d'un scope quand il est vide/0 */
+function completerClassesEcoles(arr){
+  if (!Array.isArray(arr)) return arr;
+  arr.forEach(function(e){ if (e && (!e.classes || e.classes===0)) e.classes = classesParType(e.nom); });
+  return arr;
+}
+
+/* ===== Amorçage unique : IEPP FERKESSEDOUGOU Nord (DRENA-ET Ferkessédougou) ===== */
+(function seedIeppFerke(){
+  try {
+    var FLAG = KEY + 'seed_ferkenord_v1';
+    if (localStorage.getItem(FLAG)) return;
+    var IEPP='IEPP FERKESSEDOUGOU Nord', DREN='DRENA-ET Ferkessédougou', CODE='000115';
+    var scope = scopeSlug(IEPP);
+    state.ieppRegistry = state.ieppRegistry || [];
+    if (!state.ieppRegistry.some(function(r){ return String(r.name||'').toLowerCase()===IEPP.toLowerCase(); })){
+      state.ieppRegistry.push({ name:IEPP, drenaet:DREN, code:CODE });
+      save('ieppRegistry', state.ieppRegistry);
+    }
+    var ecKey = KEY + scope + '_ecoles';
+    var ecCur=null; try{ ecCur=JSON.parse(localStorage.getItem(ecKey)||'null'); }catch(e){}
+    if (!ecCur || !ecCur.length){
+      var SEED_EC = [{"id": "E25094943", "nom": "PRESCOLAIRE BAD LANVIARA DE FERKESSEDOUGOU", "code": "E25094943", "commune": "ferkessedougou", "directeur": "", "effectif": 370, "classes": 0, "statut": "Public"}, {"id": "E25093835", "nom": "EPP 2 DE NAMBONKAHA", "code": "E25093835", "commune": "ferkessedougou", "directeur": "", "effectif": 368, "classes": 0, "statut": "Public"}, {"id": "E18048093", "nom": "EPP 2 DE DEKOKAHA", "code": "E18048093", "commune": "ferkessedougou", "directeur": "", "effectif": 320, "classes": 0, "statut": "Public"}, {"id": "E18048089", "nom": "EPP TEPOGOVOGO", "code": "E18048089", "commune": "ferkessedougou", "directeur": "", "effectif": 312, "classes": 0, "statut": "Public"}, {"id": "E12438891", "nom": "EPC MEGAMIXTE 3 DE FERKESSEDOUGOU", "code": "E12438891", "commune": "ferkessedougou", "directeur": "", "effectif": 298, "classes": 0, "statut": "Privé"}, {"id": "E11960711", "nom": "EPP MOSSIBOUGOU", "code": "E11960711", "commune": "ferkessedougou", "directeur": "", "effectif": 290, "classes": 0, "statut": "Public"}, {"id": "E11960707", "nom": "EPP BAD LANVIARA 3", "code": "E11960707", "commune": "ferkessedougou", "directeur": "", "effectif": 284, "classes": 0, "statut": "Public"}, {"id": "E11960703", "nom": "EPP DIALLO NOUHOUN 3", "code": "E11960703", "commune": "ferkessedougou", "directeur": "", "effectif": 271, "classes": 0, "statut": "Public"}, {"id": "E11960699", "nom": "EPP BAD DOUANE 3", "code": "E11960699", "commune": "ferkessedougou", "directeur": "", "effectif": 270, "classes": 0, "statut": "Public"}, {"id": "E021879", "nom": "EPP NAGNINNIGUEVOGO", "code": "E021879", "commune": "ferkessedougou", "directeur": "", "effectif": 232, "classes": 0, "statut": "Public"}, {"id": "E021875", "nom": "EPP SEPENEDIOKAHA 2", "code": "E021875", "commune": "ferkessedougou", "directeur": "", "effectif": 231, "classes": 0, "statut": "Public"}, {"id": "E020301", "nom": "EPC FIRDAOUSS", "code": "E020301", "commune": "ferkessedougou", "directeur": "", "effectif": 231, "classes": 0, "statut": "Privé"}, {"id": "E019821", "nom": "EPP GNINWELIVOGO", "code": "E019821", "commune": "ferkessedougou", "directeur": "", "effectif": 226, "classes": 0, "statut": "Public"}, {"id": "E018726", "nom": "EPP BROMAKOTE 3", "code": "E018726", "commune": "ferkessedougou", "directeur": "", "effectif": 222, "classes": 0, "statut": "Public"}, {"id": "E018335", "nom": "EPP SODESUCRE B2", "code": "E018335", "commune": "ferkessedougou", "directeur": "", "effectif": 219, "classes": 0, "statut": "Public"}, {"id": "E017927", "nom": "EPP PISSANKAHA", "code": "E017927", "commune": "ferkessedougou", "directeur": "", "effectif": 210, "classes": 0, "statut": "Public"}, {"id": "E017714", "nom": "EPP TOGONIERE", "code": "E017714", "commune": "ferkessedougou", "directeur": "", "effectif": 209, "classes": 0, "statut": "Public"}, {"id": "E017702", "nom": "EPC SAINTE TRINITE", "code": "E017702", "commune": "ferkessedougou", "directeur": "", "effectif": 186, "classes": 0, "statut": "Privé"}, {"id": "E016028", "nom": "ASAHADATOUL  ABADIYATE  FRANCO- ARABE", "code": "E016028", "commune": "ferkessedougou", "directeur": "", "effectif": 172, "classes": 0, "statut": "Privé"}, {"id": "E015957", "nom": "EPP WORSIONTCHAKAHA", "code": "E015957", "commune": "ferkessedougou", "directeur": "", "effectif": 164, "classes": 0, "statut": "Public"}, {"id": "E015956", "nom": "EPP BROMAKOTE EXTENSION 3", "code": "E015956", "commune": "ferkessedougou", "directeur": "", "effectif": 158, "classes": 0, "statut": "Public"}, {"id": "E015955", "nom": "EPP BAD LANVIARA 2", "code": "E015955", "commune": "ferkessedougou", "directeur": "", "effectif": 152, "classes": 0, "statut": "Public"}, {"id": "E015933", "nom": "EPP TATIENVOGO", "code": "E015933", "commune": "ferkessedougou", "directeur": "", "effectif": 148, "classes": 0, "statut": "Public"}, {"id": "E015932", "nom": "EPP TANTCHINVOGO", "code": "E015932", "commune": "ferkessedougou", "directeur": "", "effectif": 136, "classes": 0, "statut": "Public"}, {"id": "E015931", "nom": "EPP TANDOVOGO", "code": "E015931", "commune": "ferkessedougou", "directeur": "", "effectif": 136, "classes": 0, "statut": "Public"}, {"id": "E015929", "nom": "EPP SIENTCHO", "code": "E015929", "commune": "ferkessedougou", "directeur": "", "effectif": 134, "classes": 0, "statut": "Public"}, {"id": "E015925", "nom": "EPP PEDJOUVOGO", "code": "E015925", "commune": "ferkessedougou", "directeur": "", "effectif": 134, "classes": 0, "statut": "Public"}, {"id": "E015924", "nom": "EPP NIENAWONKAHA", "code": "E015924", "commune": "ferkessedougou", "directeur": "", "effectif": 119, "classes": 0, "statut": "Public"}, {"id": "E015923", "nom": "EPP NIANGBAKAHA", "code": "E015923", "commune": "ferkessedougou", "directeur": "", "effectif": 105, "classes": 0, "statut": "Public"}, {"id": "E015922", "nom": "EPP NAWOVOGO", "code": "E015922", "commune": "ferkessedougou", "directeur": "", "effectif": 101, "classes": 0, "statut": "Public"}, {"id": "E015921", "nom": "EPP NAWOHO", "code": "E015921", "commune": "ferkessedougou", "directeur": "", "effectif": 96, "classes": 0, "statut": "Public"}, {"id": "E015920", "nom": "EPP NAGBINNINVOGO", "code": "E015920", "commune": "ferkessedougou", "directeur": "", "effectif": 96, "classes": 0, "statut": "Public"}, {"id": "E015919", "nom": "EPP LIAVOGO", "code": "E015919", "commune": "ferkessedougou", "directeur": "", "effectif": 84, "classes": 0, "statut": "Public"}, {"id": "E015912", "nom": "EPP KAPISSORIVOGO", "code": "E015912", "commune": "ferkessedougou", "directeur": "", "effectif": 79, "classes": 0, "statut": "Public"}, {"id": "E015904", "nom": "EPP FANGASSIKAHA", "code": "E015904", "commune": "ferkessedougou", "directeur": "", "effectif": 76, "classes": 0, "statut": "Public"}, {"id": "E015903", "nom": "EPP DOULAMAKAHA", "code": "E015903", "commune": "ferkessedougou", "directeur": "", "effectif": 75, "classes": 0, "statut": "Public"}, {"id": "E015900", "nom": "EPP DALAVOGO", "code": "E015900", "commune": "ferkessedougou", "directeur": "", "effectif": 66, "classes": 0, "statut": "Public"}, {"id": "E015898", "nom": "EPP ALPHAVOGO", "code": "E015898", "commune": "ferkessedougou", "directeur": "", "effectif": 63, "classes": 0, "statut": "Public"}, {"id": "E015896", "nom": "EPP ABOUVOGO", "code": "E015896", "commune": "ferkessedougou", "directeur": "", "effectif": 63, "classes": 0, "statut": "Public"}, {"id": "E013924", "nom": "EPP MIDJERI", "code": "E013924", "commune": "ferkessedougou", "directeur": "", "effectif": 62, "classes": 0, "statut": "Public"}, {"id": "E006250", "nom": "EPP SOGNONON", "code": "E006250", "commune": "ferkessedougou", "directeur": "", "effectif": 60, "classes": 0, "statut": "Public"}, {"id": "E006248", "nom": "EPV MADARASSA ZAHARA", "code": "E006248", "commune": "ferkessedougou", "directeur": "", "effectif": 60, "classes": 0, "statut": "Privé"}, {"id": "E006247", "nom": "EPV ECOLE POUR EDUCATION ISLAMIQUE", "code": "E006247", "commune": "ferkessedougou", "directeur": "", "effectif": 57, "classes": 0, "statut": "Privé"}, {"id": "E006245", "nom": "EPP KIDOUDENIVOGO", "code": "E006245", "commune": "ferkessedougou", "directeur": "", "effectif": 57, "classes": 0, "statut": "Public"}, {"id": "E006243", "nom": "EPP SANGOPARI", "code": "E006243", "commune": "ferkessedougou", "directeur": "", "effectif": 55, "classes": 0, "statut": "Public"}, {"id": "E006241", "nom": "EPP FERKE DOUANE 2", "code": "E006241", "commune": "ferkessedougou", "directeur": "", "effectif": 54, "classes": 0, "statut": "Public"}, {"id": "E006239", "nom": "EPP ZINDEL 2", "code": "E006239", "commune": "ferkessedougou", "directeur": "", "effectif": 51, "classes": 0, "statut": "Public"}, {"id": "E006199", "nom": "EPP SODEFEL", "code": "E006199", "commune": "ferkessedougou", "directeur": "", "effectif": 45, "classes": 0, "statut": "Public"}, {"id": "E006197", "nom": "EPV SABILOU-FALAH", "code": "E006197", "commune": "ferkessedougou", "directeur": "", "effectif": 45, "classes": 0, "statut": "Privé"}, {"id": "E006196", "nom": "EPV MEGAMIXTE 1", "code": "E006196", "commune": "ferkessedougou", "directeur": "", "effectif": 42, "classes": 0, "statut": "Privé"}, {"id": "E006195", "nom": "EPV LA VOIE DE LA PIETE", "code": "E006195", "commune": "ferkessedougou", "directeur": "", "effectif": 42, "classes": 0, "statut": "Privé"}, {"id": "E006193", "nom": "EPV BAPTISTE FERKE", "code": "E006193", "commune": "ferkessedougou", "directeur": "", "effectif": 40, "classes": 0, "statut": "Privé"}, {"id": "E006192", "nom": "EPV HILAL", "code": "E006192", "commune": "ferkessedougou", "directeur": "", "effectif": 39, "classes": 0, "statut": "Privé"}, {"id": "E006191", "nom": "EPP ZINDEL", "code": "E006191", "commune": "ferkessedougou", "directeur": "", "effectif": 33, "classes": 0, "statut": "Public"}, {"id": "E006189", "nom": "EPP TOUPLEVOGO", "code": "E006189", "commune": "ferkessedougou", "directeur": "", "effectif": 11, "classes": 0, "statut": "Public"}, {"id": "E006187", "nom": "EPP TIEGBE", "code": "E006187", "commune": "ferkessedougou", "directeur": "", "effectif": 6, "classes": 0, "statut": "Public"}, {"id": "E006186", "nom": "EPP TIASSANAKAHA", "code": "E006186", "commune": "ferkessedougou", "directeur": "", "effectif": 3, "classes": 0, "statut": "Public"}, {"id": "E006177", "nom": "EPP SIERELOVOGO", "code": "E006177", "commune": "ferkessedougou", "directeur": "", "effectif": 2, "classes": 0, "statut": "Public"}, {"id": "E006176", "nom": "EPP SEPENEDIOKAHA", "code": "E006176", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006170", "nom": "EPP POGONISSONKAHA", "code": "E006170", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006169", "nom": "EPP NANIEVOGO", "code": "E006169", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006168", "nom": "EPP NAMBONKAHA", "code": "E006168", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006165", "nom": "EPP NAMBEGUEVOGO", "code": "E006165", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006164", "nom": "EPP MOMIRASSO", "code": "E006164", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006156", "nom": "EPP KOUSSOUROUKAHA", "code": "E006156", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006152", "nom": "EPP KONGODJAN", "code": "E006152", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006150", "nom": "EPP KIBETCHIRGUEVOGO", "code": "E006150", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006147", "nom": "EPP KAKPOVOGO", "code": "E006147", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006146", "nom": "EPP GNOMBOVOGO", "code": "E006146", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006143", "nom": "EPP FERKE DOUANE", "code": "E006143", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006134", "nom": "EPP DETIKAHA", "code": "E006134", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006133", "nom": "EPP DEKOKAHA", "code": "E006133", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006132", "nom": "EPP BROMAKOTE EXTENTION 1", "code": "E006132", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006131", "nom": "EPP BROMAKOTE EXTENSION 2", "code": "E006131", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006130", "nom": "EPP BROMAKOTE 3", "code": "E006130", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006129", "nom": "EPP BROMAKOTE 2", "code": "E006129", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006128", "nom": "EPP BROMAKOTE 1", "code": "E006128", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006127", "nom": "EPP BAD-LANVIARA", "code": "E006127", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006126", "nom": "EPP BAD DOUANE 2", "code": "E006126", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006124", "nom": "EPC FERKE-FILLES", "code": "E006124", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Privé"}, {"id": "E006123", "nom": "EPC FERKE GARCONS", "code": "E006123", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Privé"}, {"id": "E006122", "nom": "EC WATCHINVOGO", "code": "E006122", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006121", "nom": "EC TCHINLOVOGO", "code": "E006121", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006114", "nom": "EPP POULO", "code": "E006114", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006113", "nom": "EPP BAD DOUANE", "code": "E006113", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}, {"id": "E006110", "nom": "EPP DOUDOUVOGO", "code": "E006110", "commune": "ferkessedougou", "directeur": "", "effectif": 0, "classes": 0, "statut": "Public"}];
+      localStorage.setItem(ecKey, JSON.stringify(completerClassesEcoles(SEED_EC)));
+      if (window.__cloudPush){ try{ window.__cloudPush(ecKey, SEED_EC); }catch(e){} }
+    }
+    localStorage.setItem(FLAG,'1');
+  } catch(e){ console.warn('seedIeppFerke', e); }
+})();
+
+
+
+/* ===== Mise à jour unique : compléter le nombre de classes des écoles déjà en base ===== */
+(function fixClassesAllScopes(){
+  try {
+    var FLAG = KEY + 'fixclasses_v1';
+    if (localStorage.getItem(FLAG)) return;
+    var keys = [];
+    for (var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if (k && k.indexOf(KEY)===0 && /_ecoles$/.test(k)) keys.push(k); }
+    keys.forEach(function(k){
+      var arr=null; try{ arr=JSON.parse(localStorage.getItem(k)); }catch(e){ arr=null; }
+      if (Array.isArray(arr) && arr.length){
+        var changed=false;
+        arr.forEach(function(e){ if (e && (!e.classes || e.classes===0)){ e.classes = classesParType(e.nom); e._upd = Date.now(); changed=true; } });
+        if (changed){ localStorage.setItem(k, JSON.stringify(arr)); if (window.__cloudPush){ try{ window.__cloudPush(k, arr); }catch(e){} } }
+      }
+    });
+    localStorage.setItem(FLAG,'1');
+  } catch(e){ console.warn('fixClassesAllScopes', e); }
+})();
 
 autoLogin();
 try { prefillLogin(); } catch(e){}
