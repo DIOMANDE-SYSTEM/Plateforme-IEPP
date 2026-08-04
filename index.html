@@ -1743,7 +1743,7 @@ const KEY = 'iepp_';
    La DRENAET bascule entre ses IEPP ; le Superadmin entre toutes.
    ================================================================== */
 const GLOBAL_KEYS = new Set(['users','usersDeleted','audit','customServices','current_user','drenaet','active_iepp','ieppRegistry','pnapasForm','courrierMsg','courrierMatrice']);
-const SCOPED_KEY_LIST = ['ecoles','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','cpppBulletins','pointage'];
+const SCOPED_KEY_LIST = ['ecoles','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','cpppBulletins','pointage','ecolesDeleted'];
 function scopeSlug(iepp){
   return 'c_' + String(iepp||'IEPP TENGRELA').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 }
@@ -1855,7 +1855,99 @@ function load(k, fallback) {
   try { const v = localStorage.getItem(storeKey(k)); return v ? JSON.parse(v) : fallback; }
   catch(e) { return fallback; }
 }
+
+/* ===================================================================
+   FUSION PAR ENREGISTREMENT (étape 1 : écoles)
+   - Chaque enregistrement est suivi par son id + horodatage `_upd`.
+   - Les suppressions sont mémorisées (tombstones) et synchronisées.
+   - Au pull, on FUSIONNE cloud + local par id (le plus récent gagne,
+     tombstone = supprimé) au lieu d'écraser tout le bloc.
+   Pour activer une autre catégorie plus tard : ajouter sa clé de
+   liste et sa clé de tombstones dans RECORD_MERGE ci-dessous.
+   =================================================================== */
+var RECORD_MERGE = {
+  ecoles: { tomb: 'ecolesDeleted' }
+  /* étapes suivantes : eleves:{tomb:'elevesDeleted'}, pointage:{tomb:'pointageDeleted'}, personnel:{tomb:'personnelDeleted'} */
+};
+function rmTombKey(listKey){ return RECORD_MERGE[listKey] ? RECORD_MERGE[listKey].tomb : null; }
+
+/* Appelée par save() : tamponne les enregistrements modifiés (_upd) et
+   enregistre en tombstone les ids présents avant mais absents maintenant. */
+function recordMergeTrack(k, val){
+  if (!RECORD_MERGE[k] || !Array.isArray(val)) return val;
+  var prev = [];
+  try { prev = JSON.parse(localStorage.getItem(storeKey(k)) || '[]') || []; } catch(e){ prev = []; }
+  var prevById = {}; prev.forEach(function(it){ if(it && it.id!=null) prevById[it.id]=it; });
+  var now = Date.now();
+  val.forEach(function(it){
+    if (!it || it.id==null) return;
+    var before = prevById[it.id];
+    var strip = function(o){ var c=Object.assign({},o); delete c._upd; return JSON.stringify(c); };
+    if (!before) { if(it._upd==null) it._upd = now; }            /* nouvel enregistrement */
+    else if (strip(before) !== strip(it)) { it._upd = now; }      /* modifié → nouveau tampon */
+    else if (it._upd==null) { it._upd = before._upd || now; }     /* inchangé → on garde le tampon */
+  });
+  /* Tombstones : ids disparus */
+  var tombKey = rmTombKey(k);
+  if (tombKey){
+    var nowIds = {}; val.forEach(function(it){ if(it&&it.id!=null) nowIds[it.id]=1; });
+    var removed = prev.filter(function(it){ return it && it.id!=null && !nowIds[it.id]; }).map(function(it){ return it.id; });
+    if (removed.length){
+      var tomb = [];
+      try { tomb = JSON.parse(localStorage.getItem(storeKey(tombKey)) || '[]') || []; } catch(e){ tomb = []; }
+      var map = {}; tomb.forEach(function(t){ map[t.id]=t; });
+      removed.forEach(function(id){ map[id] = { id:id, at: now }; });
+      /* ré-apparition d'un id (recréé) : on lève sa tombstone */
+      val.forEach(function(it){ if(it&&it.id!=null && map[it.id]) delete map[it.id]; });
+      var newTomb = Object.keys(map).map(function(id){ return map[id]; });
+      try { localStorage.setItem(storeKey(tombKey), JSON.stringify(newTomb)); } catch(e){}
+      try { if (window.__cloudPush) window.__cloudPush(storeKey(tombKey), newTomb); } catch(e){}
+    } else {
+      /* pas de suppression, mais lever la tombstone d'un id recréé le cas échéant */
+      var tomb2 = [];
+      try { tomb2 = JSON.parse(localStorage.getItem(storeKey(tombKey)) || '[]') || []; } catch(e){ tomb2 = []; }
+      if (tomb2.length){
+        var present = {}; val.forEach(function(it){ if(it&&it.id!=null) present[it.id]=1; });
+        var filtered = tomb2.filter(function(t){ return !present[t.id]; });
+        if (filtered.length !== tomb2.length){
+          try { localStorage.setItem(storeKey(tombKey), JSON.stringify(filtered)); } catch(e){}
+          try { if (window.__cloudPush) window.__cloudPush(storeKey(tombKey), filtered); } catch(e){}
+        }
+      }
+    }
+  }
+  return val;
+}
+
+/* Fusionne un bloc cloud avec le bloc local, par id, en respectant les
+   tombstones (locales + cloud). Renvoie le tableau fusionné. */
+function recordMergeArrays(listKey, cloudArr, localArr, cloudTomb, localTomb){
+  cloudArr = Array.isArray(cloudArr)?cloudArr:[];
+  localArr = Array.isArray(localArr)?localArr:[];
+  var tomb = {};
+  (Array.isArray(localTomb)?localTomb:[]).forEach(function(t){ if(t&&t.id!=null) tomb[t.id]=t.at||0; });
+  (Array.isArray(cloudTomb)?cloudTomb:[]).forEach(function(t){ if(t&&t.id!=null){ tomb[t.id]=Math.max(tomb[t.id]||0, t.at||0); } });
+  var byId = {};
+  var consider = function(it){
+    if (!it || it.id==null) return;
+    var ex = byId[it.id];
+    if (!ex || (it._upd||0) >= (ex._upd||0)) byId[it.id] = it;   /* le plus récent gagne */
+  };
+  localArr.forEach(consider);
+  cloudArr.forEach(consider);
+  var out = [];
+  Object.keys(byId).forEach(function(id){
+    var it = byId[id];
+    var tAt = tomb[id];
+    /* supprimé si la tombstone est au moins aussi récente que la dernière modif */
+    if (tAt != null && tAt >= (it._upd||0)) return;
+    out.push(it);
+  });
+  return out;
+}
+
 function save(k, val) {
+  try { if (typeof recordMergeTrack === 'function') val = recordMergeTrack(k, val); } catch(e){ console.warn('recordMergeTrack', e); }
   try { localStorage.setItem(storeKey(k), JSON.stringify(val)); } catch(e){ console.error('save fail', e); }
   try { if (window.__cloudPush) window.__cloudPush(storeKey(k), val); } catch(e){}
 }
@@ -2076,7 +2168,25 @@ const CLOUD_COLLECTION = 'appData';
           const data = snap.data();
           if (data && typeof data.json === 'string'){
             const localRaw = localStorage.getItem(fullKey);
-            if (cloudIsEmptierThanLocal(data.json, localRaw)){
+            if (RECORD_MERGE[k]){
+              /* Fusion par enregistrement (écoles…) : cloud + local par id, tombstones respectées */
+              var cloudArr=[], localArr=[];
+              try { cloudArr = JSON.parse(data.json)||[]; } catch(e){ cloudArr=[]; }
+              try { localArr = JSON.parse(localRaw||'[]')||[]; } catch(e){ localArr=[]; }
+              var tKey = rmTombKey(k);
+              var cloudTomb=[], localTomb=[];
+              if (tKey){
+                try {
+                  var tsnap = await withTimeout(db.collection(CLOUD_COLLECTION).doc(storeKey(tKey)).get(), 15000, tKey);
+                  if (tsnap.exists && tsnap.data() && typeof tsnap.data().json==='string') cloudTomb = JSON.parse(tsnap.data().json)||[];
+                } catch(e){}
+                try { localTomb = JSON.parse(localStorage.getItem(storeKey(tKey))||'[]')||[]; } catch(e){}
+              }
+              var merged = recordMergeArrays(k, cloudArr, localArr, cloudTomb, localTomb);
+              localStorage.setItem(fullKey, JSON.stringify(merged));
+              /* on renvoie le résultat fusionné au cloud pour convergence */
+              try { await withTimeout(ref.set({ json: JSON.stringify(merged), updatedAt: firebase.firestore.FieldValue.serverTimestamp() }), 15000, fullKey); } catch(e){}
+            } else if (cloudIsEmptierThanLocal(data.json, localRaw)){
               /* Garde-fou : le cloud est VIDE alors que le local contient des données
                  → on ne détruit pas le local ; au contraire on renvoie le local au cloud. */
               await withTimeout(ref.set({ json: localRaw, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }), 15000, fullKey);
