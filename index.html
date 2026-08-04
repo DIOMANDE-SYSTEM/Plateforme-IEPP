@@ -1494,7 +1494,8 @@ function vieResetAllData() {
           <span style="font-size:11px;color:var(--muted);font-weight:700">📍 Circonscription</span>
           <select id="scope-select" onchange="onScopeChange()" style="padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--white);font-size:12.5px;font-weight:600;max-width:200px"></select>
         </span>
-        <span class="badge badge-green" id="sync-badge">● Synchronisé</span>
+        <span class="badge badge-green" id="sync-badge" onclick="syncNowTop()" title="État de la synchronisation — cliquez pour synchroniser maintenant" style="cursor:pointer">● Synchronisé</span>
+        <button id="sync-now-top" onclick="syncNowTop()" title="Synchroniser maintenant" style="border:none;background:#0A4DA6;color:#fff;border-radius:9px;padding:6px 11px;font-size:14px;cursor:pointer;line-height:1;display:inline-flex;align-items:center">🔄</button>
         <span id="courrier-counters" onclick="navigate('courrier')" title="Courrier — cliquez pour ouvrir" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:#F1F5F9;border:1px solid var(--line);border-radius:9px;padding:5px 10px;font-size:12px;font-weight:700">
           <span style="display:inline-flex;align-items:center;gap:3px" title="Courriers reçus">📥<span id="ctr-recus" style="color:#1F6FB2">0</span></span>
           <span style="width:1px;height:14px;background:var(--line)"></span>
@@ -1743,7 +1744,7 @@ const KEY = 'iepp_';
    La DRENAET bascule entre ses IEPP ; le Superadmin entre toutes.
    ================================================================== */
 const GLOBAL_KEYS = new Set(['users','usersDeleted','audit','customServices','current_user','drenaet','active_iepp','ieppRegistry','pnapasForm','courrierMsg','courrierMatrice']);
-const SCOPED_KEY_LIST = ['ecoles','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','cpppBulletins','pointage','ecolesDeleted'];
+const SCOPED_KEY_LIST = ['ecoles','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','cpppBulletins','pointage','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted'];
 function scopeSlug(iepp){
   return 'c_' + String(iepp||'IEPP TENGRELA').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 }
@@ -1866,8 +1867,11 @@ function load(k, fallback) {
    liste et sa clé de tombstones dans RECORD_MERGE ci-dessous.
    =================================================================== */
 var RECORD_MERGE = {
-  ecoles: { tomb: 'ecolesDeleted' }
-  /* étapes suivantes : eleves:{tomb:'elevesDeleted'}, pointage:{tomb:'pointageDeleted'}, personnel:{tomb:'personnelDeleted'} */
+  ecoles:        { tomb: 'ecolesDeleted' },
+  elevesFichier: { tomb: 'elevesFichierDeleted' },
+  effectifs:     { tomb: 'effectifsDeleted' },
+  personnel:     { tomb: 'personnelDeleted' },
+  pointage:      { tomb: 'pointageDeleted' }
 };
 function rmTombKey(listKey){ return RECORD_MERGE[listKey] ? RECORD_MERGE[listKey].tomb : null; }
 
@@ -2109,6 +2113,7 @@ const CLOUD_COLLECTION = 'appData';
     }
     el.style.opacity = '1';
     el.innerHTML = '<span style="width:9px;height:9px;border-radius:50%;background:'+color+'"></span>'+txt;
+    try { if (window.updateSyncBadge) window.updateSyncBadge(txt, color); } catch(e){}
   }
 
   /* Clés à synchroniser pour la circonscription active (globales + scopées) */
@@ -17278,6 +17283,7 @@ function renderParametres() {
       <div class="toolbar" style="gap:8px;flex-wrap:wrap;justify-content:flex-start">
         <button class="btn btn-orange" onclick="exportBackup()">💾 Exporter une sauvegarde (fichier)</button>
         <button class="btn" onclick="importBackup()">📥 Importer une sauvegarde</button>
+        <button class="btn" style="background:#0A4DA6;color:#fff;border-color:#0A4DA6" onclick="syncNowMerge()">🔄 Synchroniser maintenant</button>
         <button class="btn" style="background:#2A9D8F;color:#fff;border-color:#2A9D8F" onclick="cloudForcePush()">☁️⬆️ Envoyer mes données vers le cloud</button>
       </div>
     </div>
@@ -26071,6 +26077,13 @@ window.importBackup = function(){
   };
   inp.click();
 };
+window.syncNowMerge = function(){
+  if (!window.__cloudResyncScope){ alert('La synchronisation cloud n\'est pas disponible.'); return; }
+  if (typeof toast === 'function') toast('Synchronisation (fusion) en cours…','info');
+  Promise.resolve(window.__cloudResyncScope())
+    .then(function(){ if (typeof toast==='function') toast('Synchronisé. La page va se rafraîchir.','success'); setTimeout(function(){ location.reload(); }, 900); })
+    .catch(function(){ if (typeof toast==='function') toast('Échec de la synchronisation (vérifiez la connexion).','error'); });
+};
 window.cloudForcePush = function(){
   if (!window.__cloudPush){ alert('La synchronisation cloud n\'est pas disponible.'); return; }
   var nEc = 0; try { nEc = (state.ecoles||[]).length; } catch(e){}
@@ -26122,6 +26135,45 @@ window.cloudForcePush = function(){
   } catch(e){ console.warn('seedIeppYezimala', e); }
 })();
 
+
+/* ================= Synchronisation : bouton du haut + automatique ================= */
+window.updateSyncBadge = function(txt, color){
+  try {
+    var b = document.getElementById('sync-badge'); if (!b) return;
+    b.textContent = '● ' + txt;
+    b.style.background = (color==='#2A9D8F') ? '#DCFCE7' : (color==='#E63946' ? '#FEE2E2' : '#FEF3C7');
+    b.style.color = color; b.style.borderColor = 'transparent';
+  } catch(e){}
+};
+window.syncNowTop = function(){
+  var btn = document.getElementById('sync-now-top');
+  if (btn){ btn.style.transition='transform .6s'; btn.style.transform='rotate(360deg)';
+            setTimeout(function(){ btn.style.transition='none'; btn.style.transform='none'; }, 650); }
+  if (window.__cloudResyncScope){
+    if (typeof toast==='function') toast('Synchronisation en cours…','info');
+    Promise.resolve(window.__cloudResyncScope())
+      .then(function(){ if (typeof toast==='function') toast('Synchronisé','success'); })
+      .catch(function(){ if (typeof toast==='function') toast('Échec (vérifiez la connexion)','error'); });
+  } else {
+    if (typeof toast==='function') toast('Synchronisation indisponible (hors ligne)','error');
+    else alert('Synchronisation indisponible pour le moment.');
+  }
+};
+/* Synchro AUTOMATIQUE : au retour du réseau, et périodiquement — sans déranger une saisie en cours */
+function autoSyncTick(){
+  try {
+    if (!navigator.onLine) return;
+    if (!window.__cloudResyncScope) return;
+    var ae = document.activeElement;
+    if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return;   /* on ne coupe pas une saisie */
+    var mb = document.getElementById('modal-backdrop');
+    if (mb && mb.offsetParent !== null) return;                        /* pas pendant une fenêtre ouverte */
+    window.__cloudResyncScope();
+  } catch(e){}
+}
+setInterval(autoSyncTick, 90000);                                       /* toutes les 90 secondes */
+window.addEventListener('online',  function(){ if (window.updateSyncBadge) window.updateSyncBadge('Reconnexion…','#F4A261'); setTimeout(autoSyncTick, 1500); });
+window.addEventListener('offline', function(){ if (window.updateSyncBadge) window.updateSyncBadge('Hors ligne (local)','#E63946'); });
 
 autoLogin();
 try { prefillLogin(); } catch(e){}
