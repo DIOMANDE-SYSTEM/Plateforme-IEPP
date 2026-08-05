@@ -1710,6 +1710,7 @@ const DEFAULT_USERS = [
   { username:'inspecteur',  password:'inspecteur2026', name:'KOUASSI Jean-Marc',             role:'inspecteur', email:'inspecteur@iepp.ci',   iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
   { username:'iepptengrela', password:'iepptengrela2026', name:'TRAORE Bamory', role:'inspecteur', email:'iepp.tengrela@menaet.ci', iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', contact:'0701397491' },
   { username:'ieppyezimala', password:'ieppyezimala2026', name:'Inspecteur IEPP Yezimala', role:'inspecteur', email:'iepp.yezimala@menaet.ci', iepp:'IEPP YEZIMALA', drenaet:'DRENAET de Bondoukou', contact:'' },
+  { username:'kaegeorgeseri', password:'kaegeorgeseri2026', name:'KAE GEORGE SERI', role:'inspecteur', email:'', iepp:'IEPP BAGOHOUO', drenaet:'DRENA-ET de Duékoué', ville:'DUÉKOUÉ', contact:'' },
   { username:'testferkenord', password:'testferkenord2026', name:'Compte test IEPP Ferkessédougou Nord', role:'inspecteur', email:'', iepp:'IEPP FERKESSEDOUGOU Nord', drenaet:'DRENA-ET Ferkessédougou', contact:'', test:true, expire:'2026-08-18' },
   { username:'cpi',         password:'cpi2026', name:'TRAORE Aminata',                role:'cpi',         email:'cpi@iepp.ci',          iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
   { username:'directeur',   password:'directeur2026', name:'DIABATE Souleymane',            role:'directeur',   email:'directeur@iepp.ci',    iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', ecole:'EPP BASSO' },
@@ -26287,6 +26288,21 @@ function completerClassesEcoles(arr){
     });
     localStorage.setItem(FLAG,'1');
   } catch(e){ console.warn('fixClassesAllScopes', e); }
+})();
+
+/* ===== Amorçage unique : IEPP BAGOHOUO (DRENA-ET de Duékoué) ===== */
+(function seedIeppBagohouo(){
+  try {
+    var FLAG = KEY + 'seed_bagohouo_v1';
+    if (localStorage.getItem(FLAG)) return;
+    var IEPP='IEPP BAGOHOUO', DREN='DRENA-ET de Duékoué', CODE='000379', VILLE='DUÉKOUÉ';
+    state.ieppRegistry = state.ieppRegistry || [];
+    if (!state.ieppRegistry.some(function(r){ return String(r.name||'').toLowerCase()===IEPP.toLowerCase(); })){
+      state.ieppRegistry.push({ name:IEPP, drenaet:DREN, code:CODE, ville:VILLE });
+      save('ieppRegistry', state.ieppRegistry);
+    }
+    localStorage.setItem(FLAG,'1');
+  } catch(e){ console.warn('seedIeppBagohouo', e); }
 })();
 
 autoLogin();
