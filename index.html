@@ -2069,28 +2069,28 @@ function saveAll() {
        ci-dessous par celles de VOTRE projet Firebase. <<<
    Tant que ce n'est pas fait, la plateforme reste en mode 100 % local.
    ================================================================== */
-const firebaseConfig = {
-  apiKey:            "AIzaSyCYLjb4eCi176D1ViNTcHQp1YqMU3oPH-A",
-  authDomain:        "plateforme-iepp.firebaseapp.com",
-  projectId:         "plateforme-iepp"   /* CLOUD ACTIVÉ — synchronisation en ligne */,
-  storageBucket:     "plateforme-iepp.firebasestorage.app",
-  messagingSenderId: "896625647159",
-  appId:             "1:896625647159:web:d74e5d681ef9f84d0ce9b2",
-  measurementId:     "G-2EXE3LE5BG"
-};
-const CLOUD_COLLECTION = 'appData';
+const SUPABASE_URL  = "https://nyqwvirrafxvzeqzende.supabase.co";
+const SUPABASE_KEY  = "sb_publishable_ym7q77jPFBVNoOJL300PNA_Zr5FhbGp";
+const CLOUD_TABLE   = "app_data";
+/* Compat : d'anciennes fonctions référencent encore CLOUD_COLLECTION */
+const CLOUD_COLLECTION = CLOUD_TABLE;
 
+/* ==================================================================
+   Synchronisation SUPABASE (remplace Firebase) — même interface :
+   window.__cloudPush / __cloudResyncScope / __cloudDiagnostic / cloudSyncNow.
+   Modèle clé-valeur : table public.app_data (key text pk, json text, updated_at).
+   Toute la logique de FUSION par enregistrement (RECORD_MERGE) est conservée.
+   ================================================================== */
 (function initCloudSync(){
-  if (!firebaseConfig.projectId || firebaseConfig.projectId === 'VOTRE_PROJET') {
-    console.warn('[Cloud] firebaseConfig non renseigné — mode local uniquement.');
+  if (!SUPABASE_URL || !SUPABASE_KEY || SUPABASE_URL.indexOf('supabase.co')<0) {
+    console.warn('[Cloud] Supabase non configuré — mode local uniquement.');
     return;
   }
-  console.log('%c[Cloud] Module de synchronisation v6 chargé', 'color:#2A9D8F;font-weight:bold');
+  console.log('%c[Cloud] Module Supabase chargé', 'color:#2A9D8F;font-weight:bold');
 
-  let db, cloudReady = false;
-  const pendingPushes = new Map();   // modifications faites avant que le cloud soit prêt
+  let sb = null, cloudReady = false;
+  const pendingPushes = new Map();
 
-  /* Charge un script classique (compat SDK) et attend sa disponibilité */
   function loadScript(src){
     return new Promise(function(resolve, reject){
       const s = document.createElement('script');
@@ -2117,7 +2117,6 @@ const CLOUD_COLLECTION = 'appData';
     try { if (window.updateSyncBadge) window.updateSyncBadge(txt, color); } catch(e){}
   }
 
-  /* Clés à synchroniser pour la circonscription active (globales + scopées) */
   function keysForCurrentScope(){
     const list = [];
     GLOBAL_KEYS.forEach(function(k){ if (k!=='current_user' && k!=='active_iepp') list.push(k); });
@@ -2125,39 +2124,6 @@ const CLOUD_COLLECTION = 'appData';
     return list;
   }
 
-  /* Écriture réelle vers Firestore */
-  function realPush(fullKey, val){
-    try {
-      db.collection(CLOUD_COLLECTION).doc(fullKey).set({
-        json: JSON.stringify(val),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(function(){ console.log('[Cloud] ✔ poussé', fullKey); })
-        .catch(function(e){
-          console.warn('[Cloud] push échoué', fullKey, e);
-          var c = ((e && (e.code||e.message))||'') + '';
-          if (/permission|denied|insufficient/i.test(c)) { setStatus('⚠ Règles cloud à publier', '#E63946'); }
-          else if (/unavailable|network/i.test(c)) { setStatus('Hors ligne (local)', '#E63946'); }
-        });
-    } catch(e){ console.warn('[Cloud] push erreur', e); }
-  }
-
-  /* Appelé par save() : si le cloud n'est pas encore prêt, on met en file d'attente */
-  window.__cloudPush = function(fullKey, val){
-    if (!db || !cloudReady){
-      pendingPushes.set(fullKey, val);   // mémorisé, sera envoyé dès que prêt
-      return;
-    }
-    realPush(fullKey, val);
-  };
-
-  /* Envoie toutes les modifications en attente une fois le cloud prêt */
-  function flushPending(){
-    if (!db || !cloudReady) return;
-    pendingPushes.forEach(function(val, fullKey){ realPush(fullKey, val); });
-    pendingPushes.clear();
-  }
-
-  /* Empêche une opération réseau de bloquer indéfiniment */
   function withTimeout(promise, ms, label){
     return Promise.race([
       promise,
@@ -2165,57 +2131,80 @@ const CLOUD_COLLECTION = 'appData';
     ]);
   }
 
-  /* Récupération : le cloud écrase le local là où il existe ; sinon amorçage.
-     Toutes les clés sont traitées EN PARALLÈLE → synchro quasi instantanée. */
+  /* --- Accès table app_data --- */
+  async function sbSet(fullKey, jsonStr){
+    const { error } = await sb.from(CLOUD_TABLE)
+      .upsert({ key: fullKey, json: jsonStr, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+    if (error) throw error;
+  }
+  async function sbGet(fullKey){
+    const { data, error } = await sb.from(CLOUD_TABLE).select('json').eq('key', fullKey).maybeSingle();
+    if (error) throw error;
+    return data ? data.json : null;   // null si la ligne n'existe pas
+  }
+
+  /* Écriture réelle vers Supabase */
+  function realPush(fullKey, val){
+    try {
+      sbSet(fullKey, JSON.stringify(val))
+        .then(function(){ console.log('[Cloud] ✔ poussé', fullKey); })
+        .catch(function(e){
+          console.warn('[Cloud] push échoué', fullKey, e);
+          var c = ((e && (e.code||e.message))||'') + '';
+          if (/permission|denied|rls|row-level|policy|not allowed|401|403/i.test(c)) { setStatus('⚠ Accès Supabase à autoriser', '#E63946'); }
+          else if (/relation|does not exist|42P01|table/i.test(c)) { setStatus('⚠ Table app_data manquante', '#E63946'); }
+          else if (/network|fetch|unavailable|failed/i.test(c)) { setStatus('Hors ligne (local)', '#E63946'); }
+        });
+    } catch(e){ console.warn('[Cloud] push erreur', e); }
+  }
+
+  window.__cloudPush = function(fullKey, val){
+    if (!sb || !cloudReady){ pendingPushes.set(fullKey, val); return; }
+    realPush(fullKey, val);
+  };
+
+  function flushPending(){
+    if (!sb || !cloudReady) return;
+    pendingPushes.forEach(function(val, fullKey){ realPush(fullKey, val); });
+    pendingPushes.clear();
+  }
+
+  /* Récupération : fusion par enregistrement si applicable, sinon le cloud fait foi ;
+     amorçage du cloud depuis le local si la ligne n'existe pas encore. */
   async function pullAll(){
     setStatus('Synchronisation…', '#F4A261');
     const keys = keysForCurrentScope();
     await Promise.allSettled(keys.map(async function(k){
       const fullKey = storeKey(k);
       try {
-        const ref  = db.collection(CLOUD_COLLECTION).doc(fullKey);
-        const snap = await withTimeout(ref.get(), 15000, fullKey);
-        if (snap.exists){
-          const data = snap.data();
-          if (data && typeof data.json === 'string'){
-            const localRaw = localStorage.getItem(fullKey);
-            if (RECORD_MERGE[k]){
-              /* Fusion par enregistrement (écoles…) : cloud + local par id, tombstones respectées */
-              var cloudArr=[], localArr=[];
-              try { cloudArr = JSON.parse(data.json)||[]; } catch(e){ cloudArr=[]; }
-              try { localArr = JSON.parse(localRaw||'[]')||[]; } catch(e){ localArr=[]; }
-              var tKey = rmTombKey(k);
-              var cloudTomb=[], localTomb=[];
-              if (tKey){
-                try {
-                  var tsnap = await withTimeout(db.collection(CLOUD_COLLECTION).doc(storeKey(tKey)).get(), 15000, tKey);
-                  if (tsnap.exists && tsnap.data() && typeof tsnap.data().json==='string') cloudTomb = JSON.parse(tsnap.data().json)||[];
-                } catch(e){}
-                try { localTomb = JSON.parse(localStorage.getItem(storeKey(tKey))||'[]')||[]; } catch(e){}
-              }
-              var merged = recordMergeArrays(k, cloudArr, localArr, cloudTomb, localTomb);
-              localStorage.setItem(fullKey, JSON.stringify(merged));
-              /* on renvoie le résultat fusionné au cloud pour convergence */
-              try { await withTimeout(ref.set({ json: JSON.stringify(merged), updatedAt: firebase.firestore.FieldValue.serverTimestamp() }), 15000, fullKey); } catch(e){}
-            } else if (cloudIsEmptierThanLocal(data.json, localRaw)){
-              /* Garde-fou : le cloud est VIDE alors que le local contient des données
-                 → on ne détruit pas le local ; au contraire on renvoie le local au cloud. */
-              await withTimeout(ref.set({ json: localRaw, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }), 15000, fullKey);
-            } else {
-              localStorage.setItem(fullKey, data.json);   // le cloud fait foi
+        const cloudJson = await withTimeout(sbGet(fullKey), 15000, fullKey);
+        const localRaw  = localStorage.getItem(fullKey);
+        if (cloudJson !== null){
+          if (RECORD_MERGE[k]){
+            var cloudArr=[], localArr=[];
+            try { cloudArr = JSON.parse(cloudJson)||[]; } catch(e){ cloudArr=[]; }
+            try { localArr = JSON.parse(localRaw||'[]')||[]; } catch(e){ localArr=[]; }
+            var tKey = rmTombKey(k);
+            var cloudTomb=[], localTomb=[];
+            if (tKey){
+              try { var ct = await withTimeout(sbGet(storeKey(tKey)), 15000, tKey); if (ct) cloudTomb = JSON.parse(ct)||[]; } catch(e){}
+              try { localTomb = JSON.parse(localStorage.getItem(storeKey(tKey))||'[]')||[]; } catch(e){}
             }
+            var merged = recordMergeArrays(k, cloudArr, localArr, cloudTomb, localTomb);
+            localStorage.setItem(fullKey, JSON.stringify(merged));
+            try { await withTimeout(sbSet(fullKey, JSON.stringify(merged)), 15000, fullKey); } catch(e){}
+          } else if (cloudIsEmptierThanLocal(cloudJson, localRaw)){
+            await withTimeout(sbSet(fullKey, localRaw), 15000, fullKey);   /* cloud vide → on renvoie le local */
+          } else {
+            localStorage.setItem(fullKey, cloudJson);                      /* le cloud fait foi */
           }
         } else {
-          const local = localStorage.getItem(fullKey);   // amorçage du cloud
-          if (local !== null){
-            await withTimeout(ref.set({ json: local, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }), 15000, fullKey);
-          }
+          if (localRaw !== null){ await withTimeout(sbSet(fullKey, localRaw), 15000, fullKey); }   /* amorçage */
         }
       } catch(e){ console.warn('[Cloud] sync clé échouée', fullKey, e); }
     }));
   }
 
-  /* Recharge l'état mémoire + rafraîchit l'écran après une synchro */
   function refreshAfterPull(){
     try { if (typeof reloadScopedState==='function') reloadScopedState(); } catch(e){}
     ['users','audit','drenaet','ieppRegistry','customServices','courrierMsg','courrierMatrice','pnapasForm']
@@ -2227,25 +2216,16 @@ const CLOUD_COLLECTION = 'appData';
   async function start(){
     setStatus('Synchronisation…', '#F4A261');
     try {
-      if (typeof firebase === 'undefined') {
-        await loadScript('https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js');
-        await loadScript('https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore-compat.js');
+      if (typeof supabase === 'undefined' || !supabase.createClient) {
+        await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2');
       }
-      firebase.initializeApp(firebaseConfig);
-      db = firebase.firestore();
-      // Cache hors-ligne du SDK (best-effort ; ignoré si indisponible)
-      try { await withTimeout(db.enablePersistence({ synchronizeTabs: true }), 4000, 'persistance'); }
-      catch(e){ console.warn('[Cloud] persistance non activée', e); }
-
-      // Synchronisation (protégée par timeouts, ne peut plus rester bloquée)
+      sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       await pullAll();
-      cloudReady = true;            // mode hors-ligne d'abord : les écritures se synchroniseront
-      flushPending();               // envoie les modifications faites pendant le chargement
+      cloudReady = true;
+      flushPending();
       refreshAfterPull();
-
-      // Firestore gère lui-même le hors-ligne : si on est arrivé ici, la synchro est active.
       setStatus('Synchronisé', '#2A9D8F');
-      console.log('%c[Cloud] ✔ Synchronisation active (cloudReady=true)', 'color:#2A9D8F;font-weight:bold');
+      console.log('%c[Cloud] ✔ Supabase actif (cloudReady=true)', 'color:#2A9D8F;font-weight:bold');
       setTimeout(function(){ const el=document.getElementById('cloud-status'); if(el) el.style.opacity='0'; }, 3200);
     } catch(e){
       console.error('[Cloud] initialisation échouée', e);
@@ -2253,24 +2233,24 @@ const CLOUD_COLLECTION = 'appData';
     }
   }
 
-  /* Re-synchroniser au changement de circonscription */
-  /* Diagnostic en direct : teste si le cloud accepte vraiment d'enregistrer */
+  /* Diagnostic en direct : teste écriture + lecture + suppression sur Supabase */
   window.__cloudDiagnostic = async function(){
     var out = { ok:false, msg:'', code:'' };
     try {
       if (typeof navigator !== 'undefined' && navigator.onLine === false){ out.msg='hors-ligne'; return out; }
-      if (typeof firebase === 'undefined' || !db){ out.msg='non-charge'; return out; }
-      var ref = db.collection(CLOUD_COLLECTION).doc('__diagnostic_test');
+      if (!sb){ out.msg='non-charge'; return out; }
+      var testKey = '__diagnostic_test';
       var stamp = Date.now();
-      await withTimeout(ref.set({ json: JSON.stringify({ test: stamp }), updatedAt: firebase.firestore.FieldValue.serverTimestamp() }), 12000, 'diag-write');
-      var snap = await withTimeout(ref.get(), 12000, 'diag-read');
-      var relu = snap.exists && snap.data() && JSON.parse(snap.data().json||'{}').test === stamp;
-      try { await withTimeout(ref.delete(), 12000, 'diag-del'); } catch(e){}
-      out.ok = !!relu; out.msg = relu ? 'ok' : 'lecture-ko';
+      await withTimeout(sbSet(testKey, JSON.stringify({ test: stamp })), 12000, 'diag-write');
+      var relu = await withTimeout(sbGet(testKey), 12000, 'diag-read');
+      var okRead = relu && JSON.parse(relu).test === stamp;
+      try { await withTimeout(sb.from(CLOUD_TABLE).delete().eq('key', testKey), 12000, 'diag-del'); } catch(e){}
+      out.ok = !!okRead; out.msg = okRead ? 'ok' : 'lecture-ko';
     } catch(e){
       out.code = ((e && (e.code||e.message))||'') + '';
-      out.msg = /permission|denied|insufficient/i.test(out.code) ? 'regles'
-              : /unavailable|network|offline/i.test(out.code) ? 'reseau' : 'erreur';
+      out.msg = /relation|does not exist|42P01|table/i.test(out.code) ? 'table'
+              : /permission|denied|rls|row-level|policy|not allowed|401|403/i.test(out.code) ? 'regles'
+              : /network|fetch|unavailable|failed|offline/i.test(out.code) ? 'reseau' : 'erreur';
     }
     return out;
   };
@@ -2284,7 +2264,6 @@ const CLOUD_COLLECTION = 'appData';
     setTimeout(function(){ const el=document.getElementById('cloud-status'); if(el) el.style.opacity='0'; }, 2800);
   };
 
-  /* Synchronisation manuelle (utilisable via un bouton : onclick="cloudSyncNow()") */
   window.cloudSyncNow = async function(){
     if (!cloudReady){ alert('Synchronisation cloud non encore prête.'); return; }
     setStatus('Synchronisation…', '#F4A261');
@@ -26201,9 +26180,12 @@ window.cloudDiagnostic = async function(){
   if (r.ok){
     title='✅ Cloud OK';
     body='<p>Écriture, lecture et suppression en ligne <b>fonctionnent</b>. Vos données <b>sont bien enregistrées</b> dans le cloud.</p><p style="color:#667;font-size:13px">Si « en ligne » et « poste » diffèrent encore, c\'est une question de <b>même IEPP</b> connectée des deux côtés et de <b>synchronisation</b> — appuyez sur 🔄 Synchroniser sur les deux appareils.</p>';
+  } else if (r.msg==='table'){
+    title='❌ Table manquante';
+    body='<p>La table <b>app_data</b> n\'existe pas encore dans Supabase. Ouvrez Supabase → <b>SQL Editor</b> et exécutez le script de création de la table (celui que je vous ai donné).</p>';
   } else if (r.msg==='regles'){
-    title='❌ Règles Firestore à publier';
-    body='<p><b>Voilà la cause.</b> Firebase <b>refuse l\'enregistrement</b> : les règles de sécurité sont fermées ou expirées. C\'est pour ça que vos données ne restent pas en ligne.</p><p>À corriger : console Firebase → <b>Firestore Database</b> → onglet <b>Règles</b> → coller les règles ouvertes → <b>Publier</b>.</p>';
+    title='❌ Accès Supabase à autoriser';
+    body='<p><b>Voilà la cause.</b> Supabase <b>refuse l\'enregistrement</b> : la sécurité (RLS) bloque l\'accès. Exécutez dans le <b>SQL Editor</b> la ligne qui crée la règle d\'accès (policy) « acces_iepp », puis réessayez.</p>';
   } else if (r.msg==='reseau' || r.msg==='hors-ligne'){
     title='📴 Hors ligne';
     body='<p>Pas de connexion au serveur pour le moment. Vérifiez votre <b>Internet</b> et réessayez.</p>';
