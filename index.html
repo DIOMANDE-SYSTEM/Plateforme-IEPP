@@ -2213,7 +2213,20 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
       .forEach(function(k){ try { state[k] = load(k, state[k]); } catch(e){} });
     try { if (window.__healUsers) window.__healUsers(); } catch(e){}
     try { if (window.fixDrenaetLabels) window.fixDrenaetLabels(); } catch(e){}   /* nettoie aussi les données venues du cloud */
-    try { if (!window.__autoSyncSilent && state.module && typeof navigate==='function') navigate(state.module); } catch(e){}
+    try {
+      if (state.module && typeof navigate==='function'){
+        if (window.__autoSyncSilent){
+          /* fond : on redessine seulement si l'utilisateur ne saisit pas et qu'aucune fenêtre n'est ouverte */
+          var ae = document.activeElement;
+          var busy = (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName));
+          var mb = document.getElementById('modal-backdrop');
+          var modalOpen = (mb && mb.offsetParent !== null);
+          if (!busy && !modalOpen) navigate(state.module);
+        } else {
+          navigate(state.module);   /* synchro manuelle : on redessine toujours */
+        }
+      }
+    } catch(e){}
   }
 
   async function start(){
@@ -26208,8 +26221,13 @@ window.syncNowTop = function(){
             setTimeout(function(){ btn.style.transition='none'; btn.style.transform='none'; }, 650); }
   if (window.__cloudResyncScope){
     if (typeof toast==='function') toast('Synchronisation en cours…','info');
+    window.__autoSyncSilent = false;                         /* synchro MANUELLE : on redessine */
     Promise.resolve(window.__cloudResyncScope())
-      .then(function(){ if (typeof toast==='function') toast('Synchronisé','success'); })
+      .then(function(){
+        /* on force le ré-affichage de la vue courante, même si le refresh interne ne l'a pas fait */
+        try { if (state.module && typeof navigate==='function') navigate(state.module); } catch(e){}
+        if (typeof toast==='function') toast('Synchronisé','success');
+      })
       .catch(function(){ if (typeof toast==='function') toast('Échec (vérifiez la connexion)','error'); });
   } else {
     if (typeof toast==='function') toast('Synchronisation indisponible (hors ligne)','error');
