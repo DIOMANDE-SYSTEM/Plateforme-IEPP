@@ -1707,11 +1707,12 @@ function can(action) {
 const DEFAULT_USERS = [
   { username:'superadmin',  password:'iepp2026', name:'Grand Administrateur National', role:'superadmin', email:'admin@menaet.ci',  iepp:'TOUTES', drenaet:'TOUTES' },
   { username:'Directeur DRENAET Boundiali',     password:'drenaet2026', name:'Directeur DRENAET Boundiali',     role:'drenaet',    email:'dr.boundiali@menaet.ci', iepp:'TOUTES', drenaet:'DRENAET Boundiali' },
+  { username:'superviseur_duekoue', password:'duekoue', name:'Superviseur DRENAET de Duékoué', role:'drenaet', email:'', iepp:'TOUTES', drenaet:'DRENAET de Duékoué' },
   { username:'inspecteur',  password:'inspecteur2026', name:'KOUASSI Jean-Marc',             role:'inspecteur', email:'inspecteur@iepp.ci',   iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
   { username:'iepptengrela', password:'iepptengrela2026', name:'TRAORE Bamory', role:'inspecteur', email:'iepp.tengrela@menaet.ci', iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', contact:'0701397491' },
   { username:'ieppyezimala', password:'ieppyezimala2026', name:'Inspecteur IEPP Yezimala', role:'inspecteur', email:'iepp.yezimala@menaet.ci', iepp:'IEPP YEZIMALA', drenaet:'DRENAET de Bondoukou', contact:'' },
-  { username:'kaegeorgeseri', password:'kaegeorgeseri2026', name:'KAE GEORGE SERI', role:'inspecteur', email:'', iepp:'IEPP BAGOHOUO', drenaet:'DRENA-ET de Duékoué', ville:'DUÉKOUÉ', contact:'' },
-  { username:'testferkenord', password:'testferkenord2026', name:'Compte test IEPP Ferkessédougou Nord', role:'inspecteur', email:'', iepp:'IEPP FERKESSEDOUGOU Nord', drenaet:'DRENA-ET Ferkessédougou', contact:'', test:true, expire:'2026-08-18' },
+  { username:'kaegeorgeseri', password:'kaegeorgeseri2026', name:'KAE GEORGE SERI', role:'inspecteur', email:'', iepp:'IEPP BAGOHOUO', drenaet:'DRENAET de Duékoué', ville:'DUÉKOUÉ', contact:'' },
+  { username:'testferkenord', password:'testferkenord2026', name:'Compte test IEPP Ferkessédougou Nord', role:'inspecteur', email:'', iepp:'IEPP FERKESSEDOUGOU Nord', drenaet:'DRENAET Ferkessédougou', contact:'', test:true, expire:'2026-08-18' },
   { username:'cpi',         password:'cpi2026', name:'TRAORE Aminata',                role:'cpi',         email:'cpi@iepp.ci',          iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
   { username:'directeur',   password:'directeur2026', name:'DIABATE Souleymane',            role:'directeur',   email:'directeur@iepp.ci',    iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', ecole:'EPP BASSO' },
   { username:'instituteur', password:'instituteur2026', name:'BAMBA Mariam',                  role:'instituteur', email:'instituteur@iepp.ci',  iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', ecole:'EPP BASSO', classe:'CE1' },
@@ -2211,6 +2212,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
     ['users','audit','drenaet','ieppRegistry','customServices','courrierMsg','courrierMatrice','pnapasForm']
       .forEach(function(k){ try { state[k] = load(k, state[k]); } catch(e){} });
     try { if (window.__healUsers) window.__healUsers(); } catch(e){}
+    try { if (window.fixDrenaetLabels) window.fixDrenaetLabels(); } catch(e){}   /* nettoie aussi les données venues du cloud */
     try { if (!window.__autoSyncSilent && state.module && typeof navigate==='function') navigate(state.module); } catch(e){}
   }
 
@@ -26246,12 +26248,12 @@ function completerClassesEcoles(arr){
   return arr;
 }
 
-/* ===== Amorçage unique : IEPP FERKESSEDOUGOU Nord (DRENA-ET Ferkessédougou) ===== */
+/* ===== Amorçage unique : IEPP FERKESSEDOUGOU Nord (DRENAET Ferkessédougou) ===== */
 (function seedIeppFerke(){
   try {
     var FLAG = KEY + 'seed_ferkenord_v1';
     if (localStorage.getItem(FLAG)) return;
-    var IEPP='IEPP FERKESSEDOUGOU Nord', DREN='DRENA-ET Ferkessédougou', CODE='000115';
+    var IEPP='IEPP FERKESSEDOUGOU Nord', DREN='DRENAET Ferkessédougou', CODE='000115';
     var scope = scopeSlug(IEPP);
     state.ieppRegistry = state.ieppRegistry || [];
     if (!state.ieppRegistry.some(function(r){ return String(r.name||'').toLowerCase()===IEPP.toLowerCase(); })){
@@ -26290,12 +26292,12 @@ function completerClassesEcoles(arr){
   } catch(e){ console.warn('fixClassesAllScopes', e); }
 })();
 
-/* ===== Amorçage unique : IEPP BAGOHOUO (DRENA-ET de Duékoué) ===== */
+/* ===== Amorçage unique : IEPP BAGOHOUO (DRENAET de Duékoué) ===== */
 (function seedIeppBagohouo(){
   try {
     var FLAG = KEY + 'seed_bagohouo_v1';
     if (localStorage.getItem(FLAG)) return;
-    var IEPP='IEPP BAGOHOUO', DREN='DRENA-ET de Duékoué', CODE='000379', VILLE='DUÉKOUÉ';
+    var IEPP='IEPP BAGOHOUO', DREN='DRENAET de Duékoué', CODE='000379', VILLE='DUÉKOUÉ';
     state.ieppRegistry = state.ieppRegistry || [];
     if (!state.ieppRegistry.some(function(r){ return String(r.name||'').toLowerCase()===IEPP.toLowerCase(); })){
       state.ieppRegistry.push({ name:IEPP, drenaet:DREN, code:CODE, ville:VILLE });
@@ -26304,6 +26306,22 @@ function completerClassesEcoles(arr){
     localStorage.setItem(FLAG,'1');
   } catch(e){ console.warn('seedIeppBagohouo', e); }
 })();
+
+
+/* ===== Mise à jour unique : uniformiser les libellés DRENAET (DRENA-ET → DRENAET) ===== */
+window.fixDrenaetLabels = function(){
+  try {
+    var norm = function(s){ return (s==null) ? s : String(s).replace(/DRENA-ET/g, 'DRENAET'); };
+    var changed = { users:false, ieppRegistry:false, drenaet:false };
+    if (Array.isArray(state.users)) state.users.forEach(function(u){ if(u && u.drenaet && u.drenaet!==norm(u.drenaet)){ u.drenaet=norm(u.drenaet); changed.users=true; } });
+    if (Array.isArray(state.ieppRegistry)) state.ieppRegistry.forEach(function(r){ if(r && r.drenaet && r.drenaet!==norm(r.drenaet)){ r.drenaet=norm(r.drenaet); changed.ieppRegistry=true; } });
+    if (Array.isArray(state.drenaet)) state.drenaet.forEach(function(d){ if(d && d.drenaet && d.drenaet!==norm(d.drenaet)){ d.drenaet=norm(d.drenaet); changed.drenaet=true; } });
+    if (changed.users) save('users', state.users);
+    if (changed.ieppRegistry) save('ieppRegistry', state.ieppRegistry);
+    if (changed.drenaet) save('drenaet', state.drenaet);
+  } catch(e){ console.warn('fixDrenaetLabels', e); }
+};
+try { window.fixDrenaetLabels(); } catch(e){}
 
 autoLogin();
 try { prefillLogin(); } catch(e){}
