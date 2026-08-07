@@ -2030,6 +2030,86 @@ function recordMergeObjects(k, cloudObj, localObj, cloudTomb, localTomb){
   return out;
 }
 
+
+/* ===== Ré-affichage garanti du plan PRÉCONÇU des matrices =====
+   Si une matrice (liste ou objet) est vide OU a perdu des lignes préconçues,
+   on réinjecte SEULEMENT les lignes préconçues qui n'ont PAS été supprimées
+   volontairement (les suppressions sont mémorisées dans les tombstones).
+   Résultat : le plan complet s'affiche à l'ouverture, tout en respectant
+   les suppressions de l'utilisateur (qui restent en corbeille). */
+function _tombIdSet(tombKey){
+  var set = {};
+  try { (JSON.parse(localStorage.getItem(storeKey(tombKey))||'[]')||[]).forEach(function(t){ if(t&&t.id!=null) set[t.id]=1; }); } catch(e){}
+  return set;
+}
+/* Matrices LISTE {id} : matrice, matriceRH, matriceCpi, matriceExamens, matriceVieScolaire */
+function ensureMatriceList(stateKey, defaultFn){
+  try {
+    if (!RECORD_MERGE[stateKey]) return;
+    var tomb = _tombIdSet(RECORD_MERGE[stateKey].tomb);
+    var cur = Array.isArray(state[stateKey]) ? state[stateKey] : [];
+    var have = {}; cur.forEach(function(it){ if(it&&it.id!=null) have[it.id]=1; });
+    var def = defaultFn() || [];
+    var toAdd = def.filter(function(it){ return it&&it.id!=null && !have[it.id] && !tomb[it.id]; });
+    if (toAdd.length){
+      state[stateKey] = cur.concat(toAdd);
+      save(stateKey, state[stateKey]);
+    }
+  } catch(e){ console.warn('ensureMatriceList '+stateKey, e); }
+}
+/* Matrice OBJET {chemin:[...]} : cogesReg (chemin planification/matrice), svcMat (par service) */
+function ensureMatriceObj(stateKey, path, defaultArr){
+  try {
+    if (!RECORD_MERGE_OBJ[stateKey]) return;
+    if (!state[stateKey] || typeof state[stateKey]!=='object') state[stateKey] = {};
+    var tombKey = RECORD_MERGE_OBJ[stateKey].tomb;
+    var tombSet = {};
+    try { (JSON.parse(localStorage.getItem(storeKey(tombKey))||'[]')||[]).forEach(function(t){ if(t&&t.id!=null) tombSet[t.path+'\u00a7'+t.id]=1; }); } catch(e){}
+    var cur = Array.isArray(state[stateKey][path]) ? state[stateKey][path] : [];
+    var have = {}; cur.forEach(function(it){ if(it&&it.id!=null) have[it.id]=1; });
+    var toAdd = (defaultArr||[]).filter(function(it){ return it&&it.id!=null && !have[it.id] && !tombSet[path+'\u00a7'+it.id]; });
+    if (toAdd.length){
+      state[stateKey][path] = cur.concat(toAdd);
+      save(stateKey, state[stateKey]);
+    }
+  } catch(e){ console.warn('ensureMatriceObj '+stateKey, e); }
+}
+/* Appelle le bon "ensure" pour un service générique svcMat */
+function ensureSvcMat(svc){
+  try {
+    if (typeof SERVICES==='undefined' || !SERVICES[svc]) return;
+    var def = (SERVICES[svc].matrice||[]).map(function(r,i){ return Object.assign({ id: svc+'-m'+(i+1) }, r); });
+    ensureMatriceObj('svcMat', svc, def);
+  } catch(e){}
+}
+
+
+/* ===== Fusion des listes de SUPPRESSIONS (tombstones) : UNION, jamais écrasement =====
+   Empêche une suppression (utilisateur, élève, donnée…) de « revenir » à la reconnexion
+   parce qu'un autre appareil aurait renvoyé une liste de suppressions plus ancienne. */
+function isTombstoneKey(k){ return k === 'usersDeleted' || /Deleted$/.test(k); }
+function mergeTombstones(a, b){
+  a = Array.isArray(a) ? a : [];
+  b = Array.isArray(b) ? b : [];
+  var map = {};
+  var keyOf = function(t){
+    if (t==null) return null;
+    if (typeof t === 'string' || typeof t === 'number') return 'v:'+t;
+    if (t.path!=null && t.id!=null) return 'p:'+t.path+'\u00a7'+t.id;
+    if (t.id!=null) return 'i:'+t.id;
+    return null;
+  };
+  var add = function(t){
+    var kk = keyOf(t); if (kk==null) return;
+    var ex = map[kk];
+    if (!ex){ map[kk] = t; return; }
+    var exAt = (ex && ex.at) || 0, tAt = (t && t.at) || 0;
+    if (tAt > exAt) map[kk] = t;   /* garde la suppression la plus récente */
+  };
+  a.forEach(add); b.forEach(add);
+  return Object.keys(map).map(function(kk){ return map[kk]; });
+}
+
 function save(k, val) {
   try { if (typeof recordMergeTrack === 'function') val = recordMergeTrack(k, val); } catch(e){ console.warn('recordMergeTrack', e); }
   try { localStorage.setItem(storeKey(k), JSON.stringify(val)); } catch(e){ console.error('save fail', e); }
@@ -2258,6 +2338,16 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
       try {
         const cloudJson = await withTimeout(sbGet(fullKey), 15000, fullKey);
         const localRaw  = localStorage.getItem(fullKey);
+        if (isTombstoneKey(k)){
+          /* Liste de suppressions : on ADDITIONNE cloud + local (jamais d'écrasement) */
+          var _cA=[], _lA=[];
+          try { _cA = (cloudJson!=null) ? (JSON.parse(cloudJson)||[]) : []; } catch(e){ _cA=[]; }
+          try { _lA = JSON.parse(localRaw||'[]')||[]; } catch(e){ _lA=[]; }
+          var _u = mergeTombstones(_cA, _lA);
+          localStorage.setItem(fullKey, JSON.stringify(_u));
+          try { await withTimeout(sbSet(fullKey, JSON.stringify(_u)), 15000, fullKey); } catch(e){}
+          return;
+        }
         if (cloudJson !== null){
           if (RECORD_MERGE[k]){
             var cloudArr=[], localArr=[];
@@ -6345,6 +6435,8 @@ function cpiMatriceHtml() {
     </table></div>`;
 }
 function cpiMatriceRenderBody() {
+  ensureMatriceList('matriceCpi', defaultMatriceCpi);
+
   const tb = document.getElementById('cpi-matrice-body'); if (!tb) return;
   const q = (document.getElementById('cpi-matrice-search')?.value || '').toLowerCase();
   const list = (state.matriceCpi||[]).filter(m => {
@@ -8501,6 +8593,8 @@ function rhMatriceHtml() {
     </table></div>`;
 }
 function rhMatriceRenderBody() {
+  ensureMatriceList('matriceRH', defaultMatriceRH);
+
   const tb=document.getElementById('rh-mat-body');if(!tb)return;
   const q=(document.getElementById('rh-mat-search')?.value||'').toLowerCase();
   const list=(state.matriceRH||[]).filter(m=>(m.periode||'').toLowerCase().includes(q)||(m.activite||'').toLowerCase().includes(q));
@@ -10273,6 +10367,8 @@ function vieMatriceHtml() {
     </table></div>`;
 }
 function vieMatriceRenderBody() {
+  ensureMatriceList('matriceVieScolaire', defaultMatriceVieScolaire);
+
   const tb = document.getElementById('vie-matrice-body'); if (!tb) return;
   const q = (document.getElementById('vie-matrice-search')?.value || '').toLowerCase();
   const list = (state.matriceVieScolaire||[]).filter(m => {
@@ -10851,6 +10947,8 @@ function cogesMatriceHtml() {
     </table></div>`;
 }
 function cogesMatriceRenderBody() {
+  try{ ensureMatriceObj('cogesReg','planification/matrice', (defaultCogesReg()['planification/matrice']||[])); }catch(e){}
+
   const tb = document.getElementById('coges-matrice-body'); if (!tb) return;
   const q = (document.getElementById('coges-matrice-search')?.value || '').toLowerCase();
   const list = cogesGet('planification/matrice').filter(m => {
@@ -18628,6 +18726,8 @@ function matFiltered() {
   return list;
 }
 function renderMatriceBody() {
+  ensureMatriceList('matrice', defaultMatrice);
+
   const list = matFiltered();
   const canEdit = ['superadmin','inspecteur','correspondant'].includes(state.user.role);
   const trimLabels = {'1':'1er Trimestre','2':'2ème Trimestre','3':'3ème Trimestre'};
@@ -24302,6 +24402,8 @@ function examMatriceHtml() {
     </table></div>`;
 }
 function examMatriceRenderBody() {
+  ensureMatriceList('matriceExamens', defaultMatriceExamens);
+
   const tb = document.getElementById('exam-matrice-body'); if (!tb) return;
   const q = (document.getElementById('exam-matrice-search')?.value || '').toLowerCase();
   const list = (state.matriceExamens||[]).filter(m => {
