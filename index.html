@@ -1747,7 +1747,7 @@ const KEY = 'iepp_';
    La DRENAET bascule entre ses IEPP ; le Superadmin entre toutes.
    ================================================================== */
 const GLOBAL_KEYS = new Set(['users','usersDeleted','audit','customServices','current_user','drenaet','active_iepp','ieppRegistry','pnapasForm','courrierMsg','courrierMatrice']);
-const SCOPED_KEY_LIST = ['ecoles','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','cpppBulletins','pointage','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted'];
+const SCOPED_KEY_LIST = ['ecoles','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','cpppBulletins','pointage','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted'];
 function scopeSlug(iepp){
   return 'c_' + String(iepp||'IEPP TENGRELA').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 }
@@ -1885,7 +1885,8 @@ var RECORD_MERGE = {
    (matrice COGES = cogesReg ; matrices de service = svcMat) */
 var RECORD_MERGE_OBJ = {
   cogesReg: { tomb: 'cogesRegDeleted' },
-  svcMat:   { tomb: 'svcMatDeleted' }
+  svcMat:   { tomb: 'svcMatDeleted' },
+  statSituationReg: { tomb: 'statSituationRegDeleted' }
 };
 function rmTombKey(listKey){ return RECORD_MERGE[listKey] ? RECORD_MERGE[listKey].tomb : null; }
 
@@ -20187,7 +20188,17 @@ function defaultStatSituationReg() {
    Nouvelle action · Modifier · Supprimer. Totaux calculés automatiquement.
    ================================================================== */
 function statSitCanEdit(){ return ['superadmin','inspecteur','correspondant','corresp_stat','drenaet','agent'].includes(state.user.role); }
-function statSitGet(key){ const r=state.statSituationReg||{}; return Array.isArray(r[key])?r[key]:[]; }
+/* Réaffiche le plan PRÉCONÇU de la Situation statistique (comme les matrices) :
+   réinjecte les lignes standard manquantes de chaque section, SAUF celles supprimées
+   volontairement (tombstones {path§id}), sans écraser une ligne modifiée. */
+function ensureStatSitPreconcu(){
+  try {
+    var def = defaultStatSituationReg();
+    Object.keys(def).forEach(function(section){
+      if (Array.isArray(def[section])) ensureMatriceObj('statSituationReg', section, def[section]);
+    });
+  } catch(e){ console.warn('ensureStatSitPreconcu', e); }
+}function statSitGet(key){ const r=state.statSituationReg||{}; return Array.isArray(r[key])?r[key]:[]; }
 function statSitSave(key,rows){ if(!state.statSituationReg)state.statSituationReg={}; state.statSituationReg[key]=rows; save('statSituationReg',state.statSituationReg); }
 function ssNum(v){ const n=parseInt(String(v==null?'':v).replace(/[^0-9-]/g,''),10); return isNaN(n)?0:n; }
 
@@ -20235,6 +20246,7 @@ function statSitToolbar(key) {
 }
 
 function renderStatSituation() {
+  try { ensureStatSitPreconcu(); } catch(e){}
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,var(--blue) 0%,var(--blue-deep) 100%)">
       <h3>Situation <em>statistique</em> de l'IEPP TENGRELA</h3>
@@ -20243,6 +20255,7 @@ function renderStatSituation() {
 
     <div class="card" style="border-left:4px solid var(--blue);margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px">
       <div style="flex:1;min-width:200px"><div class="fw-7" style="font-size:13px">🧰 Barre d'outils générale — toute la page</div><div class="text-xs text-muted">Agit sur l'ensemble des tableaux (sections I, II et III) en une seule opération.</div></div>
+      ${statSitCanEdit()?`<button class="btn btn-orange btn-sm" onclick="statSitAutoCalc()" title="Remplir écoles, classes et effectifs à partir des effectifs saisis et de la liste des écoles">🧮 Calculer depuis les remontées</button>`:''}
       <button class="btn btn-ghost btn-sm" onclick="statSitPdfViewAll()">📄 Aperçu PDF (tout)</button>
       <button class="btn btn-green btn-sm" onclick="statSitExcelAll()">📊 Excel (tout)</button>
       <button class="btn btn-ghost btn-sm" onclick="statSitWordAll()">📄 Word (tout)</button>
@@ -20418,6 +20431,88 @@ function statSitRenderLevels(key) {
 }
 
 /* ---- Synchronisation des effectifs (III) depuis « État des effectifs » ---- */
+
+/* ===== CALCUL AUTOMATIQUE de la Situation statistique depuis les REMONTÉES =====
+   Sources : effectifs préscolaire (effPrescolaire) + primaire (effPrimaire) +
+   liste des écoles (statut Public/Privé/Communautaire) + recrutement CP1.
+   Remplit : I (écoles), I-2 (classes), III (élèves Garçons/Filles → cartes),
+   III (effectifs Public/Privé/Communautaire). Tout reste modifiable ensuite. */
+function _ssTypeEcole(nom){
+  var n = String(nom||'').toLowerCase();
+  if (n.indexOf('prescol')>-1 || n.indexOf('préscol')>-1 || n.indexOf('maternel')>-1) return 'pres';
+  return 'prim';
+}
+function _ssStatutEcole(ec){
+  var nom = ec && ec.nom ? ec.nom : ec;   // accepte un objet école ou un nom
+  var statut = (ec && ec.statut) ? ec.statut : '';
+  if (/(^|\s)ec\s|communautaire/i.test(String(nom||''))) return 'COM';
+  if (/priv/i.test(String(statut||''))) return 'PRIVE';
+  return 'PUBLIC';
+}
+function _ssStatutParNom(nom){
+  var ecoles = state.ecoles||[];
+  var e = ecoles.find(function(x){ return String(x.nom||'').trim().toLowerCase() === String(nom||'').trim().toLowerCase(); });
+  return _ssStatutEcole(e || nom);
+}
+function statSitAutoCalc(){
+  if(!statSitCanEdit()){ toast('Action réservée.','error'); return; }
+  var ecoles = state.ecoles||[];
+  var pres = state.effPrescolaire||[];
+  var prim = state.effPrimaire||[];
+  var NIV=['cp1','cp2','ce1','ce2','cm1','cm2'];
+
+  /* ---- I — Nombre d'écoles (ligne « autorisées » = comptage réel ; ligne « communautaires ») ---- */
+  var cnt = { PUBLIC:{pres:0,prim:0}, PRIVE:{pres:0,prim:0}, COM:{pres:0,prim:0} };
+  var cls = { PUBLIC:{pres:0,prim:0}, PRIVE:{pres:0,prim:0}, COM:{pres:0,prim:0} };
+  ecoles.forEach(function(e){
+    var st=_ssStatutEcole(e), ty=_ssTypeEcole(e.nom);
+    cnt[st][ty]++; cls[st][ty]+= (parseInt(e.classes,10)||0);
+  });
+  (function(){
+    var rowsE=statSitGet('ecoles');
+    function up(lib,data){ var r=rowsE.find(function(x){return x.libelle===lib;}); if(!r){r={id:'ss_'+uid(),libelle:lib};rowsE.push(r);} Object.assign(r,data); }
+    up('Écoles autorisées', { pubPres:cnt.PUBLIC.pres, pubPrim:cnt.PUBLIC.prim, privPres:cnt.PRIVE.pres, privPrim:cnt.PRIVE.prim });
+    up('Écoles communautaires', { pubPres:cnt.COM.pres, pubPrim:cnt.COM.prim, privPres:0, privPrim:0 });
+    statSitSave('ecoles', rowsE);
+    var rowsC=statSitGet('classes');
+    function upc(lib,data){ var r=rowsC.find(function(x){return x.libelle===lib;}); if(!r){r={id:'ss_'+uid(),libelle:lib};rowsC.push(r);} Object.assign(r,data); }
+    upc('Classes autorisées', { pubPres:cls.PUBLIC.pres, pubPrim:cls.PUBLIC.prim, privPres:cls.PRIVE.pres, privPrim:cls.PRIVE.prim });
+    upc('Classes communautaires', { pubPres:cls.COM.pres, pubPrim:cls.COM.prim, privPres:0, privPrim:0 });
+    statSitSave('classes', rowsC);
+  })();
+
+  /* ---- III — Élèves (Garçons/Filles) depuis effectifs préscolaire + primaire ---- */
+  var g={ps:0,ms:0,gs:0,pub:0,priv:0,comm:0}, f={ps:0,ms:0,gs:0,pub:0,priv:0,comm:0};
+  pres.forEach(function(r){ g.ps+=ssNum(r.psG); g.ms+=ssNum(r.msG); g.gs+=ssNum(r.gsG); f.ps+=ssNum(r.psF); f.ms+=ssNum(r.msF); f.gs+=ssNum(r.gsF); });
+  prim.forEach(function(r){
+    var st=_ssStatutParNom(r.nom); var sg=0,sf=0;
+    NIV.forEach(function(n){ sg+=ssNum(r[n+'G']); sf+=ssNum(r[n+'F']); });
+    if(st==='PRIVE'){ g.priv+=sg; f.priv+=sf; } else if(st==='COM'){ g.comm+=sg; f.comm+=sf; } else { g.pub+=sg; f.pub+=sf; }
+  });
+  (function(){
+    var rows=statSitGet('eleves');
+    function up(lib,data){ var r=rows.find(function(x){return x.libelle===lib;}); if(!r){r={id:'ss_'+uid(),libelle:lib};rows.push(r);} Object.assign(r,data); }
+    up('Garçons', g); up('Filles', f);
+    statSitSave('eleves', rows);
+  })();
+
+  /* ---- III — Effectifs par niveaux (Public/Privé/Communautaire × G/F) ---- */
+  (function(){
+    var rows=statSitGet('effectifs');
+    function up(lib,sexe,data){ var r=rows.find(function(x){return x.libelle===lib && x.sexe===sexe;}); if(!r){r={id:'ss_'+uid(),libelle:lib,sexe:sexe};rows.push(r);} Object.assign(r,data); }
+    var pres2={PUBLIC:{G:{},F:{}},PRIVE:{G:{},F:{}},COM:{G:{},F:{}}};
+    ['PUBLIC','PRIVE','COM'].forEach(function(S){ ['G','F'].forEach(function(X){ pres2[S][X]={ps:0,ms:0,gs:0,cp1:0,cp2:0,ce1:0,ce2:0,cm1:0,cm2:0}; }); });
+    pres.forEach(function(r){ var st=_ssStatutParNom(r.nom); if(!pres2[st])st='PUBLIC'; pres2[st].G.ps+=ssNum(r.psG);pres2[st].G.ms+=ssNum(r.msG);pres2[st].G.gs+=ssNum(r.gsG); pres2[st].F.ps+=ssNum(r.psF);pres2[st].F.ms+=ssNum(r.msF);pres2[st].F.gs+=ssNum(r.gsF); });
+    prim.forEach(function(r){ var st=_ssStatutParNom(r.nom); if(!pres2[st])st='PUBLIC'; NIV.forEach(function(n){ pres2[st].G[n]+=ssNum(r[n+'G']); pres2[st].F[n]+=ssNum(r[n+'F']); }); });
+    var LMAP={PUBLIC:'PUBLIC',PRIVE:'PRIVE',COM:'COM.'};
+    ['PUBLIC','PRIVE','COM'].forEach(function(S){ ['G','F'].forEach(function(X){ up(LMAP[S],X,pres2[S][X]); }); });
+    statSitSave('effectifs', rows);
+  })();
+
+  try{ statSitRender('ecoles'); statSitRender('classes'); statSitRender('eleves'); statSitRender('effectifs'); }catch(e){}
+  toast('Situation statistique calculée depuis les remontées ✓','success');
+}
+
 function statSitSyncEffectifs() {
   if(!statSitCanEdit()){ toast('Action réservée.','error'); return; }
   // Préscolaire : somme PS/MS/GS par sexe
