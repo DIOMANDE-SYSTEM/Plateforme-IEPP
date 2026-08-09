@@ -1746,12 +1746,20 @@ const KEY = 'iepp_';
    Clés SCOPÉES  = stockées par IEPP : iepp_c_<slug>_<clé>.
    La DRENAET bascule entre ses IEPP ; le Superadmin entre toutes.
    ================================================================== */
-const GLOBAL_KEYS = new Set(['users','usersDeleted','audit','customServices','current_user','drenaet','active_iepp','ieppRegistry','pnapasForm','courrierMsg','courrierMatrice']);
-const SCOPED_KEY_LIST = ['ecoles','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','cpppBulletins','pointage','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted'];
+const GLOBAL_KEYS = new Set(['users','usersDeleted','customServices','current_user','drenaet','active_iepp','ieppRegistry','pnapasForm','courrierMsg','courrierMatrice']);
+const SCOPED_KEY_LIST = ['ecoles','audit','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','cpppBulletins','pointage','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted','economatRegDeleted','secretariatRegDeleted','cantineRegDeleted','smossRegDeleted','communicationRegDeleted','biblioRegDeleted','archivisteRegDeleted','svcPermDeleted'];
 function scopeSlug(iepp){
   return 'c_' + String(iepp||'IEPP TENGRELA').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 }
 let activeScope = scopeSlug('IEPP TENGRELA');
+/* Libellé de l'IEPP active pour l'affichage (jamais de doublon « IEPP IEPP ») */
+function activeIeppLabel(){
+  var n = (typeof state!=='undefined' && state && state.activeIepp) ? String(state.activeIepp).trim() : '';
+  n = n.replace(/^IEPP\s+/i,'');
+  if(!n) n='TENGRELA';
+  return 'IEPP '+n;
+}
+function activeIeppShort(){ return activeIeppLabel().replace(/^IEPP\s+/i,''); }
 function storeKey(k){ return GLOBAL_KEYS.has(k) ? (KEY + k) : (KEY + activeScope + '_' + k); }
 
 /* Migration unique : les anciennes données globales deviennent celles de l'IEPP TENGRELA */
@@ -1885,6 +1893,14 @@ var RECORD_MERGE = {
    (matrice COGES = cogesReg ; matrices de service = svcMat) */
 var RECORD_MERGE_OBJ = {
   cogesReg: { tomb: 'cogesRegDeleted' },
+  archivisteReg: { tomb: 'archivisteRegDeleted' },
+  svcPerm:  { tomb: 'svcPermDeleted' },
+  economatReg: { tomb: 'economatRegDeleted' },
+  secretariatReg: { tomb: 'secretariatRegDeleted' },
+  cantineReg: { tomb: 'cantineRegDeleted' },
+  smossReg: { tomb: 'smossRegDeleted' },
+  communicationReg: { tomb: 'communicationRegDeleted' },
+  biblioReg: { tomb: 'biblioRegDeleted' },
   svcMat:   { tomb: 'svcMatDeleted' },
   statSituationReg: { tomb: 'statSituationRegDeleted' }
 };
@@ -2016,6 +2032,7 @@ function recordMergeObjects(k, cloudObj, localObj, cloudTomb, localTomb){
   Object.keys(cloudObj).forEach(function(p){ paths[p]=1; });
   Object.keys(localObj).forEach(function(p){ paths[p]=1; });
   Object.keys(paths).forEach(function(path){
+    if(!Array.isArray(localObj[path]) && !Array.isArray(cloudObj[path])){ out[path] = (localObj[path]!==undefined?localObj[path]:cloudObj[path]); return; }
     var byId = {};
     var consider = function(it){ if(!it||it.id==null) return; var ex=byId[it.id]; if(!ex||(it._upd||0)>=(ex._upd||0)) byId[it.id]=it; };
     (Array.isArray(localObj[path])?localObj[path]:[]).forEach(consider);
@@ -2076,6 +2093,13 @@ function ensureMatriceObj(stateKey, path, defaultArr){
   } catch(e){ console.warn('ensureMatriceObj '+stateKey, e); }
 }
 /* Appelle le bon "ensure" pour un service générique svcMat */
+function ensureSvcPerm(svc){
+  try {
+    if (typeof SERVICES==='undefined' || !SERVICES[svc] || !Array.isArray(SERVICES[svc].permanentes)) return;
+    var def = SERVICES[svc].permanentes.map(function(t,i){ return { id: svc+'-p'+(i+1), activite: t }; });
+    ensureMatriceObj('svcPerm', svc, def);
+  } catch(e){}
+}
 function ensureSvcMat(svc){
   try {
     if (typeof SERVICES==='undefined' || !SERVICES[svc]) return;
@@ -2119,7 +2143,7 @@ function save(k, val) {
 
 /* Recharge toutes les données scopées depuis l'espace de la circonscription active */
 const SCOPED_STATE = [
-  ['ecoles', defaultEcoles], ['effectifs', defaultEffectifs], ['personnel', defaultPersonnel],
+  ['audit', ()=>[]], ['ecoles', defaultEcoles], ['effectifs', defaultEffectifs], ['personnel', defaultPersonnel],
   ['absences', defaultAbsences], ['visites', defaultVisites], ['examens', defaultExamens], ['matriceExamens', defaultMatriceExamens], ['matriceCpi', defaultMatriceCpi], ['matriceVieScolaire', defaultMatriceVieScolaire], ['vieActivites', defaultVieActivites], ['viePlanification', defaultViePlanification], ['vieClubs', defaultVieClubs], ['vieVisites', defaultVieVisites], ['vieDocuments', defaultVieDocuments], ['vieSettings', defaultVieSettings], ['rhAffectations', defaultRhAffectations], ['rhFormations', defaultRhFormations], ['rhDossiers', defaultRhDossiers], ['rhDocumentsRH', defaultRhDocumentsRH], ['rhSettings', defaultRhSettings], ['matriceRH', defaultMatriceRH],
   ['coges', defaultCoges], ['cogesReg', defaultCogesReg], ['economat', defaultEconomat], ['economatReg', defaultEconomatReg], ['courrier', defaultCourrier], ['notifications', defaultNotifications], ['archivisteReg', defaultArchivisteReg], ['secretariatReg', defaultSecretariatReg], ['communicationReg', defaultCommunicationReg], ['cantineReg', defaultCantineReg], ['smossReg', defaultSmossReg], ['biblioReg', defaultBiblioReg], ['statSituationReg', defaultStatSituationReg], ['fichesReponses', ()=>({})], ['fichesCustom', ()=>({})],  ['archives', ()=>[]], ['matrice', defaultMatrice], ['elevesFichier', defaultElevesFichier],
   ['recrutementCP1', defaultRecrutementCP1], ['recrutementMater', defaultRecrutementMater],
@@ -2133,7 +2157,7 @@ const SCOPED_STATE = [
   ['pointage', ()=>[]],
 ];
 function emptyLike(k) {
-  if (k === 'cogesReg') return {};
+  if (['cogesReg','economatReg','secretariatReg','cantineReg','smossReg','communicationReg','biblioReg','archivisteReg','statSituationReg'].includes(k)) return {};
   if (k === 'effMeta') return { lastSync: null };
   if (k === 'dirTels') return {};
   if (k === 'compositions') return { '1':[], '2':[], '3':[], '4':[] };
@@ -2388,7 +2412,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
 
   function refreshAfterPull(){
     try { if (typeof reloadScopedState==='function') reloadScopedState(); } catch(e){}
-    ['users','audit','drenaet','ieppRegistry','customServices','courrierMsg','courrierMatrice','pnapasForm']
+    ['users','drenaet','ieppRegistry','customServices','courrierMsg','courrierMatrice','pnapasForm']
       .forEach(function(k){ try { state[k] = load(k, state[k]); } catch(e){} });
     try { if (window.__healUsers) window.__healUsers(); } catch(e){}
     try { if (window.fixDrenaetLabels) window.fixDrenaetLabels(); } catch(e){}   /* nettoie aussi les données venues du cloud */
@@ -2589,6 +2613,28 @@ function defaultCogesReg() {
       { id:'cgmat_jui', periode:'Juin', activite:'Évaluation du fonctionnement des COGES', resultats:'Rapports d\'évaluation produits', indicateurs:'Fiches d\'évaluation' },
       { id:'cgmat_jui2', periode:'Juillet', activite:'Bilan annuel et collecte des rapports', resultats:'Bilan consolidé', indicateurs:'Rapport d\'activité' },
       { id:'cgmat_aou', periode:'Août', activite:'Préparation de la rentrée scolaire', resultats:'Rentrée préparée', indicateurs:'Liste de vérification' },
+    ],
+    'planification/plan': [
+      { id:'cxpl_1', axe:'Gouvernance', activite:'Installation et renouvellement des bureaux COGES', responsable:'Conseiller COGES', periode:'1er trimestre', budget:'—', statut:'À faire' },
+      { id:'cxpl_2', axe:'Gouvernance', activite:'Élaboration du plan d\'action annuel des COGES', responsable:'Bureau COGES', periode:'Septembre', budget:'—', statut:'À faire' },
+      { id:'cxpl_3', axe:'Renforcement des capacités', activite:'Formation des membres des bureaux COGES', responsable:'Conseiller COGES', periode:'Octobre-Novembre', budget:'—', statut:'À faire' },
+      { id:'cxpl_4', axe:'Gestion administrative et financière', activite:'Tenue des registres et des documents comptables', responsable:'Trésorier / Secrétaire', periode:'Toute l\'année', budget:'—', statut:'À faire' },
+      { id:'cxpl_5', axe:'Mobilisation communautaire', activite:'Sensibilisation des parents et des communautés', responsable:'COGES', periode:'1er-2e trimestre', budget:'—', statut:'À faire' },
+      { id:'cxpl_6', axe:'Infrastructures et équipements', activite:'Identification et suivi des projets d\'infrastructures', responsable:'COGES', periode:'2e trimestre', budget:'—', statut:'À faire' },
+      { id:'cxpl_7', axe:'Suivi-évaluation', activite:'Visites et suivi du fonctionnement des COGES', responsable:'Conseiller COGES', periode:'Toute l\'année', budget:'—', statut:'À faire' },
+      { id:'cxpl_8', axe:'Rapports', activite:'Production des rapports périodiques d\'activité', responsable:'Secrétaire COGES', periode:'Fin de trimestre', budget:'—', statut:'À faire' },
+    ],
+    'planification/calendrier': [
+      { id:'cxcal_sep', date:'2026-09-15', activite:'Installation / mise en place des bureaux COGES', lieu:'Écoles de la circonscription', participants:'Membres COGES', statut:'Prévue' },
+      { id:'cxcal_oct', date:'2026-10-20', activite:'Formation des membres des bureaux COGES', lieu:'IEPP', participants:'Bureaux COGES', statut:'Prévue' },
+      { id:'cxcal_nov', date:'2026-11-18', activite:'Sensibilisation communautaire', lieu:'Communautés', participants:'Parents, COGES', statut:'Prévue' },
+      { id:'cxcal_dec', date:'2026-12-10', activite:'Suivi des projets d\'infrastructures', lieu:'Écoles', participants:'COGES', statut:'Prévue' },
+      { id:'cxcal_jan', date:'2027-01-20', activite:'Bilan à mi-parcours des activités', lieu:'IEPP', participants:'Conseiller COGES, bureaux', statut:'Prévue' },
+      { id:'cxcal_fev', date:'2027-02-17', activite:'Mobilisation des ressources communautaires', lieu:'Communautés', participants:'COGES, partenaires', statut:'Prévue' },
+      { id:'cxcal_mar', date:'2027-03-18', activite:'Visites de suivi des COGES', lieu:'Écoles', participants:'Conseiller COGES', statut:'Prévue' },
+      { id:'cxcal_avr', date:'2027-04-21', activite:'Évaluation des activités du plan', lieu:'IEPP', participants:'Bureaux COGES', statut:'Prévue' },
+      { id:'cxcal_mai', date:'2027-05-19', activite:'Renouvellement des bureaux arrivés à échéance', lieu:'Écoles', participants:'Membres COGES', statut:'Prévue' },
+      { id:'cxcal_jun', date:'2027-06-16', activite:'Bilan annuel et production du rapport', lieu:'IEPP', participants:'Conseiller COGES', statut:'Prévue' },
     ],
     'formation/sessions': [
       { id:'fs1', intitule:'Gestion financière des COGES', theme:'Finances', debut:'2026-02-10', fin:'2026-02-12', lieu:'IEPP TENGRELA', formateur:'M. KONE', participants:24 },
@@ -3300,7 +3346,6 @@ function doLogin() {
     if (_rem && _rem.checked) { localStorage.setItem(KEY+'remember', JSON.stringify({ u: found.username, p: p })); }
     else { localStorage.removeItem(KEY+'remember'); }
   } catch(e){}
-  logAction('login', 'Connexion réussie');
   err.classList.remove('show');
   startApp();
 }
@@ -3357,6 +3402,7 @@ function startApp() {
     target = (me.iepp && me.iepp !== 'TOUTES') ? me.iepp : 'IEPP TENGRELA';
   }
   setActiveIepp(target);
+  try{ logAction('login', 'Connexion réussie'); }catch(e){}
   refreshScopeSelector();
   navigate('dashboard');
 }
@@ -3818,7 +3864,7 @@ function dashScopedData() {
   } else if (u.role === 'superadmin') {
     label = `vue globale (IEPP active : ${state.activeIepp||'—'})`;
   } else {
-    label = `IEPP ${state.activeIepp || ''}`.trim();
+    label = activeIeppLabel();
   }
   return { effectifs, ecoles, personnel, absences, visites, eleves, label };
 }
@@ -3839,7 +3885,7 @@ function renderDashboard() {
   else if (u.role === 'directeur')    heroSubtitle = `Direction de <strong>${escapeHtml(u.ecole||'—')}</strong>. Les chiffres ci-dessous portent sur votre école uniquement.`;
   else if (u.role === 'drenaet')      heroSubtitle = `Direction régionale <strong>${escapeHtml(u.drenaet||'—')}</strong>. Vue de l'IEPP active : <strong>${escapeHtml(state.activeIepp||'—')}</strong> (basculer via le sélecteur en haut).`;
   else if (u.role === 'superadmin')   heroSubtitle = `Grand Administrateur — Vue toutes circonscriptions. IEPP active : <strong>${escapeHtml(state.activeIepp||'—')}</strong>.`;
-  else                                 heroSubtitle = `Système de gestion centralisée — circonscription <strong>${escapeHtml(state.activeIepp || 'IEPP TENGRELA')}</strong>.`;
+  else                                 heroSubtitle = `Système de gestion centralisée — circonscription <strong>${escapeHtml(activeIeppLabel())}</strong>.`;
 
   // Cartes statistiques personnalisées (instituteur/directeur = leurs effectifs ; autres = vue circonscription)
   const isPersonalScope = ['instituteur','directeur'].includes(u.role);
@@ -5240,10 +5286,10 @@ function rapportTrimestriel() {
   const totEl = ef.reduce((a,e)=>a+e.total,0);
   const totEx = ex.reduce((a,r)=>({i:a.i+(+r.inscrits||0),ad:a.ad+(+r.admis||0)}),{i:0,ad:0});
   openAutoReport(
-    { titre:'Rapport trimestriel — IEPP '+(state.activeIepp||'TENGRELA'), sous:'Synthèse de l\'activité du trimestre' },
+    { titre:'Rapport trimestriel — '+activeIeppLabel(), sous:'Synthèse de l\'activité du trimestre' },
     [
       { titre:'1. Introduction', texte: aiPhrase([
-        `Le présent rapport trimestriel rend compte de l'activité de l'IEPP ${state.activeIepp||'Tengrela'} au cours du trimestre.`,
+        `Le présent rapport trimestriel rend compte de l'activité de l'${activeIeppLabel()} au cours du trimestre.`,
         `Il couvre les principaux domaines : pilotage pédagogique, effectifs scolaires, examens et concours, vie scolaire et services.`]) },
       { titre:'2. Effectifs scolaires', texte:`L'IEPP totalise ${totEl.toLocaleString('fr-FR')} élèves répartis sur ${ef.length} entrées d'effectifs déclarées.`,
         tableau:{ head:['École','Niveau','Garçons','Filles','Total'], rows:ef.slice(0,15).map(r=>[r.ecole,r.niveau,r.garcons,r.filles,r.total]) } },
@@ -5266,10 +5312,10 @@ function rapportBilanCEPE() {
   const tot = d.reduce((a,r)=>({i:a.i+(+r.inscrits||0),p:a.p+(+r.presents||0),ad:a.ad+(+r.admis||0)}),{i:0,p:0,ad:0});
   const taux = pctR(tot.ad, tot.p);
   openAutoReport(
-    { titre:'Bilan CEPE — IEPP '+(state.activeIepp||'TENGRELA'), sous:'Examen du Certificat d\'Études Primaires Élémentaires' },
+    { titre:'Bilan CEPE — '+activeIeppLabel(), sous:'Examen du Certificat d\'Études Primaires Élémentaires' },
     [
       { titre:'1. Introduction', texte: aiPhrase([
-        `Ce bilan présente les résultats au CEPE des candidats de l'IEPP ${state.activeIepp||'Tengrela'},`,
+        `Ce bilan présente les résultats au CEPE des candidats de l'${activeIeppLabel()},`,
         `couvrant ${d.length} centre(s) d'examen.`]) },
       { titre:'2. Résultats globaux', texte: aiPhrase([
         `Sur ${tot.i} inscrits, ${tot.p} candidats se sont présentés et ${tot.ad} ont été admis,`,
@@ -7944,7 +7990,7 @@ window.rhPointPrint = function(){
   var d = rhPointDate, rows = rhPointRows(d);
   var trs = rows.map(function(r,i){ return '<tr><td>'+(i+1)+'</td><td>'+escapeHtml(r.nom)+'</td><td>'+escapeHtml(r.fonction)+'</td><td>'+escapeHtml(r.ecole)+'</td><td>'+rhPointMeta(r.statut).label+'</td><td>'+escapeHtml(r.motif)+'</td></tr>'; }).join('');
   var w = window.open('','_blank'); if(!w){ toast('Autorisez les fenêtres pop-up pour imprimer','error'); return; }
-  w.document.write('<html><head><meta charset="utf-8"><title>Pointage '+rhPointFr(d)+'</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h2{color:#0A4DA6;margin:0 0 2px}p{color:#555;margin:0 0 14px;font-size:13px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #999;padding:6px 8px;text-align:left}th{background:#0A4DA6;color:#fff}</style></head><body><h2>Fiche de pointage — '+rhPointFr(d)+'</h2><p>IEPP TENGRELA · DRENAET Boundiali</p><table><thead><tr><th>N°</th><th>Agent</th><th>Fonction</th><th>École</th><th>Statut</th><th>Motif</th></tr></thead><tbody>'+trs+'</tbody></table></body></html>');
+  w.document.write('<html><head><meta charset="utf-8"><title>Pointage '+rhPointFr(d)+'</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h2{color:#0A4DA6;margin:0 0 2px}p{color:#555;margin:0 0 14px;font-size:13px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #999;padding:6px 8px;text-align:left}th{background:#0A4DA6;color:#fff}</style></head><body><h2>Fiche de pointage — '+rhPointFr(d)+'</h2><p>'+activeIeppLabel()+' · '+escapeHtml((state.user&&state.user.drenaet)||'DRENAET Boundiali')+'</p><table><thead><tr><th>N°</th><th>Agent</th><th>Fonction</th><th>École</th><th>Statut</th><th>Motif</th></tr></thead><tbody>'+trs+'</tbody></table></body></html>');
   w.document.close(); setTimeout(function(){ w.print(); }, 300);
 };
 
@@ -10712,8 +10758,17 @@ function cogesGoArea(id){
 }
 function cogesGoLeaf(id){ cogesLeaf = id; cogesRenderArea(); }
 
+function cogesEnsurePlanif(){
+  try{
+    var d=defaultCogesReg();
+    ensureMatriceObj('cogesReg','planification/matrice',(d['planification/matrice']||[]));
+    ensureMatriceObj('cogesReg','planification/plan',(d['planification/plan']||[]));
+    ensureMatriceObj('cogesReg','planification/calendrier',(d['planification/calendrier']||[]));
+  }catch(e){}
+}
 function cogesRenderArea(){
   const host = document.getElementById('coges-area'); if(!host) return;
+  try{ cogesEnsurePlanif(); }catch(e){}
   const area = cogesActiveArea();
   const leaves = area.children || [];
   if (!leaves.find(l=>l.id===cogesLeaf)) cogesLeaf = leaves[0] ? leaves[0].id : '';
@@ -10731,7 +10786,8 @@ function cogesRenderArea(){
     else body = cogesLeafTableHtml(area, leaf);
   }
   host.innerHTML = subbar + `<div id="coges-leaf">${body}</div>`;
-  if (leaf && !['overview','stats','profil'].includes(leaf.kind)) cogesLeafTableBody(area, leaf);
+  if (leaf && leaf.kind==='matrice') { try{ cogesMatriceRenderBody(); }catch(e){} }
+  else if (leaf && !['overview','stats','profil'].includes(leaf.kind)) cogesLeafTableBody(area, leaf);
 }
 
 function cogesLeafTableHtml(area, leaf){
@@ -11687,6 +11743,7 @@ function economatMatriceHtml() {
 }
 
 function economatMatriceRenderBody() {
+  try{ ensureMatriceObj('economatReg','matrice/action', (defaultEconomatReg()['matrice/action']||[])); }catch(e){}
   const tb = document.getElementById('econ-matrice-body'); if (!tb) return;
   const order = ['Septembre','Octobre','Novembre','Décembre','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août'];
   const q = (document.getElementById('econ-matrice-search')?.value || '').toLowerCase();
@@ -13888,6 +13945,7 @@ function smossMatriceHtml() {
     </tr></thead><tbody id="smo-mat-body"></tbody></table></div>`;
 }
 function smossMatriceRenderBody() {
+  try{ ensureMatriceObj('smossReg','matrice/action', (defaultSmossReg()['matrice/action']||[])); }catch(e){}
   const tb=document.getElementById('smo-mat-body'); if(!tb)return;
   const order=['Septembre','Octobre','Novembre','Décembre','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août'];
   const q=(document.getElementById('smo-mat-search')?.value||'').toLowerCase();
@@ -14817,6 +14875,7 @@ function cantineMatriceHtml() {
     </tr></thead><tbody id="cnt-mat-body"></tbody></table></div>`;
 }
 function cantineMatriceRenderBody() {
+  try{ ensureMatriceObj('cantineReg','matrice/action', (defaultCantineReg()['matrice/action']||[])); }catch(e){}
   const tb=document.getElementById('cnt-mat-body'); if(!tb)return;
   const order=['Septembre','Octobre','Novembre','Décembre','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août'];
   const q=(document.getElementById('cnt-mat-search')?.value||'').toLowerCase();
@@ -15366,6 +15425,7 @@ function communicationMatriceHtml() {
     </tr></thead><tbody id="com-mat-body"></tbody></table></div>`;
 }
 function communicationMatriceRenderBody() {
+  try{ ensureMatriceObj('communicationReg','matrice/action', (defaultCommunicationReg()['matrice/action']||[])); }catch(e){}
   const tb=document.getElementById('com-mat-body'); if(!tb)return;
   const order=['Septembre','Octobre','Novembre','Décembre','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août'];
   const q=(document.getElementById('com-mat-search')?.value||'').toLowerCase();
@@ -15682,6 +15742,7 @@ function secretariatMatriceHtml() {
     </tr></thead><tbody id="sec-mat-body"></tbody></table></div>`;
 }
 function secretariatMatriceRenderBody() {
+  try{ ensureMatriceObj('secretariatReg','matrice/action', (defaultSecretariatReg()['matrice/action']||[])); }catch(e){}
   const tb=document.getElementById('sec-mat-body'); if(!tb)return;
   const order=['Septembre','Octobre','Novembre','Décembre','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août'];
   const q=(document.getElementById('sec-mat-search')?.value||'').toLowerCase();
@@ -16779,6 +16840,7 @@ function archivisteMatriceHtml() {
     </tr></thead><tbody id="arx-mat-body"></tbody></table></div>`;
 }
 function archivisteMatriceRenderBody() {
+  try{ ensureMatriceObj('archivisteReg','matrice/action', (defaultArchivisteReg()['matrice/action']||[])); }catch(e){}
   const tb=document.getElementById('arx-mat-body'); if(!tb)return;
   const order=['Septembre','Octobre','Novembre','Décembre','Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août'];
   const q=(document.getElementById('arx-mat-search')?.value||'').toLowerCase();
@@ -17694,7 +17756,7 @@ function renderEtatCompositions() {
   const canEdit = compoCanEdit();
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,#7B2CBF 0%,#4A1376 100%)">
-      <h3>État des <em>compositions</em> — IEPP TENGRELA</h3>
+      <h3>État des <em>compositions</em> — ${activeIeppLabel()}</h3>
       <p>Résultats des compositions par école et par niveau (CP1 → CM2). Saisissez les Inscrits, Absents et Admis (Garçons/Filles) ; les Présents, Échecs et les taux d'admission/échec sont calculés automatiquement. Ajout, modification, suppression, import/export Excel et impression.</p>
     </div>
 
@@ -17747,7 +17809,7 @@ function renderEtatCompositions() {
       </div>
     </div>
     <div style="display:flex;justify-content:flex-end;margin-top:12px;font-style:italic;color:var(--ink-soft);font-size:12.5px">
-      <span>IEPP TENGRELA — Composition ${compoCur} · ${new Date().toLocaleDateString('fr-FR')}</span>
+      <span>${activeIeppLabel()} — Composition ${compoCur} · ${new Date().toLocaleDateString('fr-FR')}</span>
     </div>
   `);
   renderCompoBody();
@@ -17912,12 +17974,12 @@ function compoPrint(){
   const T={ins:0,abs:0,pre:0,adm:0,ech:0}; list.forEach(r=>{const c=compoCalc(r);['ins','abs','pre','adm','ech'].forEach(k=>T[k]+=c[k]);});
   const w=window.open('','_blank');
   if(!w){ toast('Autorisez les fenêtres pop-up pour imprimer','error'); return; }
-  w.document.write(`<html><head><title>État Composition ${compoCur} — IEPP TENGRELA</title>
+  w.document.write(`<html><head><title>État Composition ${compoCur} — ${activeIeppLabel()}</title>
     <style>body{font-family:Arial,sans-serif;padding:18px;color:#1A1B25}h2{text-align:center;margin:2px}
     .s{text-align:center;color:#555;margin-bottom:12px;font-size:13px}
     table{border-collapse:collapse;width:100%;font-size:11px}th,td{border:1px solid #999;padding:4px 6px;text-align:center}
     th{background:#EFE0FA}tr:last-child{font-weight:bold;background:#f0f0f0}.foot{margin-top:18px;text-align:right;font-style:italic}</style></head><body>
-    <h2>ÉTAT DE LA COMPOSITION N°${compoCur} — IEPP TENGRELA</h2>
+    <h2>ÉTAT DE LA COMPOSITION N°${compoCur} — ${activeIeppLabel()}</h2>
     <div class="s">Année scolaire ${new Date().getFullYear()-1}-${new Date().getFullYear()} · Résultats par école et par niveau</div>
     <table><thead><tr><th>N°</th><th>École</th><th>Niveau</th><th>Inscrits</th><th>Absents</th><th>Présents</th><th>Admis</th><th>Échecs</th><th>Matière faible</th><th>% Adm</th><th>% Éch</th></tr></thead>
     <tbody>${rowsHtml}<tr><td colspan="3">TOTAL</td><td>${T.ins}</td><td>${T.abs}</td><td>${T.pre}</td><td>${T.adm}</td><td>${T.ech}</td><td></td><td>${pct(T.adm,T.pre)}%</td><td>${pct(T.ech,T.pre)}%</td></tr></tbody></table>
@@ -18176,7 +18238,7 @@ function openAutoReport(meta, sections) {
     <div class="doc" id="doc" contenteditable="true">
       <div class="hd" contenteditable="false">
         <div class="min">Ministère de l'Éducation Nationale, de l'Alphabétisation et de l'Enseignement Technique</div>
-        <div class="min">IEPP ${escapeHtml(state.activeIepp||'TENGRELA')}</div>
+        <div class="min">${escapeHtml(activeIeppLabel())}</div>
         <h1>${escapeHtml(meta.titre)}</h1>
         <div class="sub">${escapeHtml(meta.sous||'')}</div>
       </div>
@@ -18210,7 +18272,7 @@ function reportExamens() {
     { titre:'Rapport — Examens & Concours', sous:`${d.length} centre(s) · synthèse des résultats` },
     [
       { titre:'1. Introduction', texte: aiPhrase([
-        `Le présent rapport dresse la synthèse des examens et concours suivis par l'IEPP ${state.activeIepp||'Tengrela'}.`,
+        `Le présent rapport dresse la synthèse des examens et concours suivis par l'${activeIeppLabel()}.`,
         `Il porte sur ${d.length} centre(s) d'examen totalisant ${tot.i} inscrit(s).`]) },
       { titre:'2. Résultats globaux', texte: aiPhrase([
         `Sur ${tot.i} candidats inscrits, ${tot.p} se sont présentés et ${tot.ad} ont été admis,`,
@@ -18234,7 +18296,7 @@ function reportCPI() {
     { titre:'Rapport — Visites de classe (CPI)', sous:`${d.length} visite(s) pédagogique(s)` },
     [
       { titre:'1. Contexte', texte: aiPhrase([
-        `Ce rapport rend compte des visites de classe conduites par les Conseillers Pédagogiques de l'IEPP ${state.activeIepp||'Tengrela'}.`,
+        `Ce rapport rend compte des visites de classe conduites par les Conseillers Pédagogiques de l'${activeIeppLabel()}.`,
         `Au total, ${d.length} visite(s) ont été réalisée(s).`]) },
       { titre:'2. Synthèse des observations', texte: aiPhrase([
         moy?`La note moyenne attribuée aux enseignants visités est de ${moy}/20.`:'',
@@ -18256,7 +18318,7 @@ function reportVieScolaire() {
     { titre:'Rapport — Vie scolaire', sous:`${d.length} demande(s) / dossier(s) suivi(s)` },
     [
       { titre:'1. Objet', texte: aiPhrase([
-        `Le présent rapport présente le suivi de la vie scolaire de l'IEPP ${state.activeIepp||'Tengrela'},`,
+        `Le présent rapport présente le suivi de la vie scolaire de l'${activeIeppLabel()},`,
         `notamment la gestion des absences et des demandes administratives (${d.length} dossier(s)).`]) },
       { titre:'2. État des dossiers', texte: aiPhrase([
         `Sur ${d.length} demande(s), ${validees} ont été validée(s) et ${enAttente} sont en attente de traitement.`]),
@@ -18673,7 +18735,7 @@ function renderMatrice() {
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,var(--orange) 0%,var(--orange-deep) 100%)">
       <h3>Matrice d'<em>activités</em> du Correspondant Fichier</h3>
-      <p>Plan d'activités annuel du Service de la Scolarité et des Statistiques — IEPP TENGRELA · DRENAET BOUNDIALI · MENAET. Document modifiable, imprimable, importable et exportable en Excel.</p>
+      <p>Plan d'activités annuel du Service de la Scolarité et des Statistiques — ${activeIeppLabel()} · ${escapeHtml((state.user&&state.user.drenaet)||'DRENAET Boundiali')} · MENAET. Document modifiable, imprimable, importable et exportable en Excel.</p>
     </div>
 
     <div class="toolbar">
@@ -18908,6 +18970,7 @@ function svcMatFiltered(svc) {
   return list;
 }
 function renderServiceMatriceBody(svc) {
+  try{ ensureSvcMat(svc); }catch(e){}
   const cfg = SERVICES[svc];
   const canEdit = svcCanEdit();
   const list = svcMatFiltered(svc);
@@ -19063,6 +19126,7 @@ function svcPermFiltered(svc) {
   return list;
 }
 function renderServicePermBody(svc) {
+  try{ ensureSvcPerm(svc); }catch(e){}
   const canEdit = svcCanEdit();
   const list = svcPermFiltered(svc);
   const tb = document.getElementById('svcp-body');
@@ -19159,7 +19223,7 @@ function renderFichierEcoles() {
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,var(--blue) 0%,var(--blue-deep) 100%)">
       <h3>Fichier des <em>écoles</em> avec codes d'identification</h3>
-      <p>Gestion centralisée des établissements scolaires de l'IEPP TENGRELA : ajout, modification, suppression. Import / export Excel et sélection multiple pris en charge.</p>
+      <p>Gestion centralisée des établissements scolaires de l'${activeIeppLabel()} : ajout, modification, suppression. Import / export Excel et sélection multiple pris en charge.</p>
     </div>
 
     <div class="toolbar">
@@ -19246,7 +19310,7 @@ function exportEcolesCSV() { exportEcolesExcel(); }
 /* ----- Aperçu PDF / Word / Impression — Fichier des écoles ----- */
 function fecExportList() { return fecFiltered(); }
 function fecPrint() {
-  const list = fecExportList(); const ieppName = state.activeIepp || 'IEPP TENGRELA';
+  const list = fecExportList(); const ieppName = activeIeppLabel();
   const w = window.open('', '_blank'); if (!w) { toast('Autorisez les pop-up', 'error'); return; }
   const totEff = list.reduce((a,e)=>a+(+e.effectif||0),0);
   const totCl = list.reduce((a,e)=>a+(+e.classes||0),0);
@@ -19255,7 +19319,7 @@ function fecPrint() {
   w.document.close();
 }
 function fecWord() {
-  const list = fecExportList(); const ieppName = state.activeIepp || 'IEPP TENGRELA';
+  const list = fecExportList(); const ieppName = activeIeppLabel();
   const totEff = list.reduce((a,e)=>a+(+e.effectif||0),0);
   const totCl = list.reduce((a,e)=>a+(+e.classes||0),0);
   const head = ['Code école','Nom','Commune','Directeur','Effectif','Classes','Statut'].map(h=>`<th style="background:#1F4E79;color:#fff;border:1px solid #999;padding:6px">${h}</th>`).join('');
@@ -19266,7 +19330,7 @@ function fecWord() {
   document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(url), 1000); toast('Document Word généré ✓', 'success');
 }
 function fecPdfView() {
-  const list = fecExportList(); const ieppName = state.activeIepp || 'IEPP TENGRELA';
+  const list = fecExportList(); const ieppName = activeIeppLabel();
   const logo = (typeof ARMOIRIE_MENAET_B64 !== 'undefined') ? ARMOIRIE_MENAET_B64 : '';
   const totEff = list.reduce((a,e)=>a+(+e.effectif||0),0);
   const totCl = list.reduce((a,e)=>a+(+e.classes||0),0);
@@ -19840,7 +19904,7 @@ function renderStatRecrutement() {
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,var(--orange) 0%,var(--orange-deep) 100%)">
       <h3>Points de <em>recrutement</em> · CP1 et Préscolaire</h3>
-      <p>Année scolaire 2026-2027 — IEPP TENGRELA. Saisie école par école des présentés, recrutés, refusés et redoublants. ${canEdit?'Ajout, modification, suppression et impression du point par jour ou par semaine.':''}</p>
+      <p>Année scolaire 2026-2027 — ${activeIeppLabel()}. Saisie école par école des présentés, recrutés, refusés et redoublants. ${canEdit?'Ajout, modification, suppression et impression du point par jour ou par semaine.':''}</p>
     </div>
 
     <div class="tabs">
@@ -20094,7 +20158,7 @@ function recImport(scope, ev) {
 function recPrint(scope) {
   const table = document.getElementById('rec-'+scope+'-table');
   if (!table) { window.print(); return; }
-  const titre = (scope==='cp1'?'POINT DE RECRUTEMENT CP1':'POINT DE RECRUTEMENT PRÉSCOLAIRE') + ' — IEPP TENGRELA';
+  const titre = (scope==='cp1'?'POINT DE RECRUTEMENT CP1':'POINT DE RECRUTEMENT PRÉSCOLAIRE') + ' — '+activeIeppLabel();
   const sous = recScopeLabel(scope);
   const w = window.open('', '_blank');
   w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>${titre}</title>
@@ -20123,19 +20187,19 @@ function renderRecrutementSynthese() {
   tMat.i = tMat.d - tMat.n;
   return `
     <div class="card mb-3">
-      <div class="card-header"><div><div class="card-title">Synthèse des inscriptions au CP1 et au Préscolaire</div><div class="card-sub">Année scolaire 2026-2027 — IEPP TENGRELA</div></div></div>
+      <div class="card-header"><div><div class="card-title">Synthèse des inscriptions au CP1 et au Préscolaire</div><div class="card-sub">Année scolaire 2026-2027 — ${activeIeppLabel()}</div></div></div>
       <div style="margin-bottom:18px">
         <h4 style="font-family:'Fraunces',serif;color:var(--blue-deep);margin-bottom:8px">I — Points des recrutements au CP1</h4>
         <table style="width:100%;border-collapse:collapse">
           <thead><tr style="background:var(--blue-soft)"><th style="padding:8px;text-align:left">IEPP</th><th style="padding:8px">Demandes</th><th style="padding:8px">Inscrits</th><th style="padding:8px">Non-inscrits</th><th style="padding:8px;text-align:left">Raisons</th></tr></thead>
-          <tbody><tr><td style="padding:8px" class="fw-7">TENGRELA</td><td style="padding:8px;text-align:center;font-weight:700">${tCP1.d}</td><td style="padding:8px;text-align:center;font-weight:700;color:var(--green-deep)">${tCP1.i}</td><td style="padding:8px;text-align:center;font-weight:700;color:var(--danger)">${tCP1.n}</td><td style="padding:8px;font-size:12px;font-style:italic">Enfants trop jeunes et capacité d'accueil insuffisante</td></tr></tbody>
+          <tbody><tr><td style="padding:8px" class="fw-7">${activeIeppShort()}</td><td style="padding:8px;text-align:center;font-weight:700">${tCP1.d}</td><td style="padding:8px;text-align:center;font-weight:700;color:var(--green-deep)">${tCP1.i}</td><td style="padding:8px;text-align:center;font-weight:700;color:var(--danger)">${tCP1.n}</td><td style="padding:8px;font-size:12px;font-style:italic">Enfants trop jeunes et capacité d'accueil insuffisante</td></tr></tbody>
         </table>
       </div>
       <div>
         <h4 style="font-family:'Fraunces',serif;color:var(--orange-deep);margin-bottom:8px">II — Points des recrutements au Préscolaire</h4>
         <table style="width:100%;border-collapse:collapse">
           <thead><tr style="background:var(--orange-soft)"><th style="padding:8px;text-align:left">IEPP</th><th style="padding:8px">Demandes</th><th style="padding:8px">Inscrits</th><th style="padding:8px">Non-inscrits</th><th style="padding:8px;text-align:left">Raisons</th></tr></thead>
-          <tbody><tr><td style="padding:8px" class="fw-7">TENGRELA</td><td style="padding:8px;text-align:center;font-weight:700">${tMat.d}</td><td style="padding:8px;text-align:center;font-weight:700;color:var(--green-deep)">${tMat.i}</td><td style="padding:8px;text-align:center;font-weight:700;color:var(--danger)">${tMat.n}</td><td style="padding:8px;font-size:12px;font-style:italic">Enfants trop jeunes</td></tr></tbody>
+          <tbody><tr><td style="padding:8px" class="fw-7">${activeIeppShort()}</td><td style="padding:8px;text-align:center;font-weight:700">${tMat.d}</td><td style="padding:8px;text-align:center;font-weight:700;color:var(--green-deep)">${tMat.i}</td><td style="padding:8px;text-align:center;font-weight:700;color:var(--danger)">${tMat.n}</td><td style="padding:8px;font-size:12px;font-style:italic">Enfants trop jeunes</td></tr></tbody>
         </table>
       </div>
       <div style="text-align:right;margin-top:18px;font-style:italic;color:var(--ink-soft);font-size:13px">Fait à Tengrela, le ${new Date().toLocaleDateString('fr-FR')}</div>
@@ -20249,7 +20313,7 @@ function renderStatSituation() {
   try { ensureStatSitPreconcu(); } catch(e){}
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,var(--blue) 0%,var(--blue-deep) 100%)">
-      <h3>Situation <em>statistique</em> de l'IEPP TENGRELA</h3>
+      <h3>Situation <em>statistique</em> de l'${activeIeppLabel()}</h3>
       <p>Reproduction fidèle de la fiche officielle DESPS : <strong>I.</strong> Situation statistique (écoles, classes, élèves) · <strong>II.</strong> État des niveaux (nombre de classes) · <strong>III.</strong> État des effectifs par niveaux. Chaque tableau est entièrement modifiable (ajout, modification, suppression, import/export Excel-Word-PDF, impression). Les effectifs (section III) peuvent être synchronisés depuis « État des effectifs ».</p>
     </div>
 
@@ -20601,7 +20665,7 @@ function statSitExportRows(key) {
 function statSitTitle(key){ return STATSIT_CFG[key].titre; }
 function statSitExcel(key){ exportRowsToExcel(statSitExportRows(key),'situation_'+key,statSitTitle(key).slice(0,28)); }
 function statSitWord(key) {
-  const rows=statSitExportRows(key); const ieppName=state.activeIepp||'IEPP TENGRELA';
+  const rows=statSitExportRows(key); const ieppName=activeIeppLabel();
   const cols=rows.length?Object.keys(rows[0]):['Libellé'];
   const head=cols.map(c=>`<th style="background:var(--blue,#1F4E79);color:#fff;border:1px solid #999;padding:6px">${escapeHtml(c)}</th>`).join('').replace(/var\(--blue,#1F4E79\)/g,'#1F4E79');
   const bd=rows.map(r=>`<tr>${cols.map(c=>`<td style="border:1px solid #999;padding:6px">${escapeHtml(String(r[c]??''))}</td>`).join('')}</tr>`).join('');
@@ -20609,7 +20673,7 @@ function statSitWord(key) {
   const blob=new Blob(['\ufeff',html],{type:'application/msword'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='Situation_'+key+'.doc';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Word généré ✓','success');
 }
 function statSitPrint(key) {
-  const rows=statSitExportRows(key); const ieppName=state.activeIepp||'IEPP TENGRELA';
+  const rows=statSitExportRows(key); const ieppName=activeIeppLabel();
   const w=window.open('','_blank'); if(!w){toast('Autorisez les pop-up','error');return;}
   const cols=rows.length?Object.keys(rows[0]):['Libellé'];
   const head=cols.map(c=>`<th>${escapeHtml(c)}</th>`).join('');
@@ -20618,7 +20682,7 @@ function statSitPrint(key) {
   w.document.close();
 }
 function statSitPdfView(key) {
-  const rows=statSitExportRows(key); const ieppName=state.activeIepp||'IEPP TENGRELA';
+  const rows=statSitExportRows(key); const ieppName=activeIeppLabel();
   const logo=(typeof ARMOIRIE_MENAET_B64!=='undefined')?ARMOIRIE_MENAET_B64:'';
   const cols=rows.length?Object.keys(rows[0]):['Libellé'];
   const head=cols.map(c=>`<th style="padding:7px;border:1px solid #1F4E79;font-size:11px">${escapeHtml(c)}</th>`).join('');
@@ -20699,7 +20763,7 @@ function statSitAllSectionsHtml(forPrint) {
   }).join('');
 }
 function statSitPrintAll() {
-  const ieppName=state.activeIepp||'IEPP TENGRELA';
+  const ieppName=activeIeppLabel();
   const w=window.open('','_blank'); if(!w){toast('Autorisez les pop-up','error');return;}
   w.document.write(`<html><head><meta charset="utf-8"><title>Situation statistique complète</title><style>body{font-family:Arial,sans-serif;margin:18px;color:#1F2937}h2{color:#1F4E79;text-align:center}@page{size:landscape}@media print{button{display:none}}</style></head><body>
     <div style="text-align:center;font-size:11px;color:#555">République de Côte d'Ivoire · MENAET · ${escapeHtml(ieppName)}</div>
@@ -20710,7 +20774,7 @@ function statSitPrintAll() {
   w.document.close();
 }
 function statSitWordAll() {
-  const ieppName=state.activeIepp||'IEPP TENGRELA';
+  const ieppName=activeIeppLabel();
   const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Situation statistique</title></head><body>
     <p style="text-align:center;font-size:11px">République de Côte d'Ivoire · MENAET · ${escapeHtml(ieppName)}</p>
     <h2 style="color:#1F4E79;text-align:center">Situation statistique complète</h2>
@@ -20719,7 +20783,7 @@ function statSitWordAll() {
   const blob=new Blob(['\ufeff',html],{type:'application/msword'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='Situation_statistique_complete.doc';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Word complet généré ✓','success');
 }
 function statSitPdfViewAll() {
-  const ieppName=state.activeIepp||'IEPP TENGRELA';
+  const ieppName=activeIeppLabel();
   const logo=(typeof ARMOIRIE_MENAET_B64!=='undefined')?ARMOIRIE_MENAET_B64:'';
   const content=`<div style="max-width:1500px;max-height:90vh;overflow:auto;background:white;padding:22px;border-radius:6px">
     <div style="text-align:center;border-bottom:2px solid #1F4E79;padding-bottom:10px;margin-bottom:8px">${logo?`<img src="${logo}" style="max-width:230px;margin-bottom:6px">`:''}
@@ -20935,7 +20999,7 @@ function effrExportRows(level){
 function effrTitle(level){ return level==='mater'?'État des effectifs — Maternelle':'État des effectifs — Primaire'; }
 function effrExcel(level){ exportRowsToExcel(effrExportRows(level),'etat_effectifs_'+level,effrTitle(level).slice(0,28)); }
 function effrWord(level){
-  const rows=effrExportRows(level); const m=effrMeta(level); const ieppName=state.activeIepp||'IEPP TENGRELA';
+  const rows=effrExportRows(level); const m=effrMeta(level); const ieppName=activeIeppLabel();
   const cols=rows.length?Object.keys(rows[0]):['Cours'];
   const head=cols.map(c=>`<th style="background:#1F7A33;color:#fff;border:1px solid #999;padding:5px;font-size:8pt">${escapeHtml(c)}</th>`).join('');
   const bd=rows.map(r=>`<tr>${cols.map(c=>`<td style="border:1px solid #999;padding:5px;font-size:8pt">${escapeHtml(String(r[c]??''))}</td>`).join('')}</tr>`).join('');
@@ -20943,7 +21007,7 @@ function effrWord(level){
   const blob=new Blob(['\ufeff',html],{type:'application/msword'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='Etat_effectifs_'+level+'.doc';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Word généré ✓','success');
 }
 function effrPrint(level){
-  const rows=effrExportRows(level); const m=effrMeta(level); const ieppName=state.activeIepp||'IEPP TENGRELA';
+  const rows=effrExportRows(level); const m=effrMeta(level); const ieppName=activeIeppLabel();
   const w=window.open('','_blank'); if(!w){toast('Autorisez les pop-up','error');return;}
   const cols=rows.length?Object.keys(rows[0]):['Cours'];
   const head=cols.map(c=>`<th>${escapeHtml(c)}</th>`).join('');
@@ -20952,7 +21016,7 @@ function effrPrint(level){
   w.document.close();
 }
 function effrPdfView(level){
-  const rows=effrExportRows(level); const m=effrMeta(level); const ieppName=state.activeIepp||'IEPP TENGRELA';
+  const rows=effrExportRows(level); const m=effrMeta(level); const ieppName=activeIeppLabel();
   const logo=(typeof ARMOIRIE_MENAET_B64!=='undefined')?ARMOIRIE_MENAET_B64:'';
   const cols=rows.length?Object.keys(rows[0]):['Cours'];
   const head=cols.map(c=>`<th style="padding:5px;border:1px solid #1F7A33;font-size:10px">${escapeHtml(c)}</th>`).join('');
@@ -20991,7 +21055,7 @@ function renderStatEffectifs() {
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,var(--green) 0%,var(--green-deep) 100%)">
       <h3>État de l'<em>effectif</em> par niveau et par école</h3>
-      <p>Tableaux statistiques éditables — préscolaire (MPS/MMS/MGS) et primaire (CP1→CM2), saisis école par école — IEPP TENGRELA. Le Correspondant statistique peut corriger les données : ajout, modification, suppression, puis synchronisation à partir des remontées des écoles.</p>
+      <p>Tableaux statistiques éditables — préscolaire (MPS/MMS/MGS) et primaire (CP1→CM2), saisis école par école — ${activeIeppLabel()}. Le Correspondant statistique peut corriger les données : ajout, modification, suppression, puis synchronisation à partir des remontées des écoles.</p>
     </div>
 
     ${canEdit ? `<div class="card" style="border-left:4px solid var(--green);margin-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
@@ -21573,7 +21637,7 @@ function sansExtExportRows(){
 }
 function sansExtExcel(){ exportRowsToExcel(sansExtExportRows(),'eleves_sans_extrait','Sans extrait'); }
 function sansExtWord(){
-  const rows=sansExtExportRows(); const ieppName=state.activeIepp||'IEPP TENGRELA';
+  const rows=sansExtExportRows(); const ieppName=activeIeppLabel();
   const cols=['Matricule','Nom','Prénoms','Sexe','Date naissance','École','Niveau','Père','Mère','Téléphone'];
   const head=cols.map(c=>`<th style="background:#C72760;color:#fff;border:1px solid #999;padding:5px;font-size:10pt">${escapeHtml(c)}</th>`).join('');
   const bd=rows.map(r=>`<tr>${cols.map(c=>`<td style="border:1px solid #999;padding:5px;font-size:9pt">${escapeHtml(String(r[c]??''))}</td>`).join('')}</tr>`).join('');
@@ -21581,7 +21645,7 @@ function sansExtWord(){
   const blob=new Blob(['\ufeff',html],{type:'application/msword'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='Eleves_sans_extrait.doc';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Word généré ✓','success');
 }
 function sansExtPrint(){
-  const rows=sansExtExportRows(); const ieppName=state.activeIepp||'IEPP TENGRELA';
+  const rows=sansExtExportRows(); const ieppName=activeIeppLabel();
   const w=window.open('','_blank'); if(!w){toast('Autorisez les pop-up','error');return;}
   const cols=['Matricule','Nom','Prénoms','Sexe','Date naissance','École','Niveau','Père','Mère','Téléphone'];
   const head=cols.map(c=>`<th>${escapeHtml(c)}</th>`).join('');
@@ -21590,7 +21654,7 @@ function sansExtPrint(){
   w.document.close();
 }
 function sansExtPdfView(){
-  const rows=sansExtExportRows(); const ieppName=state.activeIepp||'IEPP TENGRELA';
+  const rows=sansExtExportRows(); const ieppName=activeIeppLabel();
   const logo=(typeof ARMOIRIE_MENAET_B64!=='undefined')?ARMOIRIE_MENAET_B64:'';
   const cols=['Matricule','Nom','Prénoms','Sexe','Date naissance','École','Niveau','Téléphone'];
   const head=cols.map(c=>`<th style="padding:7px;border:1px solid #C72760;font-size:11px">${escapeHtml(c)}</th>`).join('');
@@ -22251,7 +22315,7 @@ function renderCarteScolaire(type) {
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,var(--${m.color}) 0%,var(--${m.color}-deep) 100%)">
       <h3>${m.icon} Carte scolaire — <em>${m.titre}</em></h3>
-      <p>Établissements ${m.titre.toLowerCase()}s de la circonscription IEPP TENGRELA. ${canEdit?'Formulaire de remplissage : ajout, modification, suppression, import/export Excel et impression.':'Liste des établissements remontés.'}</p>
+      <p>Établissements ${m.titre.toLowerCase()}s de la circonscription ${activeIeppLabel()}. ${canEdit?'Formulaire de remplissage : ajout, modification, suppression, import/export Excel et impression.':'Liste des établissements remontés.'}</p>
     </div>
     <div id="carte-stats-${type}" class="stat-grid"></div>
     <div class="toolbar no-print">
@@ -22336,7 +22400,7 @@ function carteSelectAllDelete(type) {
 }
 function carteForm(type, id) {
   const m = CARTE_META[type];
-  const e = id ? state.carteScolaire.find(x=>x.id===id) : { niveau:type, statut:'Public', zone:'U', iepp:'TENGRELA' };
+  const e = id ? state.carteScolaire.find(x=>x.id===id) : { niveau:type, statut:'Public', zone:'U', iepp:activeIeppShort() };
   const fld = (k,lab,opts)=>{
     if (k==='statut') return `<div class="field"><label>Statut</label><select id="cf-statut">${['Public','Privé','Communautaire'].map(s=>`<option ${e.statut===s?'selected':''}>${s}</option>`).join('')}</select></div>`;
     if (k==='zone') return `<div class="field"><label>Zone</label><select id="cf-zone"><option value="U" ${e.zone==='U'?'selected':''}>Urbaine (U)</option><option value="R" ${e.zone==='R'?'selected':''}>Rurale (R)</option></select></div>`;
@@ -22367,7 +22431,7 @@ function carteSave(type, id) {
   if (!denomination) { toast("La dénomination de l'école est obligatoire",'error'); return; }
   const g = k => { const el=document.getElementById('cf-'+k); return el?el.value.trim():''; };
   const data = {
-    niveau:type, iepp:'TENGRELA', denomination,
+    niveau:type, iepp:activeIeppShort(), denomination,
     localite:g('localite'), sprefecture:g('sprefecture'), zone:g('zone'), statut:g('statut'),
     effectif:nint(g('effectif')), classes:nint(g('classes')),
     departement:g('departement'), superficie:g('superficie'), population:g('population'),
@@ -22397,7 +22461,7 @@ function carteDelete(type, id) {
 function carteExport(type) {
   const rows = carteFiltered(type).map((e,i)=>({
     'N°':i+1, 'Département':e.departement||'', 'S/Préfecture ou Commune':e.sprefecture||'', 'Localité':e.localite||'',
-    'IEPP':e.iepp||'TENGRELA', "Dénomination de l'école":e.denomination||'', 'Zone':e.zone||'', 'Statut':e.statut||'',
+    'IEPP':e.iepp||activeIeppShort(), "Dénomination de l'école":e.denomination||'', 'Zone':e.zone||'', 'Statut':e.statut||'',
     'Effectif':nint(e.effectif), 'Classes':nint(e.classes), 'Superficie':e.superficie||'', 'Population (6-11 ans)':e.population||'',
     "Date d'ouverture":e.dateOuverture||'', 'Financement':e.financement||'', 'Coût estimatif':e.cout||'', 'Observations':e.observations||''
   }));
@@ -22411,7 +22475,7 @@ function carteImport(type, ev) {
       const denomination = pick(raw,['denomination','ecole','nom','etablissement']);
       if (!denomination || /neant/i.test(denomination)) return;
       state.carteScolaire.push({
-        id:'cs-'+uid()+'_'+(n++), niveau:type, iepp:pick(raw,['iepp'])||'TENGRELA',
+        id:'cs-'+uid()+'_'+(n++), niveau:type, iepp:pick(raw,['iepp'])||activeIeppShort(),
         denomination,
         localite:pick(raw,['localite']), sprefecture:pick(raw,['sprefecture','commune','prefecture']),
         zone:(pick(raw,['zone'])||'').toUpperCase().slice(0,1)||'',
@@ -22444,7 +22508,7 @@ function cartePrint(type) {
       .no-print{display:none !important}
       .foot{margin-top:16px;text-align:right;font-style:italic;font-size:11px}
     </style></head><body>
-    <h1>CARTE SCOLAIRE — ${m.titre.toUpperCase()} — IEPP TENGRELA</h1>
+    <h1>CARTE SCOLAIRE — ${m.titre.toUpperCase()} — ${activeIeppLabel()}</h1>
     <div class="sub">Année scolaire 2026-2027 — ${carteList(type).length} établissement(s)</div>
     ${table.outerHTML}
     <div class="foot">Fait à Tengrela, le ${new Date().toLocaleDateString('fr-FR')}</div>
@@ -22829,7 +22893,7 @@ function reportPnapas(){
     { titre:'Rapport — Activités PNAPAS (Pré-test / Post-test / Évaluation)', sous:`${(state.pnapasResponses||[]).length} réponse(s) collectée(s)` },
     [
       { titre:'1. Introduction', texte: aiPhrase([
-        `Ce rapport présente les résultats du dispositif PNAPAS pour l'IEPP ${state.activeIepp||'Tengrela'}.`,
+        `Ce rapport présente les résultats du dispositif PNAPAS pour l'${activeIeppLabel()}.`,
         `Il s'appuie sur ${s.pre.length} réponse(s) au pré-test, ${s.post.length} au post-test et ${s.ev.length} évaluation(s) de la formation.`]) },
       { titre:'2. Résultats Pré-test / Post-test', texte: aiPhrase([
         `Le score moyen passe de ${s.preAvg}/${s.max} au pré-test à ${s.postAvg}/${s.max} au post-test,`,
@@ -25833,7 +25897,7 @@ function pnapasGuestFill() {
   const sb = document.querySelector('.sidebar'); if (sb) sb.style.display='none';
   const tb = document.querySelector('.topbar'); if (tb) tb.style.display='none';
   const main = document.querySelector('.main'); if (main) main.style.margin='0';
-  if (!state.user) state.user = { name:'Invité', role:'invite', iepp:(state.activeIepp||'IEPP TENGRELA'), drenaet:'' };
+  if (!state.user) state.user = { name:'Invité', role:'invite', iepp:(activeIeppLabel()), drenaet:'' };
   if (!state.pnapasForm || !state.pnapasForm.questions) state.pnapasForm = load('pnapasForm', defaultPnapasForm());
   const c = document.getElementById('content');
   c.innerHTML = `
@@ -26255,7 +26319,7 @@ function guideSections() {
 }
 function guideInnerHtml(forPrint) {
   const u = state.user || {};
-  const ieppName = state.activeIepp || 'IEPP TENGRELA';
+  const ieppName = activeIeppLabel();
   const logo = (typeof ARMOIRIE_MENAET_B64 !== 'undefined') ? ARMOIRIE_MENAET_B64 : '';
   const secs = guideSections().map(s=>`
     <section style="margin-bottom:16px;page-break-inside:avoid">
@@ -26306,7 +26370,7 @@ function downloadGuidePDF() {
    Les COMPTES (globaux) ne sont pas touchés.
    ================================================================== */
 function openResetCirconscription() {
-  var ieppName = (typeof state!=='undefined' && state.activeIepp) ? state.activeIepp : 'IEPP TENGRELA';
+  var ieppName = activeIeppLabel();
   var role = (typeof state!=='undefined' && state.user) ? state.user.role : '';
   var allowed = ['superadmin'];
   if (typeof openModal !== 'function') { if(role==='superadmin' && confirm('Réinitialiser les données de '+ieppName+' ?')) doResetCirconscription(); return; }
