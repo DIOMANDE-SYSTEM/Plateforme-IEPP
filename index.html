@@ -1367,6 +1367,9 @@ function vieResetAllData() {
           <div class="sb-link" data-module="carte-secondaire" onclick="navigate('carte-secondaire')">
             <span class="sb-icon">🎓</span><span>Secondaire</span>
           </div>
+          <div class="sb-link" data-module="carte-rapport" onclick="navigate('carte-rapport')">
+            <span class="sb-icon">📝</span><span>Rapport d'activité</span>
+          </div>
         </div>
       </div>
 
@@ -1577,7 +1580,7 @@ const CORRESPONDANT_MODULES = [
   'comptes-correspondant','immatriculation',
   'matrice','fichier-ecoles','fichier-eleves','cartes-scolaires',
   'stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','fiche-prescolaire','fiche-primaire','fiche-alphabetisation','fiche-islamique','fiche-generateur',
-  'carte-prescolaire','carte-primaire','carte-secondaire',
+  'carte-prescolaire','carte-primaire','carte-secondaire','carte-rapport',
   'pnapas','aser','aser-livret','aser-ace','etat-compositions','perroquet-notes'
 ];
 
@@ -1594,10 +1597,10 @@ const ACL = {
   /* Grand Administrateur National : voit le module DRENAET (pilotage national multi-IEPP) + accès complet */
   superadmin:   ['dashboard','corbeille','drenaet','statistiques','rapports','ecoles','examens','cpi','vie-scolaire','rh','absences','coges','economat','courrier','archives','archiviste','secretariat','communication','cantine','smoss','users','audit','parametres', ...CORRESPONDANT_MODULES],
   /* Directeur DRENAET : voit le module DRENAET mais limité à sa région + tout sauf comptes utilisateurs nationaux */
-  drenaet:      ['dashboard','corbeille','drenaet','statistiques','rapports','ecoles','examens','cpi','rh','absences','coges','courrier','archives','audit','parametres','users','stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','fiche-prescolaire','fiche-primaire','fiche-alphabetisation','fiche-islamique','fiche-generateur','carte-prescolaire','carte-primaire','carte-secondaire','pnapas','aser','aser-livret','aser-ace','etat-compositions','perroquet-notes'],
+  drenaet:      ['dashboard','corbeille','drenaet','statistiques','rapports','ecoles','examens','cpi','rh','absences','coges','courrier','archives','audit','parametres','users','stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','fiche-prescolaire','fiche-primaire','fiche-alphabetisation','fiche-islamique','fiche-generateur','carte-prescolaire','carte-primaire','carte-secondaire','carte-rapport','pnapas','aser','aser-livret','aser-ace','etat-compositions','perroquet-notes'],
   /* Inspecteur IEPP : voit son IEPP, pas le pilotage régional */
   inspecteur:   ['dashboard','corbeille','immatriculation','statistiques','rapports','ecoles','examens','cpi','vie-scolaire','rh','absences','coges','economat','courrier','archives','archiviste','secretariat','communication','cantine','smoss','users','audit','parametres', ...CORRESPONDANT_MODULES],
-  cpi:          ['dashboard','corbeille','statistiques','rapports','ecoles','cpi','vie-scolaire','rh','absences','archives','users','examens','stat-effectifs','stat-situation','carte-prescolaire','carte-primaire','pnapas','aser','aser-livret','aser-ace'],
+  cpi:          ['dashboard','corbeille','statistiques','rapports','ecoles','cpi','vie-scolaire','rh','absences','archives','users','examens','stat-effectifs','stat-situation','carte-prescolaire','carte-primaire','carte-rapport','pnapas','aser','aser-livret','aser-ace'],
   /* Directeur d'école : voit son école (espace personnel) + modules d'école */
   /* Directeur — accès strictement limité à son espace école */
   directeur:    ['dashboard','mon-ecole','absences','perroquet-notes'],
@@ -1606,7 +1609,7 @@ const ACL = {
   instituteur:  ['dashboard','ma-classe','perroquet-notes'],
   correspondant:['dashboard','corbeille','rh','absences','courrier','archives','users','examens', ...CORRESPONDANT_MODULES],
   /* Correspondant statistique (IEPP) : tableaux de bord + tous les tableaux statistiques (correction des données) */
-  corresp_stat: ['dashboard','statistiques','rapports','archives','courrier','stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','fiche-prescolaire','fiche-primaire','fiche-alphabetisation','fiche-islamique','fiche-generateur','carte-prescolaire','carte-primaire','carte-secondaire','pnapas','aser','aser-livret','aser-ace','etat-compositions','perroquet-notes'],
+  corresp_stat: ['dashboard','statistiques','rapports','archives','courrier','stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','fiche-prescolaire','fiche-primaire','fiche-alphabetisation','fiche-islamique','fiche-generateur','carte-prescolaire','carte-primaire','carte-secondaire','carte-rapport','pnapas','aser','aser-livret','aser-ace','etat-compositions','perroquet-notes'],
   agent:        ['dashboard','statistiques','rapports','archives','courrier','matrice','stat-situation','stat-effectifs','absences'],
   /* ---- Profils créés par le Correspondant Fichier (accès ciblé par fonction) ---- */
   secretaire:   ['dashboard','courrier','archives','rh','absences','rapports'],
@@ -1653,7 +1656,7 @@ try { window.ACL = ACL; } catch(e){}
   ACL.courrier       = ['dashboard','courrier'];                                   // Service Courrier
   ACL.archiviste     = ['dashboard','archiviste','archives'];                      // Espace Archiviste
   ACL.corresp_stat   = ['dashboard','stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','fiche-prescolaire','fiche-primaire','fiche-alphabetisation','fiche-islamique','fiche-generateur']; // Correspondant Statistique
-  ACL.carte_scolaire = ['dashboard','carte-prescolaire','carte-primaire','carte-secondaire'];                         // Correspondant Carte Scolaire
+  ACL.carte_scolaire = ['dashboard','carte-prescolaire','carte-primaire','carte-secondaire','carte-rapport'];                         // Correspondant Carte Scolaire
   ACL.suivi_eval     = ['dashboard','etat-compositions','perroquet-notes','pnapas','aser','aser-livret','aser-ace'];  // Suivi Évaluation des Programmes et Projets
   ACL.secretaire     = ['dashboard','secretariat','courrier','archives']; // Espace Secrétariat
   ACL.communication  = ['dashboard','communication','courrier'];          // Service Communication
@@ -1747,7 +1750,7 @@ const KEY = 'iepp_';
    La DRENAET bascule entre ses IEPP ; le Superadmin entre toutes.
    ================================================================== */
 const GLOBAL_KEYS = new Set(['users','usersDeleted','customServices','current_user','drenaet','active_iepp','ieppRegistry','pnapasForm','courrierMsg','courrierMatrice']);
-const SCOPED_KEY_LIST = ['ecoles','audit','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','cpppBulletins','pointage','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted','economatRegDeleted','secretariatRegDeleted','cantineRegDeleted','smossRegDeleted','communicationRegDeleted','biblioRegDeleted','archivisteRegDeleted','svcPermDeleted'];
+const SCOPED_KEY_LIST = ['ecoles','audit','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','carteRapports','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','cpppBulletins','pointage','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted','economatRegDeleted','secretariatRegDeleted','cantineRegDeleted','smossRegDeleted','communicationRegDeleted','biblioRegDeleted','archivisteRegDeleted','svcPermDeleted'];
 function scopeSlug(iepp){
   return 'c_' + String(iepp||'IEPP TENGRELA').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 }
@@ -1957,6 +1960,34 @@ function recordMergeTrack(k, val){
 
 /* Fusionne un bloc cloud avec le bloc local, par id, en respectant les
    tombstones (locales + cloud). Renvoie le tableau fusionné. */
+function genericUnionMerge(cloudArr, localArr){
+  /* Fusion UNION pour les listes hors RECORD_MERGE (ex. comptes users) :
+     conserve les ajouts et modifications locaux au lieu d'écraser par le cloud.
+     Clé naturelle : id, sinon username, sinon matricule, sinon code+nom, sinon valeur.
+     En cas de conflit : le plus récent (_upd) gagne ; à égalité, le LOCAL est conservé. */
+  function keyOf(r){
+    if (r==null || typeof r!=='object') return 'v:'+JSON.stringify(r);
+    if (r.id!=null) return 'id:'+r.id;
+    if (r.username!=null) return 'un:'+r.username;
+    if (r.matricule!=null) return 'mat:'+r.matricule;
+    if (r.code!=null && r.nom!=null) return 'cn:'+r.code+'|'+r.nom;
+    return 'j:'+JSON.stringify(r);
+  }
+  function ts(r){
+    if (r==null || typeof r!=='object') return 0;
+    var t = r._upd||r.updatedAt||r.updated_at||r._updatedAt;
+    var n = t ? (typeof t==='number'?t:Date.parse(t)) : 0;
+    return isNaN(n)?0:n;
+  }
+  var map={}, order=[];
+  (Array.isArray(cloudArr)?cloudArr:[]).forEach(function(r){ var k=keyOf(r); if(!(k in map)) order.push(k); map[k]=r; });
+  (Array.isArray(localArr)?localArr:[]).forEach(function(r){
+    var k=keyOf(r);
+    if(!(k in map)){ map[k]=r; order.push(k); }
+    else { map[k] = (ts(r) >= ts(map[k])) ? r : map[k]; }
+  });
+  return order.map(function(k){ return map[k]; });
+}
 function recordMergeArrays(listKey, cloudArr, localArr, cloudTomb, localTomb){
   cloudArr = Array.isArray(cloudArr)?cloudArr:[];
   localArr = Array.isArray(localArr)?localArr:[];
@@ -2149,7 +2180,7 @@ const SCOPED_STATE = [
   ['recrutementCP1', defaultRecrutementCP1], ['recrutementMater', defaultRecrutementMater],
   ['pnapas', defaultPNAPAS], ['aser', defaultASER], ['svcMat', defaultSvcMat], ['svcPerm', defaultSvcPerm],
   ['effPrescolaire', defaultEffPrescolaire], ['effPrimaire', defaultEffPrimaire],
-  ['effMeta', ()=>({lastSync:null})], ['carteScolaire', defaultCarteScolaire],
+  ['effMeta', ()=>({lastSync:null})], ['carteScolaire', defaultCarteScolaire], ['carteRapports', ()=>[]],
   ['compositions', defaultCompositions], ['immatRequests', ()=>[]], ['pnapasResponses', ()=>[]], ['aserVerif', ()=>[]], ['corbeille', ()=>[]], ['ceapCandidates', ()=>[]],
   ['dirTels', ()=>({})],
   ['cppp', defaultCPPP],
@@ -2398,10 +2429,21 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
             var mergedO = recordMergeObjects(k, cObj, lObj, cTombO, lTombO);
             localStorage.setItem(fullKey, JSON.stringify(mergedO));
             try { await withTimeout(sbSet(fullKey, JSON.stringify(mergedO)), 15000, fullKey); } catch(e){}
-          } else if (cloudIsEmptierThanLocal(cloudJson, localRaw)){
-            await withTimeout(sbSet(fullKey, localRaw), 15000, fullKey);   /* cloud vide → on renvoie le local */
           } else {
-            localStorage.setItem(fullKey, cloudJson);                      /* le cloud fait foi */
+            /* Clé liste hors RECORD_MERGE (ex. users / comptes enseignants & personnel) :
+               FUSION UNION — on conserve les ajouts et modifications locaux. */
+            var _cA=null,_lA=null;
+            try{ _cA=JSON.parse(cloudJson); }catch(e){}
+            try{ _lA=(localRaw!=null)?JSON.parse(localRaw):null; }catch(e){}
+            if (Array.isArray(_cA) && Array.isArray(_lA)){
+              var _m = genericUnionMerge(_cA, _lA);
+              localStorage.setItem(fullKey, JSON.stringify(_m));
+              try { await withTimeout(sbSet(fullKey, JSON.stringify(_m)), 15000, fullKey); } catch(e){}
+            } else if (cloudIsEmptierThanLocal(cloudJson, localRaw)){
+              await withTimeout(sbSet(fullKey, localRaw), 15000, fullKey);   /* cloud vide → on renvoie le local */
+            } else {
+              localStorage.setItem(fullKey, cloudJson);                      /* objet non-liste : le cloud fait foi */
+            }
           }
         } else {
           if (localRaw !== null){ await withTimeout(sbSet(fullKey, localRaw), 15000, fullKey); }   /* amorçage */
@@ -3521,6 +3563,7 @@ const MODULES = {
   'carte-prescolaire':{ title:'Carte scolaire — Préscolaire',         sub:'Synthèse et liste des écoles préscolaires remontées',      render: ()=>renderCarteScolaire('prescolaire') },
   'carte-primaire':   { title:'Carte scolaire — Primaire',            sub:'Synthèse et liste des écoles primaires remontées',         render: ()=>renderCarteScolaire('primaire') },
   'carte-secondaire': { title:'Carte scolaire — Secondaire',          sub:'Synthèse et liste des écoles secondaires remontées',       render: ()=>renderCarteScolaire('secondaire') },
+  'carte-rapport':    { title:"Carte scolaire — Rapport d'activité",   sub:'Rapport sous-préfectoral, départemental et régional',      render: ()=>renderCarteRapport() },
 
   /* ===== Suivi & Évaluation ===== */
   'pnapas':          { title:'Activités PNAPAS',                      sub:'Programme National d\'Appui à la Performance Scolaire',    render: renderPNAPAS },
@@ -22346,6 +22389,331 @@ function renderCarteScolaire(type) {
   `);
   renderCarteBody(type);
 }
+/* ==================================================================
+   CARTE SCOLAIRE — GÉNÉRATEUR DE RAPPORT D'ACTIVITÉ (ajout non destructif)
+   Niveaux : 1) Sous-préfectoral  2) Départemental  3) Régional (consolidé).
+   Agrège les données de TOUT le menu Carte scolaire (Préscolaire + Primaire +
+   Secondaire) de la circonscription active. Rédaction par « IA simple »
+   (modèle standard local, pas Claude) OU édition manuelle. Exports PDF/Word/Excel.
+   ================================================================== */
+function crCanEdit(){ return (typeof carteCanEdit==='function') ? carteCanEdit() : true; }
+function crNum(v){ var n=parseInt(String(v==null?'':v).replace(/[^0-9-]/g,''),10); return isNaN(n)?0:n; }
+function crUniq(arr){ var o={}; (arr||[]).forEach(function(v){ if(v) o[v]=1; }); return Object.keys(o).sort(); }
+
+/* Valeurs distinctes de périmètre selon le niveau */
+function crScopeValues(level){
+  var all = state.carteScolaire||[];
+  if(level==='souspref')     return crUniq(all.map(function(e){ return e.sprefecture; }));
+  if(level==='departement')  return crUniq(all.map(function(e){ return e.departement; }));
+  return [];
+}
+
+/* Agrégation des écoles de la carte scolaire pour un niveau + périmètre */
+function crAggregate(level, scopeValue){
+  var all = state.carteScolaire||[];
+  var rows = all.filter(function(e){
+    if(level==='souspref')    return (e.sprefecture||'')===scopeValue;
+    if(level==='departement') return (e.departement||'')===scopeValue;
+    return true; /* régional : toute la circonscription */
+  });
+  var agg = { total:rows.length,
+    niveau:{prescolaire:0, primaire:0, secondaire:0},
+    statut:{'Public':0, 'Privé':0, 'Communautaire':0},
+    zone:{U:0, R:0}, classes:0, effectif:0,
+    effNiveau:{prescolaire:0, primaire:0, secondaire:0},
+    localites:{}, sousprefs:{}, departements:{} };
+  rows.forEach(function(e){
+    var n=e.niveau||''; if(agg.niveau[n]!==undefined){ agg.niveau[n]++; agg.effNiveau[n]+=crNum(e.effectif); }
+    var s=e.statut||''; if(agg.statut[s]!==undefined) agg.statut[s]++;
+    var z=e.zone||''; if(z==='U'||z==='R') agg.zone[z]++;
+    agg.classes  += crNum(e.classes);
+    agg.effectif += crNum(e.effectif);
+    if(e.localite)    agg.localites[e.localite]=1;
+    if(e.sprefecture) agg.sousprefs[e.sprefecture]=1;
+    if(e.departement) agg.departements[e.departement]=1;
+  });
+  agg.nbLocalites    = Object.keys(agg.localites).length;
+  agg.nbSousprefs    = Object.keys(agg.sousprefs).length;
+  agg.nbDepartements = Object.keys(agg.departements).length;
+  agg.ratio = agg.classes>0 ? Math.round(agg.effectif/agg.classes) : 0;
+  return agg;
+}
+
+function crLevelLabel(level){
+  return level==='souspref' ? 'sous-préfectoral' : (level==='departement' ? 'départemental' : 'régional');
+}
+function crPerimetre(level, scopeName){
+  if(level==='souspref')    return 'la sous-préfecture de ' + (scopeName||'—');
+  if(level==='departement') return 'le département de ' + (scopeName||'—');
+  return 'l\'ensemble du ressort de ' + activeIeppLabel();
+}
+
+/* « IA simple » : rédaction standard du rapport à partir des chiffres agrégés */
+function crNarrative(agg, level, scopeName){
+  var annee = (typeof statAnneeCourante==='function') ? statAnneeCourante() : '2026-2027';
+  var iepp  = activeIeppLabel();
+  var perimetre = crPerimetre(level, scopeName);
+  var niveauTxt = crLevelLabel(level);
+  var pc = function(part){ return agg.total>0 ? Math.round(part*100/agg.total) : 0; };
+  var lignes = [];
+  lignes.push('RAPPORT D\'ACTIVITÉ DE LA CARTE SCOLAIRE — NIVEAU ' + niveauTxt.toUpperCase());
+  lignes.push(iepp + ' — Année scolaire ' + annee);
+  lignes.push('Périmètre : ' + perimetre + '.');
+  lignes.push('');
+  lignes.push('I. INTRODUCTION');
+  lignes.push('Le présent rapport rend compte de la situation de la carte scolaire de ' + perimetre +
+    ' au titre de l\'année scolaire ' + annee + '. Il consolide les données remontées pour le préscolaire, le primaire et le secondaire, et présente la répartition des établissements ainsi que les effectifs correspondants.');
+  lignes.push('');
+  lignes.push('II. VUE D\'ENSEMBLE');
+  lignes.push('Le périmètre couvre ' + agg.total + ' établissement(s) répartis sur ' + agg.nbLocalites + ' localité(s)' +
+    (level==='regional' ? (', ' + agg.nbSousprefs + ' sous-préfecture(s) et ' + agg.nbDepartements + ' département(s)') :
+     (level==='departement' ? (' et ' + agg.nbSousprefs + ' sous-préfecture(s)') : '')) + '. ' +
+    'L\'effectif total scolarisé s\'élève à ' + agg.effectif + ' élève(s), encadrés dans ' + agg.classes + ' classe(s), soit un ratio moyen de ' + agg.ratio + ' élèves par classe.');
+  lignes.push('');
+  lignes.push('III. RÉPARTITION PAR ORDRE D\'ENSEIGNEMENT');
+  lignes.push('- Préscolaire : ' + agg.niveau.prescolaire + ' établissement(s) — ' + agg.effNiveau.prescolaire + ' élève(s).');
+  lignes.push('- Primaire : ' + agg.niveau.primaire + ' établissement(s) — ' + agg.effNiveau.primaire + ' élève(s).');
+  lignes.push('- Secondaire : ' + agg.niveau.secondaire + ' établissement(s) — ' + agg.effNiveau.secondaire + ' élève(s).');
+  lignes.push('');
+  lignes.push('IV. RÉPARTITION PAR STATUT');
+  lignes.push('- Public : ' + agg.statut['Public'] + ' établissement(s) (' + pc(agg.statut['Public']) + '%).');
+  lignes.push('- Privé : ' + agg.statut['Privé'] + ' établissement(s) (' + pc(agg.statut['Privé']) + '%).');
+  lignes.push('- Communautaire : ' + agg.statut['Communautaire'] + ' établissement(s) (' + pc(agg.statut['Communautaire']) + '%).');
+  lignes.push('');
+  lignes.push('V. RÉPARTITION PAR MILIEU');
+  lignes.push('- Milieu urbain : ' + agg.zone.U + ' établissement(s) (' + pc(agg.zone.U) + '%).');
+  lignes.push('- Milieu rural : ' + agg.zone.R + ' établissement(s) (' + pc(agg.zone.R) + '%).');
+  lignes.push('');
+  lignes.push('VI. ANALYSE');
+  var analyse = 'La couverture ' + niveauTxt + ' se caractérise par une prédominance ' +
+    (agg.statut['Public']>=agg.statut['Privé'] ? 'du secteur public' : 'du secteur privé') + '. ';
+  analyse += (agg.zone.R>agg.zone.U ? 'Les établissements sont majoritairement implantés en milieu rural, ce qui appelle une attention particulière sur l\'accessibilité et l\'encadrement. '
+                                    : 'Les établissements sont majoritairement implantés en milieu urbain. ');
+  if(agg.ratio>50) analyse += 'Le ratio élèves/classe (' + agg.ratio + ') est élevé et traduit une pression sur les capacités d\'accueil. ';
+  else if(agg.ratio>0) analyse += 'Le ratio élèves/classe (' + agg.ratio + ') demeure maîtrisé. ';
+  if(agg.niveau.prescolaire===0) analyse += 'L\'offre préscolaire est absente ou non renseignée sur ce périmètre. ';
+  lignes.push(analyse);
+  lignes.push('');
+  lignes.push('VII. RECOMMANDATIONS');
+  lignes.push('- Poursuivre la mise à jour régulière des données de la carte scolaire (effectifs, classes, statut).');
+  lignes.push('- Renforcer l\'offre là où la couverture est faible, en priorité en milieu rural.');
+  lignes.push('- Rationaliser l\'implantation des établissements pour améliorer le ratio élèves/classe.');
+  lignes.push('- Assurer le suivi des établissements privés et communautaires (autorisation, encadrement).');
+  lignes.push('');
+  lignes.push('VIII. CONCLUSION');
+  lignes.push('La carte scolaire de ' + perimetre + ' pour l\'année ' + annee + ' présente ' + agg.total +
+    ' établissement(s) et ' + agg.effectif + ' élève(s). Le présent rapport constitue un outil d\'aide à la décision pour la planification et le pilotage de l\'offre éducative.');
+  lignes.push('');
+  lignes.push('Fait à ' + (activeIeppShort ? activeIeppShort() : '') + ', le ' + new Date().toLocaleDateString('fr-FR'));
+  lignes.push('Le Secrétaire de la Carte scolaire');
+  return lignes.join('\n');
+}
+
+/* ----- Rendu du module ----- */
+function renderCarteRapport(){
+  var canEdit = crCanEdit();
+  setContent(
+    '<div class="hero" style="background:linear-gradient(135deg,#0E3A6B 0%,#0A2A5E 100%)">' +
+      '<h3>📝 Carte scolaire — <em>Rapport d\'activité</em></h3>' +
+      '<p>Génération du rapport d\'activité de la carte scolaire aux niveaux sous-préfectoral, départemental et régional, à partir des données remontées dans tout le menu Carte scolaire (préscolaire · primaire · secondaire) de ' + activeIeppLabel() + '. Rédaction assistée (modèle standard) ou saisie manuelle.</p>' +
+    '</div>' +
+    '<div class="card" style="padding:16px;margin-bottom:14px">' +
+      '<div class="toolbar" style="flex-wrap:wrap;gap:10px">' +
+        '<div><div class="text-xs text-muted">Niveau du rapport</div>' +
+          '<select id="cr-level" onchange="crOnLevelChange()" style="padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--white);min-width:200px">' +
+            '<option value="souspref">1 · Sous-préfectoral</option>' +
+            '<option value="departement">2 · Départemental</option>' +
+            '<option value="regional">3 · Régional (consolidé)</option>' +
+          '</select></div>' +
+        '<div id="cr-scope-wrap"><div class="text-xs text-muted">Périmètre</div>' +
+          '<select id="cr-scope" onchange="crRefreshStats()" style="padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--white);min-width:220px"></select></div>' +
+        '<div style="flex:1"></div>' +
+        (canEdit ? '<button class="btn btn-orange" onclick="crGenerate()" title="Rédige automatiquement le rapport à partir des données (modèle standard, sans Claude)">🤖 Générer (IA simple)</button>' : '') +
+      '</div>' +
+      '<div id="cr-stats" class="stat-grid" style="margin-top:12px"></div>' +
+    '</div>' +
+    '<div class="card" style="padding:16px">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">' +
+        '<div class="fw-7">Texte du rapport <span class="text-xs text-muted">(modifiable à la main)</span></div>' +
+        '<div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap">' +
+          '<button class="btn btn-ghost" onclick="crPrint()">🖨️ Imprimer / PDF</button>' +
+          '<button class="btn btn-ghost" onclick="crWord()">📄 Word</button>' +
+          '<button class="btn btn-green" onclick="crExcel()">📊 Excel (données)</button>' +
+          (canEdit ? '<button class="btn btn-orange" onclick="crSave()">💾 Enregistrer</button>' : '') +
+        '</div>' +
+      '</div>' +
+      '<textarea id="cr-text" ' + (canEdit?'':'readonly') + ' placeholder="Cliquez sur « Générer (IA simple) » pour rédiger automatiquement, ou saisissez votre rapport ici..." style="width:100%;min-height:340px;padding:12px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:13.5px;line-height:1.5;white-space:pre-wrap"></textarea>' +
+    '</div>' +
+    '<div class="card" style="padding:16px;margin-top:14px">' +
+      '<div class="fw-7" style="margin-bottom:8px">📁 Rapports enregistrés</div>' +
+      '<div id="cr-list"></div>' +
+    '</div>'
+  );
+  crFillScopes();
+  crRefreshStats();
+  crRenderList();
+}
+
+function crOnLevelChange(){
+  var level = (document.getElementById('cr-level')||{}).value || 'souspref';
+  var wrap = document.getElementById('cr-scope-wrap');
+  if(wrap) wrap.style.display = (level==='regional') ? 'none' : '';
+  crFillScopes();
+  crRefreshStats();
+}
+
+function crFillScopes(){
+  var level = (document.getElementById('cr-level')||{}).value || 'souspref';
+  var sel = document.getElementById('cr-scope'); if(!sel) return;
+  var vals = crScopeValues(level);
+  sel.innerHTML = vals.length ? vals.map(function(v){ return '<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>'; }).join('')
+                              : '<option value="">(aucune donnée)</option>';
+}
+
+function crCurrent(){
+  var level = (document.getElementById('cr-level')||{}).value || 'souspref';
+  var scope = (level==='regional') ? '' : ((document.getElementById('cr-scope')||{}).value || '');
+  var scopeName = (level==='regional') ? activeIeppShort() : scope;
+  return { level:level, scope:scope, scopeName:scopeName, agg:crAggregate(level, scope) };
+}
+
+function crStatCard(label, value, color){
+  return '<div class="stat-card" style="border-left:4px solid '+color+'">' +
+    '<div class="stat-label">'+escapeHtml(label)+'</div>' +
+    '<div class="stat-value" style="font-size:26px">'+value+'</div></div>';
+}
+function crRefreshStats(){
+  var host = document.getElementById('cr-stats'); if(!host) return;
+  var c = crCurrent(); var a = c.agg;
+  host.innerHTML =
+    crStatCard('Établissements', a.total, '#E8751A') +
+    crStatCard('Effectif total', a.effectif, '#DC2626') +
+    crStatCard('Classes', a.classes, '#7C3AED') +
+    crStatCard('Élèves / classe', a.ratio, '#1F9D57') +
+    crStatCard('Présc. · Prim. · Sec.', a.niveau.prescolaire+' · '+a.niveau.primaire+' · '+a.niveau.secondaire, '#0E3A6B') +
+    crStatCard('Public · Privé · Comm.', a.statut['Public']+' · '+a.statut['Privé']+' · '+a.statut['Communautaire'], '#2563EB') +
+    crStatCard('Urbain · Rural', a.zone.U+' · '+a.zone.R, '#0891B2') +
+    crStatCard('Localités', a.nbLocalites, '#B45309');
+}
+
+function crGenerate(){
+  if(!crCanEdit()){ toast('Action réservée.','error'); return; }
+  var c = crCurrent();
+  if(c.level!=='regional' && !c.scope){ toast('Choisissez un périmètre.','error'); return; }
+  crRefreshStats();
+  var ta = document.getElementById('cr-text');
+  if(ta) ta.value = crNarrative(c.agg, c.level, c.scopeName);
+  toast('Rapport généré — vous pouvez le modifier avant d\'enregistrer.','success');
+}
+
+/* ----- Enregistrement / liste ----- */
+function crSave(){
+  if(!crCanEdit()){ toast('Action réservée.','error'); return; }
+  var c = crCurrent();
+  var ta = document.getElementById('cr-text');
+  var txt = ta ? ta.value.trim() : '';
+  if(!txt){ toast('Le rapport est vide.','error'); return; }
+  if(!Array.isArray(state.carteRapports)) state.carteRapports = [];
+  state.carteRapports.unshift({
+    id: 'cr_' + Date.now(),
+    niveau: c.level, niveauLabel: crLevelLabel(c.level),
+    perimetre: c.scopeName || activeIeppShort(),
+    date: new Date().toISOString(),
+    total: c.agg.total, effectif: c.agg.effectif,
+    texte: txt
+  });
+  if(state.carteRapports.length>200) state.carteRapports = state.carteRapports.slice(0,200);
+  save('carteRapports', state.carteRapports);
+  if(typeof logAction==='function') logAction('carte-rapport','Enregistrement rapport '+crLevelLabel(c.level));
+  crRenderList();
+  toast('Rapport enregistré ✓','success');
+}
+function crRenderList(){
+  var host = document.getElementById('cr-list'); if(!host) return;
+  var list = state.carteRapports||[];
+  if(!list.length){ host.innerHTML = '<div class="text-muted text-xs">Aucun rapport enregistré pour le moment.</div>'; return; }
+  var canEdit = crCanEdit();
+  host.innerHTML = '<div class="table-wrap" style="border:none"><table><thead><tr>' +
+    '<th>Niveau</th><th>Périmètre</th><th>Date</th><th style="text-align:center">Étab.</th><th style="text-align:center">Effectif</th><th class="no-print" style="width:120px"></th>' +
+    '</tr></thead><tbody>' +
+    list.map(function(r){
+      return '<tr>' +
+        '<td>'+escapeHtml(r.niveauLabel||r.niveau||'')+'</td>' +
+        '<td>'+escapeHtml(r.perimetre||'')+'</td>' +
+        '<td>'+new Date(r.date).toLocaleDateString('fr-FR')+'</td>' +
+        '<td style="text-align:center">'+(r.total||0)+'</td>' +
+        '<td style="text-align:center">'+(r.effectif||0)+'</td>' +
+        '<td class="no-print" style="text-align:right">' +
+          '<button class="btn btn-ghost btn-sm" onclick="crOpen(\''+r.id+'\')" title="Ouvrir">👁️</button>' +
+          (canEdit?'<button class="btn btn-ghost btn-sm" onclick="crDelete(\''+r.id+'\')" title="Supprimer">🗑️</button>':'') +
+        '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+function crOpen(id){
+  var r = (state.carteRapports||[]).find(function(x){ return x.id===id; }); if(!r) return;
+  var ta = document.getElementById('cr-text'); if(ta) ta.value = r.texte||'';
+  try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
+  toast('Rapport chargé dans l\'éditeur.','success');
+}
+function crDelete(id){
+  if(!crCanEdit()){ toast('Action réservée.','error'); return; }
+  if(!confirm('Supprimer ce rapport enregistré ?')) return;
+  var r = (state.carteRapports||[]).find(function(x){ return x.id===id; });
+  if(r && typeof trashGeneric==='function'){ try{ trashGeneric('carteRapports', r, 'Rapport carte scolaire'); }catch(e){} }
+  state.carteRapports = (state.carteRapports||[]).filter(function(x){ return x.id!==id; });
+  save('carteRapports', state.carteRapports);
+  crRenderList();
+  toast('Rapport supprimé.','success');
+}
+
+/* ----- Exports ----- */
+function crHeaderHtml(){
+  var c = crCurrent();
+  return '<p style="text-align:center;font-size:11px;margin:0">République de Côte d\'Ivoire · MENAET · ' + escapeHtml(activeIeppLabel()) + '</p>' +
+         '<h2 style="text-align:center;color:#0A2A5E;margin:6px 0">Rapport d\'activité — Carte scolaire (' + escapeHtml(crLevelLabel(c.level)) + ')</h2>';
+}
+function crPrint(){
+  var ta = document.getElementById('cr-text'); var txt = ta ? ta.value : '';
+  var w = window.open('', '_blank'); if(!w){ toast('Autorisez les fenêtres pop-up.','error'); return; }
+  w.document.write('<html><head><meta charset="utf-8"><title>Rapport carte scolaire</title>' +
+    '<style>body{font-family:Georgia,serif;padding:32px;color:#111;line-height:1.55}pre{white-space:pre-wrap;font-family:Georgia,serif;font-size:13.5px}</style></head><body>' +
+    crHeaderHtml() + '<pre>' + escapeHtml(txt) + '</pre></body></html>');
+  w.document.close(); w.focus(); setTimeout(function(){ try{ w.print(); }catch(e){} }, 300);
+}
+function crWord(){
+  var ta = document.getElementById('cr-text'); var txt = ta ? ta.value : '';
+  var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Rapport carte scolaire</title></head><body>' +
+    crHeaderHtml() + '<pre style="font-family:Georgia,serif;font-size:12.5px;white-space:pre-wrap">' + escapeHtml(txt) + '</pre></body></html>';
+  var blob = new Blob(['\ufeff', html], { type:'application/msword' });
+  var url = URL.createObjectURL(blob); var a = document.createElement('a');
+  a.href = url; a.download = 'Rapport_carte_scolaire_' + crLevelLabel(crCurrent().level) + '.doc';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+function crExcel(){
+  var c = crCurrent(); var a = c.agg;
+  var rows = [
+    { 'Indicateur':'Périmètre', 'Valeur': (c.scopeName||activeIeppShort()) },
+    { 'Indicateur':'Niveau du rapport', 'Valeur': crLevelLabel(c.level) },
+    { 'Indicateur':'Établissements (total)', 'Valeur': a.total },
+    { 'Indicateur':'Préscolaire (étab.)', 'Valeur': a.niveau.prescolaire },
+    { 'Indicateur':'Primaire (étab.)', 'Valeur': a.niveau.primaire },
+    { 'Indicateur':'Secondaire (étab.)', 'Valeur': a.niveau.secondaire },
+    { 'Indicateur':'Public', 'Valeur': a.statut['Public'] },
+    { 'Indicateur':'Privé', 'Valeur': a.statut['Privé'] },
+    { 'Indicateur':'Communautaire', 'Valeur': a.statut['Communautaire'] },
+    { 'Indicateur':'Milieu urbain', 'Valeur': a.zone.U },
+    { 'Indicateur':'Milieu rural', 'Valeur': a.zone.R },
+    { 'Indicateur':'Classes (total)', 'Valeur': a.classes },
+    { 'Indicateur':'Effectif total', 'Valeur': a.effectif },
+    { 'Indicateur':'Élèves par classe', 'Valeur': a.ratio },
+    { 'Indicateur':'Localités', 'Valeur': a.nbLocalites },
+    { 'Indicateur':'Sous-préfectures', 'Valeur': a.nbSousprefs },
+    { 'Indicateur':'Départements', 'Valeur': a.nbDepartements }
+  ];
+  if(typeof exportRowsToExcel==='function') exportRowsToExcel(rows, 'Carte_scolaire_rapport', 'Rapport');
+  else toast('Export indisponible.','error');
+}
+
 function carteList(type) { return (state.carteScolaire||[]).filter(e=>e.niveau===type); }
 function carteFiltered(type) {
   const q = (document.getElementById('carte-'+type+'-search')?.value||'').toLowerCase();
