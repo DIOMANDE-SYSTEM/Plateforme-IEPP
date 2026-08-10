@@ -6459,7 +6459,7 @@ function bulletinExportPDF() {
             + state.examens (centres) pour la synthèse.
    ================================================================== */
 let examTab = 'synthese';
-function examCanManage(){ return ['superadmin','drenaet','inspecteur','correspondant','cpi'].includes(state.user.role); }
+function examCanManage(){ return ['superadmin','drenaet','inspecteur','correspondant','cpi','examens'].includes(state.user.role); }
 function cm2Eleves() { return (state.elevesFichier||[]).filter(e=>e.niveau==='CM2'); }
 function cm2MoyAnnuelle(e){
   const vals = ['compo1','compo2','blanc1','blanc2'].map(k=>parseFloat(e[k])).filter(v=>!isNaN(v));
@@ -7515,6 +7515,50 @@ function examRenderPane() {
 
 /* ---------- RH (M03) ---------- */
 /* ========== CHARGÉ DES RESSOURCES HUMAINES — Module multi-onglets ========== */
+/* ===== Pièces jointes RH : scan (Android) ou fichier Word/Excel/PDF ===== */
+function rhReadAttach(ev, prefix){
+  var file = ev.target.files && ev.target.files[0]; if(!file) return;
+  if(file.size > 5*1024*1024){ toast('Fichier trop volumineux (max 5 Mo). Réduisez la qualité de la photo.','error'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var set=function(sfx,v){ var el=document.getElementById(prefix+sfx); if(el) el.value=v; };
+    set('-file-data', e.target.result); set('-file-name', file.name); set('-file-type', file.type||'');
+    var pv=document.getElementById(prefix+'-file-preview'); var ko=(file.size/1024).toFixed(1);
+    if(pv){ pv.innerHTML = ((file.type||'').indexOf('image/')===0
+        ? '<img src="'+e.target.result+'" style="max-height:140px;border:1px solid #ddd;border-radius:6px;display:block;margin-top:6px">' : '')
+      + '<div style="font-size:12px;color:#16a34a;margin-top:4px">✅ '+escapeHtml(file.name)+' ('+ko+' Ko) '
+      + '<button type="button" class="btn btn-ghost btn-sm" onclick="rhClearAttach(\''+prefix+'\')">retirer</button></div>'; }
+  };
+  reader.readAsDataURL(file);
+}
+function rhClearAttach(prefix){
+  ['-file-data','-file-name','-file-type'].forEach(function(sfx){ var el=document.getElementById(prefix+sfx); if(el) el.value=''; });
+  var pv=document.getElementById(prefix+'-file-preview'); if(pv) pv.innerHTML='';
+}
+function rhViewAttach(id, key){
+  var rec=(state[key]||[]).find(function(x){ return x.id===id; });
+  if(!rec || !rec.fileData){ toast('Aucune pièce jointe.','error'); return; }
+  if((rec.fileType||'').indexOf('image/')===0){
+    var w=window.open(''); if(w){ w.document.write('<title>'+escapeHtml(rec.fileName||'Pièce jointe')+'</title><img src="'+rec.fileData+'" style="max-width:100%">'); w.document.close(); }
+  } else {
+    var a=document.createElement('a'); a.href=rec.fileData; a.download=rec.fileName||'piece-jointe';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+}
+function rhAttachFieldHtml(prefix, rec){
+  rec=rec||{};
+  return '<div class="form-row"><div class="field"><label>Pièce jointe — scan (Android) ou fichier Word/Excel/PDF</label>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">'
+    + '<button type="button" class="btn btn-ghost" onclick="document.getElementById(\''+prefix+'-file-cam\').click()">📷 Scanner</button>'
+    + '<button type="button" class="btn btn-ghost" onclick="document.getElementById(\''+prefix+'-file-imp\').click()">📎 Joindre un fichier</button></div>'
+    + '<input type="file" id="'+prefix+'-file-cam" accept="image/*" capture="environment" style="display:none" onchange="rhReadAttach(event,\''+prefix+'\')">'
+    + '<input type="file" id="'+prefix+'-file-imp" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style="display:none" onchange="rhReadAttach(event,\''+prefix+'\')">'
+    + '<input type="hidden" id="'+prefix+'-file-data" value="'+(rec.fileData||'')+'">'
+    + '<input type="hidden" id="'+prefix+'-file-name" value="'+escapeHtml(rec.fileName||'')+'">'
+    + '<input type="hidden" id="'+prefix+'-file-type" value="'+escapeHtml(rec.fileType||'')+'">'
+    + '<div id="'+prefix+'-file-preview">'+(rec.fileData?('✅ '+escapeHtml(rec.fileName||'pièce jointe')+' <button type="button" class="btn btn-ghost btn-sm" onclick="rhClearAttach(\''+prefix+'\')">retirer</button>'):'')+'</div>'
+    + '</div></div>';
+}
 function renderRH() {
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,#1F4E79 0%,#0d2137 100%);color:#ffffff !important">
@@ -7558,7 +7602,7 @@ function rhRenderPane() {
 
 /* ===== Onglet 1 : Personnel ===== */
 function rhPersonnelHtml() {
-  const canManage = ['superadmin','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','inspecteur','correspondant','rh','drenaet'].includes(state.user.role);
   return `
     <div class="toolbar">
       <div class="search-input"><input id="rh-search" placeholder="Rechercher un agent (nom, matricule, fonction)..." oninput="renderRHBody()"></div>
@@ -7630,7 +7674,7 @@ function rhPersonnelPrint() {
 
 /* ===== Onglet 2 : Affectations ===== */
 function rhAffectationsHtml() {
-  const canManage = ['superadmin','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','inspecteur','correspondant','rh','drenaet'].includes(state.user.role);
   return `
     <div class="toolbar">
       <div class="search-input"><input id="rh-aff-search" placeholder="Rechercher (agent, école, type)..." oninput="rhAffRenderBody()"></div>
@@ -7655,7 +7699,7 @@ function rhAffRenderBody() {
   const tb = document.getElementById('rh-aff-body'); if (!tb) return;
   const q = (document.getElementById('rh-aff-search')?.value||'').toLowerCase();
   const list = (state.rhAffectations||[]).filter(a=>(a.agent||'').toLowerCase().includes(q)||(a.ecoleDest||'').toLowerCase().includes(q)||(a.type||'').toLowerCase().includes(q));
-  const canManage = ['superadmin','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','inspecteur','correspondant','rh','drenaet'].includes(state.user.role);
   const stBadge = s => /approuv|valid/i.test(s)?'badge-green':/cours/i.test(s)?'badge-blue':/refus/i.test(s)?'badge-red':'badge-orange';
   tb.innerHTML = !list.length ? `<tr><td colspan="${canManage?7:6}" class="table-empty">Aucune affectation. Cliquez sur "+ Nouvelle Affectation".</td></tr>`
     : list.map(a=>`<tr>
@@ -7672,7 +7716,7 @@ function rhAffRenderBody() {
     </tr>`).join('');
 }
 function rhAffForm(id) {
-  if (!['superadmin','inspecteur','correspondant'].includes(state.user.role)) { toast('Accès réservé.','error'); return; }
+  if (!['superadmin','inspecteur','correspondant','rh','drenaet'].includes(state.user.role)) { toast('Accès réservé.','error'); return; }
   const today = new Date().toISOString().slice(0,10);
   const a = id ? (state.rhAffectations||[]).find(x=>x.id===id)
               : { agent:'', ecoleSource:'', ecoleDest:'', type:'Mutation', date:today, motif:'', statut:'En cours' };
@@ -8188,7 +8232,7 @@ function rhPresencesHtml() {
 
 /* ===== Onglet 4 : Dossiers Administratifs ===== */
 function rhDossiersHtml() {
-  const canManage = ['superadmin','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','inspecteur','correspondant','rh','drenaet'].includes(state.user.role);
   return `
     <div class="toolbar">
       <div class="search-input"><input id="rh-doss-search" placeholder="Rechercher (agent, type, statut)..." oninput="rhDossRenderBody()"></div>
@@ -8213,7 +8257,7 @@ function rhDossRenderBody() {
   const tb = document.getElementById('rh-doss-body'); if (!tb) return;
   const q = (document.getElementById('rh-doss-search')?.value||'').toLowerCase();
   const list = (state.rhDossiers||[]).filter(d=>(d.agent||'').toLowerCase().includes(q)||(d.type||'').toLowerCase().includes(q));
-  const canManage = ['superadmin','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','inspecteur','correspondant','rh','drenaet'].includes(state.user.role);
   const stBadge = s => /complet|valid|ok/i.test(s)?'badge-green':/cours|progress/i.test(s)?'badge-blue':/incomplet|manq/i.test(s)?'badge-red':'badge-orange';
   tb.innerHTML = !list.length ? `<tr><td colspan="${canManage?6:5}" class="table-empty">Aucun dossier. Cliquez sur "+ Nouveau Dossier".</td></tr>`
     : list.map(d=>`<tr>
@@ -8221,7 +8265,7 @@ function rhDossRenderBody() {
       <td class="text-sm">${escapeHtml(d.type||'')}</td>
       <td class="text-sm">${escapeHtml(d.date||'')}</td>
       <td style="text-align:center"><span class="badge ${stBadge(d.statut)}">${escapeHtml(d.statut||'')}</span></td>
-      <td class="text-sm text-muted">${escapeHtml(d.observation||'')}</td>
+      <td class="text-sm text-muted">${escapeHtml(d.observation||'')} ${d.fileData?`<button class="icon-btn" onclick="rhViewAttach('${d.id}','rhDossiers')" title="Voir la pièce jointe">📎</button>`:''}</td>
       ${canManage?`<td class="actions-cell">
         <button class="icon-btn" onclick="rhDossForm('${d.id}')">✏️</button>
         <button class="icon-btn danger" onclick="rhDossDelete('${d.id}')">🗑️</button>
@@ -8229,7 +8273,7 @@ function rhDossRenderBody() {
     </tr>`).join('');
 }
 function rhDossForm(id) {
-  if (!['superadmin','inspecteur','correspondant'].includes(state.user.role)) { toast('Accès réservé.','error'); return; }
+  if (!['superadmin','inspecteur','correspondant','rh','drenaet'].includes(state.user.role)) { toast('Accès réservé.','error'); return; }
   const today = new Date().toISOString().slice(0,10);
   const d = id ? (state.rhDossiers||[]).find(x=>x.id===id)
               : { agent:'', type:'Avancement', date:today, statut:'En cours', observation:'' };
@@ -8251,6 +8295,7 @@ function rhDossForm(id) {
       <div class="field"><label>Statut</label><select id="rd-statut">${statuts.map(s=>`<option ${d.statut===s?'selected':''}>${s}</option>`).join('')}</select></div>
     </div>
     <div class="form-row"><div class="field"><label>Observation</label><textarea id="rd-obs">${escapeHtml(d.observation||'')}</textarea></div></div>
+    ${rhAttachFieldHtml('rd', d)}
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="rhDossSave('${id||''}')">Enregistrer</button>
       <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
@@ -8263,10 +8308,13 @@ function rhDossSave(id) {
   const date=document.getElementById('rd-date')?.value||'';
   const statut=document.getElementById('rd-statut')?.value||'En cours';
   const observation=document.getElementById('rd-obs')?.value||'';
+  const fileData=document.getElementById('rd-file-data')?.value||'';
+  const fileName=document.getElementById('rd-file-name')?.value||'';
+  const fileType=document.getElementById('rd-file-type')?.value||'';
   if (!agent) { toast('Choisissez un agent.','error'); return; }
   state.rhDossiers=state.rhDossiers||[];
-  if (id) { const d=state.rhDossiers.find(x=>x.id===id); if(d) Object.assign(d,{agent,type,date,statut,observation}); }
-  else state.rhDossiers.push({id:'doss_'+uid(),agent,type,date,statut,observation});
+  if (id) { const d=state.rhDossiers.find(x=>x.id===id); if(d) Object.assign(d,{agent,type,date,statut,observation,fileData,fileName,fileType}); }
+  else state.rhDossiers.push({id:'doss_'+uid(),agent,type,date,statut,observation,fileData,fileName,fileType});
   save('rhDossiers',state.rhDossiers); closeModal(); rhDossRenderBody();
   toast(id?'Dossier mis à jour':'Dossier créé','success');
 }
@@ -8430,7 +8478,7 @@ function rhRapportGenerer(trimestre, format) {
 
 /* ===== Onglet 7 : Formation ===== */
 function rhFormationHtml() {
-  const canManage = ['superadmin','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','inspecteur','correspondant','rh','drenaet'].includes(state.user.role);
   return `
     <div class="toolbar">
       <div class="search-input"><input id="rh-form-search" placeholder="Rechercher (agent, titre, thème)..." oninput="rhFormRenderBody()"></div>
@@ -8455,7 +8503,7 @@ function rhFormRenderBody() {
   const tb = document.getElementById('rh-form-body'); if (!tb) return;
   const q = (document.getElementById('rh-form-search')?.value||'').toLowerCase();
   const list = (state.rhFormations||[]).filter(f=>(f.agent||'').toLowerCase().includes(q)||(f.titre||'').toLowerCase().includes(q));
-  const canManage = ['superadmin','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','inspecteur','correspondant','rh','drenaet'].includes(state.user.role);
   const stBadge = s => /réalis|terminé|complét/i.test(s)?'badge-green':/cours/i.test(s)?'badge-blue':/annul/i.test(s)?'badge-red':'badge-orange';
   tb.innerHTML = !list.length ? `<tr><td colspan="${canManage?7:6}" class="table-empty">Aucune formation. Cliquez sur "+ Nouvelle Formation".</td></tr>`
     : list.map(f=>`<tr>
@@ -8472,7 +8520,7 @@ function rhFormRenderBody() {
     </tr>`).join('');
 }
 function rhFormForm(id) {
-  if (!['superadmin','inspecteur','correspondant'].includes(state.user.role)) { toast('Accès réservé.','error'); return; }
+  if (!['superadmin','inspecteur','correspondant','rh','drenaet'].includes(state.user.role)) { toast('Accès réservé.','error'); return; }
   const today = new Date().toISOString().slice(0,10);
   const f = id ? (state.rhFormations||[]).find(x=>x.id===id)
               : { agent:'', titre:'', date:today, duree:'3 jours', lieu:'', statut:'Planifiée', observation:'' };
@@ -8523,7 +8571,7 @@ function rhFormDelete(id) {
 
 /* ===== Onglet 8 : Documents RH ===== */
 function rhDocumentsHtml() {
-  const canManage = ['superadmin','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','inspecteur','correspondant','rh','drenaet'].includes(state.user.role);
   return `
     <div class="toolbar">
       <div class="search-input"><input id="rh-doc-search" placeholder="Rechercher (titre, type, auteur)..." oninput="rhDocRHRenderBody()"></div>
@@ -8543,7 +8591,7 @@ function rhDocRHRenderBody() {
   const tb = document.getElementById('rh-doc-body'); if (!tb) return;
   const q = (document.getElementById('rh-doc-search')?.value||'').toLowerCase();
   const list = (state.rhDocumentsRH||[]).filter(d=>(d.titre||'').toLowerCase().includes(q)||(d.type||'').toLowerCase().includes(q));
-  const canManage = ['superadmin','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','inspecteur','correspondant','rh','drenaet'].includes(state.user.role);
   const tBadge = t => /circulaire/i.test(t)?'badge-blue':/note/i.test(t)?'badge-orange':/rapport/i.test(t)?'badge-green':'badge-purple';
   tb.innerHTML = !list.length ? `<tr><td colspan="${canManage?6:5}" class="table-empty">Aucun document RH.</td></tr>`
     : list.sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(d=>`<tr>
@@ -8551,7 +8599,7 @@ function rhDocRHRenderBody() {
       <td><span class="badge ${tBadge(d.type)}">${escapeHtml(d.type||'')}</span></td>
       <td style="text-align:center;font-size:12px">${escapeHtml(d.date||'')}</td>
       <td class="text-sm">${escapeHtml(d.auteur||'—')}</td>
-      <td class="text-sm text-muted">${escapeHtml(d.description||'')}</td>
+      <td class="text-sm text-muted">${escapeHtml(d.description||'')} ${d.fileData?`<button class="icon-btn" onclick="rhViewAttach('${d.id}','rhDocumentsRH')" title="Voir la pièce jointe">📎</button>`:''}</td>
       ${canManage?`<td class="actions-cell">
         <button class="icon-btn" onclick="rhDocRHForm('${d.id}')">✏️</button>
         <button class="icon-btn danger" onclick="rhDocRHDelete('${d.id}')">🗑️</button>
@@ -8559,7 +8607,7 @@ function rhDocRHRenderBody() {
     </tr>`).join('');
 }
 function rhDocRHForm(id) {
-  if (!['superadmin','inspecteur','correspondant'].includes(state.user.role)) { toast('Accès réservé.','error'); return; }
+  if (!['superadmin','inspecteur','correspondant','rh','drenaet'].includes(state.user.role)) { toast('Accès réservé.','error'); return; }
   const today=new Date().toISOString().slice(0,10);
   const d=id?(state.rhDocumentsRH||[]).find(x=>x.id===id):{titre:'',type:'Note de service',date:today,auteur:'',description:''};
   if(id&&!d){toast('Introuvable.','error');return;}
@@ -8572,6 +8620,7 @@ function rhDocRHForm(id) {
     </div>
     <div class="form-row"><div class="field"><label>Auteur / Source</label><input id="rdh-auteur" value="${escapeHtml(d.auteur||'')}" placeholder="MENAET, Inspecteur..."></div></div>
     <div class="form-row"><div class="field"><label>Description</label><textarea id="rdh-desc">${escapeHtml(d.description||'')}</textarea></div></div>
+    ${rhAttachFieldHtml('rdh', d)}
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="rhDocRHSave('${id||''}')">Enregistrer</button>
       <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
@@ -8584,10 +8633,13 @@ function rhDocRHSave(id) {
   const date=document.getElementById('rdh-date')?.value||'';
   const auteur=document.getElementById('rdh-auteur')?.value||'';
   const description=document.getElementById('rdh-desc')?.value||'';
+  const fileData=document.getElementById('rdh-file-data')?.value||'';
+  const fileName=document.getElementById('rdh-file-name')?.value||'';
+  const fileType=document.getElementById('rdh-file-type')?.value||'';
   if(!titre){toast('Entrez un titre.','error');return;}
   state.rhDocumentsRH=state.rhDocumentsRH||[];
-  if(id){const d=state.rhDocumentsRH.find(x=>x.id===id);if(d)Object.assign(d,{titre,type,date,auteur,description});}
-  else state.rhDocumentsRH.push({id:'rdoc_'+uid(),titre,type,date,auteur,description});
+  if(id){const d=state.rhDocumentsRH.find(x=>x.id===id);if(d)Object.assign(d,{titre,type,date,auteur,description,fileData,fileName,fileType});}
+  else state.rhDocumentsRH.push({id:'rdoc_'+uid(),titre,type,date,auteur,description,fileData,fileName,fileType});
   save('rhDocumentsRH',state.rhDocumentsRH); closeModal(); rhDocRHRenderBody();
   toast(id?'Mis à jour':'Document ajouté','success');
 }
@@ -8613,7 +8665,7 @@ function rhDocRHImport(ev) {
 function rhParametresHtml() {
   const s = state.rhSettings||defaultRhSettings();
   const annee = state.anneeScolaire||'2025-2026';
-  const canManage=['superadmin','inspecteur','correspondant'].includes(state.user.role);
+  const canManage=['superadmin','inspecteur','correspondant','rh','drenaet'].includes(state.user.role);
   const chk=(id,val,label)=>`<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border:1px solid #ddd;border-radius:6px;background:#fff"><input type="checkbox" id="${id}" ${val?'checked':''} style="width:18px;height:18px"><span style="font-size:13px;color:#000">${label}</span></label>`;
   return `
     <div class="card">
@@ -8659,7 +8711,7 @@ function rhSettingsSave() {
 
 /* ===== Onglet 10 : Matrice d'action RH ===== */
 function rhMatriceHtml() {
-  const canManage=['superadmin','inspecteur','correspondant'].includes(state.user.role);
+  const canManage=['superadmin','inspecteur','correspondant','rh','drenaet'].includes(state.user.role);
   return `
     <div class="card" style="background:linear-gradient(135deg,#EFF6FF 0%,#DBEAFE 100%);padding:12px 14px;margin-bottom:10px;border-left:3px solid #1F4E79">
       <div style="font-size:12px;color:#1F4E79;font-weight:600">📋 Matrice d'action — Chargé des Ressources Humaines · Plan annuel (Période · Activités · Résultats attendus · Indicateurs)</div>
@@ -8688,7 +8740,7 @@ function rhMatriceRenderBody() {
   const tb=document.getElementById('rh-mat-body');if(!tb)return;
   const q=(document.getElementById('rh-mat-search')?.value||'').toLowerCase();
   const list=(state.matriceRH||[]).filter(m=>(m.periode||'').toLowerCase().includes(q)||(m.activite||'').toLowerCase().includes(q));
-  const canManage=['superadmin','inspecteur','correspondant'].includes(state.user.role);
+  const canManage=['superadmin','inspecteur','correspondant','rh','drenaet'].includes(state.user.role);
   tb.innerHTML=!list.length?`<tr><td colspan="${canManage?5:4}" class="table-empty">Aucune action dans la matrice.</td></tr>`
     :list.map(m=>`<tr>
       <td class="fw-7 text-sm">${escapeHtml(m.periode||'')}</td>
@@ -8702,7 +8754,7 @@ function rhMatriceRenderBody() {
     </tr>`).join('');
 }
 function rhMatriceForm(id) {
-  if(!['superadmin','inspecteur','correspondant'].includes(state.user.role)){toast('Accès réservé.','error');return;}
+  if(!['superadmin','inspecteur','correspondant','rh','drenaet'].includes(state.user.role)){toast('Accès réservé.','error');return;}
   const m=id?(state.matriceRH||[]).find(x=>x.id===id):{periode:'',activite:'',resultats:'',indicateurs:''};
   if(id&&!m){toast('Introuvable.','error');return;}
   const periodes=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -9023,7 +9075,7 @@ function vieDashboardHtml() {
 /* Sous-menu 2: Planification */
 /* ===== Sous-menu 2: Planification ===== */
 function viePlanningHtml() {
-  const canManage = ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role);
   return `
     <div class="card" style="background:#EFF6FF;padding:10px 14px;margin-bottom:10px;border-left:3px solid #1D4ED8">
       <div style="font-size:12px;color:#1D4ED8;font-weight:600">📅 Planification annuelle — consolidée depuis la Matrice d'action et les Activités</div>
@@ -9059,7 +9111,7 @@ function viePlanRenderBody() {
     (p.ecoles||'').toLowerCase().includes(q) ||
     (p.responsable||'').toLowerCase().includes(q)
   );
-  const canManage = ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role);
   const statBadge = s => (/complét|terminé/i.test(s||''))?'badge-green':(/cours/i.test(s||''))?'badge-blue':(/annul/i.test(s||''))?'badge-red':'badge-orange';
   const srcBadge = s => s==='matrice'?'<span style="background:#f0e8ff;color:#7C3AED;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700">Matrice</span>':s==='activite'?'<span style="background:#d1fae5;color:#065f46;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700">Activité</span>':'<span style="background:#dbeafe;color:#1d4ed8;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700">Direct</span>';
   tb.innerHTML = !list.length
@@ -9078,7 +9130,7 @@ function viePlanRenderBody() {
       </tr>`).join('');
 }
 function viePlanForm(id) {
-  if (!['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role)) { toast('Accès réservé.','error'); return; }
+  if (!['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role)) { toast('Accès réservé.','error'); return; }
   const p = id ? (state.viePlanification||[]).find(x=>x.id===id)
               : { periode:'', titre:'', ecoles:'Toutes les écoles', responsable:'Conseiller VS', statut:'Programmée', source:'direct', observation:'' };
   if (id && !p) { toast('Introuvable.','error'); return; }
@@ -9181,7 +9233,7 @@ function viePlanImport(ev) {
 function viePlanPrintView() {
   const ieppName = state.activeIepp||'IEPP';
   const list = state.viePlanification||[];
-  const canEdit = ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canEdit = ['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role);
   const periodes = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   const statuts = ['Programmée','En cours','Complétée','Annulée'];
   openModal('📅 Planification annuelle — Aperçu PDF', `
@@ -9247,7 +9299,7 @@ function viePlanUpdateField(id,field,value) {
 
 /* ===== Sous-menu 6: Activités (avec liaison vers Planification) ===== */
 function vieActivitiesHtml() {
-  const canManage = ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role);
   return `
     <div class="card" style="background:#F0FDF4;padding:10px 14px;margin-bottom:10px;border-left:3px solid #16A34A">
       <div style="font-size:12px;color:#16A34A;font-weight:600">🎨 Activités — chaque activité créée est automatiquement ajoutée à la Planification</div>
@@ -9273,7 +9325,7 @@ function vieActRenderBody() {
   const tb=document.getElementById('vie-act-body');if(!tb)return;
   const q=(document.getElementById('vie-act-search')?.value||'').toLowerCase();
   const list=(state.vieActivites||[]).filter(a=>(a.titre||'').toLowerCase().includes(q)||(a.ecoles||'').toLowerCase().includes(q));
-  const canManage=['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canManage=['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role);
   const statBadge=s=>(/complét|terminé/i.test(s||''))?'badge-green':(/cours/i.test(s||''))?'badge-blue':(/annul/i.test(s||''))?'badge-red':'badge-orange';
   tb.innerHTML=!list.length?`<tr><td colspan="${canManage?6:5}" class="table-empty">Aucune activité.</td></tr>`:list.map(a=>`<tr>
     <td class="fw-7 text-sm">${escapeHtml(a.titre||'')}</td>
@@ -9288,7 +9340,7 @@ function vieActRenderBody() {
   </tr>`).join('');
 }
 function vieActForm(id) {
-  if(!['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role)){toast('Accès réservé.','error');return;}
+  if(!['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role)){toast('Accès réservé.','error');return;}
   const a=id?(state.vieActivites||[]).find(x=>x.id===id):{titre:'',periode:'',ecoles:'Toutes les écoles',responsable:'Conseiller VS',statut:'Planifiée',observation:''};
   if(id&&!a){toast('Introuvable.','error');return;}
   const periodes=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -9358,7 +9410,7 @@ function vieActExport() {
 }
 /* Sous-menu 3: Écoles — utilise state.ecoles (données partagées avec le module principal) */
 function vieSchoolsHtml() {
-  const canManage = ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role);
   return `
     <div class="card" style="background:#EFF6FF;padding:10px 14px;margin-bottom:10px;border-left:3px solid #1D4ED8">
       <div style="font-size:12px;color:#1D4ED8;font-weight:600">🏫 Écoles — données partagées avec le module principal · Toute modification ici est répercutée sur l'ensemble du site</div>
@@ -9387,7 +9439,7 @@ function vieSchoolRenderBody() {
   const q = (document.getElementById('vie-school-search')?.value||'').toLowerCase();
   const schools = (state.ecoles||[]).filter(e =>
     (e.nom||'').toLowerCase().includes(q) || (e.directeur||'').toLowerCase().includes(q));
-  const canManage = ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role);
   tb.innerHTML = !schools.length
     ? `<tr><td colspan="${canManage?6:5}" class="table-empty">Aucune école trouvée.</td></tr>`
     : schools.map(e => {
@@ -9546,7 +9598,7 @@ function vieStudPrint() {
 
 /* Sous-menu 5: Clubs et Coopératives */
 function vieClubsHtml() {
-  const canManage = ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role);
   const total = (state.vieClubs||[]).length;
   const actifs = (state.vieClubs||[]).filter(c=>/actif/i.test(c.statut||'')).length;
   return `
@@ -9594,7 +9646,7 @@ function vieClubRenderBody() {
     (c.ecole||'').toLowerCase().includes(q) ||
     (c.responsable||'').toLowerCase().includes(q) ||
     (c.type||'').toLowerCase().includes(q));
-  const canManage = ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role);
   const typeBadge = t => /coop/i.test(t||'')?'badge-green':/club/i.test(t||'')?'badge-blue':'badge-orange';
   const statBadge = s => /actif/i.test(s||'')?'badge-green':/inactif|suspendu/i.test(s||'')?'badge-red':'badge-orange';
   tb.innerHTML = !list.length
@@ -9613,7 +9665,7 @@ function vieClubRenderBody() {
       </tr>`).join('');
 }
 function vieClubForm(id) {
-  if (!['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role)) { toast('Accès réservé.','error'); return; }
+  if (!['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role)) { toast('Accès réservé.','error'); return; }
   const c = id ? (state.vieClubs||[]).find(x=>x.id===id)
               : { nom:'', type:'Club', ecole:'', responsable:'', membres:0, statut:'Actif', description:'' };
   if (id && !c) { toast('Introuvable.','error'); return; }
@@ -9744,7 +9796,7 @@ function vieClubPrint() {
 
 /* Sous-menu 7: Visites */
 function vieVisitsHtml() {
-  const canManage = ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role);
   const list = state.vieVisites||[];
   return `
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
@@ -9790,7 +9842,7 @@ function vieVisitRenderBody() {
     (v.ecole||'').toLowerCase().includes(q) ||
     (v.theme||'').toLowerCase().includes(q) ||
     (v.responsable||'').toLowerCase().includes(q));
-  const canManage = ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role);
   const statBadge = s => /réalis|effectu|terminé/i.test(s||'')?'badge-green':/cours/i.test(s||'')?'badge-blue':/annul/i.test(s||'')?'badge-red':'badge-orange';
   tb.innerHTML = !list.length
     ? `<tr><td colspan="${canManage?7:6}" class="table-empty">Aucune visite enregistrée. Cliquez sur "+ Nouvelle Visite".</td></tr>`
@@ -9808,7 +9860,7 @@ function vieVisitRenderBody() {
       </tr>`).join('');
 }
 function vieVisitForm(id) {
-  if (!['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role)) { toast('Accès réservé.','error'); return; }
+  if (!['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role)) { toast('Accès réservé.','error'); return; }
   const today = new Date().toISOString().slice(0,10);
   const v = id ? (state.vieVisites||[]).find(x=>x.id===id)
               : { date:today, ecole:'', responsable:'', theme:'', statut:'Planifiée', observations:'' };
@@ -10177,7 +10229,7 @@ function vieRapportGenerer(trimestre, format) {
 
 /* Sous-menu 9: Documents */
 function vieDocumentsHtml() {
-  const canManage = ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role);
   const docs = state.vieDocuments||[];
   const types = [...new Set(docs.map(d=>d.type).filter(Boolean))];
   return `
@@ -10222,7 +10274,7 @@ function vieDocRenderBody() {
     (d.type||'').toLowerCase().includes(q) ||
     (d.auteur||'').toLowerCase().includes(q) ||
     (d.description||'').toLowerCase().includes(q));
-  const canManage = ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role);
   const typeBadge = t => /circulaire/i.test(t)?'badge-blue':/protocole/i.test(t)?'badge-orange':/rapport/i.test(t)?'badge-green':/formulaire/i.test(t)?'badge-purple':'badge-blue';
   const typeIcon = t => /pdf/i.test(t)?'📄':/word|doc/i.test(t)?'📝':/excel|xls/i.test(t)?'📊':/image|jpg|png/i.test(t)?'🖼️':'📎';
   tb.innerHTML = !list.length
@@ -10240,7 +10292,7 @@ function vieDocRenderBody() {
       </tr>`).join('');
 }
 function vieDocForm(id) {
-  if (!['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role)) { toast('Accès réservé.','error'); return; }
+  if (!['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role)) { toast('Accès réservé.','error'); return; }
   const today = new Date().toISOString().slice(0,10);
   const d = id ? (state.vieDocuments||[]).find(x=>x.id===id)
               : { titre:'', type:'Circulaire', date:today, auteur:'', description:'' };
@@ -10333,7 +10385,7 @@ function vieDocExportExcel() {
 function vieSettingsHtml() {
   const s = state.vieSettings || defaultVieSettings();
   const annee = state.anneeScolaire || '2025-2026';
-  const canManage = ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role);
   const chk = (id, val, label) => `
     <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;border:1px solid #ddd;border-radius:6px;background:#fff">
       <input type="checkbox" id="${id}" ${val?'checked':''} style="width:18px;height:18px;cursor:pointer">
@@ -10432,7 +10484,7 @@ function vieSettingsSave() {
 
 /* ===== Matrice d'action Vie Scolaire ===== */
 function vieMatriceHtml() {
-  const canManage = ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role);
   return `
     <div class="card" style="background:linear-gradient(135deg,#F0E8FF 0%,#E8DFF5 100%);padding:12px 14px;margin-bottom:10px;border-left:3px solid #9333EA">
       <div class="text-xs"><strong>Matrice d'action — Espace Conseiller Vie Scolaire</strong> · Plan annuel d'activités : discipline, clubs, hygiène, activités culturelles, coopératives, rapports. (Période · Activités · Résultats attendus · Indicateurs).</div>
@@ -10467,7 +10519,7 @@ function vieMatriceRenderBody() {
            (m.resultats||'').toLowerCase().includes(q) ||
            (m.indicateurs||'').toLowerCase().includes(q);
   });
-  const canManage = ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role);
   tb.innerHTML = !list.length ? `<tr><td colspan="${canManage?5:4}" class="table-empty">Aucune action ne correspond à votre recherche.</td></tr>` : list.map(m => `<tr>
     <td class="fw-7 text-sm">${escapeHtml(m.periode||'')}</td>
     <td class="text-sm">${escapeHtml(m.activite||'')}</td>
@@ -10480,7 +10532,7 @@ function vieMatriceRenderBody() {
   </tr>`).join('');
 }
 function vieMatriceForm(id) {
-  if (!['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role)) { toast('Action réservée.', 'error'); return; }
+  if (!['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role)) { toast('Action réservée.', 'error'); return; }
   const m = id ? (state.matriceVieScolaire||[]).find(x=>x.id===id) : { periode:'', activite:'', resultats:'', indicateurs:'' };
   if (id && !m) { toast('Action introuvable.', 'error'); return; }
   const periodes = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -10565,7 +10617,7 @@ function vieMatriceImport(ev) {
 function vieMatricePrintView() {
   const ieppName = state.activeIepp || 'IEPP';
   const list = state.matriceVieScolaire || [];
-  const canEdit = ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canEdit = ['superadmin','drenaet','inspecteur','correspondant','viescolaire'].includes(state.user.role);
   const periodes = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   
   const modalContent = `
@@ -17782,7 +17834,7 @@ function perroquetReload() {
    MODULE : État des compositions (ajout · Suivi évaluation)
    ================================================================== */
 let compoCur = '1';
-function compoCanEdit(){ return ['superadmin','drenaet','inspecteur','correspondant','corresp_stat'].includes(state.user.role); }
+function compoCanEdit(){ return ['superadmin','drenaet','inspecteur','correspondant','corresp_stat','suivi_eval'].includes(state.user.role); }
 function cint(v){ const n=parseInt(String(v).replace(/[^0-9-]/g,''),10); return isNaN(n)?0:n; }
 function pct(n,d){ return d>0 ? Math.round((n/d)*1000)/10 : 0; }
 /* champs calculés d'une ligne */
@@ -18091,7 +18143,7 @@ function renderAserLivret() {
    ================================================================== */
 const ASER_NIV_LECTURE = ['', 'Débutant','Lettre','Mot','Paragraphe','Histoire','Compréhension'];
 const ASER_NIV_MATHS   = ['', 'Débutant','1 Chiffre','2 Chiffres','Soustraction','Division'];
-function aserVerifCanEdit(){ return ['superadmin','drenaet','inspecteur','cpi','correspondant','corresp_stat'].includes(state.user.role); }
+function aserVerifCanEdit(){ return ['superadmin','drenaet','inspecteur','cpi','correspondant','corresp_stat','suivi_eval'].includes(state.user.role); }
 function aserEmptyEleve(){ return { cours:'', nom:'', genre:'', lecFout:'', lecFres:'', lecSout:'', lecSres:'', matFout:'', matFres:'', matSout:'', matSres:'' }; }
 function aserEmptyFiche(){ return { id:'', dateSup:'', drena:'', iepp:(state.activeIepp||''), secteur:'', ecole:'', enseignant:'', verificateur:'', direction:'', dateVisite:'',
   eleves:[aserEmptyEleve(),aserEmptyEleve(),aserEmptyEleve()] }; }
@@ -22349,7 +22401,7 @@ const CARTE_ADV = [
   { key:'observations', label:'Observations' },
 ];
 function carteCanEdit() {
-  return ['superadmin','inspecteur','correspondant','corresp_stat','drenaet'].includes(state.user.role);
+  return ['superadmin','inspecteur','correspondant','corresp_stat','drenaet','carte_scolaire'].includes(state.user.role);
 }
 
 function renderCarteScolaire(type) {
@@ -23011,7 +23063,7 @@ function pnapasActivitesHtml() {
 }
 
 /* ---------------- Onglet Formulaire (builder) ---------------- */
-function pnapasCanEditForm(){ return ['superadmin','drenaet','inspecteur','correspondant','corresp_stat','cpi'].includes(state.user.role); }
+function pnapasCanEditForm(){ return ['superadmin','drenaet','inspecteur','correspondant','corresp_stat','cpi','suivi_eval'].includes(state.user.role); }
 function pnapasFormBuilderHtml() {
   const canEdit = pnapasCanEditForm();
   const qs = state.pnapasForm.questions||[];
