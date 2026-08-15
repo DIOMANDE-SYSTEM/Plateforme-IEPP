@@ -1154,7 +1154,7 @@ function vieResetAllData() {
     <label for="login-remember" style="display:flex;align-items:center;gap:8px;margin:-4px 0 14px;font-size:13.5px;color:#334155;cursor:pointer;user-select:none">
       <input type="checkbox" id="login-remember" checked style="width:16px;height:16px;accent-color:#0A4DA6;cursor:pointer;flex:none"> Se souvenir de mon identifiant et de mon mot de passe
     </label>
-    <button class="btn btn-primary btn-block" onclick="doLogin()">Se connecter →</button>
+    <button id="btn-se-connecter" class="btn btn-primary btn-block" onclick="doLogin()">Se connecter →</button>
 
     <div class="login-footer">
       <strong>Plateforme IEPP v1.0</strong><br>
@@ -1229,27 +1229,41 @@ function vieResetAllData() {
       <div class="sb-link" data-module="ecoles" onclick="navigate('ecoles')">
         <span class="sb-icon">🏫</span><span>Gestion des Écoles</span>
       </div>
-      <div class="sb-link" data-module="examens" onclick="navigate('examens')">
-        <span class="sb-icon">📝</span><span>Examens & Concours</span>
-      </div>
       <div class="sb-link" data-module="cpi" onclick="navigate('cpi')">
-        <span class="sb-icon">🎯</span><span>Espace Conseiller CPI / CPPP</span>
+        <span class="sb-icon">🎯</span><span>Espace Conseiller CPPP</span>
       </div>
-      <div class="sb-link" data-module="vie-scolaire" onclick="navigate('vie-scolaire')">
-        <span class="sb-icon">👨‍🎓</span><span>Espace Conseiller Vie Scolaire</span>
+      <div class="sb-link" data-module="secteurs" onclick="navigate('secteurs')">
+        <span class="sb-icon">🗺️</span><span>Secteurs (CPPP)</span>
       </div>
     </div>
 
     <div class="sb-section is-service">
+            <div class="sb-group" id="sb-grp-extra">
+        <div class="sb-link" onclick="toggleGroup('sb-grp-extra')">
+          <span class="sb-icon" style="background:var(--green-soft);color:var(--green-deep)">🎪</span>
+          <span>Conseiller Extra-Scolaire</span>
+          <span class="sb-chev">▶</span>
+        </div>
+        <div class="sb-sub">
+          <div class="sb-link" data-module="vie-scolaire" onclick="navigate('vie-scolaire')"><span class="sb-icon">👨‍🎓</span><span>Conseiller Vie scolaire</span></div>
+          <div class="sb-link" data-module="cantine" onclick="navigate('cantine')"><span class="sb-icon">🍽️</span><span>Conseiller Cantine</span></div>
+          <div class="sb-link" data-module="coges" onclick="navigate('coges')"><span class="sb-icon">🤝</span><span>Conseiller COGES</span></div>
+          <div class="sb-link" data-module="alpha" onclick="navigate('alpha')"><span class="sb-icon">🔤</span><span>Conseiller Alphabétisation</span></div>
+        </div>
+      </div>
       <div class="sb-section-title">Services administratifs</div>
+      <div class="sb-link" data-module="cpi-admin" onclick="navigate('cpi-admin')">
+        <span class="sb-icon">🧭</span><span>Espace CPI</span>
+      </div>
+      <div class="sb-link" data-module="examens" onclick="navigate('examens')">
+        <span class="sb-icon">📝</span><span>Examens & Concours</span>
+      </div>
+
       <div class="sb-link" data-module="rh" onclick="navigate('rh')">
         <span class="sb-icon">👥</span><span>Chargé Ressources Humaines</span>
       </div>
       <div class="sb-link" data-module="absences" onclick="navigate('absences')">
         <span class="sb-icon">📅</span><span>Autorisations d'absence</span>
-      </div>
-      <div class="sb-link" data-module="coges" onclick="navigate('coges')">
-        <span class="sb-icon">🤝</span><span>Espace Conseiller COGES</span>
       </div>
       <div class="sb-link" data-module="economat" onclick="navigate('economat')">
         <span class="sb-icon">📦</span><span>Espace Économat</span>
@@ -1368,7 +1382,7 @@ function vieResetAllData() {
             <span class="sb-icon">🎓</span><span>Secondaire</span>
           </div>
           <div class="sb-link" data-module="carte-rapport" onclick="navigate('carte-rapport')">
-            <span class="sb-icon">📝</span><span>Rapport d'activité</span>
+            <span class="sb-icon">📝</span><span>Les assises de la carte scolaire</span>
           </div>
         </div>
       </div>
@@ -1423,10 +1437,6 @@ function vieResetAllData() {
       </div>
 
       <!-- Espace Conseiller Cantine -->
-      <div class="sb-link" data-module="cantine" onclick="navigate('cantine')">
-        <span class="sb-icon" style="background:var(--green-soft);color:var(--green-deep)">🍽️</span>
-        <span>Espace Conseiller Cantine</span>
-      </div>
 
       <!-- Espace SMOSS -->
       <div class="sb-link" data-module="smoss" onclick="navigate('smoss')">
@@ -3348,6 +3358,7 @@ function logAction(action, details) {
     timestamp: new Date().toISOString(),
     user: state.user?.username || 'system',
     role: state.user?.role || '-',
+    iepp: (state.user && state.user.iepp) || state.activeIepp || '',
     action, details
   });
   if (state.audit.length > 200) state.audit = state.audit.slice(0, 200);
@@ -3563,7 +3574,7 @@ const MODULES = {
   'carte-prescolaire':{ title:'Carte scolaire — Préscolaire',         sub:'Synthèse et liste des écoles préscolaires remontées',      render: ()=>renderCarteScolaire('prescolaire') },
   'carte-primaire':   { title:'Carte scolaire — Primaire',            sub:'Synthèse et liste des écoles primaires remontées',         render: ()=>renderCarteScolaire('primaire') },
   'carte-secondaire': { title:'Carte scolaire — Secondaire',          sub:'Synthèse et liste des écoles secondaires remontées',       render: ()=>renderCarteScolaire('secondaire') },
-  'carte-rapport':    { title:"Carte scolaire — Rapport d'activité",   sub:'Rapport sous-préfectoral, départemental et régional',      render: ()=>renderCarteRapport() },
+  'carte-rapport':    { title:"Carte scolaire — Les assises de la carte scolaire",   sub:'Assises sous-préfectorale, départementale et régionale',      render: ()=>renderCarteRapport() },
 
   /* ===== Suivi & Évaluation ===== */
   'pnapas':          { title:'Activités PNAPAS',                      sub:'Programme National d\'Appui à la Performance Scolaire',    render: renderPNAPAS },
@@ -4192,6 +4203,13 @@ function renderAbsences() {
   const canCreate = role !== 'superadmin'; // tout le personnel peut soumettre sa propre demande
 
   setContent(`
+    <div class="card mb-3 no-print" id="bloc-signature-absence">
+      <div style="padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div><strong>Signature de l'autorisation</strong><div style="font-size:12px;color:var(--ink-soft)">Réservé à l'administrateur ou au correspondant fichier — signature manuscrite apposée sur l'autorisation.</div></div>
+        <button class="btn" style="background:linear-gradient(135deg,#009E60,#00754A);color:#fff;font-weight:600" onclick="if(typeof ouvrirSignatureAbsence==='function')ouvrirSignatureAbsence('courante')">✍️ Signer une autorisation</button>
+      </div>
+    </div>
+
     <div class="card mb-3">
       <div class="card-header">
         <div>
@@ -4201,13 +4219,13 @@ function renderAbsences() {
       </div>
       <div style="padding:0 14px 6px;font-size:12px;color:var(--ink-soft)">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><span class="badge badge-blue">Personnel de l'inspection &amp; Directeurs</span> Demande → <strong>Inspecteur</strong> (approbation directe avant signature)</div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="badge badge-orange">Instituteur (en école)</span> Demande → <strong>Directeur</strong> → <strong>Inspecteur</strong></div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="badge badge-orange">Instituteur (en école)</span> Demande → <strong>Directeur</strong> → <strong>CPPP de secteur</strong> → <strong>Inspecteur</strong></div>
       </div>
       <div class="workflow-steps">
         <div class="wf-step done"><div class="num">1</div><div class="lbl">Demande</div><div class="who">Services · Agents · Conseillers · Correspondants · RH · Directeurs</div></div>
         <div class="wf-step done"><div class="num">2</div><div class="lbl">Approbation</div><div class="who">Inspecteur</div></div>
         <div class="wf-step"><div class="num">3</div><div class="lbl">Signature</div><div class="who">Inspecteur</div></div>
-        <div class="wf-step"><div class="num">★</div><div class="lbl">Instituteurs</div><div class="who">via Directeur d'abord</div></div>
+        <div class="wf-step"><div class="num">★</div><div class="lbl">Instituteurs</div><div class="who">Directeur → CPPP de secteur → Inspecteur</div></div>
       </div>
     </div>
 
@@ -4274,6 +4292,8 @@ function absBadge(statut) {
   if (statut === 'Rejetée') return '<span class="badge badge-red">✗ Rejetée</span>';
   if (statut === 'Validée directeur') return '<span class="badge badge-blue">→ Directeur OK</span>';
   if (statut === 'En attente inspecteur') return '<span class="badge badge-blue">→ Inspecteur</span>';
+  if (statut === 'En attente CPPP') return '<span class="badge badge-orange">→ CPPP secteur</span>';
+  if (statut === 'Validée CPPP') return '<span class="badge badge-blue">→ CPPP OK</span>';
   return '<span class="badge badge-orange">⏳ En attente</span>';
 }
 function absActions(a) {
@@ -4283,7 +4303,11 @@ function absActions(a) {
     html += `<button class="icon-btn" onclick="absValide('${a.id}','dir')" title="Valider (directeur)" style="background:var(--green-soft);color:var(--green-deep)">✓</button>`;
     html += `<button class="icon-btn danger" onclick="absReject('${a.id}')" title="Rejeter">✗</button>`;
   }
-  if (role === 'inspecteur' && (a.statut === 'Validée directeur' || a.statut === 'En attente inspecteur')) {
+  if ((role === 'cpi' || role === 'cppp') && a.statut === 'En attente CPPP' && (typeof cpppPeutValider!=='function' || cpppPeutValider(a))) {
+    html += `<button class="icon-btn" onclick="absValide('${a.id}','cpps')" title="Valider (CPPP de secteur)" style="background:var(--green-soft);color:var(--green-deep)">✓</button>`;
+    html += `<button class="icon-btn danger" onclick="absReject('${a.id}')" title="Rejeter">✗</button>`;
+  }
+  if (role === 'inspecteur' && (a.statut === 'Validée directeur' || a.statut === 'En attente inspecteur' || a.statut === 'Validée CPPP' || a.statut === 'En attente CPPP')) {
     html += `<button class="icon-btn" onclick="absValide('${a.id}','insp')" title="Approuver (inspecteur)" style="background:var(--green-soft);color:var(--green-deep)">✓✓</button>`;
     html += `<button class="icon-btn danger" onclick="absReject('${a.id}')" title="Rejeter">✗</button>`;
   }
@@ -4429,7 +4453,8 @@ function absVoirScan(id) {
 function absValide(id, by) {
   const a = state.absences.find(x=>x.id===id);
   if (!a) return;
-  if (by==='dir') { a.statut = 'Validée directeur'; logAction('validate-absence', `Validation directeur : ${a.demandeur}`); }
+  if (by==='dir') { a.statut = 'En attente CPPP'; logAction('validate-absence', `Validation directeur : ${a.demandeur}`); }
+  else if (by==='cpps') { a.statut = 'Validée CPPP'; logAction('validate-absence-cpps', `Validation CPPP de secteur : ${a.demandeur}`); }
   else if (by==='insp') { a.statut = 'Validée'; logAction('approve-absence', `Approbation inspecteur : ${a.demandeur}`); }
   save('absences', state.absences);
   toast('Demande validée', 'success');
@@ -5439,7 +5464,7 @@ let cpiTab = 'visites';
 let vieTab = 'dashboard';
 let rhTab = 'personnel';
 function cpiCanManageVisite() { return ['superadmin','inspecteur','correspondant','cpi'].includes(state.user.role); }
-function cpiCanManageCPPP()   { return ['superadmin','inspecteur','correspondant'].includes(state.user.role); }
+function cpiCanManageCPPP()   { return ['superadmin','inspecteur','correspondant','cpi'].includes(state.user.role); }
 
 function renderCPI() {
   setContent(`
@@ -8894,8 +8919,8 @@ function rhForm(id) {
     </div>
     <div class="form-row">
       <div class="field"><label>Fonction</label><input id="rh-fonction" value="${escapeHtml(p.fonction||'')}"></div>
-      <div class="field"><label>École d'affectation</label>
-        <select id="rh-ecole">${state.ecoles.map(e=>`<option ${e.nom===p.ecole?'selected':''}>${escapeHtml(e.nom)}</option>`).join('')}</select>
+      <div class="field"><label>Affectation</label>
+        <select id="rh-ecole"><optgroup label="Écoles">${state.ecoles.map(e=>`<option ${e.nom===p.ecole?'selected':''}>${escapeHtml(e.nom)}</option>`).join('')}</optgroup><optgroup label="Postes administratifs">${['Correspondant fichier DESPS','Correspondant Carte scolaire','Correspondant Suivi Évaluation','Correspondant Statistique','Chargé des Ressources Humaines','Secrétaire','Bibliothécaire','Archiviste','Chargé du Courrier','Chargé Examen et concours','Chargé de Communication','Chargé SMOSS','IEPP','Économe'].map(x=>`<option ${x===p.ecole?'selected':''}>${x}</option>`).join('')}</optgroup></select>
       </div>
     </div>
     <div class="form-row">
@@ -17116,22 +17141,32 @@ function archiverDocument(doc) {
 
 /* ---------- AUDIT ---------- */
 function renderAudit() {
-  if (state.user.role !== 'inspecteur') {
+  if (!['inspecteur','superadmin'].includes(state.user.role)) {
     setContent('<div class="card"><div class="table-empty">Accès réservé à l\'inspecteur (administrateur).</div></div>');
     return;
   }
+  const _isSuper = state.user.role === 'superadmin';
+  const _normI = x => String(x||'').replace(/^IEPP\s+/i,'').trim().toLowerCase();
+  const _myI = _normI((state.user && state.user.iepp) || state.activeIepp || '');
+  const auditList = (state.audit||[]).filter(a => {
+    if (_isSuper) return true;                        /* le superadmin voit tout */
+    if (a.role === 'superadmin') return false;        /* les autres ne voient jamais le superadmin */
+    const _ai = _normI(a.iepp);
+    if (_ai && _myI && _ai !== _myI) return false;    /* ni une autre IEPP */
+    return true;
+  });
   setContent(`
     <div class="card">
       <div class="card-header">
         <div>
           <div class="card-title">Journal d'audit du système</div>
-          <div class="card-sub">Toutes les connexions et actions des utilisateurs · 200 dernières entrées</div>
+          <div class="card-sub">Connexions et actions ${_isSuper?'de toutes les circonscriptions':'de votre circonscription ('+escapeHtml(activeIeppLabel())+')'} · 200 dernières entrées</div>
         </div>
         <button class="btn btn-ghost btn-sm" onclick="clearAudit()">Vider le journal</button>
       </div>
       <div id="audit-list">
-        ${state.audit.length === 0 ? '<div class="table-empty">Journal vide</div>' :
-          state.audit.map(a => `
+        ${auditList.length === 0 ? '<div class="table-empty">Journal vide</div>' :
+          auditList.map(a => `
             <div class="audit-item">
               <div class="audit-dot">${(a.action[0]||'?').toUpperCase()}</div>
               <div class="audit-content">
@@ -17647,6 +17682,46 @@ function renderParametres() {
   const customRows  = (state.customServices||[]).map(s => svcParamRow(s.key, true));
 
   setContent(`
+    <div class="card mb-3">
+      <div class="card-header"><div><div class="card-title">✍️ Signature de l'Inspecteur</div>
+        <div class="card-sub">Apparaît sur les documents entre « L'Inspecteur… » et le nom. Dessin, photo ou scan ; ou aucune.</div></div></div>
+      <div style="padding:12px 14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <img id="iepp-sig-preview" src="${(typeof getIeppSignature==='function'?getIeppSignature():'')||''}" alt="" style="height:70px;width:auto;object-fit:contain;border:1px solid var(--line);border-radius:10px;padding:4px;${((typeof getIeppSignature==='function'&&getIeppSignature())?'':'display:none')}">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="ieppDessinerSignature()">✍️ Dessiner à l'écran</button>
+          <label class="btn" style="border:1px solid var(--line);background:#fff;cursor:pointer">📷 Photo / Scan
+            <input type="file" accept="image/*" capture="environment" style="display:none" onchange="ieppUploadImg(event,'signature')"></label>
+          <button class="btn" style="border:1px solid var(--line);background:#fff;color:var(--danger)" onclick="setIeppSignature('');var p=document.getElementById('iepp-sig-preview');if(p)p.style.display='none';if(typeof toast==='function')toast('Signature retirée','success')">Supprimer</button>
+        </div>
+      </div>
+    </div>
+    <div class="card mb-3">
+      <div class="card-header"><div><div class="card-title">🔖 Cachet de l'IEPP</div>
+        <div class="card-sub">Tampon apposé sur les documents. Photo ou import d'image ; ou aucun.</div></div></div>
+      <div style="padding:12px 14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <img id="iepp-cachet-preview" src="${(typeof getIeppCachet==='function'?getIeppCachet():'')||''}" alt="" style="height:80px;width:auto;object-fit:contain;border:1px solid var(--line);border-radius:10px;padding:4px;${((typeof getIeppCachet==='function'&&getIeppCachet())?'':'display:none')}">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <label class="btn btn-primary" style="cursor:pointer">📷 Photo / Importer
+            <input type="file" accept="image/*" capture="environment" style="display:none" onchange="ieppUploadImg(event,'cachet')"></label>
+          <button class="btn" style="border:1px solid var(--line);background:#fff;color:var(--danger)" onclick="setIeppCachet('');var p=document.getElementById('iepp-cachet-preview');if(p)p.style.display='none';if(typeof toast==='function')toast('Cachet retiré','success')">Supprimer</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header"><div><div class="card-title">🖼️ Logo de l'IEPP</div>
+        <div class="card-sub">Ce logo apparaîtra en haut à gauche et sur tous les documents imprimés. Les armoiries (MENAET) sont en haut à droite.</div></div></div>
+      <div style="padding:12px 14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <img id="iepp-logo-preview" src="${(typeof getIeppLogo==='function'?getIeppLogo():'')||''}" alt="" style="height:70px;width:auto;object-fit:contain;border:1px solid var(--line);border-radius:10px;padding:4px;${((typeof getIeppLogo==='function'&&getIeppLogo())?'':'display:none')}">
+        <div>
+          <label class="btn btn-primary" style="cursor:pointer">📤 Choisir une image
+            <input type="file" accept="image/*" style="display:none" onchange="ieppUploadImg(event,'logo')">
+          </label>
+          <button class="btn" style="margin-left:8px;border:1px solid var(--line);background:#fff" onclick="if(typeof setIeppLogo==='function'){setIeppLogo('');}var pv=document.getElementById('iepp-logo-preview');if(pv)pv.style.display='none';if(typeof toast==='function')toast('Logo retiré','success')">Retirer</button>
+        </div>
+      </div>
+    </div>
+
     <div class="hero" style="background:linear-gradient(135deg,#5B1F94 0%,#2E0E54 100%)">
       <h3>⚙️ <em>Paramètres</em> — Services du système</h3>
       <p>Créez de nouveaux services dotés des mêmes fonctionnalités que les services existants : matrice d'activités et activités permanentes, avec ajout, modification, suppression, import/export Excel et impression. Les services créés apparaissent automatiquement dans le menu « Services de l'IEPP ».</p>
@@ -22442,8 +22517,8 @@ function renderCarteScolaire(type) {
   renderCarteBody(type);
 }
 /* ==================================================================
-   CARTE SCOLAIRE — GÉNÉRATEUR DE RAPPORT D'ACTIVITÉ (ajout non destructif)
-   Niveaux : 1) Sous-préfectoral  2) Départemental  3) Régional (consolidé).
+   CARTE SCOLAIRE — LES ASSISES DE LA CARTE SCOLAIRE (ajout non destructif)
+   Niveaux : 1) Sous-préfectorale  2) Départementale  3) Régionale (consolidée).
    Agrège les données de TOUT le menu Carte scolaire (Préscolaire + Primaire +
    Secondaire) de la circonscription active. Rédaction par « IA simple »
    (modèle standard local, pas Claude) OU édition manuelle. Exports PDF/Word/Excel.
@@ -22492,7 +22567,7 @@ function crAggregate(level, scopeValue){
 }
 
 function crLevelLabel(level){
-  return level==='souspref' ? 'sous-préfectoral' : (level==='departement' ? 'départemental' : 'régional');
+  return level==='souspref' ? 'sous-préfectorale' : (level==='departement' ? 'départementale' : 'régionale');
 }
 function crPerimetre(level, scopeName){
   if(level==='souspref')    return 'la sous-préfecture de ' + (scopeName||'—');
@@ -22508,7 +22583,7 @@ function crNarrative(agg, level, scopeName){
   var niveauTxt = crLevelLabel(level);
   var pc = function(part){ return agg.total>0 ? Math.round(part*100/agg.total) : 0; };
   var lignes = [];
-  lignes.push('RAPPORT D\'ACTIVITÉ DE LA CARTE SCOLAIRE — NIVEAU ' + niveauTxt.toUpperCase());
+  lignes.push('LES ASSISES DE LA CARTE SCOLAIRE — NIVEAU ' + niveauTxt.toUpperCase());
   lignes.push(iepp + ' — Année scolaire ' + annee);
   lignes.push('Périmètre : ' + perimetre + '.');
   lignes.push('');
@@ -22566,16 +22641,16 @@ function renderCarteRapport(){
   var canEdit = crCanEdit();
   setContent(
     '<div class="hero" style="background:linear-gradient(135deg,#0E3A6B 0%,#0A2A5E 100%)">' +
-      '<h3>📝 Carte scolaire — <em>Rapport d\'activité</em></h3>' +
-      '<p>Génération du rapport d\'activité de la carte scolaire aux niveaux sous-préfectoral, départemental et régional, à partir des données remontées dans tout le menu Carte scolaire (préscolaire · primaire · secondaire) de ' + activeIeppLabel() + '. Rédaction assistée (modèle standard) ou saisie manuelle.</p>' +
+      '<h3>📝 <em>Les assises de la carte scolaire</em></h3>' +
+      '<p>Génération des assises de la carte scolaire — sous-préfectorale, départementale et régionale — à partir des données remontées dans tout le menu Carte scolaire (préscolaire · primaire · secondaire) de ' + activeIeppLabel() + '. Rédaction assistée (modèle standard) ou saisie manuelle.</p>' +
     '</div>' +
     '<div class="card" style="padding:16px;margin-bottom:14px">' +
       '<div class="toolbar" style="flex-wrap:wrap;gap:10px">' +
         '<div><div class="text-xs text-muted">Niveau du rapport</div>' +
           '<select id="cr-level" onchange="crOnLevelChange()" style="padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--white);min-width:200px">' +
-            '<option value="souspref">1 · Sous-préfectoral</option>' +
-            '<option value="departement">2 · Départemental</option>' +
-            '<option value="regional">3 · Régional (consolidé)</option>' +
+            '<option value="souspref">1 · Sous-préfectorale</option>' +
+            '<option value="departement">2 · Départementale</option>' +
+            '<option value="regional">3 · Régionale (consolidée)</option>' +
           '</select></div>' +
         '<div id="cr-scope-wrap"><div class="text-xs text-muted">Périmètre</div>' +
           '<select id="cr-scope" onchange="crRefreshStats()" style="padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--white);min-width:220px"></select></div>' +
@@ -22722,7 +22797,7 @@ function crDelete(id){
 function crHeaderHtml(){
   var c = crCurrent();
   return '<p style="text-align:center;font-size:11px;margin:0">République de Côte d\'Ivoire · MENAET · ' + escapeHtml(activeIeppLabel()) + '</p>' +
-         '<h2 style="text-align:center;color:#0A2A5E;margin:6px 0">Rapport d\'activité — Carte scolaire (' + escapeHtml(crLevelLabel(c.level)) + ')</h2>';
+         '<h2 style="text-align:center;color:#0A2A5E;margin:6px 0">Les assises de la carte scolaire (' + escapeHtml(crLevelLabel(c.level)) + ')</h2>';
 }
 function crPrint(){
   var ta = document.getElementById('cr-text'); var txt = ta ? ta.value : '';
@@ -24952,7 +25027,7 @@ function ceapImport(ev) {
 
 /* ===== Matrice d'action pour Examens & Concours ===== */
 function examMatriceHtml() {
-  const canManage = ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','drenaet','inspecteur','correspondant','examens','cpi'].includes(state.user.role);
   return `
     <div class="card" style="background:linear-gradient(135deg,#FFF4E5 0%,#FFE8C7 100%);padding:12px 14px;margin-bottom:10px;border-left:3px solid #B45309">
       <div class="text-xs"><strong>Matrice d'action — Examens & Concours</strong> · Plan d'action chronologique pour les phases de préparation, déroulement et post-examen (responsables, statuts, observations).</div>
@@ -24992,7 +25067,7 @@ function examMatriceRenderBody() {
            (m.periode||'').toLowerCase().includes(q) ||
            (m.statut||'').toLowerCase().includes(q);
   });
-  const canManage = ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role);
+  const canManage = ['superadmin','drenaet','inspecteur','correspondant','examens','cpi'].includes(state.user.role);
   const statBadge = (s) => {
     if (/complét|terminé|fait/i.test(s||'')) return 'badge-green';
     if (/cours|en cours/i.test(s||'')) return 'badge-blue';
@@ -25013,7 +25088,7 @@ function examMatriceRenderBody() {
   </tr>`).join('');
 }
 function examMatriceForm(id) {
-  if (!['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role)) { toast('Action réservée.', 'error'); return; }
+  if (!['superadmin','drenaet','inspecteur','correspondant','examens','cpi'].includes(state.user.role)) { toast('Action réservée.', 'error'); return; }
   const m = id ? (state.matriceExamens||[]).find(x=>x.id===id) : { phase:'Préparation', periode:'', activite:'', responsable:'', statut:'Programmée', observation:'' };
   if (id && !m) { toast('Action introuvable.', 'error'); return; }
   const phases = ['Préparation','Déroulement','Après-examen'];
@@ -26366,7 +26441,7 @@ function absInitialStatut(role) {
   return absDirectToInspector(role) ? 'En attente inspecteur' : 'En attente directeur';
 }
 function absDestinataireLabel(role) {
-  return absDirectToInspector(role) ? "l'Inspecteur de l'IEPP" : "votre Directeur d'école (puis l'Inspecteur)";
+  return absDirectToInspector(role) ? "l'Inspecteur de l'IEPP" : "votre Directeur d'école, puis le CPPP de secteur, puis l'Inspecteur";
 }
 /* Formulaire enrichi (demande d'autorisation) — pour instituteur, directeur, agent */
 function absRequestForm() {
@@ -26555,7 +26630,7 @@ function absImprimerAutorisation(id) {
     </div>
     <div id="doc" contenteditable="true">
       <div class="head-grid">
-        <div class="hg-side hg-left"><img src="${ARMOIRIE_MENAET_B64}" alt="Armoirie MENAET" class="armoirie"></div>
+        <div class="hg-side hg-left">${(typeof getIeppLogo==='function'&&getIeppLogo())?('<img src="'+getIeppLogo()+'" alt="Logo IEPP" class="armoirie">'):'<div class="iepp-logo-zone">LOGO<br>IEPP</div>'}</div>
         <div class="hg-center head">
           <div>Ministère de l'Éducation Nationale, de l'Alphabétisation<br>et de l'Enseignement Technique</div>
           <div class="dots">······························</div>
@@ -26563,11 +26638,12 @@ function absImprimerAutorisation(id) {
           <div class="dots">······························</div>
           <div class="sub">Inspection de l'Enseignement Préscolaire et Primaire (IEPP) de ${escapeHtml(iepp)}</div>
         </div>
-        <div class="hg-side hg-right"><div class="iepp-logo-zone">LOGO<br>IEPP</div></div>
+        <div class="hg-side hg-right"><img src="${ARMOIRIE_MENAET_B64}" alt="Armoirie MENAET" class="armoirie"></div>
       </div>
       <hr>
       <div class="ville">${escapeHtml(iepp)}, le ${today}</div>
       <div class="num">N° : ${numero} / MENAET / DRENAET / IEPP / AC</div>
+      <div class="num" style="border:none;margin-top:2px;font-weight:600;text-decoration:none">Année scolaire ${(typeof window!=="undefined"&&window.ANNEE_SCOLAIRE)?window.ANNEE_SCOLAIRE:"2026-2027"}</div>
       <h1>Autorisation d'absence</h1>
       <div class="body">
         <p><b>${a.demandeur && a.demandeur.toLowerCase().includes('mme')?'Madame':'Monsieur'} :</b> ${escapeHtml(a.demandeur||'')}</p>
@@ -26580,9 +26656,15 @@ function absImprimerAutorisation(id) {
         <p><b>Motif :</b> ${escapeHtml(a.motif||'—')}</p>
         <p>L'intéressé(e) reprendra le service le <b>${escapeHtml(reprise)}</b> à <b>${escapeHtml(heure)}</b>.</p>
       </div>
-      <div class="sig">
-        <div class="role">L'Inspecteur de l'IEPP de ${escapeHtml(iepp)}</div>
-        <div class="name">${escapeHtml(inspName)}</div>
+      <div class="sig" style="display:block;grid-template-columns:none;margin-top:40px">
+        <div style="max-width:340px;margin-left:auto">
+          <div class="role" style="text-align:center">L'Inspecteur de l'IEPP de ${escapeHtml(iepp)}</div>
+          <div style="position:relative;height:92px;text-align:center;margin-top:4px">
+            ${(typeof getIeppCachet==='function'&&getIeppCachet())?('<img src="'+getIeppCachet()+'" alt="Cachet" style="position:absolute;left:50%;top:6px;transform:translateX(-72%);max-height:90px;opacity:.9;pointer-events:none">'):''}
+            ${(typeof getIeppSignature==='function'&&getIeppSignature())?('<img src="'+getIeppSignature()+'" alt="Signature" style="position:relative;z-index:1;max-height:78px;display:inline-block">'):''}
+          </div>
+          <div class="name" style="margin-top:0;text-align:center">${escapeHtml(inspName)}</div>
+        </div>
       </div>
       <div class="footer">IEPP de ${escapeHtml(iepp)} — DRENAET ${escapeHtml(drenaet)} — Ministère de l'Éducation Nationale, de l'Alphabétisation et de l'Enseignement Technique</div>
     </div>
@@ -27223,6 +27305,524 @@ function vieResetAllData() {
     }
   });
   window.addEventListener('appinstalled', function(){ deferred=null; if(btn) btn.style.display='none'; });
+})();
+</script>
+<script id="iepp-login-install-btn">
+/* Ajout : bouton "Installer l'application" sur l'ecran de connexion (reutilise #btn-install-pwa) */
+(function(){
+  function isInstalled(){ try { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true; } catch(e){ return false; } }
+  function addBtn(){
+    if(isInstalled()) return;
+    var card=document.querySelector('#login-screen .login-card') || document.querySelector('.login-card');
+    if(!card || document.getElementById('login-install-btn')) return;
+    var wrap=document.createElement('div'); wrap.style.cssText='margin-top:14px;text-align:center';
+    var b=document.createElement('button'); b.id='login-install-btn'; b.type='button';
+    b.textContent="📲 Installer l'application";
+    b.style.cssText='width:100%;background:#0A4DA6;color:#fff;border:none;border-radius:10px;padding:12px 16px;font:600 15px system-ui,-apple-system,sans-serif;cursor:pointer;box-shadow:0 4px 12px rgba(10,77,166,.25)';
+    var h=document.createElement('div'); h.style.cssText='font-size:12px;color:#6b7280;margin-top:6px';
+    h.textContent="Installez l'application sur votre telephone ou votre ordinateur";
+    b.addEventListener('click', function(){
+      var fb=document.getElementById('btn-install-pwa');
+      if(fb){ fb.click(); }
+      else if(typeof showInstallHelp==='function'){ showInstallHelp(); }
+    });
+    wrap.appendChild(b); wrap.appendChild(h); card.appendChild(wrap);
+  }
+  if(document.readyState!=='loading') addBtn(); else document.addEventListener('DOMContentLoaded', addBtn);
+  setTimeout(addBtn,800); setTimeout(addBtn,1600);
+  window.addEventListener('appinstalled', function(){ var b=document.getElementById('login-install-btn'); if(b&&b.parentNode) b.parentNode.style.display='none'; });
+})();
+</script>
+
+<!-- ===== ETAPE 2 (ajout) : couleurs vibrantes, annee scolaire, logo/armoiries, signature ===== -->
+<style id="iepp-etape2-style">
+  /* Bouton "Se connecter" en orange vibrant */
+  #btn-se-connecter{
+    background:linear-gradient(135deg,#FF8A00 0%,#F77F00 55%,#D96A00 100%)!important;
+    color:#fff!important;border:none!important;
+    box-shadow:0 8px 22px -6px rgba(247,127,0,.55)!important;
+    font-weight:700!important;letter-spacing:.2px;
+  }
+  #btn-se-connecter:hover{ filter:brightness(1.05); transform:translateY(-1px); }
+
+  /* Menu lateral : orange clair, accent actif vert transparent */
+  .sidebar{ background:linear-gradient(180deg,#FFF3E2 0%,#FFE9D2 100%)!important; }
+  .sb-link{ border-radius:10px; margin:1px 6px; }
+  .sb-link:hover{ background:rgba(0,158,96,.10)!important; color:#00754A!important; }
+  .sb-link.active{
+    background:linear-gradient(135deg, rgba(0,158,96,.85) 0%, rgba(0,117,74,.80) 100%)!important;
+    color:#fff!important; box-shadow:0 6px 16px -6px rgba(0,158,96,.5)!important;
+  }
+  .sb-section-title{ color:#B25E00!important; letter-spacing:.6px; }
+
+  /* Couleurs generales plus vives */
+  .badge-orange{ background:#FFE3C7!important; color:#B25E00!important; }
+  .btn-primary{ box-shadow:0 6px 16px -6px rgba(0,78,137,.35); }
+
+  /* En-tete documents (logo gauche / armoiries droite) */
+  .doc-entete{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:2px solid #009E60;padding:6px 4px 10px;margin-bottom:12px}
+  .doc-entete img{height:64px;width:auto;object-fit:contain}
+  .doc-entete .doc-centre{flex:1;text-align:center;font-weight:700;color:#1A1B25;line-height:1.25}
+  @media print{ .no-print{display:none!important} }
+</style>
+
+<script id="iepp-etape2-script">
+(function(){
+  /* ---------- Logo IEPP (televerse) + armoiries (fournie) : disponibles partout ---------- */
+  var ARMOIRIE = 'data:image/jpeg;base64,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';
+  window.IEPP_ARMOIRIE = ARMOIRIE;
+  window.getIeppLogo = function(){ try { return localStorage.getItem('iepp_logo_data') || ''; } catch(e){ return ''; } };
+  window.setIeppLogo = function(dataUrl){ try { localStorage.setItem('iepp_logo_data', dataUrl||''); }catch(e){} applyHeaderLogos(); };
+
+  /* En-tete visible en haut : logo (gauche) + armoiries (droite) */
+  function applyHeaderLogos(){
+    var logo = window.getIeppLogo();
+    // topbar : logo a gauche
+    var slotL = document.getElementById('iepp-logo-left');
+    if(!slotL){
+      var tb = document.querySelector('.topbar') || document.querySelector('.pbar') || document.querySelector('header');
+      if(tb){
+        slotL=document.createElement('img'); slotL.id='iepp-logo-left';
+        slotL.style.cssText='height:38px;width:auto;margin-right:10px;object-fit:contain;order:-1';
+        tb.insertBefore(slotL, tb.firstChild);
+      }
+    }
+    if(slotL){ if(logo){ slotL.src=logo; slotL.style.display=''; } else slotL.style.display='none'; }
+    // Armoirie deja presente dans l'appli : on retire l'eventuel doublon ajoute precedemment
+    var dupR=document.getElementById('iepp-armoirie-right');
+    if(dupR && dupR.parentNode) dupR.parentNode.removeChild(dupR);
+  }
+
+  /* En-tete pour tous les documents imprimes : logo gauche / armoiries droite */
+  window.ieppDocEntete = function(titre){
+    var logo=window.getIeppLogo();
+    return '<div class="doc-entete">'
+      + (logo?'<img src="'+logo+'" alt="Logo IEPP">':'<div style="width:64px"></div>')
+      + '<div class="doc-centre">RÉPUBLIQUE DE CÔTE D\'IVOIRE<br><span style="font-weight:600;font-size:12px">MENAET · '
+      + (window.ANNEE_SCOLAIRE_LABEL?('Année scolaire '+window.ANNEE_SCOLAIRE):'')
+      + '</span>'+(titre?('<br><span style="font-size:14px">'+titre+'</span>'):'')+'</div>'
+      + '<img src="'+ARMOIRIE+'" alt="Armoiries">'
+      + '</div>';
+  };
+
+  /* ---------- Annee scolaire variable (2021-2026 -> annees suivantes) ---------- */
+  function anneesDispo(){
+    var out=[]; for(var a=2021;a<=2035;a++){ out.push(a+'-'+(a+1)); }
+    return out; // 2021-2022 ... 2035-2036 ; on commence l'affichage a 2021-2026 comme demande via defaut
+  }
+  function getAnnee(){ try { return localStorage.getItem('iepp_annee_scolaire') || '2026-2027'; }catch(e){ return '2026-2027'; } }
+  function setAnnee(v){ try { localStorage.setItem('iepp_annee_scolaire', v); }catch(e){}
+    window.ANNEE_SCOLAIRE=v; window.ANNEE_SCOLAIRE_LABEL=true; refreshBadge(); }
+  window.ANNEE_SCOLAIRE=getAnnee(); window.ANNEE_SCOLAIRE_LABEL=true;
+
+  function refreshBadge(){
+    var badge=document.getElementById('anscolaire-badge');
+    if(!badge) return;
+    if(document.getElementById('anscolaire-select')) { document.getElementById('anscolaire-select').value=getAnnee(); return; }
+    var years=anneesDispo();
+    // on garantit la presence de 2021-2026? (plage annuelle) -> on ajoute aussi les plages "large" demandees
+    var extra=['2021-2026'];
+    extra.forEach(function(e){ if(years.indexOf(e)<0) years.unshift(e); });
+    var opts=years.map(function(y){ return '<option '+(y===getAnnee()?'selected':'')+'>'+y+'</option>'; }).join('');
+    badge.innerHTML='Année scolaire <select id="anscolaire-select" class="no-print" style="border:none;background:transparent;font-weight:700;color:inherit;cursor:pointer;font-size:inherit">'+opts+'</select>';
+    var sel=document.getElementById('anscolaire-select');
+    sel.addEventListener('change',function(){ setAnnee(this.value);
+      if(typeof toast==='function') toast('Année scolaire : '+this.value,'success');
+      if(state && state.module && typeof navigate==='function') navigate(state.module);
+    });
+  }
+
+  /* ---------- Signature manuscrite de l'autorisation d'absence (admin / correspondant fichier) ---------- */
+  window.ouvrirSignatureAbsence = function(demandeId){
+    var role=(state && state.user && state.user.role)||'';
+    var fonction=((state && state.user && state.user.fonction)||'').toLowerCase();
+    var autorise = role==='superadmin' || role==='admin' || role==='administrateur' || fonction.indexOf('correspondant fichier')>=0;
+    if(!autorise){ if(typeof toast==='function') toast("Seuls l'administrateur ou le correspondant fichier peuvent signer.",'error'); return; }
+    var ov=document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px';
+    ov.innerHTML='<div style="background:#fff;border-radius:14px;max-width:520px;width:100%;padding:18px">'
+      +'<div style="font-weight:700;font-size:16px;margin-bottom:8px">Signer l\'autorisation (à la main)</div>'
+      +'<div style="font-size:12px;color:#667;margin-bottom:8px">Signez ci-dessous avec le doigt ou la souris.</div>'
+      +'<canvas id="sig-canvas" width="480" height="180" style="width:100%;border:1px dashed #bbb;border-radius:10px;touch-action:none;background:#fff"></canvas>'
+      +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">'
+      +'<button id="sig-clear" style="padding:9px 14px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer">Effacer</button>'
+      +'<button id="sig-cancel" style="padding:9px 14px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer">Annuler</button>'
+      +'<button id="sig-save" style="padding:9px 16px;border:none;border-radius:8px;background:#009E60;color:#fff;font-weight:600;cursor:pointer">Valider la signature</button>'
+      +'</div></div>';
+    document.body.appendChild(ov);
+    var cv=ov.querySelector('#sig-canvas'), ctx=cv.getContext('2d'), draw=false, dirty=false;
+    ctx.lineWidth=2.4; ctx.lineCap='round'; ctx.strokeStyle='#0b2e59';
+    function pos(e){ var r=cv.getBoundingClientRect(), t=(e.touches&&e.touches[0])||e; return {x:(t.clientX-r.left)*(cv.width/r.width), y:(t.clientY-r.top)*(cv.height/r.height)}; }
+    function start(e){ draw=true; dirty=true; var p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); e.preventDefault(); }
+    function move(e){ if(!draw)return; var p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); e.preventDefault(); }
+    function end(){ draw=false; }
+    cv.addEventListener('mousedown',start); cv.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
+    cv.addEventListener('touchstart',start,{passive:false}); cv.addEventListener('touchmove',move,{passive:false}); cv.addEventListener('touchend',end);
+    ov.querySelector('#sig-clear').onclick=function(){ ctx.clearRect(0,0,cv.width,cv.height); dirty=false; };
+    ov.querySelector('#sig-cancel').onclick=function(){ document.body.removeChild(ov); };
+    ov.querySelector('#sig-save').onclick=function(){
+      if(!dirty){ if(typeof toast==='function') toast('Veuillez signer d\'abord.','error'); return; }
+      var data=cv.toDataURL('image/png');
+      try{
+        var key='iepp_signatures_absence';
+        var all=JSON.parse(localStorage.getItem(key)||'{}');
+        all[demandeId||('demande_'+Date.now())]={ sig:data, par:(state.user&&state.user.name)||'', date:new Date().toISOString() };
+        localStorage.setItem(key, JSON.stringify(all));
+      }catch(e){}
+      if(typeof toast==='function') toast('Autorisation signée ✔','success');
+      document.body.removeChild(ov);
+      if(state && state.module && typeof navigate==='function') navigate(state.module);
+    };
+  };
+
+  /* ---------- Application au chargement + apres chaque navigation ---------- */
+  function tick(){ try{ refreshBadge(); applyHeaderLogos(); }catch(e){} }
+  if(document.readyState!=='loading') tick(); else document.addEventListener('DOMContentLoaded', tick);
+  setTimeout(tick,700); setTimeout(tick,1500);
+  // ré-appliquer quand on change de module (le badge/topbar peuvent être re-rendus)
+  if(typeof window.navigate==='function'){
+    var _nav=window.navigate;
+    window.navigate=function(){ var r=_nav.apply(this,arguments); setTimeout(tick,60); return r; };
+  }
+})();
+</script>
+
+<script id="iepp-secteurs-module">
+(function(){
+  function loadSec(){ try { return (typeof load==='function') ? (load('secteurs',[])||[]) : JSON.parse(localStorage.getItem('iepp_secteurs')||'[]'); } catch(e){ return []; } }
+  function saveSec(v){ try { if(typeof save==='function') save('secteurs', v); else localStorage.setItem('iepp_secteurs', JSON.stringify(v)); }catch(e){} }
+  function esc(x){ return (typeof escapeHtml==='function')?escapeHtml(x==null?'':String(x)):String(x==null?'':x); }
+  function toastMsg(m,t){ if(typeof toast==='function') toast(m, t||'success'); }
+  var selId=null;
+
+  window.SEC={
+    open:function(id){ selId=id; render(); },
+    back:function(){ selId=null; render(); },
+    create:function(){ var nom=prompt('Nom du secteur (ex. Secteur 1 - Tengréla Centre)'); if(!nom) return;
+      var arr=loadSec(); arr.push({id:'sec_'+Date.now(), nom:nom.trim(), ecoles:[], enseignants:[]}); saveSec(arr); toastMsg('Secteur créé'); render(); },
+    rename:function(id){ var arr=loadSec(); var t=arr.find(function(x){return x.id===id;}); if(!t)return; var n=prompt('Nouveau nom', t.nom); if(!n)return; t.nom=n.trim(); saveSec(arr); render(); },
+    remove:function(id){ if(!confirm('Supprimer ce secteur ? (les écoles restent dans la circonscription)'))return; var arr=loadSec().filter(function(x){return x.id!==id;}); saveSec(arr); if(selId===id) selId=null; render(); },
+    addEcole:function(){ var sel=document.getElementById('sec-add-ecole'); if(!sel||!sel.value)return; var arr=loadSec(); var t=arr.find(function(x){return x.id===selId;}); if(!t)return; t.ecoles=t.ecoles||[]; if(t.ecoles.indexOf(sel.value)<0){ t.ecoles.push(sel.value); saveSec(arr);} render(); },
+    delEcole:function(idx){ var arr=loadSec(); var t=arr.find(function(x){return x.id===selId;}); if(!t)return; (t.ecoles||[]).splice(idx,1); saveSec(arr); render(); },
+    addEns:function(){ var arr=loadSec(); var t=arr.find(function(x){return x.id===selId;}); if(!t)return;
+      var g=function(id){var el=document.getElementById(id);return el?el.value.trim():'';};
+      var nom=g('ens-nom'); if(!nom){ toastMsg('Le nom de l\'enseignant est requis','error'); return; }
+      t.enseignants=t.enseignants||[];
+      t.enseignants.push({id:'ens_'+Date.now(), nom:nom, contact:g('ens-contact'), matricule:g('ens-mat'), anciennete:g('ens-anc'), localite:g('ens-loc'), ecole:g('ens-ecole')});
+      saveSec(arr); toastMsg('Enseignant ajouté'); render(); },
+    delEns:function(id){ var arr=loadSec(); var t=arr.find(function(x){return x.id===selId;}); if(!t)return; t.enseignants=(t.enseignants||[]).filter(function(e){return e.id!==id;}); saveSec(arr); render(); },
+    setCppp:function(v){ var arr=loadSec(); var t=arr.find(function(x){return x.id===selId;}); if(!t)return; t.cppp=(v||'').trim(); saveSec(arr); }
+  };
+
+  function render(){
+    if(typeof setContent!=='function') return;
+    var arr=loadSec();
+    if(!selId){
+      var cards = arr.length ? arr.map(function(t){ return ''
+        +'<div class="card" style="padding:12px 14px;margin-bottom:10px">'
+        +'  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
+        +'    <div><strong>'+esc(t.nom)+'</strong><div style="font-size:12px;color:var(--ink-soft)">'+((t.ecoles||[]).length)+' école(s) · '+((t.enseignants||[]).length)+' enseignant(s)</div></div>'
+        +'    <div style="display:flex;gap:6px;flex-wrap:wrap">'
+        +'      <button class="btn" style="background:var(--green);color:#fff" onclick="SEC.open(\''+t.id+'\')">Gérer</button>'
+        +'      <button class="btn" style="border:1px solid var(--line);background:#fff" onclick="SEC.rename(\''+t.id+'\')">Renommer</button>'
+        +'      <button class="btn" style="border:1px solid var(--line);background:#fff;color:var(--danger)" onclick="SEC.remove(\''+t.id+'\')">Supprimer</button>'
+        +'    </div></div></div>'; }).join('')
+        : '<div class="card" style="padding:16px;color:var(--ink-soft)">Aucun secteur pour le moment. Créez le premier secteur avec le bouton ci-dessus.</div>';
+      setContent(''
+        +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">'
+        +'  <div style="font-size:13px;color:var(--ink-soft)">Chaque secteur regroupe des écoles ; les enseignants (craie en main) y sont rattachés.</div>'
+        +'  <button class="btn btn-primary" onclick="SEC.create()">+ Nouveau secteur</button>'
+        +'</div>'+cards);
+      return;
+    }
+    var t=arr.find(function(x){return x.id===selId;}); if(!t){ selId=null; return render(); }
+    var ecoles=(typeof state!=='undefined'&&state.ecoles)?state.ecoles:[];
+    var inSec=t.ecoles||[];
+    var dispo=ecoles.filter(function(e){ return inSec.indexOf(e.nom)<0; });
+    var ecoleOpts=dispo.map(function(e){ return '<option>'+esc(e.nom)+'</option>'; }).join('');
+    var chips = inSec.length ? inSec.map(function(n,i){ return '<span style="display:inline-flex;align-items:center;gap:6px;background:var(--green-soft);color:var(--green-deep);border-radius:999px;padding:4px 10px;margin:3px;font-size:12px">'+esc(n)+' <b style="cursor:pointer" onclick="SEC.delEcole('+i+')">×</b></span>'; }).join('') : '<span style="color:var(--ink-soft);font-size:12px">Aucune école dans ce secteur.</span>';
+    var ensEcoleOpts=inSec.map(function(n){ return '<option>'+esc(n)+'</option>'; }).join('');
+    var rows=(t.enseignants||[]).map(function(e){ return '<tr>'
+      +'<td>'+esc(e.nom)+'</td><td>'+esc(e.contact)+'</td><td>'+esc(e.matricule)+'</td><td>'+esc(e.anciennete)+'</td><td>'+esc(e.localite)+'</td><td>'+esc(e.ecole)+'</td>'
+      +'<td><button class="btn" style="color:var(--danger);border:1px solid var(--line);background:#fff;padding:4px 8px" onclick="SEC.delEns(\''+e.id+'\')">Suppr.</button></td></tr>'; }).join('');
+    var ip='padding:8px;border:1px solid var(--line);border-radius:8px';
+    setContent(''
+      +'<button class="btn" style="border:1px solid var(--line);background:#fff;margin-bottom:12px" onclick="SEC.back()">← Retour aux secteurs</button>'
+      +'<div class="card" style="padding:14px;margin-bottom:14px">'
+      +'  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div class="card-title">🗺️ '+esc(t.nom)+'</div>'
+      +'    <button class="btn" style="border:1px solid var(--line);background:#fff" onclick="SEC.rename(\''+t.id+'\')">Renommer</button></div>'
+      +'  <div style="margin:8px 0"><label style="font-size:12px;color:var(--ink-soft);display:block;margin-bottom:4px">CPPP responsable du secteur (identifiant ou nom)</label>'+'<input value="'+esc(t.cppp||'')+'" onchange="SEC.setCppp(this.value)" placeholder="ex. identifiant du CPPP" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px"></div>'+'  <div style="margin-top:10px"><strong>Écoles du secteur</strong></div>'
+      +'  <div style="margin:6px 0">'+chips+'</div>'
+      +'  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px">'
+      +'    <select id="sec-add-ecole" style="min-width:220px;'+ip+'"><option value="">— Choisir une école de la circonscription —</option>'+ecoleOpts+'</select>'
+      +'    <button class="btn btn-primary" onclick="SEC.addEcole()">Ajouter au secteur</button></div>'
+      +'</div>'
+      +'<div class="card" style="padding:14px">'
+      +'  <div class="card-title">👨‍🏫 Enseignants du secteur</div>'
+      +'  <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0">'
+      +'    <input id="ens-nom" placeholder="Nom & prénoms" style="flex:1;min-width:170px;'+ip+'">'
+      +'    <input id="ens-contact" placeholder="Contact" style="width:130px;'+ip+'">'
+      +'    <input id="ens-mat" placeholder="Matricule" style="width:120px;'+ip+'">'
+      +'    <input id="ens-anc" placeholder="Ancienneté" style="width:100px;'+ip+'">'
+      +'    <input id="ens-loc" placeholder="Localité" style="width:130px;'+ip+'">'
+      +'    <select id="ens-ecole" style="width:190px;'+ip+'"><option value="">École…</option>'+ensEcoleOpts+'</select>'
+      +'    <button class="btn btn-primary" onclick="SEC.addEns()">Ajouter</button>'
+      +'  </div>'
+      +'  <div style="overflow:auto"><table class="table" style="width:100%;font-size:13px;border-collapse:collapse">'
+      +'    <thead><tr style="text-align:left;color:var(--ink-soft)"><th>Nom</th><th>Contact</th><th>Matricule</th><th>Ancienneté</th><th>Localité</th><th>École</th><th></th></tr></thead>'
+      +'    <tbody>'+(rows||'<tr><td colspan="7" style="color:var(--ink-soft);padding:8px">Aucun enseignant. Ajoutez-en ci-dessus.</td></tr>')+'</tbody></table></div>'
+      +'</div>');
+  }
+  window.renderSecteurs=render;
+
+  /* Enregistrement du module dans MODULES + ACL (accès pour CPPP/CPI/superadmin) */
+  try{
+    if(typeof MODULES==='object' && MODULES){
+      MODULES.secteurs = { title:'Secteurs (CPPP)', sub:'Gestion des secteurs pédagogiques — écoles & enseignants', render:render };
+      if(MODULES.cpi){ MODULES['cpi-admin'] = { title:'Espace CPI', sub:'Conseiller Pédagogique d\'Inspection — supervision des CPPP & rapport DELC', render:MODULES.cpi.render }; }
+    }
+    if(typeof ACL==='object' && ACL){
+      Object.keys(ACL).forEach(function(role){
+        var a=ACL[role]; if(!Array.isArray(a)) return;
+        if(a.indexOf('cpi')>=0 || role==='superadmin'){
+          if(a.indexOf('secteurs')<0) a.push('secteurs');
+          if(a.indexOf('cpi-admin')<0) a.push('cpi-admin');
+        }
+      });
+    }
+  }catch(e){ console.warn('secteurs register', e); }
+
+  /* Filet de sécurité : si l'enregistrement natif n'a pas pris, on gère nous-mêmes la navigation */
+  try{
+    var _nav = window.navigate;
+    if(typeof _nav==='function'){
+      window.navigate = function(mod){
+        var known = (typeof MODULES==='object' && MODULES && MODULES[mod]);
+        if(!known && mod==='secteurs'){
+          try{ state.module='secteurs'; }catch(e){}
+          try{ document.querySelectorAll('.sb-link').forEach(function(el){ el.classList.toggle('active', el.dataset.module==='secteurs'); }); }catch(e){}
+          try{ document.getElementById('page-title').firstChild.textContent='Secteurs (CPPP)'; document.getElementById('page-sub').textContent='Gestion des secteurs pédagogiques'; }catch(e){}
+          try{ document.getElementById('content').innerHTML=''; }catch(e){}
+          render(); return;
+        }
+        if(!known && mod==='cpi-admin'){ return _nav.call(this,'cpi'); }
+        return _nav.apply(this, arguments);
+      };
+    }
+  }catch(e){ console.warn('nav secteurs', e); }
+})();
+</script>
+
+<script id="iepp-signature-cachet">
+(function(){
+  window.getIeppSignature=function(){try{return localStorage.getItem('iepp_signature_data')||'';}catch(e){return'';}};
+  window.setIeppSignature=function(d){try{localStorage.setItem('iepp_signature_data',d||'');}catch(e){}};
+  window.getIeppCachet=function(){try{return localStorage.getItem('iepp_cachet_data')||'';}catch(e){return'';}};
+  window.setIeppCachet=function(d){try{localStorage.setItem('iepp_cachet_data',d||'');}catch(e){}};
+
+  window.ieppDessinerSignature=function(){
+    var ov=document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px';
+    ov.innerHTML='<div style="background:#fff;border-radius:14px;max-width:520px;width:100%;padding:18px">'
+      +'<div style="font-weight:700;font-size:16px;margin-bottom:6px">Dessiner la signature</div>'
+      +'<div style="font-size:12px;color:#667;margin-bottom:8px">Signez ci-dessous (doigt ou souris).</div>'
+      +'<canvas id="sigc" width="480" height="180" style="width:100%;border:1px dashed #bbb;border-radius:10px;touch-action:none;background:#fff"></canvas>'
+      +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">'
+      +'<button id="sigc-clear" style="padding:9px 14px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer">Effacer</button>'
+      +'<button id="sigc-cancel" style="padding:9px 14px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer">Annuler</button>'
+      +'<button id="sigc-save" style="padding:9px 16px;border:none;border-radius:8px;background:#009E60;color:#fff;font-weight:600;cursor:pointer">Enregistrer</button>'
+      +'</div></div>';
+    document.body.appendChild(ov);
+    var cv=ov.querySelector('#sigc'),ctx=cv.getContext('2d'),draw=false,dirty=false;
+    ctx.lineWidth=2.4;ctx.lineCap='round';ctx.strokeStyle='#0b2e59';
+    function pos(e){var r=cv.getBoundingClientRect(),t=(e.touches&&e.touches[0])||e;return{x:(t.clientX-r.left)*(cv.width/r.width),y:(t.clientY-r.top)*(cv.height/r.height)};}
+    function st(e){draw=true;dirty=true;var p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);e.preventDefault();}
+    function mv(e){if(!draw)return;var p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();e.preventDefault();}
+    function en(){draw=false;}
+    cv.addEventListener('mousedown',st);cv.addEventListener('mousemove',mv);window.addEventListener('mouseup',en);
+    cv.addEventListener('touchstart',st,{passive:false});cv.addEventListener('touchmove',mv,{passive:false});cv.addEventListener('touchend',en);
+    ov.querySelector('#sigc-clear').onclick=function(){ctx.clearRect(0,0,cv.width,cv.height);dirty=false;};
+    ov.querySelector('#sigc-cancel').onclick=function(){document.body.removeChild(ov);};
+    ov.querySelector('#sigc-save').onclick=function(){
+      if(!dirty){ if(typeof toast==='function') toast('Veuillez signer d\'abord.','error'); return; }
+      window.setIeppSignature(cv.toDataURL('image/png'));
+      if(typeof toast==='function') toast('Signature enregistrée ✔','success');
+      document.body.removeChild(ov);
+      var p=document.getElementById('iepp-sig-preview'); if(p){ p.src=window.getIeppSignature(); p.style.display=''; }
+    };
+  };
+})();
+</script>
+
+<script id="iepp-cpps-permission">
+(function(){
+  window.cpppSecteurPourEcole=function(ecole){
+    try{ var arr=(typeof load==='function')?(load('secteurs',[])||[]):[]; 
+      return arr.find(function(s){ return (s.ecoles||[]).indexOf(ecole)>=0; })||null; }catch(e){ return null; }
+  };
+  window.cpppPeutValider=function(a){
+    try{
+      var sec=window.cpppSecteurPourEcole(a && a.ecole);
+      if(!sec) return false;                    // école dans aucun secteur : pas de CPPP compétent
+      var u=(typeof state!=='undefined'&&state.user)?state.user:{};
+      var who=(sec.cppp||'').trim().toLowerCase();
+      if(!who) return true;                     // secteur sans CPPP assigné : tout CPPP peut valider (évite le blocage)
+      return who===String(u.username||'').toLowerCase() || who===String(u.name||'').toLowerCase();
+    }catch(e){ return false; }
+  };
+})();
+</script>
+
+<script id="iepp-alpha-module">
+(function(){
+  function L(k,d){ try{ return (typeof load==='function')?(load(k,d)||d):(JSON.parse(localStorage.getItem('iepp_'+k)||'null')||d); }catch(e){ return d; } }
+  function S(k,v){ try{ if(typeof save==='function') save(k,v); else localStorage.setItem('iepp_'+k, JSON.stringify(v)); }catch(e){} }
+  function esc(x){ return (typeof escapeHtml==='function')?escapeHtml(x==null?'':String(x)):String(x==null?'':x); }
+  function tm(m,t){ if(typeof toast==='function') toast(m,t||'success'); }
+  var tab='dash', ip='padding:8px;border:1px solid var(--line);border-radius:8px';
+  var TABS=[['dash','📊','Tableau de bord'],['centres','🏫','Centres ALPHA'],['auditeurs','🧑‍🎓','Auditeurs'],['matrice','🗂️',"Matrice d'activités"],['rapports','📄','Rapports']];
+  var STATS=['À faire','En cours','Terminé'];
+
+  window.ALPHA={
+    go:function(t){ tab=t; render(); },
+    addCentre:function(){ var g=function(id){var e=document.getElementById(id);return e?e.value.trim():'';}; var nom=g('al-c-nom'); if(!nom){tm('Nom du centre requis','error');return;} var a=L('alphaCentres',[]); a.push({id:'c'+Date.now(),nom:nom,localite:g('al-c-loc'),encadreur:g('al-c-enc'),effectif:parseInt(g('al-c-eff'),10)||0}); S('alphaCentres',a); render(); },
+    delCentre:function(id){ S('alphaCentres', L('alphaCentres',[]).filter(function(x){return x.id!==id;})); render(); },
+    addAud:function(){ var g=function(id){var e=document.getElementById(id);return e?e.value.trim():'';}; var nom=g('al-a-nom'); if(!nom){tm('Nom requis','error');return;} var a=L('alphaAuditeurs',[]); a.push({id:'a'+Date.now(),nom:nom,sexe:g('al-a-sexe'),age:g('al-a-age'),centre:g('al-a-centre')}); S('alphaAuditeurs',a); render(); },
+    delAud:function(id){ S('alphaAuditeurs', L('alphaAuditeurs',[]).filter(function(x){return x.id!==id;})); render(); },
+    addAct:function(){ var g=function(id){var e=document.getElementById(id);return e?e.value.trim():'';}; var act=g('al-m-act'); if(!act){tm('Activité requise','error');return;} var a=L('alphaMatrice',[]); a.push({id:'m'+Date.now(),act:act,resp:g('al-m-resp'),periode:g('al-m-per'),statut:g('al-m-stat')||'À faire'}); S('alphaMatrice',a); render(); },
+    delAct:function(id){ S('alphaMatrice', L('alphaMatrice',[]).filter(function(x){return x.id!==id;})); render(); },
+    setStat:function(id,v){ var a=L('alphaMatrice',[]); var it=a.find(function(x){return x.id===id;}); if(it){it.statut=v; S('alphaMatrice',a);} },
+    imprimer:function(){ var c=L('alphaCentres',[]),au=L('alphaAuditeurs',[]),m=L('alphaMatrice',[]); var w=window.open('','_blank'); if(!w){tm('Autorisez les pop-up','error');return;}
+      var ent=(typeof ieppDocEntete==='function')?ieppDocEntete("Rapport — Alphabétisation"):'<h2>Rapport Alphabétisation</h2>';
+      w.document.write('<html><head><meta charset="utf-8"><title>Rapport Alphabétisation</title></head><body style="font-family:Times New Roman,serif;max-width:800px;margin:0 auto;padding:24px">'+ent
+        +'<h3>Matrice d\'activités</h3><table border="1" cellpadding="6" style="border-collapse:collapse;width:100%"><tr><th>Activité</th><th>Responsable</th><th>Période</th><th>Statut</th></tr>'
+        +m.map(function(x){return '<tr><td>'+esc(x.act)+'</td><td>'+esc(x.resp)+'</td><td>'+esc(x.periode)+'</td><td>'+esc(x.statut)+'</td></tr>';}).join('')
+        +'</table><p>Centres : '+c.length+' · Auditeurs : '+au.length+'</p></body></html>'); w.document.close(); w.print(); }
+  };
+
+  function render(){
+    if(typeof setContent!=='function') return;
+    var centres=L('alphaCentres',[]), auds=L('alphaAuditeurs',[]), mat=L('alphaMatrice',[]);
+    var tabsHtml=TABS.map(function(t){return '<div class="tab '+(tab===t[0]?'active':'')+'" onclick="ALPHA.go(\''+t[0]+'\')">'+t[1]+' '+t[2]+'</div>';}).join('');
+    var body='';
+    if(tab==='dash'){
+      body='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">'
+        +'<div class="card" style="padding:16px"><div style="font-size:12px;color:var(--ink-soft)">Centres ALPHA</div><div style="font-size:28px;font-weight:800">'+centres.length+'</div></div>'
+        +'<div class="card" style="padding:16px"><div style="font-size:12px;color:var(--ink-soft)">Auditeurs</div><div style="font-size:28px;font-weight:800">'+auds.length+'</div></div>'
+        +'<div class="card" style="padding:16px"><div style="font-size:12px;color:var(--ink-soft)">Activités (matrice)</div><div style="font-size:28px;font-weight:800">'+mat.length+'</div></div>'
+        +'<div class="card" style="padding:16px"><div style="font-size:12px;color:var(--ink-soft)">Activités terminées</div><div style="font-size:28px;font-weight:800">'+mat.filter(function(m){return m.statut==='Terminé';}).length+'</div></div></div>';
+    } else if(tab==='centres'){
+      body='<div class="card" style="padding:14px"><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
+        +'<input id="al-c-nom" placeholder="Nom du centre" style="flex:1;min-width:160px;'+ip+'">'
+        +'<input id="al-c-loc" placeholder="Localité" style="width:150px;'+ip+'">'
+        +'<input id="al-c-enc" placeholder="Encadreur" style="width:160px;'+ip+'">'
+        +'<input id="al-c-eff" placeholder="Effectif" style="width:100px;'+ip+'">'
+        +'<button class="btn btn-primary" onclick="ALPHA.addCentre()">Ajouter</button></div>'
+        +'<div style="overflow:auto"><table class="table" style="width:100%;font-size:13px"><thead><tr style="text-align:left;color:var(--ink-soft)"><th>Centre</th><th>Localité</th><th>Encadreur</th><th>Effectif</th><th></th></tr></thead><tbody>'
+        +(centres.map(function(c){return '<tr><td>'+esc(c.nom)+'</td><td>'+esc(c.localite)+'</td><td>'+esc(c.encadreur)+'</td><td>'+esc(c.effectif)+'</td><td><button class="icon-btn danger" onclick="ALPHA.delCentre(\''+c.id+'\')">✗</button></td></tr>';}).join('')||'<tr><td colspan="5" style="color:var(--ink-soft)">Aucun centre.</td></tr>')
+        +'</tbody></table></div></div>';
+    } else if(tab==='auditeurs'){
+      var copts=centres.map(function(c){return '<option>'+esc(c.nom)+'</option>';}).join('');
+      body='<div class="card" style="padding:14px"><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
+        +'<input id="al-a-nom" placeholder="Nom & prénoms" style="flex:1;min-width:160px;'+ip+'">'
+        +'<select id="al-a-sexe" style="width:110px;'+ip+'"><option value="">Sexe</option><option>M</option><option>F</option></select>'
+        +'<input id="al-a-age" placeholder="Âge" style="width:90px;'+ip+'">'
+        +'<select id="al-a-centre" style="width:180px;'+ip+'"><option value="">Centre…</option>'+copts+'</select>'
+        +'<button class="btn btn-primary" onclick="ALPHA.addAud()">Ajouter</button></div>'
+        +'<div style="overflow:auto"><table class="table" style="width:100%;font-size:13px"><thead><tr style="text-align:left;color:var(--ink-soft)"><th>Nom</th><th>Sexe</th><th>Âge</th><th>Centre</th><th></th></tr></thead><tbody>'
+        +(auds.map(function(a){return '<tr><td>'+esc(a.nom)+'</td><td>'+esc(a.sexe)+'</td><td>'+esc(a.age)+'</td><td>'+esc(a.centre)+'</td><td><button class="icon-btn danger" onclick="ALPHA.delAud(\''+a.id+'\')">✗</button></td></tr>';}).join('')||'<tr><td colspan="5" style="color:var(--ink-soft)">Aucun auditeur.</td></tr>')
+        +'</tbody></table></div></div>';
+    } else if(tab==='matrice'){
+      body='<div class="card" style="padding:14px"><div class="card-title">🗂️ Matrice d\'activités — Alphabétisation</div>'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0">'
+        +'<input id="al-m-act" placeholder="Activité" style="flex:1;min-width:160px;'+ip+'">'
+        +'<input id="al-m-resp" placeholder="Responsable" style="width:150px;'+ip+'">'
+        +'<input id="al-m-per" placeholder="Période" style="width:140px;'+ip+'">'
+        +'<select id="al-m-stat" style="width:130px;'+ip+'">'+STATS.map(function(x){return '<option>'+x+'</option>';}).join('')+'</select>'
+        +'<button class="btn btn-primary" onclick="ALPHA.addAct()">Ajouter</button></div>'
+        +'<div style="overflow:auto"><table class="table" style="width:100%;font-size:13px"><thead><tr style="text-align:left;color:var(--ink-soft)"><th>Activité</th><th>Responsable</th><th>Période</th><th>Statut</th><th></th></tr></thead><tbody>'
+        +(mat.map(function(m){return '<tr><td>'+esc(m.act)+'</td><td>'+esc(m.resp)+'</td><td>'+esc(m.periode)+'</td><td><select onchange="ALPHA.setStat(\''+m.id+'\',this.value)" style="'+ip+';padding:4px 8px">'+STATS.map(function(x){return '<option '+(x===m.statut?'selected':'')+'>'+x+'</option>';}).join('')+'</select></td><td><button class="icon-btn danger" onclick="ALPHA.delAct(\''+m.id+'\')">✗</button></td></tr>';}).join('')||'<tr><td colspan="5" style="color:var(--ink-soft)">Aucune activité. Ajoutez la première ligne de la matrice.</td></tr>')
+        +'</tbody></table></div></div>';
+    } else if(tab==='rapports'){
+      body='<div class="card" style="padding:16px"><div class="card-title">📄 Rapport Alphabétisation</div>'
+        +'<p style="color:var(--ink-soft);font-size:13px">Synthèse : '+centres.length+' centre(s), '+auds.length+' auditeur(s), '+mat.length+' activité(s) dont '+mat.filter(function(m){return m.statut==='Terminé';}).length+' terminée(s).</p>'
+        +'<button class="btn btn-primary" onclick="ALPHA.imprimer()">🖨️ Imprimer le rapport</button></div>';
+    }
+    setContent('<div class="hero" style="background:linear-gradient(135deg,#7C3AED 0%,#4C1D95 100%)"><h3>🔤 Espace <em>Conseiller Alphabétisation</em></h3><p>Centres d\'alphabétisation, auditeurs (apprenants), activités & matrice de suivi, rapports.</p></div>'
+      +'<div class="tabs" style="flex-wrap:wrap">'+tabsHtml+'</div><div style="margin-top:12px">'+body+'</div>');
+  }
+  window.renderAlpha=render;
+
+  try{
+    if(typeof MODULES==='object'&&MODULES){ MODULES.alpha={title:'Espace Conseiller Alphabétisation',sub:'ALPHA — centres, auditeurs, activités & matrice',render:render}; }
+    if(typeof ACL==='object'&&ACL){ Object.keys(ACL).forEach(function(r){ var a=ACL[r]; if(!Array.isArray(a))return; if(a.indexOf('coges')>=0||a.indexOf('vie-scolaire')>=0||r==='superadmin'){ if(a.indexOf('alpha')<0) a.push('alpha'); } }); }
+  }catch(e){ console.warn('alpha register',e); }
+  try{ var _n=window.navigate; if(typeof _n==='function'){ window.navigate=function(mod){ var known=(typeof MODULES==='object'&&MODULES&&MODULES[mod]); if(!known&&mod==='alpha'){ try{state.module='alpha';}catch(e){} try{document.querySelectorAll('.sb-link').forEach(function(el){el.classList.toggle('active',el.dataset&&el.dataset.module==='alpha');});}catch(e){} try{document.getElementById('page-title').firstChild.textContent='Espace Conseiller Alphabétisation';document.getElementById('page-sub').textContent='ALPHA';}catch(e){} try{document.getElementById('content').innerHTML='';}catch(e){} render(); return; } return _n.apply(this,arguments); }; } }catch(e){}
+})();
+</script>
+
+<script id="iepp-image-upload">
+(function(){
+  function persistedGet(kind){
+    try{
+      if(kind==='logo') return (typeof getIeppLogo==='function')?getIeppLogo():'';
+      if(kind==='signature') return (typeof getIeppSignature==='function')?getIeppSignature():'';
+      return (typeof getIeppCachet==='function')?getIeppCachet():'';
+    }catch(e){ return ''; }
+  }
+  function setBy(kind,data){
+    if(kind==='logo' && typeof setIeppLogo==='function') return setIeppLogo(data);
+    if(kind==='signature' && typeof setIeppSignature==='function') return setIeppSignature(data);
+    if(kind==='cachet' && typeof setIeppCachet==='function') return setIeppCachet(data);
+  }
+  function previewId(kind){ return kind==='logo'?'iepp-logo-preview':(kind==='signature'?'iepp-sig-preview':'iepp-cachet-preview'); }
+
+  // tente d'enregistrer une image redimensionnée ; renvoie true si bien persistée
+  function trySave(img, kind, maxW, useJpeg, quality){
+    try{
+      var scale=Math.min(1, maxW/(img.width||maxW));
+      var w=Math.max(1,Math.round((img.width||maxW)*scale));
+      var h=Math.max(1,Math.round((img.height||maxW)*scale));
+      var cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      var ctx=cv.getContext('2d');
+      if(useJpeg){ ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h); }
+      ctx.drawImage(img,0,0,w,h);
+      var out=useJpeg?cv.toDataURL('image/jpeg', quality||0.85):cv.toDataURL('image/png');
+      setBy(kind,out);
+      return persistedGet(kind)===out;
+    }catch(e){ return false; }
+  }
+
+  window.ieppUploadImg=function(ev, kind){
+    var f=ev.target.files && ev.target.files[0];
+    ev.target.value='';
+    if(!f) return;
+    var maxW = (kind==='signature')?520:320;
+    var r=new FileReader();
+    r.onload=function(e){
+      var img=new Image();
+      img.onload=function(){
+        // 1) PNG à maxW ; 2) sinon JPEG plus petit ; 3) sinon très petit JPEG
+        var ok = trySave(img,kind,maxW,false)
+              || trySave(img,kind,Math.round(maxW*0.7),true,0.85)
+              || trySave(img,kind,220,true,0.8)
+              || trySave(img,kind,150,true,0.7);
+        var pv=document.getElementById(previewId(kind));
+        if(ok){
+          var cur=persistedGet(kind);
+          if(pv){ pv.src=cur; pv.style.display=''; }
+          if(typeof toast==='function') toast('Image enregistrée ✔','success');
+        } else {
+          if(typeof toast==='function') toast("Échec d'enregistrement : mémoire du navigateur pleine. Essayez une image plus légère, ou videz d'anciennes données.","error");
+          else alert("Échec d'enregistrement (mémoire pleine).");
+        }
+      };
+      img.onerror=function(){ if(typeof toast==='function') toast('Fichier image illisible','error'); };
+      img.src=e.target.result;
+    };
+    r.onerror=function(){ if(typeof toast==='function') toast('Lecture du fichier impossible','error'); };
+    r.readAsDataURL(f);
+  };
 })();
 </script>
 </body>
