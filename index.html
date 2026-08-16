@@ -27825,5 +27825,185 @@ function vieResetAllData() {
   };
 })();
 </script>
+
+<script id="iepp-per-iepp-assets">
+/* Logo, signature et cachet PROPRES A CHAQUE IEPP :
+   stockés selon la circonscription active (storeKey scope par activeScope).
+   Redéfinit (en dernier, donc prioritaire) les getters/setters des étapes précédentes. */
+(function(){
+  function scopedKey(base){
+    try{ if(typeof storeKey==='function') return storeKey(base); }catch(e){}
+    var sc=''; try{ if(typeof activeScope!=='undefined'&&activeScope) sc=activeScope; }catch(e){}
+    return 'iepp_'+(sc?sc+'_':'')+base;
+  }
+  window.getIeppLogo      = function(){ try{ return localStorage.getItem(scopedKey('logo_data'))||''; }catch(e){ return ''; } };
+  window.setIeppLogo      = function(d){ try{ localStorage.setItem(scopedKey('logo_data'), d||''); }catch(e){} };
+  window.getIeppSignature = function(){ try{ return localStorage.getItem(scopedKey('signature_data'))||''; }catch(e){ return ''; } };
+  window.setIeppSignature = function(d){ try{ localStorage.setItem(scopedKey('signature_data'), d||''); }catch(e){} };
+  window.getIeppCachet    = function(){ try{ return localStorage.getItem(scopedKey('cachet_data'))||''; }catch(e){ return ''; } };
+  window.setIeppCachet    = function(d){ try{ localStorage.setItem(scopedKey('cachet_data'), d||''); }catch(e){} };
+})();
+</script>
+
+<script id="iepp-export-filename">
+/* Nom des fichiers téléchargés = espace/IEPP actif (ou compte), et non une localité figée. */
+(function(){
+  function suffix(){
+    var lbl='';
+    try{ if(typeof state!=='undefined'&&state){ lbl=(state.activeIepp||(state.user&&state.user.iepp)||(state.user&&state.user.name)||''); } }catch(e){}
+    lbl=String(lbl||'').trim();
+    var slug=lbl.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+    return slug||'iepp';
+  }
+  window.ieppRewriteName=function(base){
+    var suf=suffix();
+    var raw=String(base==null?'export':base);
+    var ext=''; var m=raw.match(/\.(xlsx|xls|csv|doc|docx|pdf|txt)$/i);
+    if(m){ ext=m[0]; raw=raw.slice(0, -ext.length); }
+    // retirer une localité figée éventuelle en fin de nom
+    var b=raw.replace(/(_?iepp)?[ _-]?(tengrela|niakara|katiola|boundiali|yezimala)$/i,'').replace(/[ _-]+$/,'');
+    if(!b) b='export';
+    if(!new RegExp('(^|_)'+suf+'$','i').test(b)) b=b+'_'+suf;
+    return b+ext;
+  };
+  // Excel (.xlsx + repli CSV)
+  if(typeof window.exportRowsToExcel==='function'){
+    var _ex=window.exportRowsToExcel;
+    window.exportRowsToExcel=function(rows, baseName, sheetName){ return _ex(rows, window.ieppRewriteName(baseName), sheetName); };
+  }
+  // CSV / texte génériques
+  if(typeof window.downloadFile==='function'){
+    var _df=window.downloadFile;
+    window.downloadFile=function(content, name, mime){ return _df(content, window.ieppRewriteName(name), mime); };
+  }
+})();
+</script>
+
+<script id="iepp-entete-universelle">
+/* (A) En-tete officiel standard sur TOUS les documents imprimes (dynamique par IEPP/compte),
+   (B) noms de fichiers .doc/.pdf alignes sur l'espace/compte actif. */
+(function(){
+  var ESC = (typeof escapeHtml==='function')?escapeHtml:function(x){return x==null?'':String(x);};
+
+  window.ieppDocEntete = function(titre){
+    var logo=''; try{ logo=(typeof getIeppLogo==='function'?getIeppLogo():'')||''; }catch(e){}
+    var arm=''; try{ arm=(typeof ARMOIRIE_MENAET_B64!=='undefined')?ARMOIRIE_MENAET_B64:''; }catch(e){}
+    var iepp=''; try{ iepp=String((typeof state!=='undefined'&&state&&state.activeIepp)||'').replace(/^IEPP\s+/i,''); }catch(e){}
+    var dren=''; try{ dren=String((typeof state!=='undefined'&&state&&state.user&&state.user.drenaet)||''); }catch(e){}
+    var annee=''; try{ annee=(window.ANNEE_SCOLAIRE||''); }catch(e){}
+    var logoHtml = logo ? ('<img src="'+logo+'" alt="Logo IEPP" style="max-height:74px;max-width:120px;object-fit:contain">') : '<div style="border:1px dashed #bbb;border-radius:6px;padding:18px 6px;color:#999;font-size:11px">LOGO<br>IEPP</div>';
+    var armHtml = arm ? ('<img src="'+arm+'" alt="Armoiries" style="max-height:70px;max-width:120px;object-fit:contain">') : '';
+    var anneeHtml = annee ? ('<div style="font-style:italic;font-size:11px;margin-top:3px">Annee scolaire '+ESC(annee)+'</div>') : '';
+    var drenHtml = dren ? (' ('+ESC(dren)+')') : '';
+    var titreHtml = titre ? ('<div style="text-align:center;font-weight:700;font-size:15px;text-decoration:underline;margin:10px 0 12px">'+ESC(titre)+'</div>') : '';
+    return ''
+     +'<div class="iepp-auto-entete" style="font-family:\'Times New Roman\',Georgia,serif;color:#111;margin-bottom:14px">'
+     +  '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px">'
+     +    '<div style="width:120px;text-align:center;flex:0 0 120px">'+logoHtml+'</div>'
+     +    '<div style="flex:1;text-align:center;line-height:1.35">'
+     +      '<div style="font-weight:700;font-size:13px">MINIST\u00c8RE DE L\'\u00c9DUCATION NATIONALE, DE L\'ALPHAB\u00c9TISATION ET DE L\'ENSEIGNEMENT TECHNIQUE</div>'
+     +      '<div style="letter-spacing:3px;color:#666;font-size:11px">\u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7</div>'
+     +      '<div style="font-weight:700;font-size:12px">DIRECTION R\u00c9GIONALE DE L\'\u00c9DUCATION NATIONALE, DE L\'ALPHAB\u00c9TISATION ET DE L\'ENSEIGNEMENT TECHNIQUE'+drenHtml+'</div>'
+     +      '<div style="letter-spacing:3px;color:#666;font-size:11px">\u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7 \u00b7</div>'
+     +      '<div style="font-weight:700;font-size:12px">INSPECTION DE L\'ENSEIGNEMENT PR\u00c9SCOLAIRE ET PRIMAIRE (IEPP) DE '+ESC(iepp||'\u2026')+'</div>'
+     +      anneeHtml
+     +    '</div>'
+     +    '<div style="width:120px;text-align:center;flex:0 0 120px">'+armHtml+'</div>'
+     +  '</div>'
+     +  '<div style="border-bottom:2px solid #0A4DA6;margin:8px 0 4px"></div>'
+     +  titreHtml
+     +'</div>';
+  };
+
+  try{
+    var _open = window.open;
+    window.open = function(){
+      var w = _open.apply(this, arguments);
+      try{
+        if(w && w.document && typeof w.document.write==='function' && !w.__ieppWrapped){
+          w.__ieppWrapped = true;
+          var _w = w.document.write.bind(w.document);
+          w.document.write = function(html){
+            try{
+              if(typeof html==='string' && /<body[\s>]/i.test(html)
+                 && !/head-grid|iepp-auto-entete|class="doc-entete"/i.test(html)){
+                var ent = (typeof ieppDocEntete==='function') ? ieppDocEntete('') : '';
+                if(ent) html = html.replace(/(<body[^>]*>)/i, '$1'+ent);
+              }
+            }catch(e){}
+            return _w(html);
+          };
+        }
+      }catch(e){}
+      return w;
+    };
+  }catch(e){}
+
+  try{
+    var _click = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function(){
+      try{
+        if(this.download && /^blob:/i.test(this.href||'')
+           && /\.(doc|docx|xlsx|xls|csv|pdf|txt)$/i.test(this.download)
+           && typeof window.ieppRewriteName==='function'){
+          this.download = window.ieppRewriteName(this.download);
+        }
+      }catch(e){}
+      return _click.apply(this, arguments);
+    };
+  }catch(e){}
+})();
+</script>
+
+<script id="iepp-login-cloud-refresh">
+/* Correctif connexion multi-appareils : un compte créé par l'IEPP/admin est enregistré au cloud,
+   mais un nouvel appareil affiche l'écran de connexion avant la fin de la synchro.
+   Ici, si l'identifiant n'est pas trouvé localement, on rafraîchit les comptes depuis le cloud puis on réessaie. */
+(function(){
+  if(typeof window.doLogin!=='function') return;
+  var _login = window.doLogin;
+
+  async function refreshUsersFromCloud(){
+    try{
+      if(typeof sbGet!=='function') return false;
+      var fk = (typeof storeKey==='function') ? storeKey('users') : 'iepp_users';
+      var cloudJson = await sbGet(fk);
+      if(cloudJson==null) return false;
+      var cloudArr=[]; try{ cloudArr=JSON.parse(cloudJson)||[]; }catch(e){ cloudArr=[]; }
+      var localArr=[]; try{ localArr=JSON.parse(localStorage.getItem(fk)||'[]')||[]; }catch(e){ localArr=[]; }
+      // Fusion par identifiant (union : comptes cloud + locaux ; le cloud complète les champs)
+      var byU={};
+      localArr.forEach(function(x){ if(x&&x.username) byU[x.username]=x; });
+      cloudArr.forEach(function(x){ if(x&&x.username) byU[x.username]=Object.assign({}, byU[x.username]||{}, x); });
+      var merged=Object.keys(byU).map(function(k){ return byU[k]; });
+      localStorage.setItem(fk, JSON.stringify(merged));
+      if(typeof load==='function' && typeof state!=='undefined') state.users = load('users', (typeof DEFAULT_USERS!=='undefined'?DEFAULT_USERS:merged));
+      else if(typeof state!=='undefined') state.users = merged;
+      if(typeof window.__healUsers==='function'){ try{ window.__healUsers(); }catch(e){} }
+      return true;
+    }catch(e){ return false; }
+  }
+
+  window.doLogin = function(){
+    try{
+      var uEl=document.getElementById('login-user'), pEl=document.getElementById('login-pass');
+      var u=uEl?uEl.value.trim():'', p=pEl?pEl.value:'';
+      var found = (typeof state!=='undefined' && state.users) ? state.users.find(function(x){ return x.username===u && x.password===p; }) : null;
+      if(found) return _login();                 // trouvé localement → connexion normale
+      if(!u){ return _login(); }                 // champ vide → laisser la logique d'origine gérer
+      // Pas trouvé localement → vérifier en ligne puis réessayer
+      var err=document.getElementById('login-error');
+      if(err){ err.textContent='⏳ Vérification des comptes en ligne…'; err.classList.remove('show'); err.classList.add('show'); }
+      var btn=document.getElementById('btn-se-connecter');
+      var prev = btn ? btn.textContent : '';
+      if(btn){ btn.disabled=true; btn.textContent='Vérification…'; }
+      refreshUsersFromCloud().then(function(){
+        if(btn){ btn.disabled=false; btn.textContent=prev||'Se connecter →'; }
+        _login();   // re-teste avec les comptes rafraîchis (ou affiche l'erreur d'origine)
+      });
+    }catch(e){ try{ return _login(); }catch(_){} }
+  };
+})();
+</script>
 </body>
 </html>
