@@ -1760,7 +1760,7 @@ const KEY = 'iepp_';
    La DRENAET bascule entre ses IEPP ; le Superadmin entre toutes.
    ================================================================== */
 const GLOBAL_KEYS = new Set(['users','usersDeleted','customServices','current_user','drenaet','active_iepp','ieppRegistry','pnapasForm','courrierMsg','courrierMatrice']);
-const SCOPED_KEY_LIST = ['ecoles','audit','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','carteRapports','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','cpppBulletins','pointage','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted','economatRegDeleted','secretariatRegDeleted','cantineRegDeleted','smossRegDeleted','communicationRegDeleted','biblioRegDeleted','archivisteRegDeleted','svcPermDeleted'];
+const SCOPED_KEY_LIST = ['ecoles','audit','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','carteRapports','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','secteurs','cpppBulletins','pointage','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted','economatRegDeleted','secretariatRegDeleted','cantineRegDeleted','smossRegDeleted','communicationRegDeleted','biblioRegDeleted','archivisteRegDeleted','svcPermDeleted'];
 function scopeSlug(iepp){
   return 'c_' + String(iepp||'IEPP TENGRELA').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 }
@@ -2539,6 +2539,61 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
     refreshAfterPull();
     setStatus('Synchronisé', '#2A9D8F');
     setTimeout(function(){ const el=document.getElementById('cloud-status'); if(el) el.style.opacity='0'; }, 2800);
+  };
+
+  /* S'assure que le client Supabase est prêt SANS lancer une synchro complète
+     (utile sur l'écran de connexion, où pullAll ne tourne pas). Idempotent. */
+  var _clientPromise = null;
+  function ensureClient(){
+    if (sb) return Promise.resolve(sb);
+    if (_clientPromise) return _clientPromise;
+    _clientPromise = (async function(){
+      if (typeof supabase === 'undefined' || !supabase.createClient) {
+        await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2');
+      }
+      if (!sb) sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      return sb;
+    })();
+    return _clientPromise;
+  }
+
+  /* Récupère UNIQUEMENT la liste des comptes (et leurs suppressions) depuis le cloud,
+     puis fusionne en local. Appelée par doLogin() AVANT de vérifier le mot de passe :
+     un compte créé par l'IEPP sur un autre appareil devient ainsi reconnu ici,
+     exactement comme avec Firebase auparavant. Ne pousse rien vers le cloud. */
+  window.__cloudFetchUsers = async function(){
+    try {
+      await ensureClient();
+      if (!sb) return false;
+      var uKey = storeKey('users');
+      var dKey = storeKey('usersDeleted');
+      var cloudUsersJson = await withTimeout(sbGet(uKey), 12000, 'users');
+      var cloudDelJson = null;
+      try { cloudDelJson = await withTimeout(sbGet(dKey), 12000, 'usersDeleted'); } catch(e){}
+      /* Comptes : fusion UNION (on conserve les ajouts/modifs locaux) */
+      if (cloudUsersJson !== null){
+        var cloudArr=[], localArr=[];
+        try{ cloudArr = JSON.parse(cloudUsersJson)||[]; }catch(e){ cloudArr=[]; }
+        try{ localArr = JSON.parse(localStorage.getItem(uKey)||'[]')||[]; }catch(e){ localArr=[]; }
+        var merged = genericUnionMerge(cloudArr, localArr);
+        localStorage.setItem(uKey, JSON.stringify(merged));
+      }
+      /* Suppressions de comptes : UNION des tombstones (une suppression tient partout) */
+      if (cloudDelJson !== null){
+        var cD=[], lD=[];
+        try{ cD = JSON.parse(cloudDelJson)||[]; }catch(e){ cD=[]; }
+        try{ lD = JSON.parse(localStorage.getItem(dKey)||'[]')||[]; }catch(e){ lD=[]; }
+        var uD = mergeTombstones(cD, lD);
+        localStorage.setItem(dKey, JSON.stringify(uD));
+      }
+      /* Recharge en mémoire + soin des comptes (purge des supprimés, anti-verrouillage) */
+      try{ state.users = load('users', state.users); }catch(e){}
+      try{ if (window.__healUsers) window.__healUsers(); }catch(e){}
+      return true;
+    } catch(e){
+      console.warn('[Cloud] __cloudFetchUsers échoué', e);
+      return false;
+    }
   };
 
   if (document.readyState === 'loading') {
@@ -3366,10 +3421,30 @@ function logAction(action, details) {
 }
 
 /* ---------- LOGIN ---------- */
-function doLogin() {
+async function doLogin() {
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value;
   const err = document.getElementById('login-error');
+  const btn = document.getElementById('btn-se-connecter');
+
+  /* Rafraîchit la liste des comptes depuis le cloud AVANT de vérifier le mot de passe.
+     Ainsi un compte créé par l'IEPP sur un AUTRE appareil est reconnu ici,
+     comme avec Firebase auparavant. Filet de sécurité : ne bloque jamais plus de 12 s,
+     et bascule en vérification locale si hors ligne ou si le cloud est indisponible. */
+  if (typeof window.__cloudFetchUsers === 'function'
+      && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
+    var _prevTxt = btn ? btn.textContent : '';
+    if (btn){ btn.disabled = true; btn.textContent = 'Vérification…'; }
+    err.classList.remove('show');
+    try {
+      await Promise.race([
+        window.__cloudFetchUsers(),
+        new Promise(function(res){ setTimeout(res, 12000); })
+      ]);
+    } catch(e){}
+    if (btn){ btn.disabled = false; btn.textContent = _prevTxt || 'Se connecter →'; }
+  }
+
   const found = state.users.find(x => x.username === u && x.password === p);
   if (!found) {
     err.textContent = '❌ Identifiants incorrects. Vérifiez votre nom d\'utilisateur et mot de passe.';
@@ -3920,6 +3995,7 @@ function dashScopedData() {
   } else {
     label = activeIeppLabel();
   }
+  absences = absences.filter(a => (typeof absVisibleParUtilisateur==='function') ? absVisibleParUtilisateur(a, u) : true);
   return { effectifs, ecoles, personnel, absences, visites, eleves, label };
 }
 function renderDashboard() {
@@ -4255,14 +4331,44 @@ function renderAbsences() {
   `);
   renderAbsencesBody();
 }
+/* ==================================================================
+   CONFIDENTIALITÉ DES DEMANDES D'ABSENCE (par hiérarchie)
+   Les données sont déjà cloisonnées par circonscription (scope IEPP) ;
+   ce filtre restreint DAVANTAGE la visibilité selon le rôle :
+   - superadmin : tout
+   - drenaet : toute sa région (accès à chaque IEPP via le scope)
+   - inspecteur / correspondant fichier : toute leur circonscription
+   - directeur : uniquement son école
+   - cppp / cpi : uniquement les écoles de son secteur
+   - tout autre rôle : uniquement ses propres demandes
+   ================================================================== */
+function cpppEcoleDansMonSecteur(ecole, u){
+  u = u || (typeof state!=='undefined' && state.user) || {};
+  try{
+    var arr = (typeof load==='function') ? (load('secteurs', [])||[]) : [];
+    var me1 = String(u.username||'').trim().toLowerCase();
+    var me2 = String(u.name||'').trim().toLowerCase();
+    return arr.some(function(s){
+      var who = String((s&&s.cppp)||'').trim().toLowerCase();
+      var inSec = ((s&&s.ecoles)||[]).indexOf(ecole) >= 0;
+      return inSec && who && (who===me1 || who===me2);
+    });
+  }catch(e){ return false; }
+}
+function absVisibleParUtilisateur(a, u){
+  u = u || (typeof state!=='undefined' && state.user) || {};
+  if (!a) return false;
+  var role = u.role;
+  if (role==='superadmin' || role==='drenaet' || role==='inspecteur' || role==='correspondant') return true;
+  if (role==='directeur') return (a.ecole||'') === (u.ecole||'');
+  if (role==='cppp' || role==='cpi') return cpppEcoleDansMonSecteur(a.ecole, u);
+  /* instituteur, RH, secrétaire, agent, vie scolaire, autres services… : seulement SES demandes */
+  return (a.demandeur||'') === (u.name||'');
+}
 function renderAbsencesBody() {
   const q = (document.getElementById('ab-search')?.value || '').toLowerCase();
   const f = document.getElementById('ab-filter')?.value || '';
-  let list = state.absences;
-  // Filter by role : instituteur ne voit que ses demandes
-  if (state.user.role === 'instituteur') {
-    list = list.filter(a => a.demandeur === state.user.name);
-  }
+  let list = (state.absences||[]).filter(a => absVisibleParUtilisateur(a, state.user));
   if (q) list = list.filter(a =>
     a.demandeur.toLowerCase().includes(q) || a.ecole.toLowerCase().includes(q) || (a.motif||'').toLowerCase().includes(q)
   );
@@ -12127,10 +12233,23 @@ function renderCourrier() {
 }
 function courrierGo(tab){ courrierTab = tab; renderCourrier(); }
 
+/* Périmètre de confidentialité du courrier : superadmin = tout, DRENAET = sa région,
+   tout autre = sa circonscription (IEPP). Les anciens messages non étiquetés restent visibles. */
+function courrierDansMonPerimetre(ieppAutre, drenaetAutre){
+  const u = state.user || {};
+  if (u.role === 'superadmin') return true;
+  if (u.role === 'drenaet')   return !drenaetAutre || drenaetAutre === u.drenaet;
+  return !ieppAutre || ieppAutre === u.iepp;
+}
 function courrierMsgRecus() {
   const me = state.user?.username || '';
   const isAdmin = ['superadmin'].includes(state.user?.role);
-  return state.courrierMsg.filter(m => m.to===me || m.to==='all' || (isAdmin && m.to==='superadmin'));
+  return state.courrierMsg.filter(m => {
+    if (m.to === me) return true;                          // adressé directement à moi
+    if (isAdmin && m.to === 'superadmin') return true;     // Webmaster
+    if (m.to === 'all') return courrierDansMonPerimetre(m.iepp, m.drenaet); // diffusion limitée à mon périmètre
+    return false;
+  });
 }
 function courrierMsgEmis() {
   const me = state.user?.username || '';
@@ -12179,7 +12298,8 @@ function courrierBoxHtml(box) {
 
 function courrierComposeHtml() {
   // Destinataires : Webmaster (superadmin) en priorité + tous les comptes
-  const users = (state.users||[]).filter(u => u.username !== state.user?.username);
+  const users = (state.users||[]).filter(u => u.username !== state.user?.username
+    && (typeof courrierDansMonPerimetre!=='function' || u.role==='superadmin' || courrierDansMonPerimetre(u.iepp, u.drenaet)));
   const opts = ['<option value="superadmin">🛡️ Webmaster (SuperAdministrateur)</option>',
     '<option value="all">📢 Tout le personnel</option>']
     .concat(users.filter(u=>u.role!=='superadmin').map(u=>`<option value="${escapeHtml(u.username)}">${escapeHtml(u.name||u.username)} — ${escapeHtml(u.role)}</option>`)).join('');
@@ -12215,6 +12335,8 @@ function courrierSend() {
     fromLabel: state.user?.name || state.user?.username || 'Anonyme',
     to, toLabel,
     objet, contenu,
+    iepp: state.user?.iepp || '',
+    drenaet: state.user?.drenaet || '',
     date: new Date().toISOString().slice(0,10),
     lu:false
   };
@@ -27246,7 +27368,7 @@ function vieResetAllData() {
 }
 
 </script>
-<button id="btn-install-pwa" style="display:none;position:fixed;top:10px;right:10px;z-index:100001;background:#e8730c;color:#fff;border:none;border-radius:999px;padding:9px 15px;font:600 13px system-ui,sans-serif;box-shadow:0 6px 18px rgba(15,23,42,.28);cursor:pointer">📲 Installer</button>
+<button id="btn-install-pwa" style="display:none;background:#e8730c;color:#fff;border:none;border-radius:999px;padding:8px 14px;font:600 13px system-ui,sans-serif;box-shadow:0 4px 12px rgba(232,115,12,.35);cursor:pointer;white-space:nowrap;align-items:center;gap:5px">📲 Installer</button>
 <script>
 (function(){
   if ('serviceWorker' in navigator) {
@@ -27291,8 +27413,22 @@ function vieResetAllData() {
   /* Le navigateur signale que l'installation automatique est disponible. */
   window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); deferred=e; });
 
-  /* Bouton toujours visible tant que l'appli n'est pas installée → toujours trouvable. */
-  function refreshInstallBtn(){ if(btn) btn.style.display = isInstalled() ? 'none' : 'block'; }
+  /* Placer le bouton d'installation DANS la barre supérieure, juste AVANT le badge « Année scolaire ». */
+  function placeInstallBtn(){
+    try{
+      var bar=document.querySelector('.topbar-actions');
+      if(!bar || !btn) return;
+      var badge=document.getElementById('anscolaire-badge');
+      if(badge && badge.parentNode===bar){ if(btn.parentNode!==bar || btn.nextSibling!==badge) bar.insertBefore(btn, badge); }
+      else if(btn.parentNode!==bar){ bar.insertBefore(btn, bar.firstChild); }
+    }catch(e){}
+  }
+  placeInstallBtn();
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', placeInstallBtn);
+  setTimeout(placeInstallBtn, 400); setTimeout(placeInstallBtn, 1200);
+
+  /* Bouton visible dans la barre tant que l'appli n'est pas installée. */
+  function refreshInstallBtn(){ if(btn) btn.style.display = isInstalled() ? 'none' : 'inline-flex'; }
   refreshInstallBtn();
   try { window.matchMedia('(display-mode: standalone)').addEventListener('change', refreshInstallBtn); } catch(e){}
 
