@@ -1249,6 +1249,9 @@ function vieResetAllData() {
           <div class="sb-link" data-module="cantine" onclick="navigate('cantine')"><span class="sb-icon">🍽️</span><span>Conseiller Cantine</span></div>
           <div class="sb-link" data-module="coges" onclick="navigate('coges')"><span class="sb-icon">🤝</span><span>Conseiller COGES</span></div>
           <div class="sb-link" data-module="alpha" onclick="navigate('alpha')"><span class="sb-icon">🔤</span><span>Conseiller Alphabétisation</span></div>
+          <div class="sb-nest-alpha" style="padding-left:14px;border-left:2px solid var(--line);margin:2px 0 4px 18px">
+            <div class="sb-link" data-module="islam" onclick="navigate('islam')" style="padding:7px 10px;font-size:12.5px;font-weight:500"><span class="sb-icon" style="width:22px;height:22px;font-size:11px">🕌</span><span>Structure Islamique d'Éducation</span></div>
+          </div>
         </div>
       </div>
       <div class="sb-section-title">Services administratifs</div>
@@ -1759,8 +1762,8 @@ const KEY = 'iepp_';
    Clés SCOPÉES  = stockées par IEPP : iepp_c_<slug>_<clé>.
    La DRENAET bascule entre ses IEPP ; le Superadmin entre toutes.
    ================================================================== */
-const GLOBAL_KEYS = new Set(['users','usersDeleted','customServices','current_user','drenaet','active_iepp','ieppRegistry','pnapasForm','courrierMsg','courrierMatrice']);
-const SCOPED_KEY_LIST = ['ecoles','audit','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','carteRapports','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','secteurs','cpppBulletins','pointage','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted','economatRegDeleted','secretariatRegDeleted','cantineRegDeleted','smossRegDeleted','communicationRegDeleted','biblioRegDeleted','archivisteRegDeleted','svcPermDeleted'];
+const GLOBAL_KEYS = new Set(['users','usersDeleted','customServices','current_user','drenaet','active_iepp','ieppRegistry','ieppRegistryDeleted','pnapasForm','courrierMsg','courrierMatrice']);
+const SCOPED_KEY_LIST = ['ecoles','audit','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','carteRapports','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','secteurs','cpppBulletins','pointage','alphaCentres','alphaAuditeurs','alphaMatriceAction','islamStructures','islamApprenants','islamMatriceAction','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted','economatRegDeleted','secretariatRegDeleted','cantineRegDeleted','smossRegDeleted','communicationRegDeleted','biblioRegDeleted','archivisteRegDeleted','svcPermDeleted'];
 function scopeSlug(iepp){
   return 'c_' + String(iepp||'IEPP TENGRELA').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 }
@@ -2383,14 +2386,104 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
     } catch(e){ console.warn('[Cloud] push erreur', e); }
   }
 
+  /* PROTECTION DES COMPTES : la liste des comptes (iepp_users) et ses suppressions
+     sont PARTAGÉES entre toutes les circonscriptions. Un appareil appauvri NE DOIT
+     JAMAIS écraser le cloud : on FUSIONNE avant d'envoyer (union), en respectant les
+     suppressions. Aucun compte créé par une IEPP ne peut plus disparaître. */
+  function usersFullKey(){ try { return (typeof storeKey==='function') ? storeKey('users') : 'iepp_users'; } catch(e){ return 'iepp_users'; } }
+  function usersDelFullKey(){ try { return (typeof storeKey==='function') ? storeKey('usersDeleted') : 'iepp_usersDeleted'; } catch(e){ return 'iepp_usersDeleted'; } }
+  async function pushUsersMerged(fullKey, val){
+    try {
+      var cloudJson = await withTimeout(sbGet(fullKey), 15000, fullKey);
+      var cloudArr = []; try { cloudArr = (cloudJson!=null) ? (JSON.parse(cloudJson)||[]) : []; } catch(e){ cloudArr=[]; }
+      var localArr = Array.isArray(val) ? val : [];
+      var merged;
+      if (fullKey === usersDelFullKey()){
+        merged = (typeof mergeTombstones==='function') ? mergeTombstones(cloudArr, localArr) : localArr;
+      } else {
+        merged = (typeof genericUnionMerge==='function') ? genericUnionMerge(cloudArr, localArr) : localArr;
+        try {
+          var deadRaw = localStorage.getItem(usersDelFullKey());
+          var dead = deadRaw ? (JSON.parse(deadRaw)||[]) : [];
+          if (dead.length){ var ds={}; dead.forEach(function(x){ ds[String(x)]=1; }); merged = merged.filter(function(u){ return !ds[String(u&&u.username)]; }); }
+        } catch(e){}
+      }
+      await sbSet(fullKey, JSON.stringify(merged));
+      try { localStorage.setItem(fullKey, JSON.stringify(merged)); } catch(e){}
+    } catch(e){ realPush(fullKey, val); }
+  }
+  function isUsersKey(fullKey){ return fullKey === usersFullKey() || fullKey === usersDelFullKey(); }
+
+  /* --- Même protection pour le REGISTRE des circonscriptions (ieppRegistry) --- */
+  function ieppRegFullKey(){ try { return (typeof storeKey==='function') ? storeKey('ieppRegistry') : 'iepp_ieppRegistry'; } catch(e){ return 'iepp_ieppRegistry'; } }
+  function ieppRegDelFullKey(){ try { return (typeof storeKey==='function') ? storeKey('ieppRegistryDeleted') : 'iepp_ieppRegistryDeleted'; } catch(e){ return 'iepp_ieppRegistryDeleted'; } }
+  function mergeIeppReg(cloudArr, localArr){
+    var map={}, order=[];
+    function norm(r){ return String((r&&r.name)||'').trim().toUpperCase(); }
+    function add(r){ if(!r||typeof r!=='object') return; var k=norm(r); if(!k) return;
+      if(!(k in map)){ map[k]=r; order.push(k); } else { var a=map[k],b=r; var ta=(a._upd||0),tb=(b._upd||0); map[k]=(tb>=ta)?Object.assign({},a,b):Object.assign({},b,a); } }
+    (Array.isArray(cloudArr)?cloudArr:[]).forEach(add);
+    (Array.isArray(localArr)?localArr:[]).forEach(add);
+    return order.map(function(k){ return map[k]; });
+  }
+  function isIeppRegKey(fullKey){ return fullKey === ieppRegFullKey() || fullKey === ieppRegDelFullKey(); }
+  async function pushIeppRegMerged(fullKey, val){
+    try {
+      var cloudJson = await withTimeout(sbGet(fullKey), 15000, fullKey);
+      var cloudArr=[]; try{ cloudArr=(cloudJson!=null)?(JSON.parse(cloudJson)||[]):[]; }catch(e){ cloudArr=[]; }
+      var localArr = Array.isArray(val)?val:[];
+      var merged;
+      if (fullKey === ieppRegDelFullKey()){
+        merged = (typeof mergeTombstones==='function') ? mergeTombstones(cloudArr, localArr) : localArr;
+      } else {
+        merged = mergeIeppReg(cloudArr, localArr);
+        try{ var deadRaw = localStorage.getItem(ieppRegDelFullKey()); var dead = deadRaw ? (JSON.parse(deadRaw)||[]) : [];
+          if (dead.length){ var ds={}; dead.forEach(function(x){ ds[String(x).trim().toUpperCase()]=1; }); merged = merged.filter(function(r){ return !ds[String((r&&r.name)||'').trim().toUpperCase()]; }); } }catch(e){}
+      }
+      await sbSet(fullKey, JSON.stringify(merged));
+      try{ localStorage.setItem(fullKey, JSON.stringify(merged)); }catch(e){}
+    } catch(e){ realPush(fullKey, val); }
+  }
+  window.__cloudFetchRegistry = async function(){
+    try {
+      await ensureClient(); if(!sb) return false;
+      var rKey=ieppRegFullKey(), dKey=ieppRegDelFullKey();
+      var cj = await withTimeout(sbGet(rKey), 12000, 'ieppRegistry');
+      var dj = null; try{ dj = await withTimeout(sbGet(dKey), 12000, 'ieppRegistryDeleted'); }catch(e){}
+      var dead=[]; try{ dead = (dj!=null) ? (JSON.parse(dj)||[]) : (JSON.parse(localStorage.getItem(dKey)||'[]')||[]); }catch(e){ dead=[]; }
+      if (cj !== null){
+        var cA=[], lA=[];
+        try{ cA=JSON.parse(cj)||[]; }catch(e){ cA=[]; }
+        try{ lA=JSON.parse(localStorage.getItem(rKey)||'[]')||[]; }catch(e){ lA=[]; }
+        var merged = mergeIeppReg(cA, lA);
+        if (dead.length){ var ds={}; dead.forEach(function(x){ ds[String(x).trim().toUpperCase()]=1; }); merged = merged.filter(function(r){ return !ds[String((r&&r.name)||'').trim().toUpperCase()]; }); }
+        localStorage.setItem(rKey, JSON.stringify(merged));
+      }
+      if (dj !== null){
+        var cD=[], lD=[];
+        try{ cD=JSON.parse(dj)||[]; }catch(e){ cD=[]; }
+        try{ lD=JSON.parse(localStorage.getItem(dKey)||'[]')||[]; }catch(e){ lD=[]; }
+        localStorage.setItem(dKey, JSON.stringify((typeof mergeTombstones==='function')?mergeTombstones(cD,lD):lD));
+      }
+      try{ state.ieppRegistry = load('ieppRegistry', state.ieppRegistry); }catch(e){}
+      return true;
+    } catch(e){ console.warn('[Cloud] __cloudFetchRegistry échoué', e); return false; }
+  };
+
   window.__cloudPush = function(fullKey, val){
     if (!sb || !cloudReady){ pendingPushes.set(fullKey, val); return; }
+    if (isUsersKey(fullKey)){ pushUsersMerged(fullKey, val); return; }
+    if (isIeppRegKey(fullKey)){ pushIeppRegMerged(fullKey, val); return; }
     realPush(fullKey, val);
   };
 
   function flushPending(){
     if (!sb || !cloudReady) return;
-    pendingPushes.forEach(function(val, fullKey){ realPush(fullKey, val); });
+    pendingPushes.forEach(function(val, fullKey){
+      if (isUsersKey(fullKey)) pushUsersMerged(fullKey, val);
+      else if (isIeppRegKey(fullKey)) pushIeppRegMerged(fullKey, val);
+      else realPush(fullKey, val);
+    });
     pendingPushes.clear();
   }
 
@@ -2561,15 +2654,33 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
      puis fusionne en local. Appelée par doLogin() AVANT de vérifier le mot de passe :
      un compte créé par l'IEPP sur un autre appareil devient ainsi reconnu ici,
      exactement comme avec Firebase auparavant. Ne pousse rien vers le cloud. */
+  /* Voie REST directe vers Supabase (indépendante du SDK/CDN) : sert de secours
+     si le SDK ne charge pas — ex. un navigateur qui bloque le CDN. Nécessite seulement
+     que le domaine Supabase soit joignable et la policy de lecture ouverte. */
+  async function restGet(fullKey){
+    try {
+      var url = SUPABASE_URL + '/rest/v1/app_data?select=json&key=eq.' + encodeURIComponent(fullKey);
+      var res = await fetch(url, { headers: { apikey: SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+      if (!res.ok) return null;
+      var arr = await res.json();
+      if (Array.isArray(arr) && arr.length && arr[0] && arr[0].json != null) return arr[0].json;
+      return null;
+    } catch(e){ return null; }
+  }
+
   window.__cloudFetchUsers = async function(){
     try {
-      await ensureClient();
-      if (!sb) return false;
       var uKey = storeKey('users');
       var dKey = storeKey('usersDeleted');
-      var cloudUsersJson = await withTimeout(sbGet(uKey), 12000, 'users');
+      /* on tente le SDK, mais on ne bloque PAS s'il n'est pas prêt */
+      try { await ensureClient(); } catch(e){}
+      async function getJson(k){
+        if (sb){ try { var v = await withTimeout(sbGet(k), 12000, k); if (v !== undefined) return v; } catch(e){} }
+        try { return await withTimeout(restGet(k), 12000, k); } catch(e){ return null; }
+      }
+      var cloudUsersJson = await getJson(uKey);
       var cloudDelJson = null;
-      try { cloudDelJson = await withTimeout(sbGet(dKey), 12000, 'usersDeleted'); } catch(e){}
+      try { cloudDelJson = await getJson(dKey); } catch(e){}
       /* Comptes : fusion UNION (on conserve les ajouts/modifs locaux) */
       if (cloudUsersJson !== null){
         var cloudArr=[], localArr=[];
@@ -3438,7 +3549,10 @@ async function doLogin() {
     err.classList.remove('show');
     try {
       await Promise.race([
-        window.__cloudFetchUsers(),
+        Promise.all([
+          window.__cloudFetchUsers(),
+          (typeof window.__cloudFetchRegistry==='function' ? window.__cloudFetchRegistry() : Promise.resolve())
+        ]),
         new Promise(function(res){ setTimeout(res, 12000); })
       ]);
     } catch(e){}
@@ -3464,6 +3578,20 @@ async function doLogin() {
       err.textContent = '⏳ Ce compte test a expiré le ' + found.expire.split('-').reverse().join('/') + '. Il est désormais désactivé.';
       err.classList.add('show');
       return;
+    }
+  }
+  /* Période d'accès du compte (fixée par l'administrateur) */
+  var _now = Date.now();
+  if (found.debut) { var _db = new Date(found.debut + 'T00:00:00'); if (!isNaN(_db) && _now < _db.getTime()) { err.textContent = '⏳ Ce compte sera actif à partir du ' + found.debut.split('-').reverse().join('/') + '.'; err.classList.add('show'); return; } }
+  if (found.fin)   { var _df = new Date(found.fin + 'T23:59:59'); if (!isNaN(_df) && _now > _df.getTime()) { err.textContent = '⛔ Ce compte est désactivé depuis le ' + found.fin.split('-').reverse().join('/') + '.'; err.classList.add('show'); return; } }
+  /* Statut de la circonscription — le super administrateur national n'est JAMAIS bloqué */
+  if (found.role !== 'superadmin' && found.iepp && found.iepp !== 'TOUTES' && typeof ieppStatus === 'function') {
+    var _st = ieppStatus(found.iepp);
+    if (_st) {
+      var _lbl = String(found.iepp||'').replace(/^IEPP\s+/i,'');
+      if (_st.actif === false) { err.textContent = "⛔ L'IEPP " + _lbl + " est désactivée par l'administrateur national. Contactez-le."; err.classList.add('show'); return; }
+      if (_st.debut) { var _sd = new Date(_st.debut + 'T00:00:00'); if (!isNaN(_sd) && _now < _sd.getTime()) { err.textContent = "⏳ L'IEPP " + _lbl + " sera active à partir du " + _st.debut.split('-').reverse().join('/') + '.'; err.classList.add('show'); return; } }
+      if (_st.fin)   { var _sf = new Date(_st.fin + 'T23:59:59'); if (!isNaN(_sf) && _now > _sf.getTime()) { err.textContent = "⛔ L'IEPP " + _lbl + " est désactivée depuis le " + _st.fin.split('-').reverse().join('/') + '.'; err.classList.add('show'); return; } }
     }
   }
   state.user = found;
@@ -3749,6 +3877,109 @@ document.getElementById('modal-backdrop').addEventListener('click', e => { if (e
 /* ==================================================================
    MODULE : Administration des IEPP (DRENAET) — réservé Grand Administrateur
    ================================================================== */
+/* ===== ACTIVATION / DÉSACTIVATION DES IEPP (super administrateur national) ===== */
+function ieppStatus(name){
+  try {
+    var reg = (state.ieppRegistry||[]);
+    var key = String(name||'').trim().toUpperCase();
+    var r = reg.filter(function(x){ return String((x&&x.name)||'').trim().toUpperCase()===key; })[0];
+    if (!r) return null;
+    return { actif: (r.actif!==false), debut: r.debut||'', fin: r.fin||'' };
+  } catch(e){ return null; }
+}
+function ieppRegEntry(name){
+  var reg = (state.ieppRegistry = state.ieppRegistry || []);
+  var key = String(name||'').trim().toUpperCase();
+  var r = reg.filter(function(x){ return String((x&&x.name)||'').trim().toUpperCase()===key; })[0];
+  if(!r){ r={ name:name }; reg.push(r); }
+  return r;
+}
+function ieppSlug(name){ return String(name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''); }
+function ieppSetActif(name, actif){
+  if(!state.user || state.user.role!=='superadmin'){ toast("Réservé au super administrateur national.",'error'); return; }
+  var r=ieppRegEntry(name); r.actif=!!actif; r._upd=Date.now();
+  save('ieppRegistry', state.ieppRegistry);
+  logAction('iepp-activation', (actif?'Activation':'Désactivation')+' IEPP : '+name);
+  toast("IEPP "+String(name).replace(/^IEPP\s+/i,'')+' — '+(actif?'activée ✅':'désactivée ⛔'), actif?'success':'info');
+  if(typeof renderDrenaet==='function' && state.module==='drenaet') renderDrenaet();
+}
+function ieppSavePeriode(name){
+  if(!state.user || state.user.role!=='superadmin'){ toast("Réservé au super administrateur national.",'error'); return; }
+  var sl=ieppSlug(name);
+  var d=(document.getElementById('iep-deb-'+sl)||{}).value||'';
+  var f=(document.getElementById('iep-fin-'+sl)||{}).value||'';
+  var r=ieppRegEntry(name); r.debut=d; r.fin=f; r._upd=Date.now();
+  save('ieppRegistry', state.ieppRegistry);
+  logAction('iepp-periode', 'Période IEPP '+name+' : '+(d||'—')+' → '+(f||'—'));
+  toast('Période enregistrée pour '+String(name).replace(/^IEPP\s+/i,''), 'success');
+}
+/* Désactive / réactive EN UN CLIC tous les comptes d'une IEPP (sauf super administrateur) */
+function ieppBulkSetActif(name, actif){
+  if(!state.user || state.user.role!=='superadmin'){ toast("Réservé au super administrateur national.",'error'); return; }
+  var court=String(name).replace(/^IEPP\s+/i,'');
+  if(!confirm((actif?'Réactiver':'Désactiver')+' TOUS les comptes de l\'IEPP '+court+' ?\n(Le super administrateur n\'est pas affecté.)')) return;
+  var key=String(name||'').trim().toUpperCase();
+  var n=0;
+  (state.users||[]).forEach(function(u){
+    if(u.role==='superadmin') return;
+    if(String((u.iepp)||'').trim().toUpperCase()===key){ u.actif=!!actif; u._upd=Date.now(); n++; }
+  });
+  save('users', state.users);
+  logAction('iepp-bulk-activation', (actif?'Activation':'Désactivation')+' en masse ('+n+' compte(s)) — IEPP '+name);
+  toast(n+' compte(s) '+(actif?'réactivé(s) ✅':'désactivé(s) ⛔')+' — '+court, actif?'success':'info');
+  if(typeof renderDrenaet==='function' && state.module==='drenaet') renderDrenaet();
+}
+function ieppActivationPanelHtml(){
+  if(!state.user || state.user.role!=='superadmin') return '';
+  var reg=(state.ieppRegistry||[]).slice().sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||'')); });
+  if(!reg.length) return '';
+  var rows=reg.map(function(r){
+    var nm=r.name||''; var sl=ieppSlug(nm); var on=(r.actif!==false);
+    return '<tr>'
+      +'<td class="fw-7">'+escapeHtml(String(nm).replace(/^IEPP\s+/i,'IEPP '))+'</td>'
+      +'<td>'+(on?'<span class="badge badge-green">Active</span>':'<span class="badge badge-orange">Désactivée</span>')+'</td>'
+      +'<td><input type="date" id="iep-deb-'+sl+'" value="'+escapeHtml(r.debut||'')+'" style="padding:5px;border:1px solid var(--line);border-radius:6px"></td>'
+      +'<td><input type="date" id="iep-fin-'+sl+'" value="'+escapeHtml(r.fin||'')+'" style="padding:5px;border:1px solid var(--line);border-radius:6px"></td>'
+      +'<td style="white-space:nowrap">'
+        +(on
+          ? '<button class="btn btn-ghost danger" style="padding:5px 10px" onclick="ieppSetActif(\''+nm.replace(/'/g,"\\'")+'\',false)">⛔ Désactiver</button>'
+          : '<button class="btn btn-ghost" style="padding:5px 10px;color:var(--green-deep)" onclick="ieppSetActif(\''+nm.replace(/'/g,"\\'")+'\',true)">✅ Activer</button>')
+        +' <button class="btn btn-ghost" style="padding:5px 10px" onclick="ieppSavePeriode(\''+nm.replace(/'/g,"\\'")+'\')">💾 Période</button>'
+        +' <button class="btn btn-ghost danger" style="padding:5px 10px" onclick="ieppBulkSetActif(\''+nm.replace(/'/g,"\\'")+'\',false)" title="Désactiver TOUS les comptes de cette IEPP">👥⛔ Tous</button>'
+        +' <button class="btn btn-ghost" style="padding:5px 10px;color:var(--green-deep)" onclick="ieppBulkSetActif(\''+nm.replace(/'/g,"\\'")+'\',true)" title="Réactiver TOUS les comptes de cette IEPP">👥✅ Tous</button>'
+      +'</td></tr>';
+  }).join('');
+  return '<div class="card" style="padding:14px;margin-bottom:14px;border:1.5px solid var(--orange)">'
+    +'<div class="card-title">🛡️ Activation des IEPP (super administrateur national)</div>'
+    +'<p class="text-xs text-muted" style="margin:2px 0 10px">Activez/désactivez une IEPP, ou fixez une période d\'accès (dates de début/fin). Hors période ou si désactivée, aucun utilisateur de cette IEPP ne peut se connecter — sauf vous.</p>'
+    +'<div style="overflow:auto"><table class="table" style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr style="text-align:left;color:var(--ink-soft)"><th>IEPP</th><th>État</th><th>Accès du</th><th>Accès au</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+}
+function ensureDrenaetFromRegistry(){
+  try{
+    var reg = state.ieppRegistry || [];
+    if(!reg.length) return false;
+    state.drenaet = state.drenaet || [];
+    var have = {};
+    state.drenaet.forEach(function(d){ have[String((d&&d.iepp)||'').trim().toUpperCase()] = true; });
+    var changed = false;
+    reg.forEach(function(r){
+      var nm = String((r&&r.name)||'').trim();
+      if(!nm) return;
+      var key = nm.toUpperCase();
+      if(!have[key]){
+        state.drenaet.push({
+          id: 'reg_' + nm.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''),
+          drenaet: r.drenaet || '', iepp: nm, ieppCode: r.code || '',
+          chef: '', ecoles: 0, prescolaire: 0, primaire: 0, eleves: 0,
+          statut: 'Active', _upd: Date.now()
+        });
+        have[key] = true; changed = true;
+      }
+    });
+    if(changed){ try{ save('drenaet', state.drenaet); }catch(e){} }
+    return changed;
+  }catch(e){ return false; }
+}
 function renderDrenaet() {
   if (!['superadmin','drenaet'].includes(state.user.role)) {
     setContent(`<div class="card" style="text-align:center;padding:40px">
@@ -3761,6 +3992,16 @@ function renderDrenaet() {
   // Le Directeur DRENAET ne voit que les IEPP de sa région
   const isRegional = state.user.role === 'drenaet';
   const myDrenaet = state.user.drenaet;
+  ensureDrenaetFromRegistry();
+  try {
+    if (!window.__drenaetRefreshing && typeof window.__cloudFetchRegistry === 'function' && (typeof navigator==='undefined' || navigator.onLine !== false)) {
+      window.__drenaetRefreshing = true;
+      window.__cloudFetchRegistry().then(function(ok){
+        window.__drenaetRefreshing = false;
+        if (ok && state.module==='drenaet'){ try{ ensureDrenaetFromRegistry(); renderDrenaet(); }catch(e){} }
+      });
+    }
+  } catch(e){ window.__drenaetRefreshing = false; }
   const list = isRegional ? state.drenaet.filter(d => d.drenaet === myDrenaet) : state.drenaet;
   const totalEcoles = list.reduce((a,b)=>a+(+b.ecoles||0),0);
   const totalEleves = list.reduce((a,b)=>a+(+b.eleves||0),0);
@@ -3796,6 +4037,8 @@ function renderDrenaet() {
       <input type="file" id="dr-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="importDrenaetExcel(event)">
       <button class="btn btn-primary" onclick="drenaetForm()">+ Nouvelle IEPP</button>`}
     </div>
+
+    ${ieppActivationPanelHtml()}
 
     <div class="card" style="padding:0">
       <div class="table-wrap" style="border:none">
@@ -4657,6 +4900,42 @@ function renderUsers() {
     </div>
   `);
   renderUsersBody();
+  /* Rafraîchit la liste des comptes depuis le cloud à l'ouverture du module,
+     pour que le super administrateur (et la DRENAET) voient immédiatement les
+     comptes créés par les IEPP, sans attendre la synchronisation automatique. */
+  try {
+    if (typeof window.__cloudFetchUsers === 'function' && (typeof navigator==='undefined' || navigator.onLine !== false)) {
+      window.__cloudFetchUsers().then(function(ok){ if(ok){ try{ renderUsersBody(); }catch(e){} } });
+    }
+  } catch(e){}
+}
+/* ===== ACTIVATION / DÉSACTIVATION / PÉRIODE DES COMPTES (administrateurs) ===== */
+function userStatutInfo(u){
+  var now=Date.now();
+  if(u.actif===false) return {ok:false,label:'Désactivé',cls:'badge-red'};
+  if(u.debut){ var d=new Date(u.debut+'T00:00:00'); if(!isNaN(d)&&now<d.getTime()) return {ok:false,label:'À venir',cls:'badge-orange'}; }
+  if(u.fin){ var f=new Date(u.fin+'T23:59:59'); if(!isNaN(f)&&now>f.getTime()) return {ok:false,label:'Hors période',cls:'badge-orange'}; }
+  if(u.expire){ var e=new Date(u.expire+'T23:59:59'); if(!isNaN(e)&&now>e.getTime()) return {ok:false,label:'Expiré',cls:'badge-orange'}; }
+  return {ok:true,label:'Actif',cls:'badge-green'};
+}
+function userStatutBadge(u){ var st=userStatutInfo(u); return '<span class="badge '+st.cls+'" style="font-size:10px;margin-left:6px">'+st.label+'</span>'; }
+function userToggleBtn(u){
+  if(!canCreateUsers() || u.role==='superadmin') return '';
+  return (u.actif===false)
+    ? '<button class="icon-btn" onclick="userSetActif(\''+u.username+'\',true)" title="Activer le compte">✅</button>'
+    : '<button class="icon-btn danger" onclick="userSetActif(\''+u.username+'\',false)" title="Désactiver le compte">⛔</button>';
+}
+function userSetActif(username, actif){
+  if(!canCreateUsers()){ toast("Action réservée aux administrateurs.",'error'); return; }
+  const u = state.users.find(x=>x.username===username);
+  if(!u || !canSeeUser(u)){ toast('Compte hors de votre périmètre.','error'); return; }
+  if(u.role==='superadmin'){ toast("Le super administrateur national ne peut pas être désactivé.",'info'); return; }
+  u.actif = !!actif; u._upd = Date.now();
+  save('users', state.users);
+  logAction('user-activation', (actif?'Activation':'Désactivation')+' compte : '+username);
+  toast('Compte '+username+' — '+(actif?'activé ✅':'désactivé ⛔'), actif?'success':'info');
+  try{ if(document.getElementById('us-body')) renderUsersBody(); }catch(e){}
+  try{ if(document.getElementById('cc-body') && typeof renderComptesBody==='function') renderComptesBody(); }catch(e){}
 }
 function renderUsersBody() {
   const tbEl = document.getElementById('us-body');
@@ -4670,7 +4949,7 @@ function renderUsersBody() {
   tb.innerHTML = list.map(u => `
     <tr>
       <td><span class="badge badge-grey">${escapeHtml(u.username)}</span></td>
-      <td class="fw-7">${escapeHtml(u.name)}</td>
+      <td class="fw-7">${escapeHtml(u.name)}${canCreateUsers()?userStatutBadge(u):''}</td>
       <td><span class="badge badge-${ROLES[u.role].color}">${ROLES[u.role].short}</span></td>
       <td class="text-sm">${escapeHtml(u.email||'—')}</td>
       <td class="text-sm">${escapeHtml(u.iepp||'—')}${u.ecole?'<br><span class="text-xs text-muted">'+escapeHtml(u.ecole)+'</span>':''}</td>
@@ -4679,6 +4958,7 @@ function renderUsersBody() {
         ${canCreateUsers()?`<button class="icon-btn" style="margin-left:4px" onclick="userTelEdit('${u.username}')" title="${(u.tel||u.contact)?'Modifier':'Ajouter'} le téléphone">📞</button>`:''}
       </td>
       <td class="actions-cell">
+        ${userToggleBtn(u)}
         ${canCreateUsers()?`<button class="icon-btn" onclick="userForm('${u.username}')" title="Modifier">✏️</button>
         ${u.username !== state.user.username ? `<button class="icon-btn danger" onclick="userDelete('${u.username}')" title="Supprimer">🗑️</button>` : ''}`:''}
       </td>
@@ -4745,6 +5025,19 @@ function userForm(username, presetRole) {
       <div class="field"><label>École (si applicable)</label><input id="u-ecole" value="${escapeHtml(u.ecole||'')}"></div>
       <div class="field"><label>Téléphone</label><input id="u-tel" value="${escapeHtml(u.tel||u.contact||'')}" placeholder="ex : 0700000000"></div>
     </div>
+    <div class="form-row">
+      <div class="field"><label>État du compte</label>
+        <select id="u-actif">
+          <option value="1" ${u.actif===false?'':'selected'}>✅ Actif</option>
+          <option value="0" ${u.actif===false?'selected':''}>⛔ Désactivé</option>
+        </select>
+      </div>
+      <div class="field"><label>&nbsp;</label><div class="text-xs text-muted" style="padding-top:9px">Désactivé ou hors période → connexion bloquée.</div></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Accès à partir du (optionnel)</label><input type="date" id="u-debut" value="${escapeHtml(u.debut||'')}"></div>
+      <div class="field"><label>Accès jusqu'au (optionnel)</label><input type="date" id="u-fin" value="${escapeHtml(u.fin||'')}"></div>
+    </div>
     ${!isSuper?`<p class="text-xs text-muted" style="margin:4px 0 0">🔒 Vous ne pouvez créer des comptes que dans votre ${me.role==='drenaet'?'direction régionale':'circonscription'}.</p>`:''}
   `, `
     <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
@@ -4767,6 +5060,10 @@ function userSave(username) {
     drenaet: document.getElementById('u-drenaet').value.trim()
   };
   { const _t = (document.getElementById('u-tel')?.value || '').trim(); data.tel = _t; data.contact = _t; }
+  { var _ac=document.getElementById('u-actif'); if(_ac) data.actif = (_ac.value==='1'); }
+  { var _db=document.getElementById('u-debut'); if(_db) data.debut = _db.value||''; }
+  { var _fn=document.getElementById('u-fin'); if(_fn) data.fin = _fn.value||''; }
+  if (role==='superadmin') data.actif = true;
   if (!data.username || !data.name) { toast('Identifiant et nom obligatoires', 'error'); return; }
 
   if (username) {
@@ -4776,6 +5073,7 @@ function userSave(username) {
     if (me.role !== 'superadmin') { data.iepp = u.iepp; data.drenaet = u.drenaet; }
     if (!data.password) data.password = u.password;
     Object.assign(u, data);
+    u._upd = Date.now();
     logAction('update-user', `Modification compte : ${data.username}`);
     toast('Compte mis à jour', 'success');
   } else {
@@ -4790,6 +5088,7 @@ function userSave(username) {
     } else {
       data.iepp = me.iepp; data.drenaet = me.drenaet;    // sa circonscription
     }
+    data._upd = Date.now();
     state.users.push(data);
     /* Un compte recréé n'est plus « supprimé » : on lève la tombstone */
     try { var _d = load('usersDeleted', []) || []; var _i = _d.indexOf(data.username); if (_i > -1){ _d.splice(_i,1); save('usersDeleted', _d); } } catch(e){}
@@ -4931,11 +5230,12 @@ function renderComptesBody() {
   tb.innerHTML = list.map(u => `
     <tr>
       <td><span class="badge badge-grey">${escapeHtml(u.username)}</span></td>
-      <td class="fw-7">${escapeHtml(u.name)}</td>
+      <td class="fw-7">${escapeHtml(u.name)}${canCreateUsers()?userStatutBadge(u):''}</td>
       <td><span class="badge badge-${ROLES[u.role]?.color||'grey'}">${ROLES[u.role]?.short||escapeHtml(u.role)}</span></td>
       <td class="text-sm">${escapeHtml(u.email||'—')}</td>
       <td class="text-sm">${escapeHtml(u.iepp||'—')}${u.ecole?'<br><span class="text-xs text-muted">'+escapeHtml(u.ecole)+'</span>':''}</td>
       <td class="actions-cell">
+        ${userToggleBtn(u)}
         <button class="icon-btn" onclick="userForm('${u.username}')" title="Modifier">✏️</button>
         ${u.username !== state.user.username ? `<button class="icon-btn danger" onclick="userDelete('${u.username}')" title="Supprimer">🗑️</button>` : ''}
       </td>
@@ -5804,7 +6104,7 @@ function visiteBulletin(id) {
     <div class="lbl" style="margin:14px 0 4px;font-size:11px;color:#666;text-transform:uppercase">Observation pédagogique</div>
     <div class="obs">${escapeHtml(v.observation||'')}</div>
     <div class="sig"><div>Signature du CPPP</div><div>Signature de l'enseignant</div></div>
-  </body></html>`);
+</body></html>`);
   w.document.close(); w.focus();
 }
 
@@ -18718,8 +19018,15 @@ function ieppSave() {
   if (!/^iepp/i.test(name)) name = 'IEPP ' + name;
   state.ieppRegistry = state.ieppRegistry || [];
   if (state.ieppRegistry.some(r=>r.name.toLowerCase()===name.toLowerCase())) { toast('Cette IEPP existe déjà', 'error'); return; }
-  state.ieppRegistry.push({ name, drenaet: dren });
+  state.ieppRegistry.push({ name, drenaet: dren, _upd: Date.now() });
   save('ieppRegistry', state.ieppRegistry);
+  try {
+    state.drenaet = state.drenaet || [];
+    if (!state.drenaet.some(function(d){ return String((d&&d.iepp)||'').trim().toUpperCase() === name.trim().toUpperCase(); })){
+      state.drenaet.push({ id:'reg_'+name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''), drenaet:dren||'', iepp:name, ieppCode:'', chef:'', ecoles:0, prescolaire:0, primaire:0, eleves:0, statut:'Active', _upd:Date.now() });
+      save('drenaet', state.drenaet);
+    }
+  } catch(e){}
   logAction('iepp-create', `Création IEPP : ${name} (${dren||'sans DRENAET'})`);
   toast('IEPP créée — espace de données dédié initialisé', 'success');
   closeModal();
@@ -18730,6 +19037,7 @@ function ieppDelete(name) {
   if (!confirm(`Retirer « ${name} » du registre des IEPP ?\n(Les comptes et données déjà créés ne sont pas supprimés.)`)) return;
   state.ieppRegistry = (state.ieppRegistry||[]).filter(r=>r.name!==name);
   save('ieppRegistry', state.ieppRegistry);
+  try { var del = load('ieppRegistryDeleted', []) || []; if (del.indexOf(name) === -1) { del.push(name); save('ieppRegistryDeleted', del); } } catch(e){}
   logAction('iepp-delete', `Retrait IEPP du registre : ${name}`);
   toast('IEPP retirée du registre', 'success');
   refreshScopeSelector();
@@ -18747,7 +19055,7 @@ function ieppProvision(name) {
       username, password:'iepp2026',
       name: `${p.name} ${name.replace(/^IEPP\s+/,'')}`,
       role: p.role, email:`${username}@menaet.ci`,
-      iepp: name, drenaet: dren
+      iepp: name, drenaet: dren, _upd: Date.now()
     });
     created.push(username);
   });
@@ -26822,7 +27130,7 @@ function usersTombstones(){ try { return load('usersDeleted', []) || []; } catch
     DEFAULT_USERS.forEach(def => {
       if (dead.indexOf(def.username) !== -1) return;      // compte supprimé : on respecte
       const existing = state.users.find(u => u.username === def.username);
-      if (!existing) { state.users.push(Object.assign({}, def)); changed = true; }
+      if (!existing) { state.users.push(Object.assign({}, def, { _upd: 0 })); changed = true; }
     });
     if (changed) save('users', state.users);
   } catch(e) { console.warn('seedEspaceAccounts', e); }
@@ -26844,13 +27152,13 @@ window.__healUsers = function(){
     DEFAULT_USERS.forEach(function(def){
       if (dead.indexOf(def.username) !== -1) return;
       var u = state.users.find(function(x){ return x.username===def.username; });
-      if(!u){ state.users.push(Object.assign({},def)); changed=true; }
+      if(!u){ state.users.push(Object.assign({},def,{_upd:0})); changed=true; }
     });
     /* 3) Anti-verrouillage : garantir au moins un compte superadmin (sauf suppression volontaire) */
     var hasSuper = state.users.some(function(x){ return x.role==='superadmin'; });
     if(!hasSuper && dead.indexOf('superadmin')===-1){
       var sa = DEFAULT_USERS.find(function(d){ return d.username==='superadmin'; });
-      if(sa){ state.users.push(Object.assign({},sa)); changed=true; }
+      if(sa){ state.users.push(Object.assign({},sa,{_upd:0})); changed=true; }
     }
     if(changed){ try{ save('users', state.users); }catch(e){} }
   } catch(e){ console.warn('healUsers', e); }
@@ -28140,6 +28448,352 @@ function vieResetAllData() {
     }catch(e){ try{ return _login(); }catch(_){} }
   };
 })();
+</script>
+
+<script id="iepp-conseiller-engine">
+/* ==================================================================
+   MOTEUR GÉNÉRIQUE « ESPACE CONSEILLER » (Alphabétisation, Structures
+   islamiques, …). Pour chaque menu : Ajouter, Modifier, Supprimer,
+   Importer (CSV), Exporter (Excel, Word, PDF), Imprimer.
+   + Matrice d'action préconçue comme les autres modules.
+   Additif : ne détruit aucune donnée existante (mêmes clés de stockage).
+   ================================================================== */
+(function(){
+  function L(k,d){ try{ return (typeof load==='function')?(load(k,d)||d):(JSON.parse(localStorage.getItem('iepp_'+k)||'null')||d); }catch(e){ return d; } }
+  function S(k,v){ try{ if(typeof save==='function') save(k,v); else localStorage.setItem('iepp_'+k, JSON.stringify(v)); }catch(e){} }
+  function esc(x){ return (typeof escapeHtml==='function')?escapeHtml(x==null?'':String(x)):String(x==null?'':x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function tm(m,t){ if(typeof toast==='function') toast(m,t||'success'); else if(t==='error') alert(m); }
+  var ip='padding:8px;border:1px solid var(--line);border-radius:8px;font:inherit';
+
+  /* --- Téléchargement d'un fichier (Excel .xls / Word .doc) --- */
+  function dl(filename, mime, content){
+    try{
+      var blob=new Blob(['\ufeff'+content],{type:mime});
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a'); a.href=url; a.download=filename;
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); },400);
+    }catch(e){ tm('Export impossible sur cet appareil','error'); }
+  }
+  /* --- Tableau HTML pour export / impression --- */
+  function tableHTML(cols, rows){
+    var th=cols.map(function(c){return '<th style="border:1px solid #444;padding:6px;background:#eee">'+esc(c.label)+'</th>';}).join('');
+    var tr=rows.map(function(r){ return '<tr>'+cols.map(function(c){return '<td style="border:1px solid #444;padding:6px">'+esc(r[c.k])+'</td>';}).join('')+'</tr>'; }).join('');
+    return '<table style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:12px"><thead><tr>'+th+'</tr></thead><tbody>'+(tr||'<tr><td colspan="'+cols.length+'">Aucune donnée</td></tr>')+'</tbody></table>';
+  }
+  function docHeader(title){
+    var ent='';
+    try{ if(typeof ieppDocEntete==='function'){ ent=ieppDocEntete(title); } }catch(e){}
+    if(!ent){
+      var iepp=''; try{ iepp=(typeof activeIeppLabel==='function')?activeIeppLabel():''; }catch(e){}
+      ent='<div style="text-align:center;margin-bottom:12px"><div style="font-size:11px;text-transform:uppercase">Ministère de l\'Éducation Nationale, de l\'Alphabétisation et de l\'Enseignement Technique</div>'
+        +'<div style="font-size:12px">'+esc(iepp)+'</div><h2 style="margin:8px 0">'+esc(title)+'</h2></div>';
+    }
+    return ent;
+  }
+  function exportExcel(title, cols, rows){
+    var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body><h3>'+esc(title)+'</h3>'+tableHTML(cols,rows)+'</body></html>';
+    dl((title.replace(/[^a-z0-9]+/gi,'_'))+'.xls','application/vnd.ms-excel',html);
+  }
+  function exportWord(title, cols, rows){
+    var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"></head><body style="font-family:Times New Roman,serif">'+docHeader(title)+tableHTML(cols,rows)+'</body></html>';
+    dl((title.replace(/[^a-z0-9]+/gi,'_'))+'.doc','application/msword',html);
+  }
+  function printDoc(title, cols, rows){
+    var w=window.open('','_blank'); if(!w){ tm('Autorisez les fenêtres pop-up pour imprimer / exporter en PDF','error'); return; }
+    w.document.write('<html><head><meta charset="utf-8"><title>'+esc(title)+'</title></head><body style="font-family:Times New Roman,serif;max-width:1000px;margin:0 auto;padding:20px">'+docHeader(title)+tableHTML(cols,rows)+'</body></html>');
+    w.document.close();
+    setTimeout(function(){ try{ w.focus(); w.print(); }catch(e){} },300);
+  }
+  /* --- Import CSV --- */
+  function parseCSV(text){
+    var rows=[], row=[], cur='', inq=false;
+    for(var i=0;i<text.length;i++){
+      var ch=text[i];
+      if(inq){
+        if(ch==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else inq=false; }
+        else cur+=ch;
+      } else {
+        if(ch==='"') inq=true;
+        else if(ch===','){ row.push(cur); cur=''; }
+        else if(ch==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; }
+        else if(ch==='\r'){ /* ignore */ }
+        else cur+=ch;
+      }
+    }
+    if(cur.length||row.length){ row.push(cur); rows.push(row); }
+    return rows.filter(function(r){ return r.some(function(c){return String(c).trim()!==''; }); });
+  }
+  function doImport(dataKey, cols, cb){
+    var inp=document.createElement('input'); inp.type='file'; inp.accept='.csv,text/csv';
+    inp.onchange=function(ev){
+      var f=ev.target.files&&ev.target.files[0]; if(!f) return;
+      var r=new FileReader();
+      r.onload=function(e){
+        try{
+          var rows=parseCSV(String(e.target.result||''));
+          if(!rows.length){ tm('Fichier vide','error'); return; }
+          /* on ignore une éventuelle ligne d'en-tête si elle correspond aux libellés */
+          var first=rows[0].map(function(x){return String(x).trim().toLowerCase();});
+          var labels=cols.map(function(c){return String(c.label).trim().toLowerCase();});
+          var startsWithHeader = first[0]===labels[0] || first.join('|').indexOf(labels[0])===0;
+          var data=L(dataKey,[]);
+          var added=0;
+          rows.forEach(function(rr, idx){
+            if(idx===0 && startsWithHeader) return;
+            var obj={ id:'x'+Date.now()+'_'+idx+Math.random().toString(36).slice(2,6) };
+            cols.forEach(function(c,ci){ obj[c.k]=(rr[ci]!=null?String(rr[ci]).trim():''); });
+            data.push(obj); added++;
+          });
+          S(dataKey,data); cb&&cb();
+          tm(added+' ligne(s) importée(s)','success');
+        }catch(err){ tm('Import impossible : format CSV attendu','error'); }
+      };
+      r.readAsText(f,'UTF-8');
+    };
+    inp.click();
+  }
+
+  /* --- Formulaire modal (Ajouter / Modifier) --- */
+  function fieldHtml(c, val){
+    val = val==null?'':val;
+    if(c.type==='select'){
+      return '<div class="field" style="margin-bottom:10px"><label>'+esc(c.label)+'</label><select id="cf-'+c.k+'" style="'+ip+';width:100%">'
+        +'<option value="">—</option>'+(c.options||[]).map(function(o){return '<option '+(String(o)===String(val)?'selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select></div>';
+    }
+    if(c.type==='textarea'){
+      return '<div class="field" style="margin-bottom:10px"><label>'+esc(c.label)+'</label><textarea id="cf-'+c.k+'" rows="2" style="'+ip+';width:100%">'+esc(val)+'</textarea></div>';
+    }
+    return '<div class="field" style="margin-bottom:10px"><label>'+esc(c.label)+'</label><input id="cf-'+c.k+'" type="'+(c.type==='number'?'number':'text')+'" value="'+esc(val)+'" style="'+ip+';width:100%"></div>';
+  }
+  function openForm(title, cols, current, onSave){
+    if(typeof openModal!=='function'){ tm('Formulaire indisponible','error'); return; }
+    var body='<div>'+cols.map(function(c){return fieldHtml(c, current?current[c.k]:'');}).join('')+'</div>';
+    var footer='<button class="btn" onclick="closeModal()">Annuler</button> <button class="btn btn-primary" id="cf-save">Enregistrer</button>';
+    openModal(title, body, footer);
+    setTimeout(function(){
+      var btn=document.getElementById('cf-save');
+      if(btn) btn.onclick=function(){
+        var obj=current?Object.assign({},current):{ id:'x'+Date.now()+Math.random().toString(36).slice(2,6) };
+        var firstKey=cols[0].k, ok=true;
+        cols.forEach(function(c){ var e=document.getElementById('cf-'+c.k); obj[c.k]=e?e.value.trim():''; });
+        if(!String(obj[firstKey]||'').trim()){ tm(cols[0].label+' est requis','error'); ok=false; }
+        if(!ok) return;
+        onSave(obj); closeModal();
+      };
+    },60);
+  }
+
+  /* ============ Construction d'un module ============ */
+  function define(cfg){
+    var ns=cfg.ns;
+    var state={ tab:'dash' };
+    var W={};
+
+    function reg(){ /* enregistre les données scopées pour la synchro si dispo */ }
+
+    /* seed de la matrice d'action (si vide) */
+    function seedMatrix(){
+      var cur=L(cfg.matrix.dataKey,null);
+      if(cur && cur.length) return;
+      var seeded=(cfg.matrix.seed||[]).map(function(r,i){ return Object.assign({ id:'m'+(i+1) }, r); });
+      if(seeded.length) S(cfg.matrix.dataKey, seeded);
+    }
+
+    function toolbar(kind, dataKey, cols, title){
+      return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
+        +'<button class="btn btn-primary" onclick="'+ns+'.add(\''+kind+'\')">➕ Ajouter</button>'
+        +'<button class="btn" onclick="'+ns+'.imp(\''+kind+'\')">📥 Importer (CSV)</button>'
+        +'<button class="btn" onclick="'+ns+'.exp(\''+kind+'\',\'excel\')">📊 Excel</button>'
+        +'<button class="btn" onclick="'+ns+'.exp(\''+kind+'\',\'word\')">📝 Word</button>'
+        +'<button class="btn" onclick="'+ns+'.exp(\''+kind+'\',\'pdf\')">📄 PDF</button>'
+        +'<button class="btn" onclick="'+ns+'.exp(\''+kind+'\',\'print\')">🖨️ Imprimer</button>'
+        +'</div>';
+    }
+    function listTable(kind, dataKey, cols){
+      var rows=L(dataKey,[]);
+      var head=cols.map(function(c){return '<th style="text-align:left;color:var(--ink-soft);padding:6px 8px">'+esc(c.label)+'</th>';}).join('')+'<th></th>';
+      var bodyRows=rows.map(function(r){
+        return '<tr>'+cols.map(function(c){return '<td style="padding:6px 8px">'+esc(r[c.k])+'</td>';}).join('')
+          +'<td style="white-space:nowrap"><button class="icon-btn" title="Modifier" onclick="'+ns+'.edit(\''+kind+'\',\''+r.id+'\')">✏️</button>'
+          +'<button class="icon-btn danger" title="Supprimer" onclick="'+ns+'.del(\''+kind+'\',\''+r.id+'\')">🗑️</button></td></tr>';
+      }).join('') || '<tr><td colspan="'+(cols.length+1)+'" style="color:var(--ink-soft);padding:10px">Aucune donnée. Cliquez sur « Ajouter » ou « Importer ».</td></tr>';
+      return '<div style="overflow:auto"><table class="table" style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr>'+head+'</tr></thead><tbody>'+bodyRows+'</tbody></table></div>';
+    }
+
+    function ent(kind){ return (cfg.entities||[]).filter(function(e){return e.key===kind;})[0]; }
+    function unit(kind){ if(kind==='matrice') return { key:'matrice', label:cfg.matrix.label||"Matrice d'action", dataKey:cfg.matrix.dataKey, cols:cfg.matrix.cols }; return ent(kind); }
+
+    W.go=function(t){ state.tab=t; render(); };
+    W.add=function(kind){ var u=unit(kind); openForm('Ajouter — '+u.label, u.cols, null, function(obj){ var a=L(u.dataKey,[]); a.push(obj); S(u.dataKey,a); render(); }); };
+    W.edit=function(kind,id){ var u=unit(kind); var a=L(u.dataKey,[]); var it=a.filter(function(x){return x.id===id;})[0]; if(!it) return; openForm('Modifier — '+u.label, u.cols, it, function(obj){ var idx=a.findIndex(function(x){return x.id===id;}); if(idx>=0){ a[idx]=obj; S(u.dataKey,a); render(); } }); };
+    W.del=function(kind,id){ var u=unit(kind); if(!confirm('Supprimer cet élément ?')) return; S(u.dataKey, L(u.dataKey,[]).filter(function(x){return x.id!==id;})); render(); };
+    W.imp=function(kind){ var u=unit(kind); doImport(u.dataKey, u.cols, render); };
+    W.exp=function(kind,fmt){ var u=unit(kind); var rows=L(u.dataKey,[]); var title=(cfg.title||'')+' — '+u.label;
+      if(fmt==='excel') exportExcel(title,u.cols,rows);
+      else if(fmt==='word') exportWord(title,u.cols,rows);
+      else printDoc(title,u.cols,rows); /* pdf & print : fenêtre imprimable (Enregistrer au format PDF) */
+    };
+    window[ns]=W;
+
+    function render(){
+      if(typeof setContent!=='function') return;
+      seedMatrix();
+      var TABS=[['dash','📊','Tableau de bord']]
+        .concat((cfg.entities||[]).map(function(e){return [e.key,e.icon||'📋',e.label];}))
+        .concat([['matrice','🗂️',cfg.matrix.label||"Matrice d'action"],['rapports','📄','Rapports']]);
+      var tabsHtml=TABS.map(function(t){return '<div class="tab '+(state.tab===t[0]?'active':'')+'" onclick="'+ns+'.go(\''+t[0]+'\')">'+t[1]+' '+t[2]+'</div>';}).join('');
+      var body='';
+      if(state.tab==='dash'){
+        var cards=(cfg.entities||[]).map(function(e){ return '<div class="card" style="padding:16px"><div style="font-size:12px;color:var(--ink-soft)">'+esc(e.label)+'</div><div style="font-size:28px;font-weight:800">'+L(e.dataKey,[]).length+'</div></div>'; }).join('');
+        var mat=L(cfg.matrix.dataKey,[]);
+        cards+='<div class="card" style="padding:16px"><div style="font-size:12px;color:var(--ink-soft)">Actions (matrice)</div><div style="font-size:28px;font-weight:800">'+mat.length+'</div></div>';
+        body='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">'+cards+'</div>';
+      } else if(state.tab==='matrice'){
+        body='<div class="card" style="padding:14px"><div class="card-title">🗂️ '+esc(cfg.matrix.label||"Matrice d'action")+' — '+esc(cfg.short||cfg.title||'')+'</div>'
+          +toolbar('matrice',cfg.matrix.dataKey,cfg.matrix.cols)
+          +listTable('matrice',cfg.matrix.dataKey,cfg.matrix.cols);
+        if(cfg.axes && cfg.axes.length){
+          body+='<div style="margin-top:12px;padding:12px;background:var(--bg-soft,#f6f7f9);border-radius:8px"><div style="font-weight:700;margin-bottom:6px">Axes prioritaires</div><ol style="margin:0;padding-left:20px;color:var(--ink-soft);font-size:13px">'+cfg.axes.map(function(a){return '<li>'+esc(a)+'</li>';}).join('')+'</ol></div>';
+        }
+        body+='</div>';
+      } else if(state.tab==='rapports'){
+        var parts=(cfg.entities||[]).map(function(e){return L(e.dataKey,[]).length+' '+e.label.toLowerCase();});
+        parts.push(L(cfg.matrix.dataKey,[]).length+' action(s)');
+        body='<div class="card" style="padding:16px"><div class="card-title">📄 Rapport — '+esc(cfg.short||cfg.title||'')+'</div>'
+          +'<p style="color:var(--ink-soft);font-size:13px">Synthèse : '+parts.join(', ')+'.</p>'
+          +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+          +'<button class="btn btn-primary" onclick="'+ns+'.exp(\'matrice\',\'print\')">🖨️ Imprimer la matrice</button>'
+          +'<button class="btn" onclick="'+ns+'.exp(\'matrice\',\'word\')">📝 Matrice en Word</button>'
+          +'<button class="btn" onclick="'+ns+'.exp(\'matrice\',\'excel\')">📊 Matrice en Excel</button>'
+          +'</div></div>';
+      } else {
+        var e=ent(state.tab);
+        if(e){ body='<div class="card" style="padding:14px"><div class="card-title">'+(e.icon||'📋')+' '+esc(e.label)+'</div>'+toolbar(e.key,e.dataKey,e.cols)+listTable(e.key,e.dataKey,e.cols)+'</div>'; }
+      }
+      setContent('<div class="hero" style="background:'+(cfg.hero||'linear-gradient(135deg,#7C3AED 0%,#4C1D95 100%)')+'"><h3>'+(cfg.icon||'📘')+' '+esc(cfg.title||'')+'</h3><p>'+esc(cfg.desc||'')+'</p></div>'
+        +'<div class="tabs" style="flex-wrap:wrap">'+tabsHtml+'</div><div style="margin-top:12px">'+body+'</div>');
+    }
+    return render;
+  }
+
+  window.IEPPConseil={ define:define };
+})();
+
+</script>
+<script id="iepp-conseiller-register">
+/* ==== Configuration & enregistrement des modules Conseiller ==== */
+(function(){
+  if(!window.IEPPConseil) return;
+  var MCOLS=[
+    {k:'num',label:'N°'},
+    {k:'action',label:'Actions / Activités'},
+    {k:'objectif',label:'Objectifs'},
+    {k:'periode',label:'Période'},
+    {k:'indicateur',label:'Indicateurs de réalisation'},
+    {k:'responsable',label:'Responsables'},
+    {k:'observation',label:'Observations'}
+  ];
+  /* Colonnes de la matrice des structures islamiques (modèle officiel DELC) */
+  var ISLAM_MCOLS=[
+    {k:'num',label:'N°'},
+    {k:'domaine',label:"Domaines d'intervention"},
+    {k:'action',label:'Actions à mener'},
+    {k:'activite',label:'Activités principales'},
+    {k:'periode',label:'Période'},
+    {k:'responsable',label:'Responsables'},
+    {k:'indicateur',label:'Indicateurs de suivi'}
+  ];
+  var ALPHA_MATRIX=[
+    {num:'1',action:'Identifier et recenser les besoins en alphabétisation',objectif:'Déterminer les zones et populations prioritaires',periode:'Début de campagne',indicateur:'Nombre de localités et apprenants recensés',responsable:'Conseiller / Responsables locaux',observation:''},
+    {num:'2',action:"Élaborer le programme d'alphabétisation",objectif:'Organiser les activités et définir les priorités',periode:'Début de campagne',indicateur:'Programme élaboré et validé',responsable:'Conseiller',observation:''},
+    {num:'3',action:'Mobiliser et sensibiliser les populations',objectif:"Accroître la participation aux séances d'alphabétisation",periode:'Toute la campagne',indicateur:'Nombre de séances de sensibilisation réalisées',responsable:'Conseiller / Animateurs',observation:''},
+    {num:'4',action:"Organiser les groupes d'apprentissage",objectif:'Constituer les groupes selon les niveaux et besoins',periode:'Début de campagne',indicateur:'Nombre de groupes constitués',responsable:'Conseiller / Animateurs',observation:''},
+    {num:'5',action:'Encadrer et accompagner les animateurs',objectif:'Améliorer la qualité des apprentissages',periode:'Mensuel',indicateur:"Nombre d'animateurs encadrés",responsable:'Conseiller',observation:''},
+    {num:'6',action:'Effectuer des visites de suivi sur le terrain',objectif:'Vérifier le déroulement des activités',periode:'Mensuel',indicateur:'Nombre de visites effectuées',responsable:'Conseiller',observation:''},
+    {num:'7',action:'Suivre les effectifs et les présences',objectif:"Réduire les abandons et améliorer l'assiduité",periode:'Mensuel',indicateur:"Taux de présence et d'abandon",responsable:'Conseiller / Animateurs',observation:''},
+    {num:'8',action:'Évaluer les acquis des apprenants',objectif:'Mesurer les progrès réalisés',periode:'Trimestriel / Fin de campagne',indicateur:'Résultats des évaluations',responsable:'Conseiller / Animateurs',observation:''},
+    {num:'9',action:'Identifier les difficultés rencontrées',objectif:'Apporter des mesures correctives',periode:'Continu',indicateur:'Nombre de difficultés identifiées et résolues',responsable:'Conseiller',observation:''},
+    {num:'10',action:'Organiser des séances de renforcement',objectif:'Améliorer les compétences des apprenants en difficulté',periode:'Selon les besoins',indicateur:'Nombre de séances réalisées',responsable:'Animateurs / Conseiller',observation:''},
+    {num:'11',action:'Collecter et consolider les données',objectif:'Disposer de données fiables sur les activités',periode:'Mensuel',indicateur:'Rapports et données consolidés',responsable:'Conseiller',observation:''},
+    {num:'12',action:"Produire les rapports d'activités",objectif:'Rendre compte des résultats obtenus',periode:'Mensuel / Trimestriel',indicateur:'Rapports produits et transmis',responsable:'Conseiller',observation:''},
+    {num:'13',action:'Collaborer avec les autorités et partenaires',objectif:'Faciliter la mise en œuvre des activités',periode:'Continu',indicateur:'Nombre de réunions/rencontres réalisées',responsable:'Conseiller',observation:''},
+    {num:'14',action:'Capitaliser les bonnes pratiques',objectif:'Identifier les approches efficaces',periode:'Fin de campagne',indicateur:'Nombre de bonnes pratiques documentées',responsable:'Conseiller',observation:''},
+    {num:'15',action:"Élaborer le bilan et le plan d'action suivant",objectif:'Améliorer les prochaines campagnes',periode:'Fin de campagne',indicateur:"Bilan et plan d'action élaborés",responsable:'Conseiller',observation:''}
+  ];
+  var ALPHA_AXES=['Planification et organisation','Encadrement des animateurs','Suivi des apprenants','Suivi-évaluation des activités','Collecte et gestion des données','Rapportage et capitalisation','Coordination avec les partenaires','Amélioration continue des activités'];
+
+  /* Matrice officielle des structures islamiques d'éducation (15 lignes) */
+  var ISLAM_MATRIX=[
+    {num:'1',domaine:'Identification des structures',action:"Recenser les structures islamiques d'éducation",activite:"Identifier les écoles coraniques, centres d'alphabétisation et structures islamiques",periode:'Sept.-Oct.',responsable:'Conseiller Alphabétisation / IEPP',indicateur:'Nombre de structures recensées'},
+    {num:'2',domaine:'Diagnostic',action:'Évaluer les besoins des structures',activite:'Collecter les informations sur les apprenants, formateurs, locaux et matériels',periode:'Octobre',responsable:'Conseiller Alphabétisation',indicateur:'Nombre de structures diagnostiquées'},
+    {num:'3',domaine:'Alphabétisation',action:"Développer les activités d'alphabétisation",activite:"Identifier les personnes non alphabétisées et organiser les groupes d'apprentissage",periode:"Toute l'année",responsable:'Conseiller / Responsables des structures',indicateur:"Nombre d'apprenants inscrits"},
+    {num:'4',domaine:'Formation des formateurs',action:'Renforcer les capacités des animateurs',activite:'Organiser des sessions de formation et de recyclage',periode:'Selon calendrier',responsable:'DELC / Conseiller',indicateur:'Nombre de formateurs formés'},
+    {num:'5',domaine:'Suivi pédagogique',action:'Assurer le suivi des séances',activite:'Effectuer des visites de terrain et apporter un appui-conseil',periode:'Trimestriel',responsable:'Conseiller Alphabétisation',indicateur:'Nombre de visites réalisées'},
+    {num:'6',domaine:'Matériel pédagogique',action:"Améliorer les conditions d'apprentissage",activite:'Identifier les besoins et faciliter la mise à disposition de manuels et supports',periode:"Toute l'année",responsable:'DELC / Structures',indicateur:'Nombre de structures dotées'},
+    {num:'7',domaine:"Programmes d'enseignement",action:'Harmoniser les contenus',activite:"Veiller à l'utilisation de contenus adaptés aux objectifs de l'alphabétisation",periode:"Toute l'année",responsable:'Conseiller / Responsables',indicateur:'Nombre de structures utilisant les contenus validés'},
+    {num:'8',domaine:'Évaluation',action:'Évaluer les acquis des apprenants',activite:'Organiser les pré-tests, évaluations intermédiaires et post-tests',periode:'Selon calendrier',responsable:'Conseiller / Formateurs',indicateur:'Taux de réussite des apprenants'},
+    {num:'9',domaine:'Données statistiques',action:'Améliorer la remontée des données',activite:'Collecter, contrôler et transmettre les données des structures',periode:'Trimestriel',responsable:'Conseiller',indicateur:'Taux de structures ayant transmis leurs données'},
+    {num:'10',domaine:'Sensibilisation',action:"Promouvoir l'alphabétisation",activite:'Organiser des séances de sensibilisation auprès des communautés',periode:"Toute l'année",responsable:'Conseiller / Responsables religieux',indicateur:'Nombre de séances réalisées'},
+    {num:'11',domaine:'Inclusion',action:"Favoriser l'accès des publics vulnérables",activite:'Encourager la participation des femmes, jeunes et personnes vulnérables',periode:"Toute l'année",responsable:'Structures / Conseiller',indicateur:'Nombre de bénéficiaires concernés'},
+    {num:'12',domaine:'Partenariat',action:'Renforcer la collaboration avec les structures islamiques',activite:'Organiser des rencontres avec les responsables des structures',periode:'Semestriel',responsable:'DELC / Conseiller',indicateur:'Nombre de rencontres organisées'},
+    {num:'13',domaine:'Qualité',action:'Améliorer la qualité des prestations',activite:'Identifier les difficultés et proposer des mesures correctives',periode:'Trimestriel',responsable:'Conseiller',indicateur:'Nombre de recommandations mises en œuvre'},
+    {num:'14',domaine:'Rapportage',action:'Produire les rapports de suivi',activite:'Élaborer les comptes rendus des visites et rapports périodiques',periode:'Trimestriel / Annuel',responsable:'Conseiller',indicateur:'Nombre de rapports produits'},
+    {num:'15',domaine:'Perspectives',action:"Élaborer un plan d'amélioration",activite:'Capitaliser les résultats et définir les actions prioritaires pour la période suivante',periode:"Fin d'année",responsable:'DELC / Conseiller',indicateur:"Plan d'action élaboré"}
+  ];
+  var ISLAM_AXES=[
+    "Recenser et suivre les structures islamiques d'éducation",
+    "Accompagner les responsables et formateurs dans la mise en œuvre des activités d'alphabétisation",
+    'Contrôler la qualité des enseignements',
+    'Organiser et suivre les évaluations des apprenants',
+    'Collecter et analyser les données statistiques',
+    'Effectuer des visites de suivi pédagogique',
+    'Identifier les besoins en formation et en matériels',
+    'Produire les rapports de suivi',
+    'Formuler des recommandations et proposer des actions correctives',
+    "Renforcer le partenariat entre l'administration et les structures islamiques d'éducation"
+  ];
+
+  /* --- ALPHABÉTISATION (réutilise les données existantes) --- */
+  var renderAlphaNew=window.IEPPConseil.define({
+    ns:'ALPHA', title:'Espace Conseiller Alphabétisation', short:'Alphabétisation',
+    desc:"Centres d'alphabétisation, auditeurs (apprenants), matrice d'action & rapports.",
+    icon:'🔤', hero:'linear-gradient(135deg,#7C3AED 0%,#4C1D95 100%)',
+    entities:[
+      { key:'centres', icon:'🏫', label:'Centres ALPHA', dataKey:'alphaCentres', cols:[
+        {k:'nom',label:'Nom du centre'},{k:'localite',label:'Localité'},{k:'encadreur',label:'Encadreur'},{k:'effectif',label:'Effectif',type:'number'} ] },
+      { key:'auditeurs', icon:'🧑‍🎓', label:'Auditeurs', dataKey:'alphaAuditeurs', cols:[
+        {k:'nom',label:'Nom & prénoms'},{k:'sexe',label:'Sexe',type:'select',options:['M','F']},{k:'age',label:'Âge'},{k:'centre',label:'Centre'} ] }
+    ],
+    matrix:{ label:"Matrice d'action", dataKey:'alphaMatriceAction', cols:MCOLS, seed:ALPHA_MATRIX },
+    axes:ALPHA_AXES
+  });
+  try{
+    if(typeof MODULES==='object'&&MODULES){ if(MODULES.alpha){ MODULES.alpha.render=renderAlphaNew; MODULES.alpha.title='Espace Conseiller Alphabétisation'; } else { MODULES.alpha={title:'Espace Conseiller Alphabétisation',sub:'ALPHA',render:renderAlphaNew}; } }
+    window.renderAlpha=renderAlphaNew;
+  }catch(e){}
+
+  /* --- STRUCTURE ISLAMIQUE D'ÉDUCATION (nouveau module) --- */
+  var renderIslam=window.IEPPConseil.define({
+    ns:'ISLAM', title:"Espace Conseiller — Structures Islamiques d'Éducation", short:'Structures islamiques',
+    desc:"Structures islamiques (medersas, écoles coraniques, franco-arabes), apprenants, matrice d'action & rapports.",
+    icon:'🕌', hero:'linear-gradient(135deg,#059669 0%,#065F46 100%)',
+    entities:[
+      { key:'structures', icon:'🕌', label:'Structures islamiques', dataKey:'islamStructures', cols:[
+        {k:'nom',label:'Nom de la structure'},{k:'type',label:'Type',type:'select',options:['Coranique traditionnel','Medersa','Franco-arabe','Confessionnel islamique']},{k:'localite',label:'Localité'},{k:'responsable',label:'Responsable / Fondateur'},{k:'effectif',label:'Effectif',type:'number'} ] },
+      { key:'apprenants', icon:'🧑‍🎓', label:'Apprenants', dataKey:'islamApprenants', cols:[
+        {k:'nom',label:'Nom & prénoms'},{k:'sexe',label:'Sexe',type:'select',options:['M','F']},{k:'age',label:'Âge'},{k:'structure',label:'Structure'} ] }
+    ],
+    matrix:{ label:"Matrice d'action", dataKey:'islamMatriceAction', cols:ISLAM_MCOLS, seed:ISLAM_MATRIX },
+    axes:ISLAM_AXES
+  });
+  try{
+    if(typeof MODULES==='object'&&MODULES){ MODULES.islam={ title:"Espace Conseiller — Structures Islamiques d'Éducation", sub:"Structures islamiques — recensement, apprenants, matrice d'action", render:renderIslam }; }
+    if(typeof ACL==='object'&&ACL){ Object.keys(ACL).forEach(function(r){ var a=ACL[r]; if(!Array.isArray(a))return; if(a.indexOf('alpha')>=0||r==='superadmin'){ if(a.indexOf('islam')<0) a.push('islam'); } }); }
+  }catch(e){}
+  try{ var _n=window.navigate; if(typeof _n==='function'){ window.navigate=function(mod){ var known=(typeof MODULES==='object'&&MODULES&&MODULES[mod]); if(mod==='islam' && known){ try{state.module='islam';}catch(e){} try{document.querySelectorAll('.sb-link').forEach(function(el){el.classList.toggle('active',el.dataset&&el.dataset.module==='islam');});}catch(e){} try{document.getElementById('page-title').firstChild.textContent="Espace Conseiller — Structures Islamiques d'Éducation";document.getElementById('page-sub').textContent="Structures islamiques d'éducation";}catch(e){} renderIslam(); return; } return _n.apply(this,arguments); }; } }catch(e){}
+})();
+
 </script>
 </body>
 </html>
