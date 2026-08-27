@@ -3980,7 +3980,7 @@ function ensureDrenaetFromRegistry(){
     return changed;
   }catch(e){ return false; }
 }
-function renderDrenaet() {
+function renderDrenaet(skipCloud) {
   if (!['superadmin','drenaet'].includes(state.user.role)) {
     setContent(`<div class="card" style="text-align:center;padding:40px">
       <div style="font-size:42px">🔒</div>
@@ -3993,15 +3993,15 @@ function renderDrenaet() {
   const isRegional = state.user.role === 'drenaet';
   const myDrenaet = state.user.drenaet;
   ensureDrenaetFromRegistry();
-  try {
-    if (!window.__drenaetRefreshing && typeof window.__cloudFetchRegistry === 'function' && (typeof navigator==='undefined' || navigator.onLine !== false)) {
-      window.__drenaetRefreshing = true;
+  /* Rafraîchit le registre depuis le cloud UNE SEULE FOIS (jamais lors du re-rendu),
+     pour éviter toute boucle de rafraîchissement quand on est en ligne. */
+  if (!skipCloud && typeof window.__cloudFetchRegistry === 'function' && (typeof navigator==='undefined' || navigator.onLine !== false)) {
+    try {
       window.__cloudFetchRegistry().then(function(ok){
-        window.__drenaetRefreshing = false;
-        if (ok && state.module==='drenaet'){ try{ ensureDrenaetFromRegistry(); renderDrenaet(); }catch(e){} }
+        if (ok && state.module==='drenaet'){ try{ ensureDrenaetFromRegistry(); renderDrenaet(true); }catch(e){} }
       });
-    }
-  } catch(e){ window.__drenaetRefreshing = false; }
+    } catch(e){}
+  }
   const list = isRegional ? state.drenaet.filter(d => d.drenaet === myDrenaet) : state.drenaet;
   const totalEcoles = list.reduce((a,b)=>a+(+b.ecoles||0),0);
   const totalEleves = list.reduce((a,b)=>a+(+b.eleves||0),0);
