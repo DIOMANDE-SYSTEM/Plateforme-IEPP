@@ -1119,6 +1119,7 @@ function vieResetAllData() {
 }
 
 </script>
+<!-- IEPP V1.4 : synchronisation immédiate des comptes + diagnostic multi-appareils -->
 </head>
 <body>
 
@@ -2412,6 +2413,39 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
       try { localStorage.setItem(fullKey, JSON.stringify(merged)); } catch(e){}
     } catch(e){ realPush(fullKey, val); }
   }
+
+  /* Synchronisation immédiate des comptes après une création/modification.
+     Contrairement à save(), cette fonction attend réellement la fin de l'upsert.
+     Elle évite qu'un nouvel appareil tente la connexion avant que le compte soit
+     arrivé dans Supabase. Aucun secret service_role n'est utilisé. */
+  window.__cloudPushUsersNow = async function(usersValue){
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return {ok:false, offline:true};
+    try {
+      await ensureClient();
+      if (!sb) return {ok:false, error:'Supabase non initialisé'};
+      var fullKey = usersFullKey();
+      var localArr = Array.isArray(usersValue) ? usersValue : [];
+      var cloudJson = null;
+      try { cloudJson = await withTimeout(sbGet(fullKey), 15000, 'users-read'); } catch(e) {
+        return {ok:false, error:String((e&&e.message)||e)};
+      }
+      var cloudArr=[];
+      if (cloudJson !== null) { try { cloudArr=JSON.parse(cloudJson)||[]; } catch(e){ cloudArr=[]; } }
+      var merged = (typeof genericUnionMerge==='function') ? genericUnionMerge(cloudArr, localArr) : localArr;
+      try {
+        var deadRaw = localStorage.getItem(usersDelFullKey());
+        var dead = deadRaw ? (JSON.parse(deadRaw)||[]) : [];
+        if(dead.length){ var ds={}; dead.forEach(function(x){ds[String(x)]=1;}); merged=merged.filter(function(u){return !ds[String(u&&u.username)];}); }
+      } catch(e){}
+      await withTimeout(sbSet(fullKey, JSON.stringify(merged)), 15000, 'users-write');
+      try { localStorage.setItem(fullKey, JSON.stringify(merged)); } catch(e){}
+      state.users = merged;
+      return {ok:true, users:merged};
+    } catch(e) {
+      console.warn('[Cloud] synchronisation immédiate des comptes échouée', e);
+      return {ok:false, error:String((e&&e.message)||e)};
+    }
+  };
   function isUsersKey(fullKey){ return fullKey === usersFullKey() || fullKey === usersDelFullKey(); }
 
   /* --- Même protection pour le REGISTRE des circonscriptions (ieppRegistry) --- */
@@ -2658,30 +2692,46 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
      si le SDK ne charge pas — ex. un navigateur qui bloque le CDN. Nécessite seulement
      que le domaine Supabase soit joignable et la policy de lecture ouverte. */
   async function restGet(fullKey){
+    var url = SUPABASE_URL + '/rest/v1/app_data?select=json&key=eq.' + encodeURIComponent(fullKey);
+    var res;
     try {
-      var url = SUPABASE_URL + '/rest/v1/app_data?select=json&key=eq.' + encodeURIComponent(fullKey);
-      var res = await fetch(url, { headers: { apikey: SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
-      if (!res.ok) return null;
-      var arr = await res.json();
-      if (Array.isArray(arr) && arr.length && arr[0] && arr[0].json != null) return arr[0].json;
-      return null;
-    } catch(e){ return null; }
+      res = await fetch(url, { headers: { apikey: SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+    } catch(e) { throw e; }
+    if (!res.ok) {
+      var txt=''; try{ txt=await res.text(); }catch(e){}
+      var er=new Error('Supabase REST '+res.status+(txt?' — '+txt:''));
+      er.status=res.status; throw er;
+    }
+    var arr = await res.json();
+    if (Array.isArray(arr) && arr.length && arr[0] && arr[0].json != null) return arr[0].json;
+    return null;
   }
 
   window.__cloudFetchUsers = async function(){
     try {
       var uKey = storeKey('users');
       var dKey = storeKey('usersDeleted');
-      /* on tente le SDK, mais on ne bloque PAS s'il n'est pas prêt */
+      var online = !(typeof navigator !== 'undefined' && navigator.onLine === false);
       try { await ensureClient(); } catch(e){}
       async function getJson(k){
-        if (sb){ try { var v = await withTimeout(sbGet(k), 12000, k); if (v !== undefined) return v; } catch(e){} }
-        try { return await withTimeout(restGet(k), 12000, k); } catch(e){ return null; }
+        var lastErr = null;
+        if (sb){ try { var v = await withTimeout(sbGet(k), 12000, k); return {found:true, value:v}; } catch(e){ lastErr=e; } }
+        try {
+          var v2 = await withTimeout(restGet(k), 12000, k);
+          return {found:true, value:v2};
+        } catch(e){ lastErr=e; }
+        return {found:false, value:null, error:lastErr};
       }
-      var cloudUsersJson = await getJson(uKey);
-      var cloudDelJson = null;
-      try { cloudDelJson = await getJson(dKey); } catch(e){}
-      /* Comptes : fusion UNION (on conserve les ajouts/modifs locaux) */
+      var uRes = await getJson(uKey);
+      /* En ligne : si les deux voies de lecture échouent, on ne prétend plus que
+         la connexion cloud a réussi. C'est essentiel sur un nouvel appareil. */
+      if (online && !uRes.found) {
+        console.warn('[Cloud] impossible de lire iepp_users sur cet appareil', uRes.error);
+        return false;
+      }
+      var cloudUsersJson = uRes.value;
+      var dRes = await getJson(dKey);
+      var cloudDelJson = dRes.found ? dRes.value : null;
       if (cloudUsersJson !== null){
         var cloudArr=[], localArr=[];
         try{ cloudArr = JSON.parse(cloudUsersJson)||[]; }catch(e){ cloudArr=[]; }
@@ -2689,7 +2739,6 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
         var merged = genericUnionMerge(cloudArr, localArr);
         localStorage.setItem(uKey, JSON.stringify(merged));
       }
-      /* Suppressions de comptes : UNION des tombstones (une suppression tient partout) */
       if (cloudDelJson !== null){
         var cD=[], lD=[];
         try{ cD = JSON.parse(cloudDelJson)||[]; }catch(e){ cD=[]; }
@@ -2697,10 +2746,9 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
         var uD = mergeTombstones(cD, lD);
         localStorage.setItem(dKey, JSON.stringify(uD));
       }
-      /* Recharge en mémoire + soin des comptes (purge des supprimés, anti-verrouillage) */
       try{ state.users = load('users', state.users); }catch(e){}
       try{ if (window.__healUsers) window.__healUsers(); }catch(e){}
-      return true;
+      return cloudUsersJson !== null;
     } catch(e){
       console.warn('[Cloud] __cloudFetchUsers échoué', e);
       return false;
@@ -5138,7 +5186,7 @@ function userForm(username, presetRole) {
     <button class="btn btn-primary" onclick="userSave('${username||''}')">Enregistrer</button>
   `);
 }
-function userSave(username) {
+async function userSave(username) {
   const me = state.user;
   const role = document.getElementById('u-role').value;
   // Le rôle doit être attribuable par l'utilisateur courant
@@ -5187,9 +5235,24 @@ function userSave(username) {
     /* Un compte recréé n'est plus « supprimé » : on lève la tombstone */
     try { var _d = load('usersDeleted', []) || []; var _i = _d.indexOf(data.username); if (_i > -1){ _d.splice(_i,1); save('usersDeleted', _d); } } catch(e){}
     logAction('create-user', `Création compte : ${data.username} (${ROLES[data.role].label})`);
-    toast('Compte créé', 'success');
+    toast('Compte préparé', 'success');
   }
   save('users', state.users);
+  /* Pour les comptes, on attend un véritable enregistrement cloud.
+     Ainsi un compte créé sur le PC est immédiatement disponible sur Android/tablette. */
+  var _cloudUserSync = null;
+  try {
+    if (typeof window.__cloudPushUsersNow === 'function' && !(typeof navigator !== 'undefined' && navigator.onLine === false)) {
+      _cloudUserSync = await window.__cloudPushUsersNow(state.users);
+      if (!_cloudUserSync || !_cloudUserSync.ok) {
+        toast('Compte enregistré localement. Synchronisation cloud à vérifier.', 'error');
+      } else {
+        toast('Compte créé et synchronisé sur tous les appareils.', 'success');
+      }
+    }
+  } catch(e) {
+    console.warn('[Users] sync immédiate échouée', e);
+  }
   closeModal();
   if (document.getElementById('us-body')) renderUsersBody();
   if (state.module === 'comptes-correspondant') renderComptesCorrespondant();
@@ -28503,7 +28566,7 @@ function vieResetAllData() {
 
   async function refreshUsersFromCloud(){
     try{
-      if(typeof sbGet!=='function') return false;
+      if(typeof sbGet!=='function') { window.__ieppLastCloudLoginError='Client Supabase indisponible'; return false; }
       var fk = (typeof storeKey==='function') ? storeKey('users') : 'iepp_users';
       var cloudJson = await sbGet(fk);
       if(cloudJson==null) return false;
@@ -28519,7 +28582,7 @@ function vieResetAllData() {
       else if(typeof state!=='undefined') state.users = merged;
       if(typeof window.__healUsers==='function'){ try{ window.__healUsers(); }catch(e){} }
       return true;
-    }catch(e){ return false; }
+    }catch(e){ window.__ieppLastCloudLoginError=String((e&&e.message)||e); return false; }
   }
 
   window.doLogin = function(){
@@ -28535,9 +28598,17 @@ function vieResetAllData() {
       var btn=document.getElementById('btn-se-connecter');
       var prev = btn ? btn.textContent : '';
       if(btn){ btn.disabled=true; btn.textContent='Vérification…'; }
-      refreshUsersFromCloud().then(function(){
+      refreshUsersFromCloud().then(function(ok){
         if(btn){ btn.disabled=false; btn.textContent=prev||'Se connecter →'; }
-        _login();   // re-teste avec les comptes rafraîchis (ou affiche l'erreur d'origine)
+        _login();
+        if(!ok && typeof navigator!=='undefined' && navigator.onLine !== false){
+          setTimeout(function(){
+            var e2=document.getElementById('login-error');
+            if(e2 && e2.classList.contains('show')){
+              e2.textContent='⚠️ Impossible de récupérer les comptes depuis Supabase sur cet appareil. Vérifiez la connexion Supabase/RLS.';
+            }
+          }, 50);
+        }
       });
     }catch(e){ try{ return _login(); }catch(_){} }
   };
