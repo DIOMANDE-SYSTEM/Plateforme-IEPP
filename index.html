@@ -1119,7 +1119,6 @@ function vieResetAllData() {
 }
 
 </script>
-<!-- IEPP V1.4 : synchronisation immédiate des comptes + diagnostic multi-appareils -->
 </head>
 <body>
 
@@ -1153,7 +1152,7 @@ function vieResetAllData() {
       <input type="password" id="login-pass" autocomplete="current-password" placeholder="Votre mot de passe" value="">
     </div>
     <label for="login-remember" style="display:flex;align-items:center;gap:8px;margin:-4px 0 14px;font-size:13.5px;color:#334155;cursor:pointer;user-select:none">
-      <input type="checkbox" id="login-remember" checked style="width:16px;height:16px;accent-color:#0A4DA6;cursor:pointer;flex:none"> Se souvenir de mon identifiant et de mon mot de passe
+      <input type="checkbox" id="login-remember" checked style="width:16px;height:16px;accent-color:#0A4DA6;cursor:pointer;flex:none"> Se souvenir de mon identifiant
     </label>
     <button id="btn-se-connecter" class="btn btn-primary btn-block" onclick="doLogin()">Se connecter →</button>
 
@@ -1722,35 +1721,35 @@ function can(action) {
 
 /* ---------- DEFAULT ACCOUNTS ---------- */
 const DEFAULT_USERS = [
-  { username:'superadmin',  password:'iepp2026', name:'Grand Administrateur National', role:'superadmin', email:'admin@menaet.ci',  iepp:'TOUTES', drenaet:'TOUTES' },
-  { username:'Directeur DRENAET Boundiali',     password:'drenaet2026', name:'Directeur DRENAET Boundiali',     role:'drenaet',    email:'dr.boundiali@menaet.ci', iepp:'TOUTES', drenaet:'DRENAET Boundiali' },
-  { username:'superviseur_duekoue', password:'duekoue', name:'Superviseur DRENAET de Duékoué', role:'drenaet', email:'', iepp:'TOUTES', drenaet:'DRENAET de Duékoué' },
-  { username:'inspecteur',  password:'inspecteur2026', name:'KOUASSI Jean-Marc',             role:'inspecteur', email:'inspecteur@iepp.ci',   iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
-  { username:'iepptengrela', password:'iepptengrela2026', name:'TRAORE Bamory', role:'inspecteur', email:'iepp.tengrela@menaet.ci', iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', contact:'0701397491' },
-  { username:'ieppyezimala', password:'ieppyezimala2026', name:'Inspecteur IEPP Yezimala', role:'inspecteur', email:'iepp.yezimala@menaet.ci', iepp:'IEPP YEZIMALA', drenaet:'DRENAET de Bondoukou', contact:'' },
-  { username:'kaegeorgeseri', password:'kaegeorgeseri2026', name:'KAE GEORGE SERI', role:'inspecteur', email:'', iepp:'IEPP BAGOHOUO', drenaet:'DRENAET de Duékoué', ville:'DUÉKOUÉ', contact:'' },
-  { username:'testferkenord', password:'testferkenord2026', name:'Compte test IEPP Ferkessédougou Nord', role:'inspecteur', email:'', iepp:'IEPP FERKESSEDOUGOU Nord', drenaet:'DRENAET Ferkessédougou', contact:'', test:true, expire:'2026-08-18' },
-  { username:'cpi',         password:'cpi2026', name:'TRAORE Aminata',                role:'cpi',         email:'cpi@iepp.ci',          iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
-  { username:'directeur',   password:'directeur2026', name:'DIABATE Souleymane',            role:'directeur',   email:'directeur@iepp.ci',    iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', ecole:'EPP BASSO' },
-  { username:'instituteur', password:'instituteur2026', name:'BAMBA Mariam',                  role:'instituteur', email:'instituteur@iepp.ci',  iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', ecole:'EPP BASSO', classe:'CE1' },
-  { username:'correspondant',password:'correspondant2026',name:'KONE Adama',                    role:'correspondant',email:'correspondant@iepp.ci',iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
-  { username:'correspstat', password:'correspstat2026', name:'YAO Konan',                     role:'corresp_stat', email:'stat@iepp.ci',         iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
-  { username:'agent',       password:'agent2026', name:'OUATTARA Fatou',                role:'agent',       email:'agent@iepp.ci',        iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'superadmin',  passwordHash:'3dfef3007934bebb602bb14e93782a6dee422b66081e5f4b67b0da37a3b06159', name:'Grand Administrateur National', role:'superadmin', email:'admin@menaet.ci',  iepp:'TOUTES', drenaet:'TOUTES' },
+  { username:'Directeur DRENAET Boundiali',     passwordHash:'51d88d90845bdfba407a8683a304bf5abdd5e590264a0184825fe5f66f4834ea', name:'Directeur DRENAET Boundiali',     role:'drenaet',    email:'dr.boundiali@menaet.ci', iepp:'TOUTES', drenaet:'DRENAET Boundiali' },
+  { username:'superviseur_duekoue', passwordHash:'0e713d86a147ee9555d7882fb83c638adb4a95b78cb127c056309c5d52f04c1d', name:'Superviseur DRENAET de Duékoué', role:'drenaet', email:'', iepp:'TOUTES', drenaet:'DRENAET de Duékoué' },
+  { username:'inspecteur',  passwordHash:'f3f82b7a954f09a005d07fa505491d486436ffd69694d3e3dab78fd358f19d3d', name:'KOUASSI Jean-Marc',             role:'inspecteur', email:'inspecteur@iepp.ci',   iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'iepptengrela', passwordHash:'830df67572bedf9ba6f515bdf210b316e56657fe97b37f54b679baeaf58e21cd', name:'TRAORE Bamory', role:'inspecteur', email:'iepp.tengrela@menaet.ci', iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', contact:'0701397491' },
+  { username:'ieppyezimala', passwordHash:'3602b74c9b25becf469100f675e7dcf74ef2421d0897c612167ee70c0f2517a7', name:'Inspecteur IEPP Yezimala', role:'inspecteur', email:'iepp.yezimala@menaet.ci', iepp:'IEPP YEZIMALA', drenaet:'DRENAET de Bondoukou', contact:'' },
+  { username:'kaegeorgeseri', passwordHash:'1128b5579c1efdfad32b2cef2da4cb8998616e272da51aad2843c55fae2862f5', name:'KAE GEORGE SERI', role:'inspecteur', email:'', iepp:'IEPP BAGOHOUO', drenaet:'DRENAET de Duékoué', ville:'DUÉKOUÉ', contact:'' },
+  { username:'testferkenord', passwordHash:'4ff8f3469b969399c97a43b59ec2f16350862157d896b89aa2ae440c06ed477f', name:'Compte test IEPP Ferkessédougou Nord', role:'inspecteur', email:'', iepp:'IEPP FERKESSEDOUGOU Nord', drenaet:'DRENAET Ferkessédougou', contact:'', test:true, expire:'2026-08-18' },
+  { username:'cpi',         passwordHash:'15dd02949623a36b04d98355036f03b6ac3b47f312cfb9291e85bba3fc0a7216', name:'TRAORE Aminata',                role:'cpi',         email:'cpi@iepp.ci',          iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'directeur',   passwordHash:'7ecfe8cc985ba80e1119b92f462a2615767e14a70e9a8ded21f437c450898b2c', name:'DIABATE Souleymane',            role:'directeur',   email:'directeur@iepp.ci',    iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', ecole:'EPP BASSO' },
+  { username:'instituteur', passwordHash:'f9c7e7bd63778c87607e4734f767aac1d108aeb3e42240edeea8172bbedac394', name:'BAMBA Mariam',                  role:'instituteur', email:'instituteur@iepp.ci',  iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali', ecole:'EPP BASSO', classe:'CE1' },
+  { username:'correspondant',passwordHash:'bb2894a0ec1a27023d555f8ad3cf464e3082c40025de59fae3ef9ff3908d3455',name:'KONE Adama',                    role:'correspondant',email:'correspondant@iepp.ci',iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'correspstat', passwordHash:'5698b4264e1c4f4dd510cb0a3a7dec01c431e87d33030626b4c4ae372d59df36', name:'YAO Konan',                     role:'corresp_stat', email:'stat@iepp.ci',         iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'agent',       passwordHash:'a96fc074e25bdf002b08db51688454b2d22402841c73322124f48e164906fcfa', name:'OUATTARA Fatou',                role:'agent',       email:'agent@iepp.ci',        iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
   /* ---- Comptes d'espace cloisonnés (un mot de passe par fonction · ajout) ---- */
-  { username:'examens',      password:'examens2026',  name:'Responsable Examens & Concours', role:'examens',        email:'examens@iepp.ci',     iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
-  { username:'viescolaire',  password:'viescolaire2026',      name:'Conseiller Vie Scolaire',        role:'viescolaire',    email:'viescolaire@iepp.ci', iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
-  { username:'rh',           password:'rh2026',       name:'Chargé des Ressources Humaines', role:'rh',             email:'rh@iepp.ci',          iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
-  { username:'coges',        password:'coges2026',    name:'Conseiller COGES',               role:'coges',          email:'coges@iepp.ci',       iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
-  { username:'economat',     password:'economat2026', name:'Économe',                        role:'econome',        email:'economat@iepp.ci',    iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
-  { username:'courrier',     password:'courrier2026', name:'Agent du Courrier',              role:'courrier',       email:'courrier@iepp.ci',    iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
-  { username:'archiviste',   password:'archiviste2026', name:'Archiviste',                     role:'archiviste',     email:'archives@iepp.ci',    iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
-  { username:'cartescolaire',password:'cartescolaire2026',    name:'Correspondant Carte Scolaire',   role:'carte_scolaire', email:'carte@iepp.ci',       iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
-  { username:'suivieval',    password:'suivieval2026',    name:'Chargé Suivi & Évaluation',      role:'suivi_eval',     email:'suivi@iepp.ci',       iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
-  { username:'secretariat',  password:'secretariat2026',   name:'Secrétaire de l\'IEPP',           role:'secretaire',     email:'secretariat@iepp.ci', iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
-  { username:'communication',password:'communication2026',     name:'Chargé de Communication',        role:'communication',  email:'communication@iepp.ci',iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
-  { username:'cantine',      password:'cantine2026',  name:'Conseiller Cantine',             role:'cantine',        email:'cantine@iepp.ci',     iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
-  { username:'smoss',        password:'smoss2026',    name:'Responsable SMOSS',              role:'smoss',          email:'smoss@iepp.ci',       iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
-  { username:'bibliotheque', password:'bibliotheque2026',   name:'Bibliothécaire',                 role:'bibliothecaire', email:'biblio@iepp.ci',      iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'examens',      passwordHash:'c31c9e3c95f606ebd43b19e86d7e1dd3f58bf8f370677dd0fbe6a715489ab922',  name:'Responsable Examens & Concours', role:'examens',        email:'examens@iepp.ci',     iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'viescolaire',  passwordHash:'9031b39226fbbe1128381ae76bfa343abcef3ad99f4cb4f3088f837425a8d83b',      name:'Conseiller Vie Scolaire',        role:'viescolaire',    email:'viescolaire@iepp.ci', iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'rh',           passwordHash:'edbfb489d6dbeb1ad30049f9e6f32a3eeb93891021cbba23f5b176bc00ab02ff',       name:'Chargé des Ressources Humaines', role:'rh',             email:'rh@iepp.ci',          iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'coges',        passwordHash:'61117c95f65c02b7a502c477e17a70b49782a5b91fd553ba22e3c81bd656c2c6',    name:'Conseiller COGES',               role:'coges',          email:'coges@iepp.ci',       iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'economat',     passwordHash:'3b50e16df81b92c8795dd5c320ce3a1447d3921f27a791f973e864284143fef2', name:'Économe',                        role:'econome',        email:'economat@iepp.ci',    iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'courrier',     passwordHash:'c708a93431ad5d8336efadeb59b18dec117dbc96fb61145823f2b124f0c02a50', name:'Agent du Courrier',              role:'courrier',       email:'courrier@iepp.ci',    iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'archiviste',   passwordHash:'71c7d10e1487a26902a5dd81688eb843032c7fef254bc786310e1d06af68f871', name:'Archiviste',                     role:'archiviste',     email:'archives@iepp.ci',    iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'cartescolaire',passwordHash:'02523eede07f642a9dadf593bcda3f963a26e7496fe6d4ea9a16446957015757',    name:'Correspondant Carte Scolaire',   role:'carte_scolaire', email:'carte@iepp.ci',       iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'suivieval',    passwordHash:'e189ecd52fcd48472d3fce93a4202d1d5c4e8180b01f40e08365e858a85639c9',    name:'Chargé Suivi & Évaluation',      role:'suivi_eval',     email:'suivi@iepp.ci',       iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'secretariat',  passwordHash:'5658877ada9a80d3f4af672acd1f6e8fb404cdaa85b3f9a1a31c35aadec530f4',   name:'Secrétaire de l\'IEPP',           role:'secretaire',     email:'secretariat@iepp.ci', iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'communication',passwordHash:'2d2b4bd3a3ff2be7665d8dbb6fb95410a0068bd1c24b494c357d63848c58ff0c',     name:'Chargé de Communication',        role:'communication',  email:'communication@iepp.ci',iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'cantine',      passwordHash:'6f8743f88b9f1e6e238787dfe1a526d3997a6ebe76912f9d792173a036ff45dc',  name:'Conseiller Cantine',             role:'cantine',        email:'cantine@iepp.ci',     iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'smoss',        passwordHash:'ebea0c27926851995fe84fe7778f6412764cb10cd14774ef9cbf93297244db2f',    name:'Responsable SMOSS',              role:'smoss',          email:'smoss@iepp.ci',       iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
+  { username:'bibliotheque', passwordHash:'ef5fe639430f4baaca75aa0eb6632c4e995c783e1781937e0289bfc5e96332fb',   name:'Bibliothécaire',                 role:'bibliothecaire', email:'biblio@iepp.ci',      iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali' },
 ];
 
 /* ---------- STATE & STORAGE ---------- */
@@ -1820,7 +1819,7 @@ const TENGRELA_EFF_PRIMAIRE = [{"id":"efr6","nom":"EPP NEGUEPIE 2","cp1G":18,"cp
       try {
         var us = JSON.parse(raw);
         if (Array.isArray(us) && !us.some(function(u){return u.username==='iepptengrela';})) {
-          us.push({username:'iepptengrela', password:'iepptengrela2026', name:'Inspecteur IEPP Tengrela', role:'inspecteur', email:'iepp.tengrela@menaet.ci', iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali'});
+          us.push({username:'iepptengrela', passwordHash:'830df67572bedf9ba6f515bdf210b316e56657fe97b37f54b679baeaf58e21cd', name:'Inspecteur IEPP Tengrela', role:'inspecteur', email:'iepp.tengrela@menaet.ci', iepp:'IEPP TENGRELA', drenaet:'DRENAET Boundiali'});
           localStorage.setItem(uKey, JSON.stringify(us));
         }
       } catch(e){}
@@ -2183,7 +2182,8 @@ function mergeTombstones(a, b){
 function save(k, val) {
   try { if (typeof recordMergeTrack === 'function') val = recordMergeTrack(k, val); } catch(e){ console.warn('recordMergeTrack', e); }
   try { localStorage.setItem(storeKey(k), JSON.stringify(val)); } catch(e){ console.error('save fail', e); }
-  try { if (window.__cloudPush) window.__cloudPush(storeKey(k), val); } catch(e){}
+  try { if (window.__cloudPush) return window.__cloudPush(storeKey(k), val); } catch(e){}
+  return Promise.resolve({queued:true, ok:false});
 }
 
 /* Recharge toutes les données scopées depuis l'espace de la circonscription active */
@@ -2319,6 +2319,9 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
 
   let sb = null, cloudReady = false;
   const pendingPushes = new Map();
+  /* File d'attente dédiée aux comptes : évite les courses entre création/modification
+     et une synchronisation manuelle ou automatique lancée immédiatement après. */
+  let usersPushChain = Promise.resolve();
 
   function loadScript(src){
     return new Promise(function(resolve, reject){
@@ -2375,16 +2378,17 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
   /* Écriture réelle vers Supabase */
   function realPush(fullKey, val){
     try {
-      sbSet(fullKey, JSON.stringify(val))
-        .then(function(){ console.log('[Cloud] ✔ poussé', fullKey); })
+      return sbSet(fullKey, JSON.stringify(val))
+        .then(function(){ console.log('[Cloud] ✔ poussé', fullKey); return true; })
         .catch(function(e){
           console.warn('[Cloud] push échoué', fullKey, e);
           var c = ((e && (e.code||e.message))||'') + '';
           if (/permission|denied|rls|row-level|policy|not allowed|401|403/i.test(c)) { setStatus('⚠ Accès Supabase à autoriser', '#E63946'); }
           else if (/relation|does not exist|42P01|table/i.test(c)) { setStatus('⚠ Table app_data manquante', '#E63946'); }
           else if (/network|fetch|unavailable|failed/i.test(c)) { setStatus('Hors ligne (local)', '#E63946'); }
+          return false;
         });
-    } catch(e){ console.warn('[Cloud] push erreur', e); }
+    } catch(e){ console.warn('[Cloud] push erreur', e); return Promise.resolve(false); }
   }
 
   /* PROTECTION DES COMPTES : la liste des comptes (iepp_users) et ses suppressions
@@ -2394,58 +2398,61 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
   function usersFullKey(){ try { return (typeof storeKey==='function') ? storeKey('users') : 'iepp_users'; } catch(e){ return 'iepp_users'; } }
   function usersDelFullKey(){ try { return (typeof storeKey==='function') ? storeKey('usersDeleted') : 'iepp_usersDeleted'; } catch(e){ return 'iepp_usersDeleted'; } }
   async function pushUsersMerged(fullKey, val){
+    /*
+       COMPTES = données globales partagées entre tous les appareils.
+       On ne remplace jamais brutalement la liste cloud par la liste locale.
+       Pour les comptes, la clé naturelle est username et le plus récent
+       (_upd) gagne. Les suppressions (usersDeleted) sont également fusionnées
+       depuis le cloud ET depuis l'appareil courant afin d'empêcher toute
+       résurrection d'un compte supprimé sur un autre appareil.
+    */
     try {
       var cloudJson = await withTimeout(sbGet(fullKey), 15000, fullKey);
-      var cloudArr = []; try { cloudArr = (cloudJson!=null) ? (JSON.parse(cloudJson)||[]) : []; } catch(e){ cloudArr=[]; }
+      var cloudArr = [];
+      try { cloudArr = (cloudJson!=null) ? (JSON.parse(cloudJson)||[]) : []; } catch(e){ cloudArr=[]; }
       var localArr = Array.isArray(val) ? val : [];
-      var merged;
-      if (fullKey === usersDelFullKey()){
-        merged = (typeof mergeTombstones==='function') ? mergeTombstones(cloudArr, localArr) : localArr;
-      } else {
-        merged = (typeof genericUnionMerge==='function') ? genericUnionMerge(cloudArr, localArr) : localArr;
-        try {
-          var deadRaw = localStorage.getItem(usersDelFullKey());
-          var dead = deadRaw ? (JSON.parse(deadRaw)||[]) : [];
-          if (dead.length){ var ds={}; dead.forEach(function(x){ ds[String(x)]=1; }); merged = merged.filter(function(u){ return !ds[String(u&&u.username)]; }); }
-        } catch(e){}
+
+      if (fullKey === usersDelFullKey()) {
+        var mergedDel = (typeof mergeTombstones==='function')
+          ? mergeTombstones(cloudArr, localArr) : localArr;
+        await sbSet(fullKey, JSON.stringify(mergedDel));
+        try { localStorage.setItem(fullKey, JSON.stringify(mergedDel)); } catch(e){}
+        return;
       }
+
+      var merged = (typeof genericUnionMerge==='function')
+        ? genericUnionMerge(cloudArr, localArr) : localArr;
+
+      /* Toujours récupérer les suppressions cloud avant d'écrire users. */
+      var cloudDelJson = null;
+      try { cloudDelJson = await withTimeout(sbGet(usersDelFullKey()), 15000, usersDelFullKey()); } catch(e){}
+      var cloudDead = [], localDead = [];
+      try { cloudDead = cloudDelJson ? (JSON.parse(cloudDelJson)||[]) : []; } catch(e){ cloudDead=[]; }
+      try { localDead = JSON.parse(localStorage.getItem(usersDelFullKey())||'[]')||[]; } catch(e){ localDead=[]; }
+      var allDead = (typeof mergeTombstones==='function')
+        ? mergeTombstones(cloudDead, localDead) : cloudDead.concat(localDead);
+
+      if (allDead.length){
+        var ds={};
+        allDead.forEach(function(x){ ds[String(x)] = 1; });
+        merged = merged.filter(function(u){ return !ds[String(u&&u.username)]; });
+      }
+
       await sbSet(fullKey, JSON.stringify(merged));
       try { localStorage.setItem(fullKey, JSON.stringify(merged)); } catch(e){}
-    } catch(e){ realPush(fullKey, val); }
-  }
 
-  /* Synchronisation immédiate des comptes après une création/modification.
-     Contrairement à save(), cette fonction attend réellement la fin de l'upsert.
-     Elle évite qu'un nouvel appareil tente la connexion avant que le compte soit
-     arrivé dans Supabase. Aucun secret service_role n'est utilisé. */
-  window.__cloudPushUsersNow = async function(usersValue){
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) return {ok:false, offline:true};
-    try {
-      await ensureClient();
-      if (!sb) return {ok:false, error:'Supabase non initialisé'};
-      var fullKey = usersFullKey();
-      var localArr = Array.isArray(usersValue) ? usersValue : [];
-      var cloudJson = null;
-      try { cloudJson = await withTimeout(sbGet(fullKey), 15000, 'users-read'); } catch(e) {
-        return {ok:false, error:String((e&&e.message)||e)};
+      /* On conserve également la fusion des tombstones dans le cloud. */
+      if (allDead.length){
+        try { await sbSet(usersDelFullKey(), JSON.stringify(allDead)); } catch(e){}
+        try { localStorage.setItem(usersDelFullKey(), JSON.stringify(allDead)); } catch(e){}
       }
-      var cloudArr=[];
-      if (cloudJson !== null) { try { cloudArr=JSON.parse(cloudJson)||[]; } catch(e){ cloudArr=[]; } }
-      var merged = (typeof genericUnionMerge==='function') ? genericUnionMerge(cloudArr, localArr) : localArr;
-      try {
-        var deadRaw = localStorage.getItem(usersDelFullKey());
-        var dead = deadRaw ? (JSON.parse(deadRaw)||[]) : [];
-        if(dead.length){ var ds={}; dead.forEach(function(x){ds[String(x)]=1;}); merged=merged.filter(function(u){return !ds[String(u&&u.username)];}); }
-      } catch(e){}
-      await withTimeout(sbSet(fullKey, JSON.stringify(merged)), 15000, 'users-write');
-      try { localStorage.setItem(fullKey, JSON.stringify(merged)); } catch(e){}
-      state.users = merged;
-      return {ok:true, users:merged};
-    } catch(e) {
-      console.warn('[Cloud] synchronisation immédiate des comptes échouée', e);
-      return {ok:false, error:String((e&&e.message)||e)};
+      return true;
+    } catch(e){
+      /* Secours réseau : on ne détruit jamais la copie locale, mais le résultat
+         doit rester observable par l'appelant pour pouvoir confirmer une création. */
+      try { return await realPush(fullKey, val); } catch(_) { return false; }
     }
-  };
+  }
   function isUsersKey(fullKey){ return fullKey === usersFullKey() || fullKey === usersDelFullKey(); }
 
   /* --- Même protection pour le REGISTRE des circonscriptions (ieppRegistry) --- */
@@ -2505,16 +2512,26 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
   };
 
   window.__cloudPush = function(fullKey, val){
-    if (!sb || !cloudReady){ pendingPushes.set(fullKey, val); return; }
-    if (isUsersKey(fullKey)){ pushUsersMerged(fullKey, val); return; }
-    if (isIeppRegKey(fullKey)){ pushIeppRegMerged(fullKey, val); return; }
-    realPush(fullKey, val);
+    if (!sb || !cloudReady){
+      pendingPushes.set(fullKey, val);
+      return Promise.resolve({queued:true, ok:false});
+    }
+    if (isUsersKey(fullKey)){
+      usersPushChain = usersPushChain
+        .then(function(){ return pushUsersMerged(fullKey, val); })
+        .catch(function(e){ console.warn('[Cloud] file comptes', e); return false; });
+      return usersPushChain.then(function(ok){ return {queued:false, ok:ok!==false}; });
+    }
+    if (isIeppRegKey(fullKey)){
+      return Promise.resolve(pushIeppRegMerged(fullKey, val)).then(function(){ return {queued:false, ok:true}; });
+    }
+    return Promise.resolve(realPush(fullKey, val)).then(function(ok){ return {queued:false, ok:ok!==false}; });
   };
 
   function flushPending(){
     if (!sb || !cloudReady) return;
     pendingPushes.forEach(function(val, fullKey){
-      if (isUsersKey(fullKey)) pushUsersMerged(fullKey, val);
+      if (isUsersKey(fullKey)) usersPushChain = usersPushChain.then(function(){ return pushUsersMerged(fullKey, val); }).catch(function(e){ console.warn('[Cloud] file comptes', e); });
       else if (isIeppRegKey(fullKey)) pushIeppRegMerged(fullKey, val);
       else realPush(fullKey, val);
     });
@@ -2529,6 +2546,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
     await Promise.allSettled(keys.map(async function(k){
       const fullKey = storeKey(k);
       try {
+        if (isUsersKey(fullKey)) { try { await usersPushChain; } catch(e){} }
         const cloudJson = await withTimeout(sbGet(fullKey), 15000, fullKey);
         const localRaw  = localStorage.getItem(fullKey);
         if (isTombstoneKey(k)){
@@ -2692,46 +2710,54 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
      si le SDK ne charge pas — ex. un navigateur qui bloque le CDN. Nécessite seulement
      que le domaine Supabase soit joignable et la policy de lecture ouverte. */
   async function restGet(fullKey){
-    var url = SUPABASE_URL + '/rest/v1/app_data?select=json&key=eq.' + encodeURIComponent(fullKey);
-    var res;
     try {
-      res = await fetch(url, { headers: { apikey: SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
-    } catch(e) { throw e; }
-    if (!res.ok) {
-      var txt=''; try{ txt=await res.text(); }catch(e){}
-      var er=new Error('Supabase REST '+res.status+(txt?' — '+txt:''));
-      er.status=res.status; throw er;
-    }
-    var arr = await res.json();
-    if (Array.isArray(arr) && arr.length && arr[0] && arr[0].json != null) return arr[0].json;
-    return null;
+      var url = SUPABASE_URL + '/rest/v1/app_data?select=json&key=eq.' + encodeURIComponent(fullKey);
+      var res = await fetch(url, { headers: { apikey: SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+      if (!res.ok) return null;
+      var arr = await res.json();
+      if (Array.isArray(arr) && arr.length && arr[0] && arr[0].json != null) return arr[0].json;
+      return null;
+    } catch(e){ return null; }
   }
+
+  /* Vérifie un compte précis dans Supabase après sa sauvegarde.
+     Contrairement à __cloudFetchUsers(), cette vérification ne fusionne pas
+     le local : elle confirme que le compte existe réellement dans le cloud. */
+  window.__cloudVerifyUser = async function(username){
+    try {
+      if (!username) return {ok:false, reason:'identifiant-manquant'};
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return {ok:false, reason:'hors-ligne'};
+      try { await usersPushChain; } catch(e){}
+      await ensureClient();
+      if (!sb || !cloudReady) return {ok:false, reason:'cloud-non-pret'};
+      var fk = usersFullKey();
+      var raw = await withTimeout(sbGet(fk), 12000, 'verify-users');
+      if (raw === null) return {ok:false, reason:'liste-comptes-absente'};
+      var arr=[];
+      try { arr = JSON.parse(raw)||[]; } catch(e){ return {ok:false, reason:'json-invalide'}; }
+      var found = arr.find(function(x){ return x && String(x.username) === String(username); });
+      return found ? {ok:true, user:found} : {ok:false, reason:'compte-absent-du-cloud'};
+    } catch(e){
+      var c=((e&&(e.code||e.message))||'')+'';
+      return {ok:false, reason:/permission|denied|rls|row-level|policy|401|403/i.test(c)?'acces-supabase-refuse':c||'erreur'};
+    }
+  };
 
   window.__cloudFetchUsers = async function(){
     try {
       var uKey = storeKey('users');
+      try { await usersPushChain; } catch(e){}
       var dKey = storeKey('usersDeleted');
-      var online = !(typeof navigator !== 'undefined' && navigator.onLine === false);
+      /* on tente le SDK, mais on ne bloque PAS s'il n'est pas prêt */
       try { await ensureClient(); } catch(e){}
       async function getJson(k){
-        var lastErr = null;
-        if (sb){ try { var v = await withTimeout(sbGet(k), 12000, k); return {found:true, value:v}; } catch(e){ lastErr=e; } }
-        try {
-          var v2 = await withTimeout(restGet(k), 12000, k);
-          return {found:true, value:v2};
-        } catch(e){ lastErr=e; }
-        return {found:false, value:null, error:lastErr};
+        if (sb){ try { var v = await withTimeout(sbGet(k), 12000, k); if (v !== undefined) return v; } catch(e){} }
+        try { return await withTimeout(restGet(k), 12000, k); } catch(e){ return null; }
       }
-      var uRes = await getJson(uKey);
-      /* En ligne : si les deux voies de lecture échouent, on ne prétend plus que
-         la connexion cloud a réussi. C'est essentiel sur un nouvel appareil. */
-      if (online && !uRes.found) {
-        console.warn('[Cloud] impossible de lire iepp_users sur cet appareil', uRes.error);
-        return false;
-      }
-      var cloudUsersJson = uRes.value;
-      var dRes = await getJson(dKey);
-      var cloudDelJson = dRes.found ? dRes.value : null;
+      var cloudUsersJson = await getJson(uKey);
+      var cloudDelJson = null;
+      try { cloudDelJson = await getJson(dKey); } catch(e){}
+      /* Comptes : fusion UNION (on conserve les ajouts/modifs locaux) */
       if (cloudUsersJson !== null){
         var cloudArr=[], localArr=[];
         try{ cloudArr = JSON.parse(cloudUsersJson)||[]; }catch(e){ cloudArr=[]; }
@@ -2739,16 +2765,50 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
         var merged = genericUnionMerge(cloudArr, localArr);
         localStorage.setItem(uKey, JSON.stringify(merged));
       }
+      /* Suppressions de comptes : UNION des tombstones (une suppression tient partout) */
+      var uD = [];
       if (cloudDelJson !== null){
         var cD=[], lD=[];
         try{ cD = JSON.parse(cloudDelJson)||[]; }catch(e){ cD=[]; }
         try{ lD = JSON.parse(localStorage.getItem(dKey)||'[]')||[]; }catch(e){ lD=[]; }
-        var uD = mergeTombstones(cD, lD);
+        uD = mergeTombstones(cD, lD);
         localStorage.setItem(dKey, JSON.stringify(uD));
+      } else {
+        try{ uD = JSON.parse(localStorage.getItem(dKey)||'[]')||[]; }catch(e){ uD=[]; }
       }
+      /* IMPORTANT : les suppressions cloud doivent aussi être appliquées à users. */
+      try{
+        if (uD.length){
+          var deadMap={}; uD.forEach(function(x){ deadMap[String(x)] = 1; });
+          var currentUsers = JSON.parse(localStorage.getItem(uKey)||'[]')||[];
+          currentUsers = currentUsers.filter(function(x){ return !deadMap[String(x&&x.username)]; });
+          localStorage.setItem(uKey, JSON.stringify(currentUsers));
+        }
+      }catch(e){}
+      /* Migration silencieuse des anciens mots de passe en clair :
+         ils sont transformés en SHA-256 côté navigateur puis le compte est repoussé.
+         Le mot de passe n'est jamais réécrit dans le HTML ni dans localStorage. */
+      try {
+        var migrated = false;
+        var usersForMigration = JSON.parse(localStorage.getItem(uKey)||'[]') || [];
+        for (var mi=0; mi<usersForMigration.length; mi++) {
+          var mu = usersForMigration[mi];
+          if (mu && mu.password && !mu.passwordHash) {
+            mu.passwordHash = await hashPassword(mu.password);
+            delete mu.password;
+            mu._upd = Date.now();
+            migrated = true;
+          }
+        }
+        if (migrated) {
+          localStorage.setItem(uKey, JSON.stringify(usersForMigration));
+          await pushUsersMerged(uKey, usersForMigration);
+        }
+      } catch(e) { console.warn('[Security] migration mots de passe:', e); }
+      /* Recharge en mémoire + soin des comptes (purge des supprimés, anti-verrouillage) */
       try{ state.users = load('users', state.users); }catch(e){}
       try{ if (window.__healUsers) window.__healUsers(); }catch(e){}
-      return cloudUsersJson !== null;
+      return true;
     } catch(e){
       console.warn('[Cloud] __cloudFetchUsers échoué', e);
       return false;
@@ -3579,126 +3639,62 @@ function logAction(action, details) {
   save('audit', state.audit);
 }
 
+/* ---------- SECURITY HELPERS ---------- */
+async function hashPassword(value) {
+  const data = new TextEncoder().encode(String(value || ''));
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+/* Compare both the new hash format and legacy plaintext credentials during migration.
+   A successful legacy login is upgraded immediately to passwordHash. */
+async function verifyLocalPassword(user, supplied) {
+  if (!user) return false;
+  if (user.passwordHash) return (await hashPassword(supplied)) === user.passwordHash;
+  return user.password === supplied;
+}
+
 /* ---------- LOGIN ---------- */
-/* ==================================================================
-   MODE HORS LIGNE APRÈS UNE PREMIÈRE CONNEXION EN LIGNE
-   ------------------------------------------------------------------
-   - Après une connexion réussie, le profil utilisateur est mis en cache
-     localement avec une empreinte SHA-256 du mot de passe.
-   - Le mot de passe en clair n'est jamais enregistré dans ce cache.
-   - Si Supabase est inaccessible, l'utilisateur peut se reconnecter
-     avec le même identifiant/mot de passe sur CE navigateur/appareil.
-   - Les données de la plateforme continuent d'utiliser localStorage,
-     comme dans l'architecture existante.
-   ================================================================== */
-const OFFLINE_AUTH_KEY = KEY + 'offline_auth_v1';
-
-async function ieppPasswordHash(password) {
-  if (!window.crypto || !window.crypto.subtle) {
-    throw new Error('Le navigateur ne permet pas le stockage sécurisé hors ligne.');
-  }
-  const data = new TextEncoder().encode(String(password));
-  const digest = await window.crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(digest)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
-}
-
-async function cacheOfflineUser(user, password) {
-  try {
-    if (!user || !user.username || !password) return false;
-    const passHash = await ieppPasswordHash(password);
-    const safeUser = Object.assign({}, user);
-    delete safeUser.password;
-    localStorage.setItem(OFFLINE_AUTH_KEY, JSON.stringify({
-      version: 1,
-      username: user.username,
-      passHash: passHash,
-      user: safeUser,
-      savedAt: new Date().toISOString()
-    }));
-    return true;
-  } catch(e) {
-    console.warn('[OfflineAuth] cache impossible', e);
-    return false;
-  }
-}
-
-async function getOfflineUser(username, password) {
-  try {
-    const raw = localStorage.getItem(OFFLINE_AUTH_KEY);
-    if (!raw) return null;
-    const cached = JSON.parse(raw);
-    if (!cached || cached.version !== 1 || cached.username !== username || !cached.passHash || !cached.user) return null;
-    const hash = await ieppPasswordHash(password);
-    if (hash !== cached.passHash) return null;
-    return Object.assign({}, cached.user);
-  } catch(e) {
-    return null;
-  }
-}
-
-function clearOfflineAuth() {
-  try { localStorage.removeItem(OFFLINE_AUTH_KEY); } catch(e) {}
-}
-
 async function doLogin() {
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value;
   const err = document.getElementById('login-error');
   const btn = document.getElementById('btn-se-connecter');
-  if (!u || !p) {
-    err.textContent = '❌ Veuillez saisir votre identifiant et votre mot de passe.';
-    err.classList.add('show');
-    return;
-  }
 
-  let cloudChecked = false;
-  let cloudOK = false;
-  /* En ligne : on récupère d'abord les comptes centralisés. */
+  /* Rafraîchit la liste des comptes depuis le cloud AVANT de vérifier le mot de passe.
+     Ainsi un compte créé par l'IEPP sur un AUTRE appareil est reconnu ici,
+     comme avec Firebase auparavant. Filet de sécurité : ne bloque jamais plus de 12 s,
+     et bascule en vérification locale si hors ligne ou si le cloud est indisponible. */
   if (typeof window.__cloudFetchUsers === 'function'
       && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
     var _prevTxt = btn ? btn.textContent : '';
     if (btn){ btn.disabled = true; btn.textContent = 'Vérification…'; }
     err.classList.remove('show');
     try {
-      cloudOK = await Promise.race([
+      await Promise.race([
         Promise.all([
           window.__cloudFetchUsers(),
           (typeof window.__cloudFetchRegistry==='function' ? window.__cloudFetchRegistry() : Promise.resolve())
-        ]).then(function(){ return true; }),
-        new Promise(function(res){ setTimeout(function(){ res(false); }, 12000); })
+        ]),
+        new Promise(function(res){ setTimeout(res, 12000); })
       ]);
-      cloudChecked = true;
-    } catch(e) { cloudChecked = true; cloudOK = false; }
+    } catch(e){}
     if (btn){ btn.disabled = false; btn.textContent = _prevTxt || 'Se connecter →'; }
   }
 
-  let found = state.users.find(x => x.username === u && x.password === p);
-  let offlineMode = false;
-
-  /* Si le cloud/local ne connaît pas le compte, utiliser le cache créé
-     lors d'une précédente connexion réussie sur ce navigateur. */
-  if (!found && (!cloudOK || typeof navigator !== 'undefined' && navigator.onLine === false)) {
-    found = await getOfflineUser(u, p);
-    if (found) {
-      offlineMode = true;
-      state.users = Array.isArray(state.users) ? state.users : [];
-      const idx = state.users.findIndex(function(x){ return x.username === found.username; });
-      if (idx >= 0) state.users[idx] = Object.assign({}, state.users[idx], found);
-      else state.users.push(found);
-    }
+  const found = state.users.find(x => x.username === u);
+  const passwordOk = await verifyLocalPassword(found, p);
+  if (found && passwordOk && !found.passwordHash && found.password) {
+    try { found.passwordHash = await hashPassword(found.password); delete found.password; found._upd = Date.now(); save('users', state.users); } catch(e) {}
   }
-
-  if (!found) {
-    err.textContent = cloudChecked && !cloudOK
-      ? '❌ Compte non disponible sur cet appareil. Connectez-vous une première fois en ligne sur ce navigateur, puis le mode hors ligne sera disponible.'
-      : '❌ Identifiants incorrects. Vérifiez votre nom d’utilisateur et votre mot de passe.';
+  if (!found || !passwordOk) {
+    err.textContent = '❌ Identifiants incorrects. Vérifiez votre nom d\'utilisateur et mot de passe.';
     err.classList.add('show');
     return;
   }
-
   /* Compte désactivé manuellement */
   if (found.actif === false) {
-    err.textContent = '⛔ Ce compte est désactivé. Contactez l’administrateur.';
+    err.textContent = '⛔ Ce compte est désactivé. Contactez l\'administrateur.';
     err.classList.add('show');
     return;
   }
@@ -3725,28 +3721,18 @@ async function doLogin() {
       if (_st.fin)   { var _sf = new Date(_st.fin + 'T23:59:59'); if (!isNaN(_sf) && _now > _sf.getTime()) { err.textContent = "⛔ L'IEPP " + _lbl + " est désactivée depuis le " + _st.fin.split('-').reverse().join('/') + '.'; err.classList.add('show'); return; } }
     }
   }
-
   state.user = found;
   save('current_user', found.username);
-
-  /* Une connexion réussie prépare automatiquement le mode hors ligne.
-     Le cache contient uniquement le profil + une empreinte SHA-256. */
-  await cacheOfflineUser(found, p);
-
-  /* « Se souvenir de moi » : identifiant uniquement, jamais le mot de passe. */
+  /* « Se souvenir de moi » : mémorise UNIQUEMENT l'identifiant sur cet appareil.
+     Aucun mot de passe n'est désormais stocké dans localStorage. */
   try {
     var _rem = document.getElementById('login-remember');
     if (_rem && _rem.checked) { localStorage.setItem(KEY+'remember', JSON.stringify({ u: found.username })); }
     else { localStorage.removeItem(KEY+'remember'); }
   } catch(e){}
-
   err.classList.remove('show');
   startApp();
-  if (offlineMode) {
-    try { setTimeout(function(){ if(window.updateSyncBadge) window.updateSyncBadge('Mode hors ligne — données locales', '#F4A261'); }, 100); } catch(e){}
-  }
 }
-
 function logout() {
   logAction('logout', 'Déconnexion');
   state.user = null;
@@ -3775,11 +3761,14 @@ function prefillLogin(){
 }
 
 function autoLogin() {
-  const saved = localStorage.getItem(KEY+'current_user');
-  if (saved) {
-    const u = state.users.find(x => x.username === saved);
-    if (u && u.actif !== false) { state.user = u; startApp(); }
-  }
+  /* Sécurité : ne jamais ouvrir la session uniquement à partir de localStorage.
+     Le navigateur peut seulement pré-remplir l'identifiant ; le mot de passe
+     doit toujours être vérifié lors d'une nouvelle ouverture. */
+  try {
+    const saved = localStorage.getItem(KEY+'current_user');
+    if (saved) localStorage.removeItem(KEY+'current_user');
+  } catch(e) {}
+  try { prefillLogin(); } catch(e) {}
 }
 
 function startApp() {
@@ -5135,7 +5124,7 @@ function userForm(username, presetRole) {
   const existing = username ? state.users.find(x=>x.username===username) : null;
   if (existing && !canSeeUser(existing)) { toast('Ce compte est hors de votre circonscription.', 'error'); return; }
   const isSuper = me.role === 'superadmin';
-  const u = existing || {username:'',password:'',name:'',role:presetRole||'instituteur',email:'',
+  const u = existing || {username:'',passwordHash:'',name:'',role:presetRole||'instituteur',email:'',
     iepp:(me.iepp && me.iepp!=='TOUTES'?me.iepp:'IEPP TENGRELA'), drenaet:(me.drenaet||''), ecole:''};
   // Liste des rôles attribuables (toujours inclure le rôle courant si on édite)
   let roles = assignableRoles();
@@ -5148,7 +5137,7 @@ function userForm(username, presetRole) {
   openModal(username ? 'Modifier le compte' : 'Nouveau compte', `
     <div class="form-row">
       <div class="field"><label>Identifiant</label><input id="u-user" value="${escapeHtml(u.username)}" ${username?'readonly':''}></div>
-      <div class="field"><label>Mot de passe</label><input id="u-pass" value="${escapeHtml(u.password)}" placeholder="${username?'(inchangé si vide)':'Mot de passe'}"></div>
+      <div class="field"><label>Mot de passe</label><input id="u-pass" type="password" value="" autocomplete="new-password" placeholder="${username?'(inchangé si vide)':'Mot de passe'}"></div>
     </div>
     <div class="field"><label>Nom complet</label><input id="u-name" value="${escapeHtml(u.name)}"></div>
     <div class="form-row">
@@ -5193,7 +5182,7 @@ async function userSave(username) {
   if (!assignableRoles().includes(role)) { toast("Vous n'êtes pas autorisé à attribuer ce profil.", 'error'); return; }
   const data = {
     username: document.getElementById('u-user').value.trim(),
-    password: document.getElementById('u-pass').value,
+    passwordHash: '',
     name: document.getElementById('u-name').value.trim(),
     role: role,
     email: document.getElementById('u-email').value.trim(),
@@ -5213,14 +5202,21 @@ async function userSave(username) {
     if (!u || !canSeeUser(u)) { toast('Compte hors de votre circonscription.', 'error'); return; }
     // Un non-superadmin ne peut pas déplacer un compte vers une autre circonscription
     if (me.role !== 'superadmin') { data.iepp = u.iepp; data.drenaet = u.drenaet; }
-    if (!data.password) data.password = u.password;
+    const newPassword = document.getElementById('u-pass').value;
+    if (newPassword) data.passwordHash = await hashPassword(newPassword);
+    else data.passwordHash = u.passwordHash || (u.password ? await hashPassword(u.password) : '');
+    delete data.password;
     Object.assign(u, data);
+    delete u.password;
     u._upd = Date.now();
     logAction('update-user', `Modification compte : ${data.username}`);
     toast('Compte mis à jour', 'success');
   } else {
     if (state.users.find(x=>x.username===data.username)) { toast('Identifiant déjà utilisé', 'error'); return; }
-    if (!data.password) { toast('Mot de passe obligatoire', 'error'); return; }
+    const newPassword = document.getElementById('u-pass').value;
+    if (!newPassword) { toast('Mot de passe obligatoire', 'error'); return; }
+    data.passwordHash = await hashPassword(newPassword);
+    delete data.password;
     // Rattachement forcé à la circonscription du créateur
     if (me.role === 'superadmin') {
       /* superadmin : valeurs du formulaire conservées */
@@ -5235,25 +5231,21 @@ async function userSave(username) {
     /* Un compte recréé n'est plus « supprimé » : on lève la tombstone */
     try { var _d = load('usersDeleted', []) || []; var _i = _d.indexOf(data.username); if (_i > -1){ _d.splice(_i,1); save('usersDeleted', _d); } } catch(e){}
     logAction('create-user', `Création compte : ${data.username} (${ROLES[data.role].label})`);
-    toast('Compte préparé', 'success');
+    toast('Compte créé', 'success');
   }
-  save('users', state.users);
-  /* Pour les comptes, on attend un véritable enregistrement cloud.
-     Ainsi un compte créé sur le PC est immédiatement disponible sur Android/tablette. */
-  var _cloudUserSync = null;
-  try {
-    if (typeof window.__cloudPushUsersNow === 'function' && !(typeof navigator !== 'undefined' && navigator.onLine === false)) {
-      _cloudUserSync = await window.__cloudPushUsersNow(state.users);
-      if (!_cloudUserSync || !_cloudUserSync.ok) {
-        toast('Compte enregistré localement. Synchronisation cloud à vérifier.', 'error');
-      } else {
-        toast('Compte créé et synchronisé sur tous les appareils.', 'success');
-      }
-    }
-  } catch(e) {
-    console.warn('[Users] sync immédiate échouée', e);
+  var _cloudUserResult = null;
+  try { _cloudUserResult = await save('users', state.users); } catch(e) { _cloudUserResult = {ok:false, reason:'ecriture-cloud'}; }
+  if (_cloudUserResult && _cloudUserResult.ok) {
+    try { _cloudUserResult = await window.__cloudVerifyUser(data.username); } catch(e) {}
   }
   closeModal();
+  if (_cloudUserResult && _cloudUserResult.ok) {
+    toast('Compte créé et enregistré dans le cloud ✅', 'success');
+  } else if (_cloudUserResult && _cloudUserResult.queued) {
+    toast('Compte créé en local — synchronisation en attente 📡', 'info');
+  } else {
+    toast('Compte créé, mais NON confirmé dans le cloud ⚠️', 'error');
+  }
   if (document.getElementById('us-body')) renderUsersBody();
   if (state.module === 'comptes-correspondant') renderComptesCorrespondant();
 }
@@ -19200,27 +19192,39 @@ function ieppDelete(name) {
   refreshScopeSelector();
   renderParametres();
 }
-function ieppProvision(name) {
+function generateInitialPassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+  const a = new Uint32Array(14);
+  crypto.getRandomValues(a);
+  let out = '';
+  for (let i=0;i<a.length;i++) out += chars[a[i] % chars.length];
+  return out;
+}
+
+async function ieppProvision(name) {
   const reg = (state.ieppRegistry||[]).find(r=>r.name===name);
   const dren = reg ? (reg.drenaet||'') : '';
   const code = ieppCode(name);
   const created = [];
-  PROVISION_ROLES.forEach(p => {
+  const initialCredentials = [];
+  for (const p of PROVISION_ROLES) {
     const username = (p.suffix + '.' + code).toLowerCase();
-    if (state.users.some(u=>u.username===username)) return;
+    if (state.users.some(u=>u.username===username)) continue;
+    const initialPassword = generateInitialPassword();
     state.users.push({
-      username, password:'iepp2026',
+      username, passwordHash: await hashPassword(initialPassword),
       name: `${p.name} ${name.replace(/^IEPP\s+/,'')}`,
       role: p.role, email:`${username}@menaet.ci`,
       iepp: name, drenaet: dren, _upd: Date.now()
     });
     created.push(username);
-  });
+    initialCredentials.push({username, password: initialPassword});
+  }
   if (!created.length) { toast('Comptes déjà provisionnés pour cette IEPP', 'info'); return; }
   save('users', state.users);
   logAction('iepp-provision', `Provisionnement de ${created.length} compte(s) pour ${name}`);
   openModal(`Comptes créés pour ${escapeHtml(name)}`, `
-    <p class="text-sm">${created.length} compte(s) d'accès ont été créés (mot de passe initial : <strong>iepp2026</strong>, à faire changer).</p>
+    <p class="text-sm">${created.length} compte(s) d'accès ont été créés. Les mots de passe initiaux sont affichés ci-dessous une seule fois et doivent être changés après la première connexion.</p><div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Compte</th><th>Mot de passe initial</th></tr></thead><tbody>${initialCredentials.map(c=>`<tr><td>${escapeHtml(c.username)}</td><td><code>${escapeHtml(c.password)}</code></td></tr>`).join('')}</tbody></table></div>
     <div class="table-wrap" style="border:1px solid var(--line);max-height:300px;overflow:auto">
       <table><thead><tr><th>Identifiant</th><th>Profil</th></tr></thead>
       <tbody>${PROVISION_ROLES.filter(p=>created.includes((p.suffix+'.'+code).toLowerCase())).map(p=>`<tr><td><span class="badge badge-grey">${(p.suffix+'.'+code).toLowerCase()}</span></td><td>${escapeHtml(p.name)}</td></tr>`).join('')}</tbody></table>
@@ -28566,7 +28570,7 @@ function vieResetAllData() {
 
   async function refreshUsersFromCloud(){
     try{
-      if(typeof sbGet!=='function') { window.__ieppLastCloudLoginError='Client Supabase indisponible'; return false; }
+      if(typeof sbGet!=='function') return false;
       var fk = (typeof storeKey==='function') ? storeKey('users') : 'iepp_users';
       var cloudJson = await sbGet(fk);
       if(cloudJson==null) return false;
@@ -28582,15 +28586,15 @@ function vieResetAllData() {
       else if(typeof state!=='undefined') state.users = merged;
       if(typeof window.__healUsers==='function'){ try{ window.__healUsers(); }catch(e){} }
       return true;
-    }catch(e){ window.__ieppLastCloudLoginError=String((e&&e.message)||e); return false; }
+    }catch(e){ return false; }
   }
 
   window.doLogin = function(){
     try{
       var uEl=document.getElementById('login-user'), pEl=document.getElementById('login-pass');
       var u=uEl?uEl.value.trim():'', p=pEl?pEl.value:'';
-      var found = (typeof state!=='undefined' && state.users) ? state.users.find(function(x){ return x.username===u && x.password===p; }) : null;
-      if(found) return _login();                 // trouvé localement → connexion normale
+      var found = (typeof state!=='undefined' && state.users) ? state.users.find(function(x){ return x.username===u; }) : null;
+      if(found) return _login();                 // compte connu localement → connexion normale
       if(!u){ return _login(); }                 // champ vide → laisser la logique d'origine gérer
       // Pas trouvé localement → vérifier en ligne puis réessayer
       var err=document.getElementById('login-error');
@@ -28598,17 +28602,9 @@ function vieResetAllData() {
       var btn=document.getElementById('btn-se-connecter');
       var prev = btn ? btn.textContent : '';
       if(btn){ btn.disabled=true; btn.textContent='Vérification…'; }
-      refreshUsersFromCloud().then(function(ok){
+      refreshUsersFromCloud().then(function(){
         if(btn){ btn.disabled=false; btn.textContent=prev||'Se connecter →'; }
-        _login();
-        if(!ok && typeof navigator!=='undefined' && navigator.onLine !== false){
-          setTimeout(function(){
-            var e2=document.getElementById('login-error');
-            if(e2 && e2.classList.contains('show')){
-              e2.textContent='⚠️ Impossible de récupérer les comptes depuis Supabase sur cet appareil. Vérifiez la connexion Supabase/RLS.';
-            }
-          }, 50);
-        }
+        _login();   // re-teste avec les comptes rafraîchis (ou affiche l'erreur d'origine)
       });
     }catch(e){ try{ return _login(); }catch(_){} }
   };
