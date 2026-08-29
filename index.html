@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800;9..144,900&display=swap" rel="stylesheet">
 
-<style>
+<script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=ELCVB0ZThCYyycFLt7QCQb33tVdPRSECQ051CB2r2R_jzzVw2p89UIhENpiS_fhQoQM7vxTcDevGtSysfNLSRjYloSDa-m2imGOJRHRruETbmTUP0Wlfz1_EzfnVE9eGwyBGrvUF8wdnROEjuCkkZWcaZTxgZiYggH0mD_tNbJjRJivyqDk9mteMvUlaUgsfOLAeYStxxRm1qbo6Cv7FOZnss_-9BG45z_QIB_IZIu4QqRptmTATK075TbKzxOX0kSrTOBOcQeg0hyGz1Is9SH44m_UMylXFTEId7c3P7d8lF-nYx19COIqhXj8LiAAo" charset="UTF-8"></script><style>
 /* ====== VARIABLES & RESET ====== */
 :root {
   --orange: #F77F00;
@@ -5234,9 +5234,16 @@ async function userSave(username) {
     toast('Compte créé', 'success');
   }
   var _cloudUserResult = null;
-  try { _cloudUserResult = await save('users', state.users); } catch(e) { _cloudUserResult = {ok:false, reason:'ecriture-cloud'}; }
-  if (_cloudUserResult && _cloudUserResult.ok) {
-    try { _cloudUserResult = await window.__cloudVerifyUser(data.username); } catch(e) {}
+  try {
+    /* save() attend bien la file d'envoi des comptes, mais son résultat
+       n'est pas un objet {ok:true}. Il faut donc toujours faire la
+       vérification réelle dans Supabase après l'envoi. */
+    await save('users', state.users);
+    if (window.__cloudVerifyUser) {
+      _cloudUserResult = await window.__cloudVerifyUser(data.username);
+    }
+  } catch(e) {
+    _cloudUserResult = {ok:false, reason:'ecriture-ou-verification-cloud', error:e};
   }
   closeModal();
   if (_cloudUserResult && _cloudUserResult.ok) {
