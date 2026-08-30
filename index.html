@@ -1157,8 +1157,8 @@ function vieResetAllData() {
     <button id="btn-se-connecter" class="btn btn-primary btn-block" onclick="doLogin()">Se connecter →</button>
 
     <div class="login-footer">
-      <strong>Plateforme IEPP v1.0</strong><br>
-      Référence : CDC-IEPP-2026-001<br>
+      <strong id="login-version">Plateforme IEPP v1.0</strong><br>
+      <span id="login-ref">Référence : CDC-IEPP-2026-001</span><br>
       Ministère de l'Éducation Nationale, de l'Alphabétisation et de l'Enseignement Technique<br>
       <span class="text-xs">République de Côte d'Ivoire</span>
       <div class="login-flag"><span></span><span></span><span></span></div>
@@ -1232,8 +1232,10 @@ function vieResetAllData() {
       <div class="sb-link" data-module="cpi" onclick="navigate('cpi')">
         <span class="sb-icon">🎯</span><span>Espace Conseiller CPPP</span>
       </div>
-      <div class="sb-link" data-module="secteurs" onclick="navigate('secteurs')">
-        <span class="sb-icon">🗺️</span><span>Secteurs (CPPP)</span>
+      <div class="sb-nest-cppp" style="padding-left:14px;border-left:2px solid var(--line);margin:2px 0 4px 18px">
+        <div class="sb-link" data-module="secteurs" onclick="navigate('secteurs')" style="padding:7px 10px;font-size:12.5px;font-weight:500">
+          <span class="sb-icon" style="width:22px;height:22px;font-size:11px">🗺️</span><span>Secteurs (CPPP)</span>
+        </div>
       </div>
     </div>
 
@@ -1523,6 +1525,9 @@ function vieResetAllData() {
     <div class="content" id="content">
       <!-- Page content injected here -->
     </div>
+    <footer id="app-footer" style="padding:14px 24px;margin-top:8px;border-top:1px solid var(--line);text-align:center;font-size:12px;color:#607089;line-height:1.6">
+      © EPLUS 2026 - Tous droits réservés &nbsp;|&nbsp; Dernière mise à jour Août 2026 &nbsp;|&nbsp; Conception et design DIOM-2Y — contact : +225 01-727-10-337
+    </footer>
   </main>
   <!-- Bouton flottant universel : Demande d'autorisation d'absence (tous les services) -->
   <button id="abs-fab" onclick="absRequestForm()" title="Demander une autorisation d'absence"
@@ -2319,6 +2324,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
 
   let sb = null, cloudReady = false;
   const pendingPushes = new Map();
+  try{ window.__cloudPendingCount = function(){ return pendingPushes.size; }; }catch(e){}
   /* File d'attente dédiée aux comptes : évite les courses entre création/modification
      et une synchronisation manuelle ou automatique lancée immédiatement après. */
   let usersPushChain = Promise.resolve();
@@ -4060,30 +4066,77 @@ function ieppBulkSetActif(name, actif){
   toast(n+' compte(s) '+(actif?'réactivé(s) ✅':'désactivé(s) ⛔')+' — '+court, actif?'success':'info');
   if(typeof renderDrenaet==='function' && state.module==='drenaet') renderDrenaet();
 }
+/* Supprime les doublons d'IEPP dans le registre et la liste DRENAET (par nom, insensible à la casse) */
+function dedupeIeppData(){
+  var changed = false;
+  try{
+    if(Array.isArray(state.ieppRegistry)){
+      var seen = {}, out = [];
+      state.ieppRegistry.forEach(function(r){
+        var k = String((r&&r.name)||'').trim().toUpperCase();
+        if(!k){ out.push(r); return; }
+        if(seen[k]){
+          var e = seen[k];
+          if(r.actif===false) e.actif = false;
+          if(!e.debut && r.debut) e.debut = r.debut;
+          if(!e.fin && r.fin) e.fin = r.fin;
+          if(!e.code && r.code) e.code = r.code;
+          if(!e.drenaet && r.drenaet) e.drenaet = r.drenaet;
+          changed = true;
+        } else { seen[k] = r; out.push(r); }
+      });
+      if(changed) state.ieppRegistry = out;
+    }
+  }catch(e){}
+  try{
+    if(Array.isArray(state.drenaet)){
+      var seen2 = {}, out2 = [], ch2 = false;
+      state.drenaet.forEach(function(d){
+        var k = String((d&&d.iepp)||'').trim().toUpperCase();
+        if(!k){ out2.push(d); return; }
+        if(seen2[k]){
+          var e = seen2[k];
+          if((+d.eleves||0) > (+e.eleves||0)) e.eleves = d.eleves;
+          if((+d.ecoles||0) > (+e.ecoles||0)) e.ecoles = d.ecoles;
+          if((+d.prescolaire||0) > (+e.prescolaire||0)) e.prescolaire = d.prescolaire;
+          if((+d.primaire||0) > (+e.primaire||0)) e.primaire = d.primaire;
+          if(!e.chef && d.chef) e.chef = d.chef;
+          if(!e.ieppCode && d.ieppCode) e.ieppCode = d.ieppCode;
+          ch2 = true;
+        } else { seen2[k] = d; out2.push(d); }
+      });
+      if(ch2){ state.drenaet = out2; changed = true; }
+    }
+  }catch(e){}
+  if(changed){ try{ save('ieppRegistry', state.ieppRegistry); }catch(e){} try{ save('drenaet', state.drenaet); }catch(e){} }
+  return changed;
+}
 function ieppActivationPanelHtml(){
   if(!state.user || state.user.role!=='superadmin') return '';
+  dedupeIeppData();
   var reg=(state.ieppRegistry||[]).slice().sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||'')); });
   if(!reg.length) return '';
   var rows=reg.map(function(r){
     var nm=r.name||''; var sl=ieppSlug(nm); var on=(r.actif!==false);
+    var q=nm.replace(/'/g,"\\'");
     return '<tr>'
       +'<td class="fw-7">'+escapeHtml(String(nm).replace(/^IEPP\s+/i,'IEPP '))+'</td>'
       +'<td>'+(on?'<span class="badge badge-green">Active</span>':'<span class="badge badge-orange">Désactivée</span>')+'</td>'
-      +'<td><input type="date" id="iep-deb-'+sl+'" value="'+escapeHtml(r.debut||'')+'" style="padding:5px;border:1px solid var(--line);border-radius:6px"></td>'
-      +'<td><input type="date" id="iep-fin-'+sl+'" value="'+escapeHtml(r.fin||'')+'" style="padding:5px;border:1px solid var(--line);border-radius:6px"></td>'
-      +'<td style="white-space:nowrap">'
+      +'<td><input type="date" id="iep-deb-'+sl+'" value="'+escapeHtml(r.debut||'')+'" style="padding:4px;border:1px solid var(--line);border-radius:6px;font-size:12px"></td>'
+      +'<td><input type="date" id="iep-fin-'+sl+'" value="'+escapeHtml(r.fin||'')+'" style="padding:4px;border:1px solid var(--line);border-radius:6px;font-size:12px"></td>'
+      +'<td style="white-space:nowrap;text-align:right">'
         +(on
-          ? '<button class="btn btn-ghost danger" style="padding:5px 10px" onclick="ieppSetActif(\''+nm.replace(/'/g,"\\'")+'\',false)">⛔ Désactiver</button>'
-          : '<button class="btn btn-ghost" style="padding:5px 10px;color:var(--green-deep)" onclick="ieppSetActif(\''+nm.replace(/'/g,"\\'")+'\',true)">✅ Activer</button>')
-        +' <button class="btn btn-ghost" style="padding:5px 10px" onclick="ieppSavePeriode(\''+nm.replace(/'/g,"\\'")+'\')">💾 Période</button>'
-        +' <button class="btn btn-ghost danger" style="padding:5px 10px" onclick="ieppBulkSetActif(\''+nm.replace(/'/g,"\\'")+'\',false)" title="Désactiver TOUS les comptes de cette IEPP">👥⛔ Tous</button>'
-        +' <button class="btn btn-ghost" style="padding:5px 10px;color:var(--green-deep)" onclick="ieppBulkSetActif(\''+nm.replace(/'/g,"\\'")+'\',true)" title="Réactiver TOUS les comptes de cette IEPP">👥✅ Tous</button>'
+          ? '<button class="btn btn-ghost danger" style="padding:4px 8px" onclick="ieppSetActif(\''+q+'\',false)" title="Désactiver l\'IEPP">⛔</button>'
+          : '<button class="btn btn-ghost" style="padding:4px 8px;color:var(--green-deep)" onclick="ieppSetActif(\''+q+'\',true)" title="Activer l\'IEPP">✅</button>')
+        +' <button class="btn btn-ghost" style="padding:4px 8px" onclick="ieppSavePeriode(\''+q+'\')" title="Enregistrer la période d\'accès">💾</button>'
+        +' <button class="btn btn-ghost danger" style="padding:4px 8px" onclick="ieppBulkSetActif(\''+q+'\',false)" title="Désactiver TOUS les comptes de cette IEPP">👥⛔</button>'
+        +' <button class="btn btn-ghost" style="padding:4px 8px;color:var(--green-deep)" onclick="ieppBulkSetActif(\''+q+'\',true)" title="Réactiver TOUS les comptes de cette IEPP">👥✅</button>'
       +'</td></tr>';
   }).join('');
   return '<div class="card" style="padding:14px;margin-bottom:14px;border:1.5px solid var(--orange)">'
     +'<div class="card-title">🛡️ Activation des IEPP (super administrateur national)</div>'
-    +'<p class="text-xs text-muted" style="margin:2px 0 10px">Activez/désactivez une IEPP, ou fixez une période d\'accès (dates de début/fin). Hors période ou si désactivée, aucun utilisateur de cette IEPP ne peut se connecter — sauf vous.</p>'
-    +'<div style="overflow:auto"><table class="table" style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr style="text-align:left;color:var(--ink-soft)"><th>IEPP</th><th>État</th><th>Accès du</th><th>Accès au</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+    +'<p class="text-xs text-muted" style="margin:2px 0 10px">Activez/désactivez une IEPP, ou fixez une période d\'accès (dates de début/fin). Hors période ou si désactivée, aucun utilisateur de cette IEPP ne peut se connecter — sauf vous. <br>Boutons : ⛔ désactiver · ✅ activer · 💾 période · 👥⛔ / 👥✅ tous les comptes de l\'IEPP.</p>'
+    +'<div style="overflow:auto;max-height:60vh;border:1px solid var(--line);border-radius:8px"><table class="table" style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr style="text-align:left;color:var(--ink-soft);position:sticky;top:0;background:#F8FAFC"><th>IEPP</th><th>État</th><th>Accès du</th><th>Accès au</th><th style="text-align:right">Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
 }
 function ensureDrenaetFromRegistry(){
   try{
@@ -5142,7 +5195,7 @@ function userForm(username, presetRole) {
     <div class="field"><label>Nom complet</label><input id="u-name" value="${escapeHtml(u.name)}"></div>
     <div class="form-row">
       <div class="field"><label>Profil (rôle)</label>
-        <select id="u-role">
+        <select id="u-role" onchange="toggleClasseField(this.value)">
           ${roles.map(k=>`<option value="${k}" ${u.role===k?'selected':''}>${ROLES[k].label}</option>`).join('')}
         </select>
       </div>
@@ -5155,6 +5208,20 @@ function userForm(username, presetRole) {
     <div class="form-row">
       <div class="field"><label>École (si applicable)</label><input id="u-ecole" value="${escapeHtml(u.ecole||'')}"></div>
       <div class="field"><label>Téléphone</label><input id="u-tel" value="${escapeHtml(u.tel||u.contact||'')}" placeholder="ex : 0700000000"></div>
+    </div>
+    <div class="form-row" id="u-classe-row" style="display:${u.role==='instituteur'?'':'none'}">
+      <div class="field"><label>Classe / Niveau tenu <span style="color:#E63946">*</span></label>
+        <select id="u-classe">
+          <option value="">— Sélectionner le niveau —</option>
+          <optgroup label="Préscolaire">
+            ${['Petite Section','Moyenne Section','Grande Section'].map(n=>`<option ${u.classe===n?'selected':''}>${n}</option>`).join('')}
+          </optgroup>
+          <optgroup label="Primaire">
+            ${['CP1','CP2','CE1','CE2','CM1','CM2'].map(n=>`<option ${u.classe===n?'selected':''}>${n}</option>`).join('')}
+          </optgroup>
+        </select>
+      </div>
+      <div class="field"><label>&nbsp;</label><div class="text-xs text-muted" style="padding-top:9px">Obligatoire pour un instituteur (ex : CP1, CP2, CE1…).</div></div>
     </div>
     <div class="form-row">
       <div class="field"><label>État du compte</label>
@@ -5175,6 +5242,11 @@ function userForm(username, presetRole) {
     <button class="btn btn-primary" onclick="userSave('${username||''}')">Enregistrer</button>
   `);
 }
+/* Affiche le champ « Classe / Niveau tenu » uniquement pour un instituteur */
+function toggleClasseField(role){
+  var row = document.getElementById('u-classe-row');
+  if(row) row.style.display = (role==='instituteur') ? '' : 'none';
+}
 async function userSave(username) {
   const me = state.user;
   const role = document.getElementById('u-role').value;
@@ -5191,6 +5263,8 @@ async function userSave(username) {
     drenaet: document.getElementById('u-drenaet').value.trim()
   };
   { const _t = (document.getElementById('u-tel')?.value || '').trim(); data.tel = _t; data.contact = _t; }
+  { var _cl = (document.getElementById('u-classe')?.value || '').trim(); if(_cl) data.classe = _cl; }
+  if (role === 'instituteur' && !data.classe) { toast('Veuillez préciser la classe / le niveau tenu (ex : CP1, CP2…).', 'error'); return; }
   { var _ac=document.getElementById('u-actif'); if(_ac) data.actif = (_ac.value==='1'); }
   { var _db=document.getElementById('u-debut'); if(_db) data.debut = _db.value||''; }
   { var _fn=document.getElementById('u-fin'); if(_fn) data.fin = _fn.value||''; }
@@ -28963,5 +29037,926 @@ function vieResetAllData() {
 })();
 
 </script>
+
+<script id="iepp-console-superadmin">
+/* ==================================================================
+   CONSOLE SUPER ADMINISTRATEUR — Centre national de pilotage
+   Sous-menus latéraux · réservé au Grand Administrateur National
+   Ajout non destructif : réutilise state, save/load, logAction, ROLES,
+   escapeHtml, toast, hashPassword et les fonctions cloud existantes.
+   ================================================================== */
+(function(){ 'use strict';
+
+/* ---------- Sous-navigation ---------- */
+var CA_SECTIONS = [
+  { id:'dashboard',       icon:'🛰️', label:'Tableau de bord global' },
+  { id:'activation',      icon:'🛡️', label:'Activation & gestion' },
+  { id:'stats',           icon:'📈', label:'Statistiques nationales' },
+  { id:'comptes',         icon:'👥', label:'Gestion des comptes' },
+  { id:'circonscriptions',icon:'🗺️', label:'DRENAET & IEPP' },
+  { id:'matrice',         icon:'📋', label:"Matrice d'action" },
+  { id:'audit',           icon:'📜', label:"Journal d'audit" },
+  { id:'cloud',           icon:'☁️', label:'Supervision cloud' },
+  { id:'backup',          icon:'💾', label:'Sauvegarde & restauration' },
+  { id:'params',          icon:'⚙️', label:'Paramètres & maintenance' },
+];
+var caCurrent = 'dashboard';
+
+function caGuard(){
+  return state.user && state.user.role === 'superadmin';
+}
+
+/* ---------- Agrégation des données ---------- */
+function caData(){
+  var dr = state.drenaet || [];
+  var users = state.users || [];
+  var reg = state.ieppRegistry || [];
+  var drenaets = {};
+  dr.forEach(function(d){
+    var k = d.drenaet || '—';
+    if(!drenaets[k]) drenaets[k] = { iepp:0, ecoles:0, eleves:0, pres:0, prim:0 };
+    drenaets[k].iepp++;
+    drenaets[k].ecoles += (+d.ecoles||0);
+    drenaets[k].eleves += (+d.eleves||0);
+    drenaets[k].pres   += (+d.prescolaire||0);
+    drenaets[k].prim   += (+d.primaire||0);
+  });
+  var totEcoles = dr.reduce(function(a,b){return a+(+b.ecoles||0);},0);
+  var totEleves = dr.reduce(function(a,b){return a+(+b.eleves||0);},0);
+  var totPres   = dr.reduce(function(a,b){return a+(+b.prescolaire||0);},0);
+  var totPrim   = dr.reduce(function(a,b){return a+(+b.primaire||0);},0);
+  var byRole = {};
+  users.forEach(function(u){ byRole[u.role] = (byRole[u.role]||0)+1; });
+  var actifs = users.filter(function(u){ return u.actif !== false; }).length;
+  var inactifs = users.length - actifs;
+  var regByName = {};
+  reg.forEach(function(r){ regByName[String(r.name||'').trim().toUpperCase()] = r; });
+  var ieppActive = 0, ieppInactive = 0;
+  dr.forEach(function(d){
+    var r = regByName[String(d.iepp||'').trim().toUpperCase()];
+    var on = r ? (r.actif !== false) : (d.statut !== 'Inactive');
+    if(on) ieppActive++; else ieppInactive++;
+  });
+  return {
+    dr:dr, users:users, reg:reg, drenaets:drenaets,
+    nDrenaet:Object.keys(drenaets).length, nIepp:dr.length,
+    totEcoles:totEcoles, totEleves:totEleves, totPres:totPres, totPrim:totPrim,
+    byRole:byRole, nUsers:users.length, actifs:actifs, inactifs:inactifs,
+    ieppActive:ieppActive, ieppInactive:ieppInactive
+  };
+}
+
+/* ---------- Graphiques SVG ---------- */
+var CA_PAL = ['#1F6FEB','#F4A261','#2A9D8F','#E76F51','#8E44AD','#E9C46A','#457B9D','#E63946','#06D6A0','#5B1F94','#F77F00','#118AB2'];
+
+function caDonut(data, opt){
+  opt = opt || {};
+  var size = opt.size||150, r=size/2, inner=r*0.58, cx=r, cy=r;
+  var total = data.reduce(function(a,b){return a+(b.value||0);},0) || 1;
+  var ang = -Math.PI/2, paths='';
+  data.forEach(function(d,i){
+    var frac = (d.value||0)/total, a2 = ang + frac*2*Math.PI;
+    var large = frac>0.5?1:0;
+    var x1=cx+r*Math.cos(ang), y1=cy+r*Math.sin(ang);
+    var x2=cx+r*Math.cos(a2),  y2=cy+r*Math.sin(a2);
+    var xi2=cx+inner*Math.cos(a2), yi2=cy+inner*Math.sin(a2);
+    var xi1=cx+inner*Math.cos(ang), yi1=cy+inner*Math.sin(ang);
+    var col = d.color || CA_PAL[i%CA_PAL.length];
+    if(frac>0.0001){
+      paths += '<path d="M'+x1+' '+y1+' A'+r+' '+r+' 0 '+large+' 1 '+x2+' '+y2+
+               ' L'+xi2+' '+yi2+' A'+inner+' '+inner+' 0 '+large+' 0 '+xi1+' '+yi1+' Z" fill="'+col+'"/>';
+    }
+    ang = a2;
+  });
+  var center = opt.center!=null ? opt.center : total.toLocaleString('fr-FR');
+  var svg = '<svg viewBox="0 0 '+size+' '+size+'" style="width:'+size+'px;height:'+size+'px">'+paths+
+    '<text x="'+cx+'" y="'+(cy-2)+'" text-anchor="middle" font-size="'+(size*0.16)+'" font-weight="800" fill="#0A2540">'+escapeHtml(center)+'</text>'+
+    (opt.sub?'<text x="'+cx+'" y="'+(cy+size*0.13)+'" text-anchor="middle" font-size="'+(size*0.085)+'" fill="#607089">'+escapeHtml(opt.sub)+'</text>':'')+
+    '</svg>';
+  var legend = '<div style="display:flex;flex-direction:column;gap:5px;font-size:12px">'+
+    data.map(function(d,i){
+      var col = d.color || CA_PAL[i%CA_PAL.length];
+      var pct = Math.round((d.value||0)/total*100);
+      return '<div style="display:flex;align-items:center;gap:7px"><span style="width:11px;height:11px;border-radius:3px;background:'+col+';flex:none"></span>'+
+             '<span style="flex:1">'+escapeHtml(d.label)+'</span><strong>'+(d.value||0).toLocaleString('fr-FR')+'</strong><span style="color:#607089">('+pct+'%)</span></div>';
+    }).join('')+'</div>';
+  return '<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">'+svg+legend+'</div>';
+}
+
+function caBars(data, opt){
+  opt = opt || {};
+  var max = Math.max.apply(null, data.map(function(d){return d.value||0;}).concat([1]));
+  return '<div style="display:flex;flex-direction:column;gap:8px">'+data.map(function(d,i){
+    var col = d.color || CA_PAL[i%CA_PAL.length];
+    var w = Math.round((d.value||0)/max*100);
+    return '<div style="display:flex;align-items:center;gap:10px;font-size:12.5px">'+
+      '<span style="width:'+(opt.labelW||160)+'px;flex:none;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+escapeHtml(d.label)+'">'+escapeHtml(d.label)+'</span>'+
+      '<div style="flex:1;background:#EEF2F7;border-radius:6px;height:20px;position:relative;overflow:hidden">'+
+        '<div style="width:'+w+'%;height:100%;background:'+col+';border-radius:6px;transition:width .4s"></div></div>'+
+      '<strong style="width:70px;text-align:right;flex:none">'+(d.value||0).toLocaleString('fr-FR')+'</strong></div>';
+  }).join('')+'</div>';
+}
+
+/* Pyramide : préscolaire (gauche) vs primaire (droite) par DRENAET */
+function caPyramid(rows){
+  var max = Math.max.apply(null, rows.map(function(r){return Math.max(r.left||0,r.right||0);}).concat([1]));
+  return '<div style="display:flex;flex-direction:column;gap:6px">'+
+    '<div style="display:flex;font-size:11px;color:#607089;font-weight:700"><div style="flex:1;text-align:right;padding-right:6px">◀ Préscolaire</div><div style="width:150px"></div><div style="flex:1;padding-left:6px">Primaire ▶</div></div>'+
+    rows.map(function(r){
+      var lw = Math.round((r.left||0)/max*100), rw = Math.round((r.right||0)/max*100);
+      return '<div style="display:flex;align-items:center;gap:0;font-size:11.5px">'+
+        '<div style="flex:1;display:flex;justify-content:flex-end"><div style="width:'+lw+'%;height:16px;background:#457B9D;border-radius:4px 0 0 4px" title="'+(r.left||0)+'"></div></div>'+
+        '<div style="width:150px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px;color:#334155" title="'+escapeHtml(r.label)+'">'+escapeHtml(r.label)+'</div>'+
+        '<div style="flex:1"><div style="width:'+rw+'%;height:16px;background:#F4A261;border-radius:0 4px 4px 0" title="'+(r.right||0)+'"></div></div></div>';
+    }).join('')+'</div>';
+}
+
+function caKpi(cards){
+  return '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:16px">'+
+    cards.map(function(c){
+      return '<div class="card" style="padding:14px 16px;border-left:4px solid '+c.color+'">'+
+        '<div style="font-size:12px;color:#607089;font-weight:600;display:flex;align-items:center;gap:6px"><span>'+c.icon+'</span>'+escapeHtml(c.label)+'</div>'+
+        '<div style="font-size:26px;font-weight:800;color:#0A2540;margin-top:4px">'+escapeHtml(c.value)+'</div>'+
+        (c.sub?'<div style="font-size:11px;color:#94A3B8;margin-top:2px">'+escapeHtml(c.sub)+'</div>':'')+
+        '</div>';
+    }).join('')+'</div>';
+}
+
+function caCard(title, body, extra){
+  return '<div class="card" style="padding:16px;margin-bottom:16px">'+
+    '<div class="card-title" style="margin-bottom:12px">'+title+'</div>'+(body||'')+(extra||'')+'</div>';
+}
+
+/* ---------- Impression / PDF ---------- */
+function caPrint(innerHtml, title){
+  var w = window.open('', '_blank');
+  if(!w){ toast('Autorisez les fenêtres pop-up pour imprimer.', 'error'); return; }
+  var an = (typeof anneeScolaireRef==='function') ? anneeScolaireRef() : '2026-2027';
+  w.document.write('<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>'+escapeHtml(title||'Console')+'</title>'+
+    '<style>body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:26px;font-size:12px}'+
+    'h1{font-size:16px;margin:0}h2{font-size:13px;color:#0A4DA6;margin:18px 0 6px;border-bottom:1px solid #ccc;padding-bottom:3px}'+
+    'table{width:100%;border-collapse:collapse;margin:6px 0}th,td{border:1px solid #bbb;padding:5px 7px;text-align:left;font-size:11px}'+
+    'th{background:#EEF3FA}.hd{display:flex;align-items:center;gap:12px;border-bottom:2px solid #0A4DA6;padding-bottom:10px;margin-bottom:14px}'+
+    '.muted{color:#666;font-size:11px}@media print{.noprint{display:none}}</style></head><body>'+
+    '<div class="hd"><div style="font-size:30px">🇨🇮</div><div><h1>MENAET · Plateforme-IEPP — Côte d\'Ivoire</h1>'+
+    '<div class="muted">'+escapeHtml(title||'')+' · Année scolaire '+escapeHtml(an)+' · Édité le '+new Date().toLocaleString('fr-FR')+'</div></div></div>'+
+    innerHtml+'<script>window.onload=function(){window.print();}<\/script></body></html>');
+  w.document.close();
+}
+
+/* Excel via SheetJS (déjà chargé) */
+function caExcel(sheets, filename){
+  if(typeof XLSX==='undefined'){ toast('Librairie Excel indisponible.', 'error'); return; }
+  var wb = XLSX.utils.book_new();
+  sheets.forEach(function(s){
+    var ws = XLSX.utils.aoa_to_sheet(s.rows);
+    XLSX.utils.book_append_sheet(wb, ws, s.name.slice(0,31));
+  });
+  XLSX.writeFile(wb, filename);
+  toast('Export Excel généré ✅', 'success');
+}
+
+/* ================= SECTIONS ================= */
+
+/* 1. TABLEAU DE BORD GLOBAL */
+function caDashboard(){
+  var d = caData();
+  var kpi = caKpi([
+    { icon:'🏛️', label:'DRENAET',   value:d.nDrenaet.toString(),               color:'#1F6FEB' },
+    { icon:'🏫', label:'IEPP',       value:d.nIepp.toString(), sub:d.ieppActive+' actives · '+d.ieppInactive+' inactives', color:'#2A9D8F' },
+    { icon:'🏫', label:'Écoles',     value:d.totEcoles.toLocaleString('fr-FR'), color:'#F4A261' },
+    { icon:'🎓', label:'Élèves',     value:d.totEleves.toLocaleString('fr-FR'), sub:'Préscolaire + primaire', color:'#E76F51' },
+    { icon:'👥', label:'Comptes',    value:d.nUsers.toString(), sub:d.actifs+' actifs · '+d.inactifs+' inactifs', color:'#8E44AD' },
+    { icon:'🗂️', label:'Rôles',      value:Object.keys(d.byRole).length+' / '+Object.keys(ROLES).length, color:'#457B9D' },
+  ]);
+  var donutPresPrim = caDonut([
+    { label:'Préscolaire', value:d.totPres, color:'#457B9D' },
+    { label:'Primaire',    value:d.totPrim, color:'#F4A261' },
+  ], { size:150, sub:'écoles', center:(d.totPres+d.totPrim).toLocaleString('fr-FR') });
+  var donutIepp = caDonut([
+    { label:'IEPP actives',   value:d.ieppActive,   color:'#2A9D8F' },
+    { label:'IEPP inactives', value:d.ieppInactive, color:'#E63946' },
+  ], { size:150, sub:'IEPP', center:d.nIepp.toString() });
+  var drByEleves = Object.keys(d.drenaets).map(function(k){ return { label:k.replace(/^DRENAET\s+/i,''), value:d.drenaets[k].eleves }; })
+    .sort(function(a,b){return b.value-a.value;}).slice(0,8);
+  return kpi +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'+
+      caCard('🎓 Répartition des écoles', donutPresPrim) +
+      caCard('🛡️ État des IEPP', donutIepp) +
+    '</div>' +
+    caCard('🏛️ Effectifs élèves par DRENAET (Top 8)', caBars(drByEleves, {labelW:180})) +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+      '<button class="btn btn-ghost" onclick="caExportDashboard()">📊 Export Excel</button>'+
+      '<button class="btn btn-ghost" onclick="caPrintDashboard()">🖨️ Imprimer / PDF</button>'+
+    '</div>';
+}
+window.caExportDashboard = function(){
+  var d = caData();
+  var s1 = [['Indicateur','Valeur']];
+  s1.push(['DRENAET', d.nDrenaet],['IEPP', d.nIepp],['IEPP actives', d.ieppActive],['IEPP inactives', d.ieppInactive],
+    ['Écoles', d.totEcoles],['Élèves', d.totEleves],['Préscolaire (écoles)', d.totPres],['Primaire (écoles)', d.totPrim],
+    ['Comptes', d.nUsers],['Comptes actifs', d.actifs],['Comptes inactifs', d.inactifs]);
+  var s2 = [['DRENAET','IEPP','Écoles','Élèves']];
+  Object.keys(d.drenaets).forEach(function(k){ var x=d.drenaets[k]; s2.push([k, x.iepp, x.ecoles, x.eleves]); });
+  caExcel([{name:'Synthèse', rows:s1},{name:'Par DRENAET', rows:s2}], 'console_tableau_bord.xlsx');
+};
+window.caPrintDashboard = function(){
+  var d = caData();
+  var html = '<h2>Synthèse nationale</h2><table><tr><th>Indicateur</th><th>Valeur</th></tr>'+
+    '<tr><td>DRENAET</td><td>'+d.nDrenaet+'</td></tr><tr><td>IEPP</td><td>'+d.nIepp+' ('+d.ieppActive+' actives)</td></tr>'+
+    '<tr><td>Écoles</td><td>'+d.totEcoles+'</td></tr><tr><td>Élèves</td><td>'+d.totEleves+'</td></tr>'+
+    '<tr><td>Comptes</td><td>'+d.nUsers+' ('+d.actifs+' actifs)</td></tr></table>'+
+    '<h2>Effectifs par DRENAET</h2><table><tr><th>DRENAET</th><th>IEPP</th><th>Écoles</th><th>Élèves</th></tr>'+
+    Object.keys(d.drenaets).map(function(k){var x=d.drenaets[k];return '<tr><td>'+escapeHtml(k)+'</td><td>'+x.iepp+'</td><td>'+x.ecoles+'</td><td>'+x.eleves+'</td></tr>';}).join('')+'</table>';
+  caPrint(html, 'Tableau de bord global');
+};
+
+/* 2. ACTIVATION & GESTION */
+function caActivation(){
+  var panel = (typeof ieppActivationPanelHtml==='function') ? ieppActivationPanelHtml() : '';
+  var d = caData();
+  // Activation par DRENAET (toutes les IEPP de la région)
+  var drRows = Object.keys(d.drenaets).sort().map(function(k){
+    var kk = k.replace(/'/g,"\\'");
+    return '<tr><td class="fw-7">'+escapeHtml(k)+'</td><td>'+d.drenaets[k].iepp+' IEPP</td>'+
+      '<td style="white-space:nowrap">'+
+        '<button class="btn btn-ghost" style="padding:5px 10px;color:var(--green-deep)" onclick="caDrenaetBulk(\''+kk+'\',true)">👥✅ Activer la région</button> '+
+        '<button class="btn btn-ghost danger" style="padding:5px 10px" onclick="caDrenaetBulk(\''+kk+'\',false)">👥⛔ Désactiver la région</button>'+
+      '</td></tr>';
+  }).join('');
+  var drCard = caCard('🏛️ Activation par DRENAET (région entière)',
+    '<p class="text-xs text-muted" style="margin:-4px 0 10px">Active ou désactive en un clic tous les comptes de toutes les IEPP d\'une DRENAET (le super administrateur n\'est jamais affecté).</p>'+
+    '<div style="overflow:auto"><table class="table" style="width:100%;font-size:13px"><thead><tr style="text-align:left;color:var(--ink-soft)"><th>DRENAET</th><th>Couverture</th><th></th></tr></thead><tbody>'+drRows+'</tbody></table></div>');
+  var tools = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'+
+    '<button class="btn btn-ghost" onclick="caExportActivation()">📊 Export Excel</button>'+
+    '<button class="btn btn-ghost" onclick="caPrintActivation()">🖨️ Imprimer / PDF</button>'+
+    '<button class="btn btn-ghost" onclick="navigate(\'drenaet\')">↗️ Ouvrir l\'administration détaillée des IEPP</button>'+
+    '</div>';
+  return tools + panel + drCard;
+}
+window.caDrenaetBulk = function(dren, actif){
+  if(!caGuard()){ toast('Réservé au super administrateur national.', 'error'); return; }
+  var iepps = (state.drenaet||[]).filter(function(d){ return d.drenaet===dren; }).map(function(d){ return d.iepp; });
+  if(!iepps.length){ toast('Aucune IEPP dans cette DRENAET.', 'info'); return; }
+  if(!confirm((actif?'Activer':'Désactiver')+' TOUS les comptes de '+dren+' ('+iepps.length+' IEPP) ?')) return;
+  var n=0, keys={}; iepps.forEach(function(i){ keys[String(i).trim().toUpperCase()]=true; });
+  (state.users||[]).forEach(function(u){
+    if(u.role==='superadmin') return;
+    if(keys[String(u.iepp||'').trim().toUpperCase()]){ u.actif=!!actif; u._upd=Date.now(); n++; }
+  });
+  save('users', state.users);
+  logAction('drenaet-bulk-activation', (actif?'Activation':'Désactivation')+' région '+dren+' ('+n+' compte(s))');
+  toast(n+' compte(s) '+(actif?'activé(s) ✅':'désactivé(s) ⛔')+' — '+dren, actif?'success':'info');
+  caRenderPanel();
+};
+window.caExportActivation = function(){
+  var d = caData();
+  var rows = [['DRENAET','IEPP','Code','Chef','Écoles','Élèves','Statut']];
+  (state.drenaet||[]).forEach(function(x){ rows.push([x.drenaet,x.iepp,x.ieppCode||'',x.chef||'',x.ecoles||0,x.eleves||0,x.statut||'']); });
+  caExcel([{name:'Activation IEPP', rows:rows}], 'console_activation_iepp.xlsx');
+};
+window.caPrintActivation = function(){
+  var html = '<h2>État d\'activation des IEPP</h2><table><tr><th>DRENAET</th><th>IEPP</th><th>Code</th><th>Chef</th><th>Statut</th></tr>'+
+    (state.drenaet||[]).map(function(x){return '<tr><td>'+escapeHtml(x.drenaet)+'</td><td>'+escapeHtml(x.iepp)+'</td><td>'+escapeHtml(x.ieppCode||'')+'</td><td>'+escapeHtml(x.chef||'')+'</td><td>'+escapeHtml(x.statut||'')+'</td></tr>';}).join('')+'</table>';
+  caPrint(html, 'Activation & gestion des IEPP');
+};
+
+/* 3. STATISTIQUES NATIONALES */
+function caStats(){
+  var d = caData();
+  var roleData = Object.keys(d.byRole).sort(function(a,b){return d.byRole[b]-d.byRole[a];}).map(function(r){
+    return { label:(ROLES[r]&&ROLES[r].short)||r, value:d.byRole[r] };
+  });
+  var pyr = Object.keys(d.drenaets).sort().map(function(k){
+    return { label:k.replace(/^DRENAET\s+/i,''), left:d.drenaets[k].pres, right:d.drenaets[k].prim };
+  });
+  var ecolesDr = Object.keys(d.drenaets).map(function(k){ return { label:k.replace(/^DRENAET\s+/i,''), value:d.drenaets[k].ecoles }; })
+    .sort(function(a,b){return b.value-a.value;});
+  return caKpi([
+    { icon:'🎓', label:'Élèves (national)', value:d.totEleves.toLocaleString('fr-FR'), color:'#E76F51' },
+    { icon:'🏫', label:'Écoles', value:d.totEcoles.toLocaleString('fr-FR'), color:'#F4A261' },
+    { icon:'🏛️', label:'DRENAET', value:d.nDrenaet.toString(), color:'#1F6FEB' },
+    { icon:'👥', label:'Comptes', value:d.nUsers.toString(), color:'#8E44AD' },
+  ]) +
+  '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'+
+    '<button class="btn btn-ghost" onclick="caExportStats()">📊 Export Excel</button>'+
+    '<button class="btn btn-ghost" onclick="caPrintStats()">🖨️ Imprimer / PDF</button></div>'+
+  caCard('👥 Comptes par rôle (anneau)', caDonut(roleData, {size:160, sub:'comptes', center:d.nUsers.toString()})) +
+  caCard('🏫 Écoles par DRENAET', caBars(ecolesDr, {labelW:180})) +
+  caCard('🔺 Pyramide préscolaire / primaire (écoles) par DRENAET', caPyramid(pyr));
+}
+window.caExportStats = function(){
+  var d = caData();
+  var r1 = [['Rôle','Libellé','Comptes']];
+  Object.keys(d.byRole).forEach(function(r){ r1.push([r,(ROLES[r]&&ROLES[r].label)||r,d.byRole[r]]); });
+  var r2 = [['DRENAET','IEPP','Écoles','Élèves','Préscolaire','Primaire']];
+  Object.keys(d.drenaets).forEach(function(k){var x=d.drenaets[k];r2.push([k,x.iepp,x.ecoles,x.eleves,x.pres,x.prim]);});
+  caExcel([{name:'Par rôle',rows:r1},{name:'Par DRENAET',rows:r2}], 'console_statistiques.xlsx');
+};
+window.caPrintStats = function(){
+  var d = caData();
+  var html = '<h2>Comptes par rôle</h2><table><tr><th>Rôle</th><th>Comptes</th></tr>'+
+    Object.keys(d.byRole).map(function(r){return '<tr><td>'+escapeHtml((ROLES[r]&&ROLES[r].label)||r)+'</td><td>'+d.byRole[r]+'</td></tr>';}).join('')+'</table>'+
+    '<h2>Statistiques par DRENAET</h2><table><tr><th>DRENAET</th><th>IEPP</th><th>Écoles</th><th>Élèves</th></tr>'+
+    Object.keys(d.drenaets).map(function(k){var x=d.drenaets[k];return '<tr><td>'+escapeHtml(k)+'</td><td>'+x.iepp+'</td><td>'+x.ecoles+'</td><td>'+x.eleves+'</td></tr>';}).join('')+'</table>';
+  caPrint(html, 'Statistiques nationales');
+};
+
+/* 4. GESTION DES COMPTES */
+var caUserQuery='';
+function caComptes(){
+  var tools = '<div class="toolbar" style="margin-bottom:12px">'+
+    '<div class="search-input"><input id="ca-user-q" placeholder="Rechercher un compte (nom, identifiant, rôle, IEPP)..." oninput="caUserFilter(this.value)" value="'+escapeHtml(caUserQuery)+'"></div>'+
+    '<div style="flex:1"></div>'+
+    '<button class="btn btn-ghost" onclick="caExportComptes()">📊 Export Excel</button>'+
+    '<button class="btn btn-ghost" onclick="caPrintComptes()">🖨️ Imprimer / PDF</button>'+
+    '<button class="btn btn-primary" onclick="navigate(\'users\')">+ Gérer / créer (module complet)</button>'+
+    '</div>';
+  return tools + '<div class="card" style="padding:0"><div class="table-wrap" style="border:none"><table>'+
+    '<thead><tr><th>Compte</th><th>Rôle</th><th>IEPP</th><th>État</th><th style="text-align:right">Actions</th></tr></thead>'+
+    '<tbody id="ca-user-body"></tbody></table></div></div>';
+}
+function caUserRows(){
+  var q = caUserQuery.toLowerCase();
+  var list = (state.users||[]).filter(function(u){
+    if(!q) return true;
+    return [u.name,u.username,u.role,(ROLES[u.role]&&ROLES[u.role].label)||'',u.iepp,u.email].join(' ').toLowerCase().indexOf(q)>=0;
+  });
+  var tb = document.getElementById('ca-user-body');
+  if(!tb) return;
+  if(!list.length){ tb.innerHTML='<tr><td colspan="5" class="table-empty">Aucun compte trouvé</td></tr>'; return; }
+  tb.innerHTML = list.map(function(u){
+    var on = u.actif !== false;
+    var isSuper = u.role==='superadmin';
+    var un = String(u.username||'').replace(/'/g,"\\'");
+    return '<tr>'+
+      '<td><strong>'+escapeHtml(u.name||u.username)+'</strong><div class="text-xs text-muted">'+escapeHtml(u.username||'')+(u.email?' · '+escapeHtml(u.email):'')+'</div></td>'+
+      '<td><span class="badge badge-'+((ROLES[u.role]&&ROLES[u.role].color)||'grey')+' text-xs">'+escapeHtml((ROLES[u.role]&&ROLES[u.role].short)||u.role)+'</span></td>'+
+      '<td class="text-sm">'+escapeHtml(u.iepp||'—')+'</td>'+
+      '<td>'+(on?'<span class="badge badge-green">Actif</span>':'<span class="badge badge-orange">Inactif</span>')+'</td>'+
+      '<td style="text-align:right;white-space:nowrap">'+
+        (isSuper ? '<span class="text-xs text-muted">protégé</span>' :
+          (on ? '<button class="btn btn-ghost danger" style="padding:4px 9px" onclick="caUserToggle(\''+un+'\',false)">⛔ Désactiver</button>'
+              : '<button class="btn btn-ghost" style="padding:4px 9px;color:var(--green-deep)" onclick="caUserToggle(\''+un+'\',true)">✅ Activer</button>')+
+          ' <button class="btn btn-ghost" style="padding:4px 9px" onclick="caUserResetPwd(\''+un+'\')">🔑 Mot de passe</button>'+
+          ' <button class="btn btn-ghost danger" style="padding:4px 9px" onclick="caUserDelete(\''+un+'\')">🗑️</button>')+
+      '</td></tr>';
+  }).join('');
+}
+window.caUserFilter = function(v){ caUserQuery=v||''; caUserRows(); };
+window.caUserToggle = function(username, actif){
+  if(!caGuard()) return;
+  var u = (state.users||[]).filter(function(x){return x.username===username;})[0];
+  if(!u || u.role==='superadmin') return;
+  u.actif=!!actif; u._upd=Date.now(); save('users', state.users);
+  logAction('user-activation', (actif?'Activation':'Désactivation')+' du compte '+username);
+  toast('Compte '+(actif?'activé ✅':'désactivé ⛔'), actif?'success':'info');
+  caUserRows();
+};
+window.caUserResetPwd = function(username){
+  if(!caGuard()) return;
+  var u = (state.users||[]).filter(function(x){return x.username===username;})[0];
+  if(!u || u.role==='superadmin') return;
+  var np = prompt('Nouveau mot de passe pour « '+(u.name||username)+' » :');
+  if(np===null) return;
+  if(String(np).length<4){ toast('Mot de passe trop court (min. 4 caractères).', 'error'); return; }
+  Promise.resolve(hashPassword(np)).then(function(h){
+    u.passwordHash=h; u._upd=Date.now(); save('users', state.users);
+    logAction('user-password-reset', 'Réinitialisation du mot de passe de '+username);
+    toast('Mot de passe réinitialisé pour '+(u.name||username)+' ✅', 'success');
+  });
+};
+window.caUserDelete = function(username){
+  if(!caGuard()) return;
+  var u = (state.users||[]).filter(function(x){return x.username===username;})[0];
+  if(!u || u.role==='superadmin') return;
+  if(!confirm('Supprimer définitivement le compte « '+(u.name||username)+' » ?')) return;
+  state.users = (state.users||[]).filter(function(x){return x.username!==username;});
+  save('users', state.users);
+  logAction('user-delete', 'Suppression du compte '+username);
+  toast('Compte supprimé', 'info');
+  caUserRows();
+};
+window.caExportComptes = function(){
+  var rows=[['Nom','Identifiant','Rôle','IEPP','DRENAET','Email','État']];
+  (state.users||[]).forEach(function(u){ rows.push([u.name||'',u.username||'',(ROLES[u.role]&&ROLES[u.role].label)||u.role,u.iepp||'',u.drenaet||'',u.email||'',(u.actif!==false)?'Actif':'Inactif']); });
+  caExcel([{name:'Comptes', rows:rows}], 'console_comptes.xlsx');
+};
+window.caPrintComptes = function(){
+  var html='<h2>Comptes utilisateurs ('+(state.users||[]).length+')</h2><table><tr><th>Nom</th><th>Identifiant</th><th>Rôle</th><th>IEPP</th><th>État</th></tr>'+
+    (state.users||[]).map(function(u){return '<tr><td>'+escapeHtml(u.name||'')+'</td><td>'+escapeHtml(u.username||'')+'</td><td>'+escapeHtml((ROLES[u.role]&&ROLES[u.role].short)||u.role)+'</td><td>'+escapeHtml(u.iepp||'')+'</td><td>'+((u.actif!==false)?'Actif':'Inactif')+'</td></tr>';}).join('')+'</table>';
+  caPrint(html, 'Gestion des comptes');
+};
+
+/* 5. DRENAET & IEPP (circonscriptions) */
+function caCirconscriptions(){
+  var d = caData();
+  var zones = Object.keys(d.drenaets).sort().map(function(k){
+    var x=d.drenaets[k];
+    var iepps=(state.drenaet||[]).filter(function(y){return y.drenaet===k;});
+    return '<div class="card" style="padding:14px;margin-bottom:12px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'+
+        '<div class="card-title" style="margin:0">🏛️ '+escapeHtml(k)+'</div>'+
+        '<div class="text-xs text-muted">'+x.iepp+' IEPP · '+x.ecoles+' écoles · '+x.eleves.toLocaleString('fr-FR')+' élèves</div></div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">'+
+        iepps.map(function(y){return '<span class="badge badge-blue" style="font-size:11px">'+escapeHtml(y.iepp.replace(/^IEPP\s+/i,''))+(y.ieppCode?' ('+escapeHtml(y.ieppCode)+')':'')+'</span>';}).join('')+
+      '</div></div>';
+  }).join('');
+  var tools='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'+
+    '<button class="btn btn-primary" onclick="navigate(\'drenaet\')">+ Ajouter / modifier une IEPP</button>'+
+    '<button class="btn btn-ghost" onclick="caExportCirco()">📊 Export Excel</button>'+
+    '<button class="btn btn-ghost" onclick="caPrintCirco()">🖨️ Imprimer / PDF</button></div>';
+  return tools + caKpi([
+    { icon:'🏛️', label:'DRENAET', value:d.nDrenaet.toString(), color:'#1F6FEB' },
+    { icon:'🏫', label:'IEPP', value:d.nIepp.toString(), color:'#2A9D8F' },
+  ]) + (zones || '<div class="card"><div class="table-empty">Aucune circonscription enregistrée</div></div>');
+}
+window.caExportCirco = window.caExportActivation;
+window.caPrintCirco = function(){
+  var html='<h2>DRENAET & IEPP</h2><table><tr><th>DRENAET</th><th>IEPP</th><th>Code</th><th>Écoles</th><th>Élèves</th></tr>'+
+    (state.drenaet||[]).map(function(x){return '<tr><td>'+escapeHtml(x.drenaet)+'</td><td>'+escapeHtml(x.iepp)+'</td><td>'+escapeHtml(x.ieppCode||'')+'</td><td>'+(x.ecoles||0)+'</td><td>'+(x.eleves||0)+'</td></tr>';}).join('')+'</table>';
+  caPrint(html, 'DRENAET & IEPP');
+};
+
+/* 6. JOURNAL D'AUDIT */
+function caAudit(){
+  var list = (state.audit||[]);
+  var tools='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'+
+    '<button class="btn btn-ghost" onclick="caExportAudit()">📊 Export Excel</button>'+
+    '<button class="btn btn-ghost" onclick="caPrintAudit()">🖨️ Imprimer / PDF</button>'+
+    '<button class="btn btn-ghost danger" onclick="if(typeof clearAudit===\'function\'){clearAudit();caRenderPanel();}">🧹 Vider le journal</button></div>';
+  var body = !list.length ? '<div class="table-empty">Journal vide</div>' :
+    list.map(function(a){
+      return '<div class="audit-item"><div class="audit-dot">'+((a.action[0]||'?').toUpperCase())+'</div>'+
+        '<div class="audit-content"><div><strong>'+escapeHtml(a.user)+'</strong> <span class="badge badge-'+((ROLES[a.role]&&ROLES[a.role].color)||'grey')+' text-xs">'+escapeHtml((ROLES[a.role]&&ROLES[a.role].short)||a.role)+'</span> · '+escapeHtml(a.action)+'</div>'+
+        '<div class="text-muted text-sm">'+escapeHtml(a.details||'')+'</div><time>'+fmtDateTime(a.timestamp)+'</time></div></div>';
+    }).join('');
+  return tools + caCard('📜 Journal d\'audit national · '+list.length+' entrée(s)', '<div>'+body+'</div>');
+}
+window.caExportAudit = function(){
+  var rows=[['Date','Utilisateur','Rôle','IEPP','Action','Détails']];
+  (state.audit||[]).forEach(function(a){ rows.push([fmtDateTime(a.timestamp),a.user,a.role,a.iepp||'',a.action,a.details||'']); });
+  caExcel([{name:'Audit', rows:rows}], 'console_audit.xlsx');
+};
+window.caPrintAudit = function(){
+  var html='<h2>Journal d\'audit</h2><table><tr><th>Date</th><th>Utilisateur</th><th>Rôle</th><th>Action</th><th>Détails</th></tr>'+
+    (state.audit||[]).map(function(a){return '<tr><td>'+escapeHtml(fmtDateTime(a.timestamp))+'</td><td>'+escapeHtml(a.user)+'</td><td>'+escapeHtml(a.role)+'</td><td>'+escapeHtml(a.action)+'</td><td>'+escapeHtml(a.details||'')+'</td></tr>';}).join('')+'</table>';
+  caPrint(html, 'Journal d\'audit');
+};
+
+/* 7. SUPERVISION CLOUD */
+function caCloud(){
+  var badge = document.getElementById('sync-badge');
+  var statusTxt = badge ? badge.textContent.replace(/^●\s*/,'') : '—';
+  var online = (typeof navigator==='undefined') || navigator.onLine !== false;
+  var pending = (typeof window.__cloudPendingCount==='function') ? window.__cloudPendingCount() : '—';
+  return caKpi([
+    { icon: online?'🟢':'🔴', label:'Connexion', value: online?'En ligne':'Hors ligne', color: online?'#2A9D8F':'#E63946' },
+    { icon:'☁️', label:'Synchronisation', value:statusTxt, color:'#1F6FEB' },
+    { icon:'⏳', label:'Écritures en attente', value:String(pending), sub:'pendingPushes', color:'#F4A261' },
+  ]) +
+  caCard('☁️ Supervision de la synchronisation cloud',
+    '<p class="text-sm text-muted" style="margin:-4px 0 12px">Contrôle de la remontée des données entre les appareils, les IEPP, les DRENAET et le serveur.</p>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+      '<button class="btn btn-primary" onclick="caSyncNow()">🔄 Synchroniser maintenant</button>'+
+      '<button class="btn btn-ghost" onclick="caDiag()">🩺 Diagnostic cloud</button>'+
+      '<button class="btn btn-ghost" onclick="caRenderPanel()">↻ Rafraîchir l\'état</button>'+
+    '</div><div id="ca-diag-out" style="margin-top:12px;font-size:13px"></div>');
+}
+window.caSyncNow = function(){
+  if(typeof window.cloudSyncNow==='function'){ window.cloudSyncNow(); toast('Synchronisation lancée…', 'info'); setTimeout(caRenderPanel, 1500); }
+  else if(typeof syncNowTop==='function'){ syncNowTop(); }
+  else toast('Synchronisation indisponible.', 'error');
+};
+window.caDiag = function(){
+  var out = document.getElementById('ca-diag-out');
+  if(out) out.innerHTML='<span class="text-muted">Diagnostic en cours…</span>';
+  if(typeof window.__cloudDiagnostic!=='function'){ if(out) out.innerHTML='<span class="badge badge-orange">Diagnostic indisponible</span>'; return; }
+  window.__cloudDiagnostic().then(function(r){
+    if(!out) return;
+    var msg = { 'ok':'Cloud opérationnel (lecture/écriture OK)', 'hors-ligne':'Appareil hors ligne', 'non-charge':'Client cloud non chargé',
+      'table':'Table cloud absente — vérifiez la configuration', 'regles':'Règles d\'accès (RLS) à ajuster', 'reseau':'Problème réseau', 'lecture-ko':'Écriture OK mais lecture KO', 'erreur':'Erreur inconnue' }[r.msg] || r.msg;
+    out.innerHTML = '<div class="card" style="padding:12px;border-left:4px solid '+(r.ok?'#2A9D8F':'#E63946')+'">'+
+      (r.ok?'✅ ':'⚠️ ')+escapeHtml(msg)+(r.code?'<div class="text-xs text-muted" style="margin-top:4px">'+escapeHtml(r.code)+'</div>':'')+'</div>';
+    logAction('cloud-diagnostic', 'Diagnostic cloud : '+(r.ok?'OK':msg));
+  });
+};
+
+/* 8. SAUVEGARDE & RESTAURATION */
+function caBackup(){
+  return caCard('💾 Sauvegarde complète',
+    '<p class="text-sm text-muted" style="margin:-4px 0 12px">Exporte en un seul fichier l\'ensemble des données de la circonscription active (comptes, DRENAET/IEPP, audit, registres, paramètres…). Conservez ce fichier en lieu sûr.</p>'+
+    '<button class="btn btn-primary" onclick="caBackupExport()">⬇️ Télécharger la sauvegarde (.json)</button>') +
+  caCard('♻️ Restauration',
+    '<p class="text-sm text-muted" style="margin:-4px 0 12px">Réimporte une sauvegarde précédemment téléchargée. Les données actuelles seront remplacées par celles du fichier.</p>'+
+    '<label for="ca-restore-file" class="btn btn-ghost" style="cursor:pointer">📥 Choisir un fichier de sauvegarde</label>'+
+    '<input type="file" id="ca-restore-file" accept=".json" style="position:absolute;left:-9999px;opacity:0" onchange="caBackupImport(event)">'+
+    '<div id="ca-restore-out" style="margin-top:10px"></div>');
+}
+function caBackupKeys(){
+  return ['users','drenaet','ieppRegistry','audit','ecoles','effectifs','personnel','resultats','settings','params','absences'];
+}
+window.caBackupExport = function(){
+  var dump = { __meta:{ app:'Plateforme-IEPP', ts:new Date().toISOString(), by:state.user&&state.user.username, iepp:state.activeIepp||'' } };
+  caBackupKeys().forEach(function(k){ try{ if(typeof state[k]!=='undefined') dump[k]=state[k]; }catch(e){} });
+  var blob = new Blob([JSON.stringify(dump, null, 2)], {type:'application/json'});
+  var url = URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download='sauvegarde_iepp_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  logAction('backup-export', 'Sauvegarde complète téléchargée');
+  toast('Sauvegarde téléchargée ✅', 'success');
+};
+window.caBackupImport = function(ev){
+  var f = ev.target.files && ev.target.files[0]; if(!f) return;
+  var out = document.getElementById('ca-restore-out');
+  var rd = new FileReader();
+  rd.onload = function(){
+    try{
+      var data = JSON.parse(rd.result);
+      var keys = caBackupKeys().filter(function(k){ return typeof data[k]!=='undefined'; });
+      if(!keys.length){ if(out) out.innerHTML='<span class="badge badge-orange">Fichier non reconnu</span>'; return; }
+      if(!confirm('Restaurer '+keys.length+' jeu(x) de données ? Les données actuelles seront remplacées.')) return;
+      keys.forEach(function(k){ state[k]=data[k]; try{ save(k, state[k]); }catch(e){} });
+      logAction('backup-restore', 'Restauration : '+keys.join(', '));
+      if(out) out.innerHTML='<span class="badge badge-green">Restauration effectuée ('+keys.join(', ')+')</span>';
+      toast('Restauration effectuée ✅ — rechargez la page si besoin.', 'success');
+    }catch(e){ if(out) out.innerHTML='<span class="badge badge-orange">Fichier invalide</span>'; }
+  };
+  rd.readAsText(f);
+};
+
+/* 9. PARAMÈTRES & MAINTENANCE */
+var CA_DEFAULT_FOOTER = '© EPLUS 2026 - Tous droits réservés  |  Dernière mise à jour Août 2026  |  Conception et design DIOM-2Y — contact : +225 01-727-10-337';
+function caMeta(){
+  if(!state.platformMeta){
+    var saved=null; try{ saved=load('platformMeta', null); }catch(e){}
+    state.platformMeta = saved || {};
+  }
+  var m = state.platformMeta;
+  if(!m.version)   m.version   = '1.0';
+  if(!m.reference) m.reference = 'CDC-IEPP-2026-001';
+  if(!m.footer)    m.footer    = CA_DEFAULT_FOOTER;
+  return m;
+}
+function caMetaSave(){ try{ save('platformMeta', state.platformMeta); }catch(e){} }
+function caApplyMeta(){
+  var m = caMeta();
+  try{ var lv=document.getElementById('login-version'); if(lv) lv.textContent='Plateforme IEPP v'+m.version; }catch(e){}
+  try{ var lr=document.getElementById('login-ref'); if(lr) lr.textContent='Référence : '+m.reference; }catch(e){}
+  try{ var af=document.getElementById('app-footer'); if(af) af.innerHTML=escapeHtml(m.footer).replace(/\|/g,'&nbsp;|&nbsp;'); }catch(e){}
+}
+window.caApplyMeta = caApplyMeta;
+function caParams(){
+  var an = (typeof anneeScolaireRef==='function') ? anneeScolaireRef() : '2026-2027';
+  var m = caMeta();
+  return caCard('⚙️ Paramètres système',
+    '<div style="display:grid;grid-template-columns:190px 1fr;gap:10px 14px;align-items:center;max-width:620px">'+
+      '<label style="font-weight:600;font-size:13px">Année scolaire</label>'+
+      '<input id="ca-annee" value="'+escapeHtml(an)+'" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px">'+
+      '<label style="font-weight:600;font-size:13px">En-tête officiel</label>'+
+      '<input id="ca-header" value="MENAET · Côte d\'Ivoire" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px">'+
+      '<label style="font-weight:600;font-size:13px">Version de la plateforme</label>'+
+      '<div style="display:flex;gap:8px;align-items:center"><span style="font-size:13px;color:#607089">Plateforme IEPP v</span>'+
+        '<input id="ca-version" value="'+escapeHtml(m.version)+'" style="width:90px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-weight:700">'+
+        '<button class="btn btn-ghost" style="padding:6px 12px" onclick="caBumpVersion()" title="Augmenter le numéro de version">＋ Incrémenter</button></div>'+
+      '<label style="font-weight:600;font-size:13px">Référence</label>'+
+      '<input id="ca-ref" value="'+escapeHtml(m.reference)+'" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px">'+
+      '<label style="font-weight:600;font-size:13px;align-self:start;padding-top:8px">Pied de page</label>'+
+      '<textarea id="ca-footer" rows="3" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-family:inherit;resize:vertical">'+escapeHtml(m.footer)+'</textarea>'+
+    '</div>'+
+    '<div style="margin-top:14px"><button class="btn btn-primary" onclick="caSaveParams()">💾 Enregistrer les paramètres</button></div>'+
+    '<div class="text-xs text-muted" style="margin-top:10px">Ces informations mettent à jour l\'écran de connexion et le pied de page de toutes les pages.</div>') +
+  caCard('🧰 Maintenance & supervision technique',
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+      '<button class="btn btn-ghost" onclick="caGo(\'cloud\')">☁️ État de la synchronisation</button>'+
+      '<button class="btn btn-ghost" onclick="caGo(\'audit\')">📜 Journal d\'audit</button>'+
+      '<button class="btn btn-ghost" onclick="navigate(\'corbeille\')">🗑️ Corbeille (restauration)</button>'+
+      '<button class="btn btn-ghost" onclick="navigate(\'parametres\')">🧩 Services du système</button>'+
+      '<button class="btn btn-ghost danger" onclick="if(typeof openResetCirconscription===\'function\')openResetCirconscription()">♻️ Réinitialiser les données</button>'+
+    '</div>'+
+    '<div class="text-xs text-muted" style="margin-top:10px">Version plateforme : <strong>Plateforme IEPP v'+escapeHtml(m.version)+'</strong> · MENAET · '+escapeHtml(an)+'</div>');
+}
+window.caBumpVersion = function(){
+  var el = document.getElementById('ca-version'); if(!el) return;
+  var v = (el.value||'1.0').trim();
+  var parts = v.split('.');
+  var last = parts.length ? parts[parts.length-1] : '0';
+  if(/^\d+$/.test(last)){ parts[parts.length-1] = (parseInt(last,10)+1).toString(); el.value = parts.join('.'); }
+  else { el.value = v + '.1'; }
+};
+window.caSaveParams = function(){
+  var an = (document.getElementById('ca-annee')||{}).value || '';
+  var m = caMeta();
+  m.version   = ((document.getElementById('ca-version')||{}).value || '1.0').trim();
+  m.reference = ((document.getElementById('ca-ref')||{}).value || '').trim();
+  m.footer    = ((document.getElementById('ca-footer')||{}).value || CA_DEFAULT_FOOTER).trim();
+  caMetaSave();
+  var badge = document.getElementById('anscolaire-badge');
+  if(badge && an) badge.textContent = 'Année scolaire '+an;
+  caApplyMeta();
+  logAction('params-update', 'Paramètres système — version : Plateforme IEPP v'+m.version+' · année : '+an);
+  toast('Paramètres enregistrés ✅ (version v'+m.version+')', 'success');
+  caRenderPanel();
+};
+
+/* MATRICE D'ACTION DU SUPER ADMINISTRATEUR (25 domaines) */
+var CA_MATRICE = [
+ [1,'Administration générale','Administrer la plateforme au niveau national','Configurer les paramètres généraux, gérer les modules et contrôler le fonctionnement global','Plateforme fonctionnelle','Permanent','Plateforme disponible et opérationnelle'],
+ [2,'Gestion des utilisateurs','Gérer les comptes et les droits d\'accès','Créer, modifier, désactiver et supprimer les comptes selon les habilitations','Nombre de comptes créés/activés/désactivés','Permanent','Accès maîtrisés et sécurisés'],
+ [3,'Gestion des rôles','Contrôler les profils utilisateurs','Attribuer les rôles : Superadmin, Cabinet, DRENAET, IEPP, Directeur, Instituteur, etc.','% de comptes avec rôle conforme','Mensuel','Droits d\'accès conformes aux responsabilités'],
+ [4,'Gestion DRENAET','Administrer les structures régionales','Enregistrer, modifier et contrôler les DRENAET','Nombre de DRENAET à jour','Selon besoin','Répertoire DRENAET fiable'],
+ [5,'Gestion IEPP','Administrer les circonscriptions','Créer, modifier, activer ou désactiver les IEPP et les rattacher aux DRENAET','% d\'IEPP correctement rattachées','Mensuel','Organisation territoriale fiable'],
+ [6,'Création des comptes IEPP','Superviser la création des comptes','Contrôler les comptes des inspecteurs, adjoints et agents','Nombre de comptes opérationnels','Permanent','Chaque utilisateur dispose du compte approprié'],
+ [7,'Activation des comptes','Contrôler l\'activation des accès','Activation automatique selon calendrier ou activation manuelle','Taux de comptes activés','Selon calendrier','Accès disponibles aux périodes prévues'],
+ [8,'Synchronisation','Superviser la synchronisation des données','Contrôler les remontées entre appareils, IEPP, DRENAET et serveur','Taux de synchronisation réussie','Quotidien','Données synchronisées sans perte'],
+ [9,'Gestion des données','Garantir l\'intégrité des données','Contrôler les doublons, incohérences, données manquantes et anomalies','Nombre d\'anomalies détectées/corrigées','Hebdomadaire','Données fiables et cohérentes'],
+ [10,'Sécurité','Assurer la sécurité de la plateforme','Contrôler les accès, permissions, sessions et opérations sensibles','Nombre d\'incidents de sécurité','Permanent','Plateforme sécurisée'],
+ [11,'Sauvegarde','Protéger les données','Vérifier les sauvegardes et la possibilité de restauration','Nombre de sauvegardes réalisées','Quotidien/hebdo.','Données protégées contre les pertes'],
+ [12,'Suivi des connexions','Contrôler l\'utilisation de la plateforme','Suivre les connexions et les activités importantes','Nombre de connexions/activités','Hebdomadaire','Utilisation maîtrisée'],
+ [13,'Tableau de bord','Superviser les indicateurs nationaux','Consulter et analyser les statistiques DRENAET/IEPP','Nombre d\'indicateurs disponibles','Permanent','Situation nationale visible en temps réel'],
+ [14,'Notifications','Superviser les alertes','Paramétrer et contrôler les notifications destinées aux utilisateurs','Nombre de notifications envoyées','Selon besoin','Utilisateurs informés à temps'],
+ [15,'Validation','Superviser les processus de validation','Contrôler les données ou documents nécessitant une validation','Taux de validations effectuées','Hebdomadaire','Données régulièrement validées'],
+ [16,'Assistance technique','Assurer le support aux utilisateurs','Diagnostiquer les problèmes de connexion, synchronisation et utilisation','Nombre de demandes traitées','Permanent','Problèmes résolus rapidement'],
+ [17,'Maintenance','Assurer le bon fonctionnement technique','Identifier les erreurs, tester les corrections et suivre les mises à jour','Nombre d\'incidents résolus','Permanent','Plateforme stable'],
+ [18,'Données par année scolaire','Garantir l\'historisation','Vérifier la visibilité et la séparation des données par année scolaire','% de données correctement classées','Chaque campagne','Données accessibles par année scolaire'],
+ [19,'Gestion des paramètres','Configurer les paramètres nationaux','Année scolaire, calendrier, structures, profils et paramètres généraux','Nombre de paramètres mis à jour','Selon besoin','Paramétrage conforme'],
+ [20,'Audit','Contrôler les opérations réalisées','Vérifier les créations, modifications, suppressions et validations','Nombre d\'opérations auditées','Mensuel','Traçabilité assurée'],
+ [21,'Formation','Accompagner les administrateurs','Former les DRENAET et IEPP administrateurs à l\'utilisation de la plateforme','Nombre de personnes formées','Selon besoin','Utilisateurs autonomes'],
+ [22,'Communication','Diffuser les informations importantes','Publier les notes, consignes, annonces et informations techniques','Nombre de communications diffusées','Selon besoin','Information correctement relayée'],
+ [23,'Évaluation','Évaluer la performance de la plateforme','Analyser les statistiques d\'utilisation et les difficultés rencontrées','Rapport d\'évaluation','Trimestriel','Amélioration continue'],
+ [24,'Amélioration continue','Faire évoluer la plateforme','Recueillir les besoins, proposer des améliorations et tester les nouvelles fonctionnalités','Nombre d\'améliorations mises en œuvre','Trimestriel','Plateforme adaptée aux besoins'],
+ [25,'Rapportage','Produire les rapports de supervision','Élaborer des rapports sur l\'utilisation, les incidents, les comptes et les données','Nombre de rapports produits','Mensuel/trim.','Décisions appuyées par des données']
+];
+var CA_MAT_STATUTS = ['À faire','En cours','Réalisé'];
+var CA_MAT_FIELDS = [
+  { k:'domaine',    label:'Domaine' },
+  { k:'actions',    label:'Actions principales' },
+  { k:'activites',  label:'Activités à réaliser' },
+  { k:'indicateurs',label:'Indicateurs' },
+  { k:'frequence',  label:'Fréquence' },
+  { k:'resultats',  label:'Résultats attendus' }
+];
+var caMatEditId = null;
+function caMatSeed(){
+  var suivi = {};
+  try{ suivi = load('superadminMatrice', {})||{}; }catch(e){}
+  return CA_MATRICE.map(function(r){
+    var s = suivi[r[0]]||{};
+    return { id:'m'+r[0], domaine:r[1], actions:r[2], activites:r[3], indicateurs:r[4], frequence:r[5], resultats:r[6], statut:s.statut||'À faire', obs:s.obs||'' };
+  });
+}
+function caMatData(){
+  if(!state.superadminMatriceData){
+    var saved = null;
+    try{ saved = load('superadminMatriceData', null); }catch(e){}
+    state.superadminMatriceData = (saved && saved.length) ? saved : caMatSeed();
+    try{ save('superadminMatriceData', state.superadminMatriceData); }catch(e){}
+  }
+  return state.superadminMatriceData;
+}
+function caMatSave(){ try{ save('superadminMatriceData', state.superadminMatriceData); }catch(e){} }
+function caMatRow(id){ return caMatData().filter(function(r){ return r.id===id; })[0]; }
+
+function caMatrice(){
+  var data = caMatData();
+  var statColor = { 'À faire':'orange', 'En cours':'blue', 'Réalisé':'green' };
+  var rows = data.map(function(r, i){
+    var editing = (caMatEditId===r.id);
+    if(editing){
+      var cell = function(f){
+        return '<td><textarea id="cam-'+r.id+'-'+f.k+'" rows="3" style="width:100%;min-width:120px;padding:5px;border:1px solid var(--blue);border-radius:6px;font-size:11px;font-family:inherit;resize:vertical">'+escapeHtml(r[f.k]||'')+'</textarea></td>';
+      };
+      return '<tr style="background:#F0F7FF">'+
+        '<td style="text-align:center;font-weight:700">'+(i+1)+'</td>'+
+        CA_MAT_FIELDS.map(cell).join('')+
+        '<td colspan="2" style="vertical-align:top;white-space:nowrap">'+
+          '<button class="btn btn-primary" style="padding:5px 10px" onclick="caMatSaveRow(\''+r.id+'\')">💾 Enregistrer</button> '+
+          '<button class="btn btn-ghost" style="padding:5px 10px" onclick="caMatCancel(\''+r.id+'\')">✖ Annuler</button>'+
+        '</td></tr>';
+    }
+    var cur = r.statut || 'À faire';
+    var opts = CA_MAT_STATUTS.map(function(o){ return '<option'+(o===cur?' selected':'')+'>'+o+'</option>'; }).join('');
+    return '<tr>'+
+      '<td style="text-align:center;font-weight:700">'+(i+1)+'</td>'+
+      '<td style="font-weight:600;color:#0A2540">'+escapeHtml(r.domaine)+'</td>'+
+      '<td>'+escapeHtml(r.actions)+'</td>'+
+      '<td class="text-sm">'+escapeHtml(r.activites)+'</td>'+
+      '<td class="text-sm">'+escapeHtml(r.indicateurs)+'</td>'+
+      '<td class="text-sm" style="white-space:nowrap">'+escapeHtml(r.frequence)+'</td>'+
+      '<td class="text-sm">'+escapeHtml(r.resultats)+'</td>'+
+      '<td><span class="badge badge-'+(statColor[cur]||'grey')+' text-xs">'+cur+'</span>'+
+        '<select onchange="caMatSetStatut(\''+r.id+'\',this.value)" style="margin-top:4px;width:100%;padding:4px;border:1px solid var(--line);border-radius:6px;font-size:11px">'+opts+'</select></td>'+
+      '<td><input value="'+escapeHtml(r.obs||'')+'" onchange="caMatSetObs(\''+r.id+'\',this.value)" placeholder="Observation…" style="width:120px;padding:5px;border:1px solid var(--line);border-radius:6px;font-size:11px"></td>'+
+      '<td style="white-space:nowrap">'+
+        '<button class="btn btn-ghost" style="padding:4px 8px" onclick="caMatEdit(\''+r.id+'\')" title="Modifier">✏️</button>'+
+        '<button class="btn btn-ghost danger" style="padding:4px 8px" onclick="caMatDelete(\''+r.id+'\')" title="Supprimer">🗑️</button>'+
+      '</td></tr>';
+  }).join('');
+  var done = data.filter(function(r){ return r.statut==='Réalisé'; }).length;
+  var prog = data.length ? Math.round(done/data.length*100) : 0;
+  var tools = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">'+
+    '<button class="btn btn-primary" onclick="caMatAdd()">+ Ajouter un domaine</button>'+
+    '<button class="btn btn-ghost" onclick="caExportMatrice()">📊 Export Excel</button>'+
+    '<button class="btn btn-ghost" onclick="caPrintMatrice()">🖨️ Imprimer / PDF</button>'+
+    '<button class="btn btn-ghost danger" onclick="caMatReset()">↺ Restaurer la matrice officielle</button>'+
+    '<div style="flex:1"></div>'+
+    '<div style="font-size:12px;color:#607089">Avancement : <strong>'+done+'/'+data.length+'</strong> réalisé(s) ('+prog+'%)</div>'+
+    '<div style="width:130px;background:#EEF2F7;border-radius:6px;height:10px;overflow:hidden"><div style="width:'+prog+'%;height:100%;background:#2A9D8F"></div></div>'+
+    '</div>';
+  var intro = '<p class="text-sm text-muted" style="margin:-2px 0 12px">Matrice d\'action du Super Administrateur — <strong>entièrement modifiable</strong> : ajoutez, modifiez ou supprimez des domaines, suivez le statut et les observations. Tout est enregistré automatiquement. « Restaurer la matrice officielle » recharge les 25 domaines d\'origine.</p>';
+  return caCard('📋 Matrice d\'action du Super Administrateur',
+    intro + tools +
+    '<div style="overflow:auto"><table class="table" style="width:100%;font-size:12px;border-collapse:collapse">'+
+    '<thead><tr style="text-align:left;color:var(--ink-soft);background:#F8FAFC">'+
+    '<th style="text-align:center">N°</th><th>Domaine</th><th>Actions principales</th><th>Activités à réaliser</th><th>Indicateurs</th><th>Fréquence</th><th>Résultats attendus</th><th>Statut</th><th>Observations</th><th></th>'+
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>');
+}
+window.caMatEdit = function(id){ caMatEditId = id; caRenderPanel(); };
+window.caMatCancel = function(id){
+  var r = caMatRow(id);
+  /* Une ligne nouvellement ajoutée et vide est retirée si on annule */
+  if(r && r._new && !r.domaine && !r.actions && !r.activites){
+    state.superadminMatriceData = caMatData().filter(function(x){ return x.id!==id; });
+    caMatSave();
+  }
+  caMatEditId = null; caRenderPanel();
+};
+window.caMatSaveRow = function(id){
+  var r = caMatRow(id); if(!r) return;
+  CA_MAT_FIELDS.forEach(function(f){
+    var el = document.getElementById('cam-'+id+'-'+f.k);
+    if(el) r[f.k] = el.value.trim();
+  });
+  delete r._new;
+  caMatSave();
+  logAction('matrice-edit', 'Matrice SA — domaine modifié : '+(r.domaine||'(sans titre)'));
+  caMatEditId = null; caRenderPanel();
+  toast('Domaine enregistré ✅', 'success');
+};
+window.caMatAdd = function(){
+  var data = caMatData();
+  var id = 'm'+Date.now();
+  data.push({ id:id, domaine:'', actions:'', activites:'', indicateurs:'', frequence:'', resultats:'', statut:'À faire', obs:'', _new:true });
+  caMatSave();
+  caMatEditId = id; caRenderPanel();
+};
+window.caMatDelete = function(id){
+  var r = caMatRow(id); if(!r) return;
+  if(!confirm('Supprimer le domaine « '+(r.domaine||'sans titre')+' » ?')) return;
+  state.superadminMatriceData = caMatData().filter(function(x){ return x.id!==id; });
+  caMatSave();
+  logAction('matrice-delete', 'Matrice SA — domaine supprimé : '+(r.domaine||''));
+  toast('Domaine supprimé', 'info'); caRenderPanel();
+};
+window.caMatReset = function(){
+  if(!confirm('Restaurer la matrice officielle (25 domaines) ?\nVos statuts et observations actuels seront conservés lorsque le domaine existe encore.')) return;
+  state.superadminMatriceData = caMatSeed();
+  caMatSave();
+  logAction('matrice-reset', 'Matrice SA — restauration de la matrice officielle');
+  toast('Matrice officielle restaurée ✅', 'success'); caMatEditId=null; caRenderPanel();
+};
+window.caMatSetStatut = function(id, v){
+  var r = caMatRow(id); if(!r) return; r.statut = v; caMatSave();
+  logAction('matrice-suivi', 'Matrice SA — '+(r.domaine||id)+' : '+v);
+  caRenderPanel();
+};
+window.caMatSetObs = function(id, v){
+  var r = caMatRow(id); if(!r) return; r.obs = v; caMatSave();
+};
+window.caExportMatrice = function(){
+  var data = caMatData();
+  var rows = [['N°','Domaine','Actions principales','Activités à réaliser','Indicateurs','Fréquence','Résultats attendus','Statut','Observations']];
+  data.forEach(function(r,i){ rows.push([i+1, r.domaine, r.actions, r.activites, r.indicateurs, r.frequence, r.resultats, r.statut||'', r.obs||'']); });
+  caExcel([{name:'Matrice SA', rows:rows}], 'matrice_super_administrateur.xlsx');
+};
+window.caPrintMatrice = function(){
+  var data = caMatData();
+  var html='<h2>Matrice d\'action du Super Administrateur</h2><table style="font-size:9px"><tr><th>N°</th><th>Domaine</th><th>Actions</th><th>Activités</th><th>Indicateurs</th><th>Fréquence</th><th>Résultats attendus</th><th>Statut</th><th>Observations</th></tr>'+
+    data.map(function(r,i){ return '<tr><td>'+(i+1)+'</td><td>'+escapeHtml(r.domaine)+'</td><td>'+escapeHtml(r.actions)+'</td><td>'+escapeHtml(r.activites)+'</td><td>'+escapeHtml(r.indicateurs)+'</td><td>'+escapeHtml(r.frequence)+'</td><td>'+escapeHtml(r.resultats)+'</td><td>'+escapeHtml(r.statut||'')+'</td><td>'+escapeHtml(r.obs||'')+'</td></tr>'; }).join('')+'</table>';
+  caPrint(html, 'Matrice d\'action du Super Administrateur');
+};
+
+/* ================= ROUTEUR & RENDU ================= */
+var CA_RENDER = {
+  dashboard:caDashboard, activation:caActivation, stats:caStats, comptes:caComptes,
+  circonscriptions:caCirconscriptions, matrice:caMatrice, audit:caAudit, cloud:caCloud, backup:caBackup, params:caParams
+};
+
+function caRenderPanel(){
+  var panel = document.getElementById('ca-panel');
+  if(!panel) return;
+  var fn = CA_RENDER[caCurrent] || caDashboard;
+  panel.innerHTML = fn();
+  if(caCurrent==='comptes') caUserRows();
+  document.querySelectorAll('.ca-nav-item').forEach(function(el){
+    el.classList.toggle('active', el.dataset.sec===caCurrent);
+  });
+}
+window.caRenderPanel = caRenderPanel;
+
+window.caGo = function(sec){
+  caCurrent = sec;
+  caRenderPanel();
+};
+
+function renderConsoleAdmin(){
+  if(!caGuard()){
+    setContent('<div class="card" style="text-align:center;padding:40px"><div style="font-size:42px">🔒</div>'+
+      '<h3 style="margin:12px 0">Accès réservé</h3><p class="text-muted">La Console nationale est exclusivement réservée au Grand Administrateur National.</p></div>');
+    return;
+  }
+  var d = caData();
+  var nav = CA_SECTIONS.map(function(s){
+    return '<div class="ca-nav-item'+(s.id===caCurrent?' active':'')+'" data-sec="'+s.id+'" onclick="caGo(\''+s.id+'\')">'+
+      '<span style="font-size:16px;width:22px;text-align:center;flex:none">'+s.icon+'</span><span>'+escapeHtml(s.label)+'</span></div>';
+  }).join('');
+  setContent(
+    '<style>'+
+      '.ca-wrap{display:flex;gap:16px;align-items:flex-start}'+
+      '.ca-sidenav{flex:none;width:250px;position:sticky;top:12px}'+
+      '.ca-nav-item{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:600;color:#334155;margin-bottom:4px;border:1px solid transparent;transition:all .15s}'+
+      '.ca-nav-item:hover{background:#F1F5F9}'+
+      '.ca-nav-item.active{background:linear-gradient(135deg,#1F6FEB 0%,#0A4DA6 100%);color:#fff;border-color:#0A4DA6;box-shadow:0 3px 10px -3px rgba(10,77,166,.5)}'+
+      '.ca-panel{flex:1;min-width:0;max-width:100%}'+
+      '.ca-panel .card{max-width:100%;overflow-x:auto}'+
+      '.ca-panel [style*="overflow"]{max-height:68vh}'+
+      '.ca-panel table{max-width:100%}'+
+      '.ca-panel input,.ca-panel textarea,.ca-panel select{max-width:100%}'+
+      '@media(max-width:860px){.ca-wrap{flex-direction:column}.ca-sidenav{width:100%;position:static;display:flex;flex-wrap:wrap;gap:6px}.ca-nav-item{margin:0;flex:1 1 auto;min-width:140px}}'+
+    '</style>'+
+    '<div class="hero" style="background:linear-gradient(135deg,#0A4DA6 0%,#002F5A 100%)">'+
+      '<h3>🛰️ Console <em>Super Administrateur</em></h3>'+
+      '<p>Centre national de pilotage, d\'administration, de sécurité, de statistiques, de sauvegarde et de maintenance de la Plateforme-IEPP.</p>'+
+      '<div class="hero-stats">'+
+        '<div><span>'+d.nDrenaet+'</span><span>DRENAET</span></div>'+
+        '<div><span>'+d.nIepp+'</span><span>IEPP</span></div>'+
+        '<div><span>'+d.nUsers+'</span><span>Comptes</span></div>'+
+        '<div><span>'+d.totEleves.toLocaleString('fr-FR')+'</span><span>Élèves</span></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="ca-wrap"><div class="ca-sidenav">'+nav+'</div><div class="ca-panel" id="ca-panel"></div></div>'
+  );
+  caRenderPanel();
+}
+window.renderConsoleAdmin = renderConsoleAdmin;
+
+/* Injection du menu latéral (section réservée au super administrateur) */
+function caInjectSidebar(){
+  try{
+    if(document.getElementById('sb-console-section')) return;
+    var sidebar = document.querySelector('.sidebar') || document.querySelector('[class*="sidebar"]');
+    var anchor = document.getElementById('sb-drenaet-section');
+    if(!anchor && !sidebar) return;
+    var sec = document.createElement('div');
+    sec.className = 'sb-section';
+    sec.id = 'sb-console-section';
+    sec.innerHTML = '<div class="sb-section-title">Console nationale</div>'+
+      '<div class="sb-link" data-module="console-admin" onclick="navigate(\'console-admin\')">'+
+      '<span class="sb-icon" style="background:#0A4DA6;color:#fff">🛰️</span><span>Console Super Admin</span></div>';
+    if(anchor && anchor.parentNode){ anchor.parentNode.insertBefore(sec, anchor); }
+    else if(sidebar){ sidebar.insertBefore(sec, sidebar.firstChild); }
+  }catch(e){ console.warn('[Console] sidebar', e); }
+}
+
+/* Enregistrement dans la table des modules + ACL, après chargement */
+function caWire(){
+  try{
+    if(typeof MODULES!=='undefined' && !MODULES['console-admin']){
+      MODULES['console-admin'] = { title:'Console Super Administrateur', sub:'Centre national de pilotage · réservé au Grand Administrateur', render: renderConsoleAdmin };
+    }
+    if(typeof ACL!=='undefined' && ACL.superadmin && ACL.superadmin.indexOf('console-admin')<0){
+      ACL.superadmin.unshift('console-admin');
+    }
+  }catch(e){ console.warn('[Console] câblage', e); }
+  caInjectSidebar();
+  try{ caApplyMeta(); }catch(e){}
+  /* La section n'est visible que pour le super administrateur */
+  try{
+    if(!window.__caApplyAclWrapped && typeof window.applyACL==='function'){
+      var _applyACL = window.applyACL;
+      window.applyACL = function(){
+        var r = _applyACL.apply(this, arguments);
+        try{
+          var sec = document.getElementById('sb-console-section');
+          if(sec) sec.style.display = (state.user && state.user.role==='superadmin') ? '' : 'none';
+        }catch(e){}
+        try{
+          /* Conteneur imbriqué « Secteurs » sous Espace Conseiller CPPP : suit la visibilité du lien secteurs */
+          var nest = document.querySelector('.sb-nest-cppp');
+          if(nest){ var lk = nest.querySelector('.sb-link[data-module="secteurs"]'); nest.style.display = (lk && lk.style.display!=='none') ? '' : 'none'; }
+        }catch(e){}
+        return r;
+      };
+      window.__caApplyAclWrapped = true;
+    }
+  }catch(e){}
+}
+caWire();
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', caWire);
+
+})();
+
+</script>
+
 </body>
 </html>
