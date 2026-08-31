@@ -1623,10 +1623,10 @@ const ACL = {
   cpi:          ['dashboard','corbeille','statistiques','rapports','ecoles','cpi','vie-scolaire','rh','absences','archives','users','examens','stat-effectifs','stat-situation','carte-prescolaire','carte-primaire','carte-rapport','pnapas','aser','aser-livret','aser-ace'],
   /* Directeur d'école : voit son école (espace personnel) + modules d'école */
   /* Directeur — accès strictement limité à son espace école */
-  directeur:    ['dashboard','mon-ecole','absences','perroquet-notes'],
+  directeur:    ['dashboard','mon-ecole','immatriculation','absences','perroquet-notes'],
   /* Instituteur : voit sa classe (espace personnel) + demandes personnelles */
   /* Instituteur — accès strictement limité à son espace classe */
-  instituteur:  ['dashboard','ma-classe','perroquet-notes'],
+  instituteur:  ['dashboard','ma-classe','immatriculation','perroquet-notes'],
   correspondant:['dashboard','corbeille','rh','absences','courrier','archives','users','examens', ...CORRESPONDANT_MODULES],
   /* Correspondant statistique (IEPP) : tableaux de bord + tous les tableaux statistiques (correction des données) */
   corresp_stat: ['dashboard','statistiques','rapports','archives','courrier','stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','fiche-prescolaire','fiche-primaire','fiche-alphabetisation','fiche-islamique','fiche-generateur','carte-prescolaire','carte-primaire','carte-secondaire','carte-rapport','pnapas','aser','aser-livret','aser-ace','etat-compositions','perroquet-notes'],
@@ -2422,16 +2422,44 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
     ]);
   }
 
-  /* --- Accès table app_data --- */
+  /* --- Accès table app_data (SDK Supabase, avec repli REST direct) --- */
+  /* Écriture REST directe (upsert) — secours quand le SDK n'est pas chargé
+     (CDN bloqué par le réseau). Symétrique de restGet défini plus bas. */
+  async function restSet(fullKey, jsonStr){
+    var url = SUPABASE_URL + '/rest/v1/' + CLOUD_TABLE + '?on_conflict=key';
+    var res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
+      },
+      body: JSON.stringify({ key: fullKey, json: jsonStr, updated_at: new Date().toISOString() })
+    });
+    if (!res.ok){ var t=''; try{ t = await res.text(); }catch(e){} throw new Error('REST ' + res.status + (t?(' '+t.slice(0,140)):'')); }
+    return true;
+  }
   async function sbSet(fullKey, jsonStr){
-    const { error } = await sb.from(CLOUD_TABLE)
-      .upsert({ key: fullKey, json: jsonStr, updated_at: new Date().toISOString() }, { onConflict: 'key' });
-    if (error) throw error;
+    if (sb) {
+      try {
+        const { error } = await sb.from(CLOUD_TABLE)
+          .upsert({ key: fullKey, json: jsonStr, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+        if (error) throw error;
+        return;
+      } catch(e){ await restSet(fullKey, jsonStr); return; }   /* repli REST si le SDK échoue */
+    }
+    await restSet(fullKey, jsonStr);                            /* pas de SDK -> REST direct */
   }
   async function sbGet(fullKey){
-    const { data, error } = await sb.from(CLOUD_TABLE).select('json').eq('key', fullKey).maybeSingle();
-    if (error) throw error;
-    return data ? data.json : null;   // null si la ligne n'existe pas
+    if (sb) {
+      try {
+        const { data, error } = await sb.from(CLOUD_TABLE).select('json').eq('key', fullKey).maybeSingle();
+        if (error) throw error;
+        return data ? data.json : null;
+      } catch(e){ return await restGet(fullKey); }              /* repli REST si le SDK échoue */
+    }
+    return await restGet(fullKey);                              /* pas de SDK -> REST direct */
   }
 
   /* Écriture réelle vers Supabase */
@@ -2571,7 +2599,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
   };
 
   window.__cloudPush = function(fullKey, val){
-    if (!sb || !cloudReady){
+    if (!cloudReady){
       pendingPushes.set(fullKey, val);
       return Promise.resolve({queued:true, ok:false});
     }
@@ -2588,7 +2616,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
   };
 
   function flushPending(){
-    if (!sb || !cloudReady) return;
+    if (!cloudReady) return;
     pendingPushes.forEach(function(val, fullKey){
       if (isUsersKey(fullKey)) usersPushChain = usersPushChain.then(function(){ return pushUsersMerged(fullKey, val); }).catch(function(e){ console.warn('[Cloud] file comptes', e); });
       else if (isIeppRegKey(fullKey)) pushIeppRegMerged(fullKey, val);
@@ -2715,8 +2743,23 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
       console.log('%c[Cloud] ✔ Supabase actif (cloudReady=true)', 'color:#2A9D8F;font-weight:bold');
       setTimeout(function(){ const el=document.getElementById('cloud-status'); if(el) el.style.opacity='0'; }, 3200);
     } catch(e){
-      console.error('[Cloud] initialisation échouée', e);
-      setStatus('Hors ligne (local)', '#E63946');
+      console.warn('[Cloud] SDK indisponible — bascule en mode REST direct', e);
+      /* Le SDK (CDN) n'a pas pu se charger : on tente le MODE REST DIRECT, qui
+         écrit ET lit via l'API REST de Supabase, sans le SDK. C'est ce qui permet
+         aux comptes créés d'atteindre le cloud même si le CDN est bloqué. */
+      try {
+        sb = null;
+        await pullAll();          /* sbGet/sbSet basculent automatiquement en REST */
+        cloudReady = true;
+        flushPending();
+        refreshAfterPull();
+        setStatus('Synchronisé (mode direct)', '#2A9D8F');
+        console.log('%c[Cloud] ✔ Actif en mode REST direct', 'color:#2A9D8F;font-weight:bold');
+        setTimeout(function(){ const el=document.getElementById('cloud-status'); if(el) el.style.opacity='0'; }, 3200);
+      } catch(e2){
+        console.error('[Cloud] initialisation échouée (SDK et REST)', e2);
+        setStatus('Hors ligne (local)', '#E63946');
+      }
     }
   }
 
@@ -2725,7 +2768,6 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
     var out = { ok:false, msg:'', code:'' };
     try {
       if (typeof navigator !== 'undefined' && navigator.onLine === false){ out.msg='hors-ligne'; return out; }
-      if (!sb){ out.msg='non-charge'; return out; }
       var testKey = '__diagnostic_test';
       var stamp = Date.now();
       await withTimeout(sbSet(testKey, JSON.stringify({ test: stamp })), 12000, 'diag-write');
@@ -25344,16 +25386,163 @@ document.getElementById('topbar-logo-img').src = LOGO_FULL;
 function immatCanValidate() { return ['correspondant','inspecteur','superadmin','drenaet'].includes(state.user.role); }
 function immatInScope() {
   const me = state.user, list = state.immatRequests || [];
-  if (me.role === 'directeur') return list.filter(r => (r.ecoleDemandeur||'') === (me.ecole||''));
+  if (me.role === 'instituteur') return list.filter(r => (r.demandeur||'') === (me.name||''));
+  if (me.role === 'directeur')   return list.filter(r => (r.ecoleDemandeur||'') === (me.ecole||''));
   return list; // correspondant/inspecteur/sa : toutes les demandes de l'IEPP active
+}
+/* ---- Droits par rôle sur les demandes d'immatriculation ---- */
+function immatCanCreate(){ return ['instituteur','directeur','correspondant','inspecteur','superadmin'].includes(state.user.role); }
+function immatCanEditRow(r){
+  if (immatCanValidate()) return true;                 /* correspondant & co : tout */
+  if (!r || r.statut==='Validée') return false;        /* verrouillé une fois matriculé */
+  if (state.user.role==='directeur')   return (r.ecoleDemandeur||'')===(state.user.ecole||'');
+  if (state.user.role==='instituteur') return (r.demandeur||'')===(state.user.name||'');
+  return false;
+}
+/* ---- Conformité de l'extrait (réservé au correspondant/validateur) ---- */
+function immatSetConforme(id, ok){
+  if(!immatCanValidate()){ toast("Réservé au correspondant fichier.","error"); return; }
+  var r = state.immatRequests.find(function(x){ return x.id===id; }); if(!r) return;
+  r.extraitConforme = !!ok; r._upd = Date.now();
+  save('immatRequests', state.immatRequests);
+  logAction('immat-conforme', (ok?'Extrait CONFORME':'Extrait NON conforme')+' — '+(r.nom||'')+' '+(r.prenoms||''));
+  toast(ok?'Extrait marqué conforme ✅':'Extrait marqué non conforme ⚠️', ok?'success':'info');
+  closeModal(); renderImmatriculation();
+}
+/* ---- Import de DEMANDES en masse (Excel/CSV) — instituteur/directeur/correspondant ---- */
+function immatImport(ev){
+  if(!immatCanCreate()){ toast("Vous n'êtes pas autorisé à créer des demandes.","error"); return; }
+  if(typeof importRowsFromFile!=="function"){ toast("Import indisponible.","error"); return; }
+  importRowsFromFile(ev, function(rows){
+    if(!rows || !rows.length){ toast("Fichier vide ou illisible.","error"); return; }
+    var pick = function(row, names){ var keys=Object.keys(row); for(var i=0;i<names.length;i++){ var k=keys.find(function(kk){ return kk.trim().toLowerCase()===names[i]; }); if(k!=null) return row[k]; } return ""; };
+    var norm = function(s){ return String(s==null?"":s).trim(); };
+    if(!state.immatRequests) state.immatRequests = [];
+    var n=0;
+    rows.forEach(function(row){
+      var nom = norm(pick(row, ["nom","name"]));
+      var pre = norm(pick(row, ["prénoms","prenoms","prénom","prenom"]));
+      if(!nom && !pre) return;
+      state.immatRequests.unshift({
+        id:'ir'+Date.now()+'_'+Math.floor(Math.random()*1000),
+        demandeur: state.user.name || state.user.username,
+        ecoleDemandeur: norm(pick(row, ["école","ecole"])) || state.user.ecole || '',
+        classeDemandeur: state.user.classe || '',
+        nom: nom.toUpperCase(), prenoms: pre,
+        sexe: (norm(pick(row, ["sexe"])).toUpperCase().charAt(0)==='F')?'F':'M',
+        dateN: iepDateIso(norm(pick(row, ["né le","ne le","date de naissance","naissance","daten"]))),
+        lieuN: norm(pick(row, ["lieu","lieu de naissance","lieun"])),
+        niveau: norm(pick(row, ["niveau","classe"])) || 'CP1',
+        pere: norm(pick(row, ["père","pere"])),
+        mere: norm(pick(row, ["mère","mere"])),
+        tel: norm(pick(row, ["tél","tel","téléphone","telephone","contact"])),
+        extrait: '', scanData:'', scanName:'', scanType:'',
+        statut: 'En attente',
+        dateDemande: new Date().toISOString().slice(0,10)
+      });
+      n++;
+    });
+    save('immatRequests', state.immatRequests);
+    logAction('immat-import', n+" demande(s) d'immatriculation importée(s)");
+    toast(n+" demande(s) importée(s) ✅","success");
+    renderImmatriculation();
+  });
+}
+/* ---- Import des MATRICULES depuis la plateforme DESPS (Excel/CSV) — correspondant ----
+   Associe un matricule à chaque demande par Nom+Prénoms (ou une colonne « demande » /
+   « id »), valide la demande et crée l'élève au fichier. */
+function immatImportMatricules(ev){
+  if(!immatCanValidate()){ toast("Réservé au correspondant fichier.","error"); return; }
+  if(typeof importRowsFromFile!=="function"){ toast("Import indisponible.","error"); return; }
+  importRowsFromFile(ev, function(rows){
+    if(!rows || !rows.length){ toast("Fichier vide ou illisible.","error"); return; }
+    var pick = function(row, names){ var keys=Object.keys(row); for(var i=0;i<names.length;i++){ var k=keys.find(function(kk){ return kk.trim().toLowerCase()===names[i]; }); if(k!=null) return row[k]; } return ""; };
+    var norm = function(s){ return String(s==null?"":s).trim(); };
+    var keyName = function(nom,pre){ return (String(nom||'').trim().toUpperCase()+'|'+String(pre||'').trim().toUpperCase()); };
+    var n=0, notFound=0;
+    rows.forEach(function(row){
+      var mat = norm(pick(row, ["matricule","matricule officiel","mat"]));
+      if(!mat) return;
+      var idv = norm(pick(row, ["id","demande","id demande"]));
+      var nom = norm(pick(row, ["nom","name"]));
+      var pre = norm(pick(row, ["prénoms","prenoms","prénom","prenom"]));
+      var r = null;
+      if(idv) r = state.immatRequests.find(function(x){ return String(x.id)===idv; });
+      if(!r && (nom||pre)){ var k=keyName(nom,pre); r = state.immatRequests.find(function(x){ return keyName(x.nom,x.prenoms)===k; }); }
+      if(!r){ notFound++; return; }
+      immatAttribuerMatricule(r, mat);
+      n++;
+    });
+    save('immatRequests', state.immatRequests);
+    try{ save('elevesFichier', state.elevesFichier); }catch(e){}
+    logAction('immat-import-matricules', n+" matricule(s) attribué(s) via fichier DESPS");
+    toast(n+" matricule(s) attribué(s) ✅"+(notFound?(" · "+notFound+" ligne(s) sans correspondance"):""), "success");
+    renderImmatriculation();
+  });
+}
+/* Attribue un matricule à une demande + crée l'élève au fichier (sans re-sauvegarder à chaque appel) */
+function immatAttribuerMatricule(r, matricule){
+  if(!r) return;
+  var mat = String(matricule).trim(); if(!mat) return;
+  state.elevesFichier = state.elevesFichier || [];
+  var exists = state.elevesFichier.some(function(e){ return e.matricule===mat; });
+  if(!exists){
+    state.elevesFichier.push({ id:'e_'+uid(), matricule:mat, nom:r.nom, prenoms:r.prenoms, sexe:r.sexe, dateN:r.dateN, lieuN:r.lieuN,
+      niveau:r.niveau, ecole:r.ecoleDemandeur, pere:r.pere, mere:r.mere, tel:r.tel,
+      extrait:(r.scanData || r.extrait==='OUI' || (typeof r.extrait==='string' && r.extrait.startsWith('data:'))) ? 'OUI' : 'NON', photo:'' });
+  }
+  r.statut='Validée'; r.matricule=mat; r._upd=Date.now();
+}
+/* ---- Saisie / correction MANUELLE du matricule (réservé au correspondant) ----
+   Le matricule peut donc être : attribué à la validation, chargé depuis le
+   fichier DESPS, OU saisi manuellement ici. */
+function immatMatriculeManuel(id){
+  if(!immatCanValidate()){ toast("Seul le correspondant fichier peut attribuer un matricule.","error"); return; }
+  var r = state.immatRequests.find(function(x){ return x.id===id; }); if(!r) return;
+  var mat = prompt("Matricule officiel pour "+(r.nom||'')+" "+(r.prenoms||'')+" :\n(Laisser vide pour effacer le matricule et remettre la demande en attente.)", r.matricule||'');
+  if(mat===null) return;
+  mat = String(mat).trim();
+  if(!mat){
+    r.matricule=''; if(r.statut==='Validée') r.statut='En attente'; r._upd=Date.now();
+    save('immatRequests', state.immatRequests);
+    logAction('immat-matricule-manuel','Matricule effacé — '+(r.nom||'')+' '+(r.prenoms||''));
+    toast("Matricule effacé — demande remise en attente.","info");
+    renderImmatriculation(); return;
+  }
+  immatAttribuerMatricule(r, mat);
+  save('immatRequests', state.immatRequests);
+  try{ save('elevesFichier', state.elevesFichier); }catch(e){}
+  logAction('immat-matricule-manuel','Matricule manuel '+mat+' — '+(r.nom||'')+' '+(r.prenoms||''));
+  toast("Matricule "+mat+" attribué ✅","success");
+  renderImmatriculation();
+}
+/* ---- Impression / PDF de la liste (périmètre du rôle) ---- */
+function immatPrint(){
+  var list = immatInScope();
+  if(!list.length){ toast("Aucune demande à imprimer.","error"); return; }
+  var body = list.map(function(r){
+    return "<tr><td>"+escapeHtml(fmtDate(r.dateDemande))+"</td><td>"+escapeHtml((r.nom||'')+' '+(r.prenoms||''))+"</td>"+
+      "<td>"+escapeHtml(r.sexe||'')+"</td><td>"+escapeHtml(r.dateN||'')+"</td><td>"+escapeHtml(r.niveau||'')+"</td>"+
+      "<td>"+escapeHtml(r.ecoleDemandeur||'')+"</td><td>"+escapeHtml(r.statut||'En attente')+"</td><td>"+escapeHtml(r.matricule||'')+"</td></tr>";
+  }).join("");
+  var html = "<h2>Demandes d'immatriculation</h2>"+
+    "<table><tr><th>Date</th><th>Nom &amp; prénoms</th><th>Sexe</th><th>Né(e) le</th><th>Niveau</th><th>École</th><th>Statut</th><th>Matricule</th></tr>"+body+"</table>"+
+    "<p style=\"margin-top:8px;font-size:12px;color:#555\">"+list.length+" demande(s) — édité le "+new Date().toLocaleDateString('fr-FR')+"</p>";
+  if(typeof caPrint==="function"){ caPrint(html, "Demandes d'immatriculation"); return; }
+  var w = window.open("","_blank");
+  if(!w){ toast("Autorisez les fenêtres pop-up pour imprimer.","error"); return; }
+  w.document.write("<html><head><meta charset=\"utf-8\"><title>Demandes d'immatriculation</title><style>body{font-family:system-ui,sans-serif;padding:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:6px 8px;font-size:13px;text-align:left}th{background:#eee}</style></head><body>"+html+"</body></html>");
+  w.document.close(); setTimeout(function(){ try{ w.print(); }catch(e){} }, 300);
 }
 function renderImmatriculation() {
   const canVal = immatCanValidate();
   const list = immatInScope();
   const rows = list.length ? list.map(r => {
     const hasDoc = !!r.scanData || (typeof r.extrait === 'string' && (r.extrait.startsWith('data:image/') || r.extrait.startsWith('data:application/pdf')));
-    const cExt = hasDoc ? `<button class="btn btn-sm btn-ghost" onclick="immatViewExtrait('${r.id}')">📎 Voir extrait</button>` : `<span class="badge badge-orange">${r.extrait==='OUI'?'Extrait déclaré':'Sans extrait'}</span>`;
+    const cConf = r.extraitConforme===true ? `<br><span class="badge badge-green" style="font-size:10px">✅ Conforme</span>` : (r.extraitConforme===false ? `<br><span class="badge badge-pink" style="font-size:10px">⚠️ Non conforme</span>` : '');
+    const cExt = (hasDoc ? `<button class="btn btn-sm btn-ghost" onclick="immatViewExtrait('${r.id}')">📎 Voir extrait</button>` : `<span class="badge badge-orange">${r.extrait==='OUI'?'Extrait déclaré':'Sans extrait'}</span>`) + cConf;
     const cSt = r.statut==='Validée' ? 'green' : r.statut==='Rejetée' ? 'pink' : 'orange';
+    const canEdit = immatCanEditRow(r);
     return `<tr>
       <td class="text-xs text-muted">${fmtDate(r.dateDemande)}</td>
       <td class="fw-7">${escapeHtml((r.nom||'')+' '+(r.prenoms||''))}</td>
@@ -25364,21 +25553,30 @@ function renderImmatriculation() {
       <td>${cExt}</td>
       <td><span class="badge badge-${cSt}">${escapeHtml(r.statut||'En attente')}</span>${r.matricule?`<br><span class="text-xs text-muted">${escapeHtml(r.matricule)}</span>`:''}</td>
       <td class="actions-cell">
-        ${canVal && r.statut!=='Validée'?`<button class="icon-btn" style="background:var(--green-soft);color:var(--green-deep)" onclick="immatValider('${r.id}')" title="Valider et créer l'élève">✓</button>`:''}
+        ${canVal && r.statut!=='Validée'?`<button class="icon-btn" style="background:var(--green-soft);color:var(--green-deep)" onclick="immatValider('${r.id}')" title="Valider et attribuer le matricule">✓</button>`:''}
         ${canVal && r.statut!=='Rejetée'?`<button class="icon-btn" style="background:var(--orange-soft);color:var(--orange-deep)" onclick="immatRejeter('${r.id}')" title="Rejeter">✕</button>`:''}
-        <button class="icon-btn danger" onclick="immatSupprimer('${r.id}')" title="Supprimer">🗑️</button>
+        ${canVal?`<button class="icon-btn" onclick="immatMatriculeManuel('${r.id}')" title="Saisir / corriger le matricule manuellement">🆔</button>`:''}
+        ${canEdit?`<button class="icon-btn" onclick="immatForm('${r.id}')" title="Modifier la demande">✏️</button>`:''}
+        ${canEdit?`<button class="icon-btn danger" onclick="immatSupprimer('${r.id}')" title="Supprimer">🗑️</button>`:''}
       </td>
     </tr>`;
-  }).join('') : `<tr><td colspan="9" class="table-empty">Aucune demande${state.user.role==='directeur'?' — cliquez sur « + Nouvelle demande »':''}</td></tr>`;
+  }).join('') : `<tr><td colspan="9" class="table-empty">Aucune demande${immatCanCreate()?' — cliquez sur « + Nouvelle demande »':''}</td></tr>`;
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,#2E75B6 0%,#1F4E79 100%)">
       <h3>📨 Demandes d'immatriculation des élèves</h3>
-      <p>${state.user.role==='directeur'?"Soumettez les demandes d'immatriculation des nouveaux élèves. Pour chaque demande, scannez (ou photographiez) l'extrait de naissance via votre appareil — le correspondant fichier validera et attribuera un matricule officiel.":"Demandes envoyées par les directeurs d'école. Vérifiez l'extrait scanné, validez pour attribuer un matricule officiel, ou rejetez."}</p>
+      <p>${canVal
+        ? "Demandes envoyées par les enseignants et les directeurs d'école. Vérifiez l'extrait scanné (téléchargez-le et marquez sa conformité), validez pour attribuer un matricule officiel — saisi manuellement ou chargé depuis la plateforme DESPS — ou rejetez."
+        : "Soumettez et suivez vos demandes d'immatriculation. Pour chaque demande, joignez l'extrait de naissance (photo, scan ou PDF). Le correspondant fichier vérifiera l'extrait et attribuera le matricule officiel."}</p>
     </div>
     <div class="toolbar">
       <div style="flex:1"></div>
+      ${immatCanCreate()?`<button class="btn btn-ghost" onclick="document.getElementById('immat-import').click()" title="Importer des demandes depuis Excel/CSV">📥 Importer</button>
+      <input type="file" id="immat-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="immatImport(event)">`:''}
+      ${canVal?`<button class="btn btn-ghost" onclick="document.getElementById('immat-mat-import').click()" title="Charger les matricules depuis la plateforme DESPS (Excel/CSV)">🆔 Charger matricules (DESPS)</button>
+      <input type="file" id="immat-mat-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="immatImportMatricules(event)">`:''}
+      <button class="btn btn-ghost" onclick="immatPrint()" title="Imprimer ou enregistrer en PDF">🖨️ Imprimer / PDF</button>
       <button class="btn btn-green" onclick="immatExport()">📊 Export Excel</button>
-      ${state.user.role==='directeur'?`<button class="btn btn-orange" onclick="immatForm()">+ Nouvelle demande</button>`:''}
+      ${immatCanCreate()?`<button class="btn btn-orange" onclick="immatForm()">+ Nouvelle demande</button>`:''}
     </div>
     <div class="card" style="padding:0"><div class="table-wrap" style="border:none"><table>
       <thead><tr><th>Date</th><th>Nom & prénoms</th><th>Sexe</th><th>Né(e) le · Lieu</th><th>Niveau</th><th>École</th><th>Extrait</th><th>Statut</th><th style="width:130px"></th></tr></thead>
@@ -25470,7 +25668,8 @@ function immatViewExtrait(id) {
   const visual = type === 'application/pdf' || data.startsWith('data:application/pdf')
     ? `<iframe src="${escapeHtml(data)}" style="width:100%;height:65vh;border:1px solid var(--line);border-radius:8px;background:#fff"></iframe>`
     : `<div style="text-align:center"><img src="${escapeHtml(data)}" style="max-width:100%;max-height:65vh;border:1px solid var(--line);border-radius:8px"></div>`;
-  openModal(`Extrait de naissance — ${escapeHtml(r.nom+' '+r.prenoms)}`, visual, `<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>
+  openModal(`Extrait de naissance — ${escapeHtml(r.nom+' '+r.prenoms)}`, visual, `${immatCanValidate()?`<button class="btn btn-ghost" style="color:var(--green-deep)" onclick="immatSetConforme('${r.id}',true)">✅ Conforme</button>
+      <button class="btn btn-ghost danger" onclick="immatSetConforme('${r.id}',false)">⚠️ Non conforme</button>`:''}<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>
       <a class="btn btn-orange" href="${escapeHtml(data)}" download="${safeName}">⬇️ Télécharger</a>`);
 }
 function immatValider(id) {
