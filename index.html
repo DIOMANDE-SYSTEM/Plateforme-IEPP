@@ -1980,19 +1980,22 @@ function recordMergeTrack(k, val){
 
 /* Fusionne un bloc cloud avec le bloc local, par id, en respectant les
    tombstones (locales + cloud). Renvoie le tableau fusionné. */
+/* Clé d'identité naturelle d'un enregistrement, PARTAGÉE par la fusion-union et
+   les tombstones génériques, pour que « supprimer » et « fusionner » parlent
+   exactement de la même identité. */
+function genericRecKey(r){
+  if (r==null || typeof r!=='object') return 'v:'+JSON.stringify(r);
+  if (r.id!=null) return 'id:'+r.id;
+  if (r.username!=null) return 'un:'+r.username;
+  if (r.matricule!=null) return 'mat:'+r.matricule;
+  if (r.code!=null && r.nom!=null) return 'cn:'+r.code+'|'+r.nom;
+  return 'j:'+JSON.stringify(r);
+}
 function genericUnionMerge(cloudArr, localArr){
   /* Fusion UNION pour les listes hors RECORD_MERGE (ex. comptes users) :
      conserve les ajouts et modifications locaux au lieu d'écraser par le cloud.
-     Clé naturelle : id, sinon username, sinon matricule, sinon code+nom, sinon valeur.
      En cas de conflit : le plus récent (_upd) gagne ; à égalité, le LOCAL est conservé. */
-  function keyOf(r){
-    if (r==null || typeof r!=='object') return 'v:'+JSON.stringify(r);
-    if (r.id!=null) return 'id:'+r.id;
-    if (r.username!=null) return 'un:'+r.username;
-    if (r.matricule!=null) return 'mat:'+r.matricule;
-    if (r.code!=null && r.nom!=null) return 'cn:'+r.code+'|'+r.nom;
-    return 'j:'+JSON.stringify(r);
-  }
+  var keyOf = genericRecKey;
   function ts(r){
     if (r==null || typeof r!=='object') return 0;
     var t = r._upd||r.updatedAt||r.updated_at||r._updatedAt;
@@ -2008,6 +2011,53 @@ function genericUnionMerge(cloudArr, localArr){
   });
   return order.map(function(k){ return map[k]; });
 }
+
+/* ===== Tombstones GÉNÉRIQUES : mémorisent les suppressions sur les listes
+   fusionnées par union (absences, examens, compositions, recrutement, CPPP,
+   annuaires, registres divers, services personnalisés…), afin qu'un élément
+   supprimé sur un appareil ne « revienne » plus après synchronisation.
+   Même principe éprouvé que RECORD_MERGE, mais applicable à toute liste sans
+   configuration. Clé compagne : <clé>__gtomb (distincte des *Deleted existantes). */
+function isGenericMergeKey(k){
+  return !RECORD_MERGE[k] && !RECORD_MERGE_OBJ[k]
+      && k!=='users' && !isTombstoneKey(k) && !/__gtomb$/.test(k);
+}
+function genericTombKey(k){ return k + '__gtomb'; }
+function mergeGenericTomb(a, b){
+  var map={};
+  (Array.isArray(a)?a:[]).forEach(function(t){ if(t&&t.k!=null) map[t.k]=t; });
+  (Array.isArray(b)?b:[]).forEach(function(t){
+    if(t&&t.k!=null){ if(!map[t.k] || (t.at||0) > (map[t.k].at||0)) map[t.k]=t; }
+  });
+  return Object.keys(map).map(function(kk){ return map[kk]; });
+}
+/* Appelée par save() AVANT l'écriture : compare l'ancienne liste et la nouvelle,
+   marque en tombstone les identités disparues, et lève la tombstone d'une
+   identité re-présente (recréée). */
+function genericTombTrack(k, val){
+  try{
+    if (!isGenericMergeKey(k) || !Array.isArray(val)) return;
+    var prev=[];
+    try{ prev = JSON.parse(localStorage.getItem(storeKey(k))||'[]')||[]; }catch(e){ prev=[]; }
+    if (!Array.isArray(prev)) return;
+    var nowKeys={}; val.forEach(function(it){ nowKeys[genericRecKey(it)]=1; });
+    var removed = prev.filter(function(it){ return !nowKeys[genericRecKey(it)]; })
+                      .map(function(it){ return genericRecKey(it); });
+    var tk = storeKey(genericTombKey(k));
+    var tomb=[];
+    try{ tomb = JSON.parse(localStorage.getItem(tk)||'[]')||[]; }catch(e){ tomb=[]; }
+    var map={}; tomb.forEach(function(t){ if(t&&t.k!=null) map[t.k]=t; });
+    var changed=false, now=Date.now();
+    removed.forEach(function(kk){ if(!map[kk]){ map[kk]={k:kk, at:now}; changed=true; } });
+    Object.keys(nowKeys).forEach(function(kk){ if(map[kk]){ delete map[kk]; changed=true; } });
+    if (changed){
+      var arr = Object.keys(map).map(function(kk){ return map[kk]; });
+      try{ localStorage.setItem(tk, JSON.stringify(arr)); }catch(e){}
+      try{ if(window.__cloudPush) window.__cloudPush(tk, arr); }catch(e){}
+    }
+  }catch(e){ console.warn('genericTombTrack', e); }
+}
+
 function recordMergeArrays(listKey, cloudArr, localArr, cloudTomb, localTomb){
   cloudArr = Array.isArray(cloudArr)?cloudArr:[];
   localArr = Array.isArray(localArr)?localArr:[];
@@ -2188,6 +2238,7 @@ function mergeTombstones(a, b){
 
 function save(k, val) {
   try { if (typeof recordMergeTrack === 'function') val = recordMergeTrack(k, val); } catch(e){ console.warn('recordMergeTrack', e); }
+  try { if (typeof genericTombTrack === 'function') genericTombTrack(k, val); } catch(e){ console.warn('genericTombTrack', e); }
   try { localStorage.setItem(storeKey(k), JSON.stringify(val)); } catch(e){ console.error('save fail', e); }
   try { if (window.__cloudPush) return window.__cloudPush(storeKey(k), val); } catch(e){}
   return Promise.resolve({queued:true, ok:false});
@@ -2600,6 +2651,21 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
             try{ _lA=(localRaw!=null)?JSON.parse(localRaw):null; }catch(e){}
             if (Array.isArray(_cA) && Array.isArray(_lA)){
               var _m = genericUnionMerge(_cA, _lA);
+              /* Tombstones génériques : on retire ce qui a été supprimé sur un
+                 appareil, pour que la fusion-union ne le fasse pas réapparaître. */
+              if (isGenericMergeKey(k)){
+                var _tk = storeKey(genericTombKey(k));
+                var _cT=[], _lT=[];
+                try { var _ctRaw = await withTimeout(sbGet(_tk), 15000, _tk); if(_ctRaw) _cT = JSON.parse(_ctRaw)||[]; } catch(e){}
+                try { _lT = JSON.parse(localStorage.getItem(_tk)||'[]')||[]; } catch(e){}
+                var _uT = mergeGenericTomb(_cT, _lT);
+                if (_uT.length){
+                  var _tset={}; _uT.forEach(function(t){ if(t&&t.k!=null) _tset[t.k]=1; });
+                  _m = _m.filter(function(r){ return !_tset[genericRecKey(r)]; });
+                }
+                localStorage.setItem(_tk, JSON.stringify(_uT));
+                try { await withTimeout(sbSet(_tk, JSON.stringify(_uT)), 15000, _tk); } catch(e){}
+              }
               localStorage.setItem(fullKey, JSON.stringify(_m));
               try { await withTimeout(sbSet(fullKey, JSON.stringify(_m)), 15000, fullKey); } catch(e){}
             } else if (cloudIsEmptierThanLocal(cloudJson, localRaw)){
@@ -4159,16 +4225,187 @@ function dedupeIeppData(){
   if(changed){ try{ save('ieppRegistry', state.ieppRegistry); }catch(e){} try{ save('drenaet', state.drenaet); }catch(e){} }
   return changed;
 }
+/* ===================================================================
+   FENÊTRE D'ACTIVATION DES IEPP : couverture par les COMPTES + gestion
+   complète (modifier, supprimer, export Excel/CSV, import, impression/PDF).
+   =================================================================== */
+/* Complète le registre des IEPP à partir des COMPTES : toute IEPP présente sur
+   au moins un compte apparaît dans la fenêtre d'activation (et est gérée au
+   login). Les nouvelles IEPP créées via de nouveaux comptes sont ainsi prises
+   en compte automatiquement. */
+function ensureRegistryFromAccounts(){
+  try{
+    var reg = (state.ieppRegistry = state.ieppRegistry || []);
+    var have = {};
+    reg.forEach(function(r){ have[String((r&&r.name)||"").trim().toUpperCase()] = r; });
+    var changed = false;
+    (state.users||[]).forEach(function(u){
+      var nm = String((u&&u.iepp)||"").trim();
+      if(!nm) return;
+      var key = nm.toUpperCase();
+      if(key==="TOUTES") return;
+      if(!have[key]){
+        var entry = { name:nm, code:"", drenaet:(u.drenaet && u.drenaet!=="TOUTES")?u.drenaet:"", actif:true, _upd:Date.now() };
+        reg.push(entry); have[key]=entry; changed = true;
+      } else if(!have[key].drenaet && u.drenaet && u.drenaet!=="TOUTES"){
+        have[key].drenaet = u.drenaet; have[key]._upd = Date.now(); changed = true;
+      }
+    });
+    if(changed){ try{ save("ieppRegistry", state.ieppRegistry); }catch(e){} }
+    return changed;
+  }catch(e){ return false; }
+}
+function ieppAccountCount(name){
+  var key = String(name||"").trim().toUpperCase();
+  return (state.users||[]).filter(function(u){
+    return u.role!=="superadmin" && String((u.iepp)||"").trim().toUpperCase()===key;
+  }).length;
+}
+function ieppActivationList(){
+  ensureRegistryFromAccounts();
+  return (state.ieppRegistry||[]).slice().sort(function(a,b){
+    return String(a.name||"").localeCompare(String(b.name||""));
+  });
+}
+function ieppActivRefresh(){
+  try{ if(typeof caRenderPanel==="function") caRenderPanel(); }catch(e){}
+  try{ if(state.module==="drenaet" && typeof renderDrenaet==="function") renderDrenaet(); }catch(e){}
+}
+function iepDateIso(v){
+  v = String(v==null?"":v).trim(); if(!v) return "";
+  if(/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  var m = v.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if(m){ var d=("0"+m[1]).slice(-2), mo=("0"+m[2]).slice(-2), y=m[3].length===2?("20"+m[3]):m[3]; return y+"-"+mo+"-"+d; }
+  return "";
+}
+/* ---- Modifier (code / DRENAET) ---- */
+function ieppActivEdit(name){
+  if(!state.user || state.user.role!=="superadmin"){ toast("Réservé au super administrateur national.","error"); return; }
+  var r = ieppRegEntry(name);
+  var court = String(name).replace(/^IEPP\s+/i,"");
+  var code = prompt("Code de l'IEPP « "+court+" » :", r.code||"");
+  if(code===null) return;
+  var dren = prompt("DRENAET de rattachement de « "+court+" » :", r.drenaet||"");
+  if(dren===null) return;
+  r.code = String(code).trim(); r.drenaet = String(dren).trim(); r._upd = Date.now();
+  try{
+    (state.drenaet||[]).forEach(function(d){
+      if(String((d&&d.iepp)||"").trim().toUpperCase()===String(name).trim().toUpperCase()){
+        if(r.code) d.ieppCode = r.code;
+        if(r.drenaet) d.drenaet = r.drenaet;
+        d._upd = Date.now();
+      }
+    });
+  }catch(e){}
+  save("ieppRegistry", state.ieppRegistry);
+  try{ save("drenaet", state.drenaet); }catch(e){}
+  logAction("iepp-edit","Modification IEPP "+name+" (code="+r.code+", drenaet="+r.drenaet+")");
+  toast("IEPP mise à jour ✅","success");
+  ieppActivRefresh();
+}
+/* ---- Supprimer une IEPP de la fenêtre (bloqué si des comptes existent) ---- */
+function ieppActivDelete(name){
+  if(!state.user || state.user.role!=="superadmin"){ toast("Réservé au super administrateur national.","error"); return; }
+  var court = String(name).replace(/^IEPP\s+/i,"");
+  var nb = ieppAccountCount(name);
+  if(nb>0){
+    alert("Impossible de supprimer l'IEPP "+court+" : elle possède encore "+nb+" compte(s).\n\nSupprimez ou réaffectez d'abord ces comptes, sinon l'IEPP réapparaîtra automatiquement.");
+    return;
+  }
+  if(!confirm("Supprimer l'IEPP "+court+" de la liste d'activation ?\n(Aucun compte n'y est rattaché.)")) return;
+  var key = String(name||"").trim().toUpperCase();
+  state.ieppRegistry = (state.ieppRegistry||[]).filter(function(r){ return String((r&&r.name)||"").trim().toUpperCase()!==key; });
+  state.drenaet = (state.drenaet||[]).filter(function(d){ return String((d&&d.iepp)||"").trim().toUpperCase()!==key; });
+  save("ieppRegistry", state.ieppRegistry);
+  save("drenaet", state.drenaet);
+  logAction("iepp-delete","Suppression IEPP "+name);
+  toast("IEPP "+court+" supprimée.","info");
+  ieppActivRefresh();
+}
+/* ---- Lignes normalisées pour export / impression ---- */
+function ieppActivRows(){
+  return ieppActivationList().map(function(r){
+    var on = (r.actif!==false);
+    return {
+      "IEPP": String(r.name||"").replace(/^IEPP\s+/i,"IEPP "),
+      "DRENAET": r.drenaet||"",
+      "Code": r.code||"",
+      "État": on?"Active":"Désactivée",
+      "Accès du": r.debut||"",
+      "Accès au": r.fin||"",
+      "Comptes": ieppAccountCount(r.name)
+    };
+  });
+}
+function ieppActivExportExcel(){
+  if(!state.user || state.user.role!=="superadmin"){ toast("Réservé au super administrateur national.","error"); return; }
+  if(typeof exportRowsToExcel==="function") exportRowsToExcel(ieppActivRows(), "activation_iepp", "Activation IEPP");
+  else toast("Export indisponible.","error");
+}
+function ieppActivPrint(){
+  if(!state.user || state.user.role!=="superadmin"){ toast("Réservé au super administrateur national.","error"); return; }
+  var rows = ieppActivRows();
+  var body = rows.map(function(x){
+    return "<tr><td>"+escapeHtml(x["IEPP"])+"</td><td>"+escapeHtml(x["DRENAET"])+"</td><td>"+escapeHtml(x["Code"])+"</td>"+
+           "<td>"+escapeHtml(x["État"])+"</td><td>"+escapeHtml(x["Accès du"])+"</td><td>"+escapeHtml(x["Accès au"])+"</td><td style=\"text-align:right\">"+x["Comptes"]+"</td></tr>";
+  }).join("");
+  var html = "<h2>Activation des IEPP — vue nationale</h2>"+
+    "<table><tr><th>IEPP</th><th>DRENAET</th><th>Code</th><th>État</th><th>Accès du</th><th>Accès au</th><th>Comptes</th></tr>"+body+"</table>"+
+    "<p style=\"margin-top:8px;font-size:12px;color:#555\">"+rows.length+" IEPP — édité le "+new Date().toLocaleDateString("fr-FR")+"</p>";
+  if(typeof caPrint==="function"){ caPrint(html, "Activation des IEPP"); return; }
+  var w = window.open("","_blank");
+  if(!w){ toast("Autorisez les fenêtres pop-up pour imprimer.","error"); return; }
+  w.document.write("<html><head><meta charset=\"utf-8\"><title>Activation des IEPP</title><style>body{font-family:system-ui,sans-serif;padding:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:6px 8px;font-size:13px;text-align:left}th{background:#eee}</style></head><body>"+html+"</body></html>");
+  w.document.close(); setTimeout(function(){ try{ w.print(); }catch(e){} }, 300);
+}
+function ieppActivImport(ev){
+  if(!state.user || state.user.role!=="superadmin"){ toast("Réservé au super administrateur national.","error"); return; }
+  if(typeof importRowsFromFile!=="function"){ toast("Import indisponible.","error"); return; }
+  importRowsFromFile(ev, function(rows){
+    if(!rows || !rows.length){ toast("Fichier vide ou illisible.","error"); return; }
+    var pick = function(row, names){
+      var keys = Object.keys(row);
+      for(var i=0;i<names.length;i++){
+        var k = keys.find(function(kk){ return kk.trim().toLowerCase()===names[i]; });
+        if(k!=null) return row[k];
+      }
+      return "";
+    };
+    var norm = function(s){ return String(s==null?"":s).trim(); };
+    var n=0;
+    rows.forEach(function(row){
+      var nm = norm(pick(row, ["iepp","nom","name"]));
+      if(!nm) return;
+      var r = ieppRegEntry(nm);
+      var etat = norm(pick(row, ["état","etat","statut","state"])).toLowerCase();
+      if(etat){ r.actif = !(/désact|desact|inactif|ferm|off|non/.test(etat)); }
+      var du = norm(pick(row, ["accès du","acces du","debut","début","du"]));
+      var au = norm(pick(row, ["accès au","acces au","fin","au"]));
+      if(du) r.debut = iepDateIso(du);
+      if(au) r.fin = iepDateIso(au);
+      var code = norm(pick(row, ["code"])); if(code) r.code = code;
+      var dren = norm(pick(row, ["drenaet","région","region"])); if(dren) r.drenaet = dren;
+      r._upd = Date.now(); n++;
+    });
+    save("ieppRegistry", state.ieppRegistry);
+    logAction("iepp-import","Import activation IEPP ("+n+" ligne(s))");
+    toast(n+" IEPP mise(s) à jour depuis le fichier ✅","success");
+    ieppActivRefresh();
+  });
+}
 function ieppActivationPanelHtml(){
   if(!state.user || state.user.role!=='superadmin') return '';
   dedupeIeppData();
-  var reg=(state.ieppRegistry||[]).slice().sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||'')); });
+  var reg = ieppActivationList();
   if(!reg.length) return '';
+  var _iepNbTot = (state.users||[]).filter(function(u){ var i=String((u.iepp)||'').trim().toUpperCase(); return u.role!=='superadmin' && i && i!=='TOUTES'; }).length;
   var rows=reg.map(function(r){
     var nm=r.name||''; var sl=ieppSlug(nm); var on=(r.actif!==false);
     var q=nm.replace(/'/g,"\\'");
+    var _nb=ieppAccountCount(nm);
+    var _sub=[ _nb+' compte'+(_nb>1?'s':''), (r.drenaet||'') ].filter(Boolean).join(' · ');
     return '<tr>'
-      +'<td class="fw-7">'+escapeHtml(String(nm).replace(/^IEPP\s+/i,'IEPP '))+'</td>'
+      +'<td class="fw-7">'+escapeHtml(String(nm).replace(/^IEPP\s+/i,'IEPP '))+'<div class="text-xs text-muted" style="font-weight:400">'+escapeHtml(_sub)+'</div></td>'
       +'<td>'+(on?'<span class="badge badge-green">Active</span>':'<span class="badge badge-orange">Désactivée</span>')+'</td>'
       +'<td><input type="date" id="iep-deb-'+sl+'" value="'+escapeHtml(r.debut||'')+'" style="padding:4px;border:1px solid var(--line);border-radius:6px;font-size:12px"></td>'
       +'<td><input type="date" id="iep-fin-'+sl+'" value="'+escapeHtml(r.fin||'')+'" style="padding:4px;border:1px solid var(--line);border-radius:6px;font-size:12px"></td>'
@@ -4179,11 +4416,20 @@ function ieppActivationPanelHtml(){
         +' <button class="btn btn-ghost" style="padding:4px 8px" onclick="ieppSavePeriode(\''+q+'\')" title="Enregistrer la période d\'accès">💾</button>'
         +' <button class="btn btn-ghost danger" style="padding:4px 8px" onclick="ieppBulkSetActif(\''+q+'\',false)" title="Désactiver TOUS les comptes de cette IEPP">👥⛔</button>'
         +' <button class="btn btn-ghost" style="padding:4px 8px;color:var(--green-deep)" onclick="ieppBulkSetActif(\''+q+'\',true)" title="Réactiver TOUS les comptes de cette IEPP">👥✅</button>'
+        +' <button class="btn btn-ghost" style="padding:4px 8px" onclick="ieppActivEdit(\''+q+'\')" title="Modifier (code / DRENAET)">✏️</button>'
+        +' <button class="btn btn-ghost danger" style="padding:4px 8px" onclick="ieppActivDelete(\''+q+'\')" title="Supprimer cette IEPP de la liste">🗑️</button>'
       +'</td></tr>';
   }).join('');
   return '<div class="card" style="padding:14px;margin-bottom:14px;border:1.5px solid var(--orange)">'
     +'<div class="card-title">🛡️ Activation des IEPP (super administrateur national)</div>'
-    +'<p class="text-xs text-muted" style="margin:2px 0 10px">Activez/désactivez une IEPP, ou fixez une période d\'accès (dates de début/fin). Hors période ou si désactivée, aucun utilisateur de cette IEPP ne peut se connecter — sauf vous. <br>Boutons : ⛔ désactiver · ✅ activer · 💾 période · 👥⛔ / 👥✅ tous les comptes de l\'IEPP.</p>'
+    +'<p class="text-xs text-muted" style="margin:2px 0 10px">Activez/désactivez une IEPP, ou fixez une période d\'accès (dates de début/fin). Hors période ou si désactivée, aucun utilisateur de cette IEPP ne peut se connecter — sauf vous. <br>Toutes les IEPP ayant au moins un compte apparaissent ici ; les nouvelles sont ajoutées automatiquement. <br>Boutons : ⛔ désactiver · ✅ activer · 💾 période · 👥⛔ / 👥✅ tous les comptes · ✏️ modifier · 🗑️ supprimer.</p>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:2px 0 10px">'
+      +'<span class="text-xs text-muted" style="margin-right:auto">'+reg.length+' IEPP · '+_iepNbTot+' compte(s) rattaché(s)</span>'
+      +'<button class="btn btn-ghost" style="padding:6px 10px" onclick="ieppActivExportExcel()" title="Exporter au format Excel/CSV">📊 Export Excel</button>'
+      +'<button class="btn btn-ghost" style="padding:6px 10px" onclick="document.getElementById(\'iepp-activ-import\').click()" title="Importer un fichier Excel/CSV">📥 Importer</button>'
+      +'<input type="file" id="iepp-activ-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="ieppActivImport(event)">'
+      +'<button class="btn btn-ghost" style="padding:6px 10px" onclick="ieppActivPrint()" title="Imprimer ou enregistrer en PDF">🖨️ Imprimer / PDF</button>'
+    +'</div>'
     +'<div style="overflow:auto;max-height:60vh;border:1px solid var(--line);border-radius:8px"><table class="table" style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr style="text-align:left;color:var(--ink-soft);position:sticky;top:0;background:#F8FAFC"><th>IEPP</th><th>État</th><th>Accès du</th><th>Accès au</th><th style="text-align:right">Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
 }
 function ensureDrenaetFromRegistry(){
