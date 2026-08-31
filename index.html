@@ -1141,6 +1141,8 @@ function vieResetAllData() {
     <div class="login-title">Plateforme <em>IEPP</em></div>
     <div class="login-sub">Plateforme Numérique de Gestion des Inspections de l'Enseignement Préscolaire et Primaire · DRENAET · MENAET</div>
 
+    <div class="login-welcome"><span class="lw-o">Bienvenue</span> <span class="lw-n">sur</span> <span class="lw-w">Plateforme</span> <span class="lw-g">IEPP</span></div>
+
     <div id="login-error" class="error-msg"></div>
 
     <div class="field">
@@ -1157,7 +1159,7 @@ function vieResetAllData() {
     <button id="btn-se-connecter" class="btn btn-primary btn-block" onclick="doLogin()">Se connecter →</button>
 
     <div class="login-footer">
-      <strong id="login-version">Plateforme IEPP v1.0</strong><br>
+      <strong id="login-version">Plateforme IEPP v1.1</strong><br>
       <span id="login-ref">Référence : CDC-IEPP-2026-001</span><br>
       Ministère de l'Éducation Nationale, de l'Alphabétisation et de l'Enseignement Technique<br>
       <span class="text-xs">République de Côte d'Ivoire</span>
@@ -3688,13 +3690,59 @@ async function doLogin() {
     if (btn){ btn.disabled = false; btn.textContent = _prevTxt || 'Se connecter →'; }
   }
 
-  const found = state.users.find(x => x.username === u);
+  let found = state.users.find(x => x.username === u);
   const passwordOk = await verifyLocalPassword(found, p);
   if (found && passwordOk && !found.passwordHash && found.password) {
     try { found.passwordHash = await hashPassword(found.password); delete found.password; found._upd = Date.now(); save('users', state.users); } catch(e) {}
   }
-  if (!found || !passwordOk) {
-    err.textContent = '❌ Identifiants incorrects. Vérifiez votre nom d\'utilisateur et mot de passe.';
+  /* Connexion échouée : on distingue clairement les cas au lieu d'un message vague.
+     - compte trouvé mais mauvais mot de passe  -> message mot de passe
+     - compte absent en local -> on vérifie DIRECTEMENT dans le cloud :
+         * s'il existe dans le cloud, on l'injecte en local et on revalide (connexion multi-appareils),
+         * sinon on indique la vraie raison (absent du cloud / hors ligne / accès refusé). */
+  if (!found) {
+    var _diag = null;
+    if (typeof window.__cloudVerifyUser === 'function'
+        && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
+      try {
+        if (btn){ btn.disabled = true; btn.textContent = 'Vérification…'; }
+        _diag = await window.__cloudVerifyUser(u);
+      } catch(e){ _diag = {ok:false, reason:'erreur'}; }
+      if (btn){ btn.disabled = false; btn.textContent = 'Se connecter →'; }
+    }
+    if (_diag && _diag.ok && _diag.user) {
+      try {
+        var _exists = state.users.find(function(x){ return x.username === _diag.user.username; });
+        if (!_exists) { state.users.push(_diag.user); save('users', state.users); }
+        found = state.users.find(function(x){ return x.username === u; });
+      } catch(e){}
+      var _okNow = await verifyLocalPassword(found, p);
+      if (!found || !_okNow) {
+        err.textContent = '❌ Mot de passe incorrect pour « ' + u + ' ».';
+        err.classList.add('show');
+        return;
+      }
+      /* mot de passe correct -> on poursuit la connexion plus bas */
+    } else {
+      var _reason = (_diag && _diag.reason) ? _diag.reason : '';
+      if (_reason === 'compte-absent-du-cloud') {
+        err.textContent = "❌ Le compte « " + u + " » n'existe pas dans le cloud. Demandez à l'administrateur de le (re)créer, ou vérifiez l'orthographe de l'identifiant.";
+      } else if (_reason === 'hors-ligne') {
+        err.textContent = '📡 Pas de connexion Internet détectée. Connectez-vous à Internet, puis réessayez.';
+      } else if (_reason === 'acces-supabase-refuse') {
+        err.textContent = "⛔ Accès au cloud refusé (règles Supabase). Contactez l'administrateur.";
+      } else if (_reason === 'liste-comptes-absente') {
+        err.textContent = "⚠️ Aucune liste de comptes trouvée dans le cloud. L'administrateur doit d'abord synchroniser depuis son appareil.";
+      } else if (_reason) {
+        err.textContent = '⚠️ Impossible de vérifier ce compte en ligne (' + _reason + '). Vérifiez votre connexion et réessayez.';
+      } else {
+        err.textContent = '❌ Identifiants incorrects. Vérifiez votre nom d\'utilisateur et mot de passe.';
+      }
+      err.classList.add('show');
+      return;
+    }
+  } else if (!passwordOk) {
+    err.textContent = '❌ Mot de passe incorrect pour « ' + u + ' ».';
     err.classList.add('show');
     return;
   }
@@ -24373,7 +24421,8 @@ function immatRequestForm() {
       <div class="field"><label>Lieu de naissance</label><input id="ir-ln" placeholder="Tengrela, Tortiya..."></div>
       <div class="field"><label>Niveau souhaité</label>
         <select id="ir-niv">
-          <option value="${u.classe}" selected>${u.classe} (ma classe)</option>
+          ${u.classe ? `<option value="${u.classe}" selected>${u.classe} (ma classe)</option>` : ''}
+          <option value="MPS">MPS</option><option value="MMS">MMS</option><option value="MGS">MGS</option>
           <option value="CP1">CP1</option><option value="CP2">CP2</option>
           <option value="CE1">CE1</option><option value="CE2">CE2</option>
           <option value="CM1">CM1</option><option value="CM2">CM2</option>
@@ -24390,10 +24439,89 @@ function immatRequestForm() {
         <select id="ir-ex"><option value="NON">NON — à régulariser</option><option value="OUI">OUI — extrait fourni</option></select>
       </div>
     </div>
+    <div class="field">
+      <label>📎 Document de preuve — Extrait de naissance</label>
+      <div style="background:#EFF6FF;border:1px dashed #1D4ED8;border-radius:8px;padding:14px;margin-bottom:8px">
+        <div style="font-size:12px;color:#1D4ED8;margin-bottom:10px">
+          <strong>Scannez ou photographiez l'extrait de naissance</strong> (PDF ou photo accepté)
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <label for="ir-scan-camera" style="flex:1;min-width:140px;padding:10px 14px;border:1.5px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;text-align:center;font-size:13px;font-weight:600;color:#000">📷 Prendre une photo</label>
+          <label for="ir-scan-file" style="flex:1;min-width:140px;padding:10px 14px;border:1.5px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;text-align:center;font-size:13px;font-weight:600;color:#000">📁 Choisir un fichier</label>
+        </div>
+        <input type="file" id="ir-scan-camera" accept="image/*" capture="environment" style="position:absolute;left:-9999px;opacity:0" onchange="irScanFile(event)">
+        <input type="file" id="ir-scan-file" accept="image/*,.pdf" style="position:absolute;left:-9999px;opacity:0" onchange="irScanFile(event)">
+        <div id="ir-scan-preview" style="margin-top:8px"></div>
+        <input type="hidden" id="ir-scan-data">
+        <input type="hidden" id="ir-scan-name">
+        <input type="hidden" id="ir-scan-type">
+      </div>
+    </div>
   `, `
     <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
     <button class="btn btn-orange" onclick="immatRequestSave()">📤 Soumettre la demande</button>
   `);
+}
+
+function irScanFile(ev) {
+  const file = ev.target.files?.[0];
+  if (!file) return;
+  if (file.size > 5*1024*1024) {
+    toast('Fichier trop volumineux (max 5 Mo). Réduisez la qualité de la photo.','error');
+    ev.target.value = '';
+    return;
+  }
+  const allowed = file.type.startsWith('image/') || file.type === 'application/pdf';
+  if (!allowed) {
+    toast('Format non accepté. Utilisez une photo ou un fichier PDF.','error');
+    ev.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const data = e.target.result;
+    const dataEl = document.getElementById('ir-scan-data');
+    const nameEl = document.getElementById('ir-scan-name');
+    const typeEl = document.getElementById('ir-scan-type');
+    const preview = document.getElementById('ir-scan-preview');
+    if (!dataEl || !preview) return;
+    dataEl.value = data;
+    if (nameEl) nameEl.value = file.name;
+    if (typeEl) typeEl.value = file.type;
+    const sizeKo = (file.size/1024).toFixed(1);
+    if (file.type.startsWith('image/')) {
+      preview.innerHTML = `
+        <div style="position:relative;display:inline-block;max-width:100%">
+          <img src="${data}" style="max-width:100%;max-height:200px;border:1px solid #ddd;border-radius:6px;display:block">
+          <button type="button" onclick="irScanClear()" style="position:absolute;top:6px;right:6px;background:#dc2626;color:#fff;border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:14px">×</button>
+          <div style="font-size:11px;color:#16a34a;margin-top:6px;font-weight:600">✅ ${escapeHtml(file.name)} (${sizeKo} Ko)</div>
+        </div>`;
+    } else {
+      preview.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fff;border:1px solid #ddd;border-radius:6px">
+          <span style="font-size:24px">📄</span>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px">${escapeHtml(file.name)}</div>
+            <div style="font-size:11px;color:#16a34a">✅ Fichier PDF joint (${sizeKo} Ko)</div>
+          </div>
+          <button type="button" onclick="irScanClear()" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer">×</button>
+        </div>`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function irScanClear() {
+  ['ir-scan-data','ir-scan-name','ir-scan-type'].forEach(id => {
+    const e = document.getElementById(id);
+    if (e) e.value = '';
+  });
+  const preview = document.getElementById('ir-scan-preview');
+  if (preview) preview.innerHTML = '';
+  ['ir-scan-camera','ir-scan-file'].forEach(id => {
+    const e = document.getElementById(id);
+    if (e) e.value = '';
+  });
 }
 
 function immatRequestSave() {
@@ -24401,11 +24529,14 @@ function immatRequestSave() {
   const nom = document.getElementById('ir-nom').value.trim();
   const prenoms = document.getElementById('ir-pre').value.trim();
   if (!nom || !prenoms) { toast('Nom et prénoms sont obligatoires','error'); return; }
+  const scanData = document.getElementById('ir-scan-data')?.value || '';
+  const scanName = document.getElementById('ir-scan-name')?.value || '';
+  const scanType = document.getElementById('ir-scan-type')?.value || '';
   const req = {
     id: 'ir' + Date.now(),
     demandeur: u.name,
     ecoleDemandeur: u.ecole,
-    classeDemandeur: u.classe,
+    classeDemandeur: u.classe || '',
     nom: nom.toUpperCase(),
     prenoms: prenoms,
     sexe: document.getElementById('ir-sex').value,
@@ -24416,16 +24547,19 @@ function immatRequestSave() {
     mere: document.getElementById('ir-mere').value.trim(),
     tel: document.getElementById('ir-tel').value.trim(),
     extrait: document.getElementById('ir-ex').value,
+    scanData: scanData,
+    scanName: scanName,
+    scanType: scanType,
     statut: 'En attente',
     dateDemande: new Date().toISOString().slice(0,10)
   };
   if (!state.immatRequests) state.immatRequests = [];
   state.immatRequests.unshift(req);
   save('immatRequests', state.immatRequests);
-  logAction('immat-request', `${u.name} a demandé l'immatriculation de ${nom} ${prenoms}`);
-  toast('Demande transmise au Correspondant Fichier','success');
+  logAction('immat-request', `${u.name} a demandé l'immatriculation de ${nom} ${prenoms}${scanData?' (+ extrait joint)':''}`);
+  toast('Demande transmise au Correspondant Fichier'+(scanData?' avec l’extrait joint':''),'success');
   closeModal();
-  renderMaClasse();
+  if (u.role === 'directeur') renderMonEcole(); else renderMaClasse();
 }
 
 /* Demande d'absence rapide depuis Ma classe */
@@ -24548,6 +24682,7 @@ function renderMonEcole() {
   const personnel = state.personnel.filter(p => p.ecole === monEcole);
   const eleves = state.elevesFichier.filter(e => e.ecole === monEcole);
   const absEnAttente = state.absences.filter(a => a.ecole === monEcole && a.statut === 'En attente directeur');
+  const mesImmat = (state.immatRequests || []).filter(r => r.demandeur === u.name);
 
   // Regrouper les élèves par classe
   const classes = {};
@@ -24575,6 +24710,7 @@ function renderMonEcole() {
 
     <div class="toolbar">
       <button class="btn btn-orange" onclick="navigate('absences')">📅 Valider les demandes d'absence (${absEnAttente.length})</button>
+      <button class="btn btn-ghost" onclick="immatRequestForm()">📨 Demande d'immatriculation</button>
       <button class="btn btn-ghost" onclick="navigate('perroquet-notes')" style="background:#D6F2E4;color:#00754A">🦜 Le Perroquet (notes)</button>
       <div style="flex:1"></div>
       <button class="btn btn-ghost" onclick="meRemonteeEcole()">📤 Remonter les effectifs à l'IEPP</button>
@@ -24668,6 +24804,24 @@ function renderMonEcole() {
             </div>
           `).join('')}
       </div>
+    </div>
+
+    <div class="card" style="padding:18px;margin-top:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:700">Mes demandes d'immatriculation</div>
+        <button class="btn btn-sm btn-orange" onclick="immatRequestForm()">📨 Nouvelle demande</button>
+      </div>
+      ${mesImmat.length === 0
+        ? '<div class="text-muted text-sm">Aucune demande en cours. Utilisez le bouton « Nouvelle demande » pour soumettre un nouvel élève au Correspondant Fichier.</div>'
+        : mesImmat.map(r => `
+          <div style="padding:8px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="fw-7">${escapeHtml(r.nom)} ${escapeHtml(r.prenoms)}</div>
+              <div class="text-xs text-muted">${fmtDate(r.dateDemande)} · ${escapeHtml(r.niveau||'')}${r.scanData?' · 📎 extrait joint':''}</div>
+            </div>
+            <span class="badge ${r.statut==='Validée'?'badge-green':r.statut==='Rejetée'?'badge-red':'badge-orange'}">${escapeHtml(r.statut)}</span>
+          </div>
+        `).join('')}
     </div>
   `);
 }
@@ -24951,7 +25105,8 @@ function renderImmatriculation() {
   const canVal = immatCanValidate();
   const list = immatInScope();
   const rows = list.length ? list.map(r => {
-    const cExt = r.extrait ? `<button class="btn btn-sm btn-ghost" onclick="immatViewExtrait('${r.id}')">🖼️ Voir extrait</button>` : `<span class="badge badge-orange">Sans extrait</span>`;
+    const hasDoc = !!r.scanData || (typeof r.extrait === 'string' && (r.extrait.startsWith('data:image/') || r.extrait.startsWith('data:application/pdf')));
+    const cExt = hasDoc ? `<button class="btn btn-sm btn-ghost" onclick="immatViewExtrait('${r.id}')">📎 Voir extrait</button>` : `<span class="badge badge-orange">${r.extrait==='OUI'?'Extrait déclaré':'Sans extrait'}</span>`;
     const cSt = r.statut==='Validée' ? 'green' : r.statut==='Rejetée' ? 'pink' : 'orange';
     return `<tr>
       <td class="text-xs text-muted">${fmtDate(r.dateDemande)}</td>
@@ -25060,11 +25215,17 @@ function immatSave(id) {
   renderImmatriculation();
 }
 function immatViewExtrait(id) {
-  const r = state.immatRequests.find(x=>x.id===id); if (!r||!r.extrait) return;
-  openModal(`Extrait de naissance — ${escapeHtml(r.nom+' '+r.prenoms)}`, `
-    <div style="text-align:center"><img src="${escapeHtml(r.extrait)}" style="max-width:100%;max-height:65vh;border:1px solid var(--line);border-radius:8px"></div>
-  `, `<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>
-      <a class="btn btn-orange" href="${escapeHtml(r.extrait)}" download="extrait_${escapeHtml((r.nom+'_'+r.prenoms).replace(/\W+/g,'_'))}.jpg">⬇️ Télécharger</a>`);
+  const r = state.immatRequests.find(x=>x.id===id);
+  if (!r) return;
+  const data = r.scanData || (typeof r.extrait === 'string' && r.extrait.startsWith('data:') ? r.extrait : '');
+  if (!data) { toast('Aucun extrait numérisé pour cette demande.','warn'); return; }
+  const type = r.scanType || (data.startsWith('data:application/pdf') ? 'application/pdf' : 'image/*');
+  const safeName = escapeHtml((r.scanName || ('extrait_'+(r.nom||'')+'_'+(r.prenoms||''))).replace(/\W+/g,'_'));
+  const visual = type === 'application/pdf' || data.startsWith('data:application/pdf')
+    ? `<iframe src="${escapeHtml(data)}" style="width:100%;height:65vh;border:1px solid var(--line);border-radius:8px;background:#fff"></iframe>`
+    : `<div style="text-align:center"><img src="${escapeHtml(data)}" style="max-width:100%;max-height:65vh;border:1px solid var(--line);border-radius:8px"></div>`;
+  openModal(`Extrait de naissance — ${escapeHtml(r.nom+' '+r.prenoms)}`, visual, `<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>
+      <a class="btn btn-orange" href="${escapeHtml(data)}" download="${safeName}">⬇️ Télécharger</a>`);
 }
 function immatValider(id) {
   if (!immatCanValidate()) return;
@@ -25075,7 +25236,8 @@ function immatValider(id) {
   const matricule = `${scope}-2026-${String(serial).padStart(5,'0')}`;
   state.elevesFichier = state.elevesFichier || [];
   state.elevesFichier.push({ id:'e_'+uid(), matricule, nom:r.nom, prenoms:r.prenoms, sexe:r.sexe, dateN:r.dateN, lieuN:r.lieuN,
-    niveau:r.niveau, ecole:r.ecoleDemandeur, pere:r.pere, mere:r.mere, tel:r.tel, photo:'' });
+    niveau:r.niveau, ecole:r.ecoleDemandeur, pere:r.pere, mere:r.mere, tel:r.tel,
+    extrait:(r.scanData || r.extrait==='OUI' || (typeof r.extrait==='string' && r.extrait.startsWith('data:'))) ? 'OUI' : 'NON', photo:'' });
   save('elevesFichier', state.elevesFichier);
   r.statut='Validée'; r.matricule=matricule;
   save('immatRequests', state.immatRequests);
@@ -28052,6 +28214,39 @@ function vieResetAllData() {
   @media print{ .no-print{display:none!important} }
 </style>
 
+<style id="iepp-login-accueil-v11">
+  /* Message d'accueil aux couleurs du drapeau : orange · blanc · vert */
+  .login-welcome{
+    text-align:center; font-family:'Fraunces',serif; font-weight:800;
+    font-size:20px; line-height:1.25; letter-spacing:.2px; margin:6px 0 12px;
+  }
+  .login-welcome .lw-o{ color:#F77F00; }                     /* orange */
+  .login-welcome .lw-n{ color:#334155; font-weight:600; }    /* liaison, neutre lisible */
+  .login-welcome .lw-w{                                        /* blanc, lisible sur carte blanche */
+    color:#fff; -webkit-text-stroke:.7px #16A05E;
+    text-shadow:0 1px 2px rgba(0,0,0,.20);
+  }
+  .login-welcome .lw-g{ color:#009E60; }                     /* vert */
+
+  /* Bouton « Se connecter » : l'orange VIBRE (pulsation lumineuse) pour attirer l'oeil */
+  @keyframes seConnecterVibre{
+    0%,100%{
+      box-shadow:0 8px 22px -6px rgba(247,127,0,.55);
+      transform:translateY(0) scale(1);
+      filter:none;
+    }
+    50%{
+      box-shadow:0 12px 32px -4px rgba(255,138,0,.95), 0 0 0 4px rgba(255,138,0,.20);
+      transform:translateY(-1px) scale(1.02);
+      filter:brightness(1.08) saturate(1.18);
+    }
+  }
+  #btn-se-connecter{ animation:seConnecterVibre 1.4s ease-in-out infinite; }
+  #btn-se-connecter:hover{ animation-duration:.85s; }
+  /* Accessibilité : on coupe l'animation si l'utilisateur a demandé moins de mouvement */
+  @media (prefers-reduced-motion: reduce){ #btn-se-connecter{ animation:none; } }
+</style>
+
 <script id="iepp-etape2-script">
 (function(){
   /* ---------- Logo IEPP (televerse) + armoiries (fournie) : disponibles partout ---------- */
@@ -28670,25 +28865,12 @@ function vieResetAllData() {
     }catch(e){ return false; }
   }
 
-  window.doLogin = function(){
-    try{
-      var uEl=document.getElementById('login-user'), pEl=document.getElementById('login-pass');
-      var u=uEl?uEl.value.trim():'', p=pEl?pEl.value:'';
-      var found = (typeof state!=='undefined' && state.users) ? state.users.find(function(x){ return x.username===u; }) : null;
-      if(found) return _login();                 // compte connu localement → connexion normale
-      if(!u){ return _login(); }                 // champ vide → laisser la logique d'origine gérer
-      // Pas trouvé localement → vérifier en ligne puis réessayer
-      var err=document.getElementById('login-error');
-      if(err){ err.textContent='⏳ Vérification des comptes en ligne…'; err.classList.remove('show'); err.classList.add('show'); }
-      var btn=document.getElementById('btn-se-connecter');
-      var prev = btn ? btn.textContent : '';
-      if(btn){ btn.disabled=true; btn.textContent='Vérification…'; }
-      refreshUsersFromCloud().then(function(){
-        if(btn){ btn.disabled=false; btn.textContent=prev||'Se connecter →'; }
-        _login();   // re-teste avec les comptes rafraîchis (ou affiche l'erreur d'origine)
-      });
-    }catch(e){ try{ return _login(); }catch(_){} }
-  };
+  /* La fonction doLogin d'origine récupère désormais elle-même les comptes depuis
+     le cloud (via __cloudFetchUsers) AVANT la vérification, et vérifie en dernier
+     recours le compte directement dans Supabase (via __cloudVerifyUser) avec un
+     message d'erreur précis. On délègue donc directement, sans double récupération
+     ni la fonction sbGet (hors de portée ici) qui rendait ce correctif inopérant. */
+  window.doLogin = function(){ try{ return _login(); }catch(e){ try{ return _login(); }catch(_){} } };
 })();
 </script>
 
@@ -29593,9 +29775,13 @@ function caMeta(){
     state.platformMeta = saved || {};
   }
   var m = state.platformMeta;
-  if(!m.version)   m.version   = '1.0';
+  var _verMig = false;
+  if(!m.version)   m.version   = '1.1';
+  /* Montée de version 1.0 -> 1.1 appliquée une seule fois (n'écrase pas une version personnalisée) */
+  if(!m._v11 && m.version === '1.0'){ m.version = '1.1'; m._v11 = 1; _verMig = true; }
   if(!m.reference) m.reference = 'CDC-IEPP-2026-001';
   if(!m.footer)    m.footer    = CA_DEFAULT_FOOTER;
+  if(_verMig){ try{ save('platformMeta', m); }catch(e){} }
   return m;
 }
 function caMetaSave(){ try{ save('platformMeta', state.platformMeta); }catch(e){} }
