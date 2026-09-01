@@ -2432,10 +2432,12 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
      les nouvelles clés publiables. */
   async function restFetch(url, opts){
     opts = opts || {};
+    /* CACHE DÉSACTIVÉ : le navigateur renvoyait une LECTURE PÉRIMÉE (une ancienne
+       valeur au lieu de la dernière écrite), ce qui faisait « disparaître » les
+       comptes créés et « ressusciter » les suppressions. On force la lecture réseau. */
+    opts.cache = 'no-store';
     var isJwt = /^eyJ/.test(SUPABASE_KEY);   /* ancienne clé anon = JWT ; nouvelle clé publiable = sb_... */
-    /* Pour une clé publiable (non-JWT), l'AUTHENTIFICATION FIABLE est « apikey » SEULE :
-       l'ajouter aussi en « Authorization: Bearer » fait renvoyer des lectures VIDES.
-       On l'utilise donc en premier pour la clé publiable, et Bearer pour une clé JWT. */
+    /* Clé publiable (non-JWT) : « apikey » seule d'abord ; clé JWT : Bearer d'abord. */
     var primary = isJwt
       ? Object.assign({ 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }, (opts.headers||{}))
       : Object.assign({ 'apikey': SUPABASE_KEY }, (opts.headers||{}));
