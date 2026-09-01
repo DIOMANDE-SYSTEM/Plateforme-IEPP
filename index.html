@@ -2794,35 +2794,43 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
       if (typeof navigator !== 'undefined' && navigator.onLine === false){ out.msg='hors-ligne'; return out; }
       var base = SUPABASE_URL + '/rest/v1/' + CLOUD_TABLE;
       var testKey = '__diagnostic_test', stamp = Date.now();
-      var wS=0, wT='';
+      /* ÉCRITURE — on demande le renvoi de la ligne (return=representation) pour PROUVER la persistance */
+      var wS=0, wBody='';
       try {
         var wr = await withTimeout(restFetch(base + '?on_conflict=key', {
           method:'POST',
-          headers: { 'Content-Type':'application/json', 'Prefer':'resolution=merge-duplicates,return=minimal' },
+          headers: { 'Content-Type':'application/json', 'Prefer':'resolution=merge-duplicates,return=representation' },
           body: JSON.stringify({ key:testKey, json: JSON.stringify({test:stamp}), updated_at:new Date().toISOString() })
         }), 12000, 'diag-write');
-        wS = wr.status; if(!wr.ok){ try{ wT=(await wr.text()).slice(0,200); }catch(e){} }
-      } catch(e){ out.msg='reseau'; out.code=(e&&e.message)||''; out.detail='écriture: '+out.code; return out; }
-      var rS=0, rT='', okRead=false;
+        wS = wr.status; try{ wBody=(await wr.text()); }catch(e){}
+      } catch(e){ out.msg='reseau'; out.code=(e&&e.message)||''; out.detail='[v3] écriture: '+out.code; return out; }
+      /* LECTURE de la même clé */
+      var rS=0, rBody='', arr=[], okRead=false;
       try {
         var rr = await withTimeout(restFetch(base + '?select=json&key=eq.' + encodeURIComponent(testKey), { headers: {} }), 12000, 'diag-read');
-        rS = rr.status;
-        if(rr.ok){ var arr=await rr.json(); okRead = Array.isArray(arr)&&arr.length>0&&arr[0].json&&JSON.parse(arr[0].json).test===stamp; }
-        else { try{ rT=(await rr.text()).slice(0,200); }catch(e){} }
-      } catch(e){ out.msg='reseau'; out.code=(e&&e.message)||''; out.detail='lecture: '+out.code; return out; }
+        rS = rr.status; try{ rBody=await rr.text(); }catch(e){}
+        try{ arr=JSON.parse(rBody); }catch(e){ arr=[]; }
+        okRead = Array.isArray(arr)&&arr.length>0&&arr[0].json&&JSON.parse(arr[0].json).test===stamp;
+      } catch(e){ out.msg='reseau'; out.code=(e&&e.message)||''; out.detail='[v3] lecture: '+out.code; return out; }
+      /* LECTURE globale (combien de lignes visibles dans toute la table ?) */
+      var cAll='?';
+      try { var ca=await withTimeout(restFetch(base+'?select=key&limit=5',{headers:{}}),12000,'diag-count'); var cb=await ca.text(); var cj=JSON.parse(cb); cAll=Array.isArray(cj)?cj.length:'?'; } catch(e){}
       try { await restFetch(base + '?key=eq.' + encodeURIComponent(testKey), { method:'DELETE', headers: {} }); } catch(e){}
-      out.detail = 'écriture HTTP ' + wS + (wT?(' — '+wT):'') + ' | lecture HTTP ' + rS + (rT?(' — '+rT):'');
+      out.detail = '[v3] écriture HTTP '+wS+' · lecture HTTP '+rS
+                 + ' · lignes(clé)='+(Array.isArray(arr)?arr.length:'?')
+                 + ' · lignes(table)='+cAll
+                 + ' · écrit='+((wBody||'').replace(/\s+/g,' ').slice(0,70)||'(vide)')
+                 + ' · lu='+((rBody||'').replace(/\s+/g,' ').slice(0,70)||'(vide)');
       if (wS>=200 && wS<300 && okRead){ out.ok=true; out.msg='ok'; return out; }
       function cls(s, txt){
         if(s===401) return 'cle';
-        if(s===403 || /rls|row-level|policy|permission|denied/i.test(txt)) return 'regles';
-        if(s===404 || /does not exist|relation|42P01/i.test(txt)) return 'table';
+        if(s===403 || /rls|row-level|policy|permission|denied/i.test(txt||'')) return 'regles';
+        if(s===404 || /does not exist|relation|42P01/i.test(txt||'')) return 'table';
         return '';
       }
-      var c = cls(wS,wT) || cls(rS,rT);
+      var c = cls(wS,wBody) || cls(rS,rBody);
       if (c){ out.msg = c; return out; }
-      if (wS>=200 && wS<300 && !okRead){ out.msg='regles'; return out; }  /* écrit OK mais lecture vide = policy SELECT manquante */
-      out.msg='erreur';
+      out.msg = 'lecture-vide';   /* écrit OK mais relecture vide : le détail brut ci-dessus tranche */
     } catch(e){
       out.code = ((e && (e.code||e.message))||'') + '';
       out.msg = 'erreur';
@@ -28382,6 +28390,9 @@ window.cloudDiagnostic = async function(){
   } else if (r.msg==='reseau' || r.msg==='hors-ligne'){
     title='📴 Hors ligne';
     body='<p>Pas de connexion au serveur Supabase pour le moment. Vérifiez votre <b>Internet</b> (ou un blocage réseau du domaine Supabase) et réessayez.</p>'+det;
+  } else if (r.msg==='lecture-vide'){
+    title='🔎 Écriture OK, relecture vide';
+    body='<p>L\'écriture réussit mais la relecture ne retrouve pas la donnée. La ligne ci-dessous contient la <b>réponse exacte de Supabase</b> — envoyez-la moi telle quelle, elle donne la cause définitive.</p>'+det;
   } else {
     title='⚠️ Problème cloud';
     body='<p>L\'accès en ligne a échoué.</p>'+det;
