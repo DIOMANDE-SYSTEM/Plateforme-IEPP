@@ -2425,41 +2425,63 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
   /* --- Accès table app_data (SDK Supabase, avec repli REST direct) --- */
   /* Écriture REST directe (upsert) — secours quand le SDK n'est pas chargé
      (CDN bloqué par le réseau). Symétrique de restGet défini plus bas. */
+  /* Requête REST avec repli d'authentification : les clés Supabase récentes
+     (« sb_publishable_… », non-JWT) sont parfois refusées (401) lorsqu'on les
+     envoie en « Authorization: Bearer ». Dans ce cas, on réessaie avec la clé en
+     en-tête « apikey » seule. Couvre ainsi aussi bien les anciennes clés JWT que
+     les nouvelles clés publiables. */
+  async function restFetch(url, opts){
+    opts = opts || {};
+    var isJwt = /^eyJ/.test(SUPABASE_KEY);   /* ancienne clé anon = JWT ; nouvelle clé publiable = sb_... */
+    /* Pour une clé publiable (non-JWT), l'AUTHENTIFICATION FIABLE est « apikey » SEULE :
+       l'ajouter aussi en « Authorization: Bearer » fait renvoyer des lectures VIDES.
+       On l'utilise donc en premier pour la clé publiable, et Bearer pour une clé JWT. */
+    var primary = isJwt
+      ? Object.assign({ 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }, (opts.headers||{}))
+      : Object.assign({ 'apikey': SUPABASE_KEY }, (opts.headers||{}));
+    var res = await fetch(url, Object.assign({}, opts, { headers: primary }));
+    if (res.status === 401){
+      /* Dernier recours : on tente l'autre méthode. */
+      var alt = isJwt
+        ? Object.assign({ 'apikey': SUPABASE_KEY }, (opts.headers||{}))
+        : Object.assign({ 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }, (opts.headers||{}));
+      try { res = await fetch(url, Object.assign({}, opts, { headers: alt })); } catch(e){}
+    }
+    return res;
+  }
   async function restSet(fullKey, jsonStr){
     var url = SUPABASE_URL + '/rest/v1/' + CLOUD_TABLE + '?on_conflict=key';
-    var res = await fetch(url, {
+    var res = await restFetch(url, {
       method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates,return=minimal'
-      },
+      headers: { 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify({ key: fullKey, json: jsonStr, updated_at: new Date().toISOString() })
     });
     if (!res.ok){ var t=''; try{ t = await res.text(); }catch(e){} throw new Error('REST ' + res.status + (t?(' '+t.slice(0,140)):'')); }
     return true;
   }
+  var _keyIsJwt = /^eyJ/.test(SUPABASE_KEY);   /* true = ancienne clé JWT ; false = clé publiable sb_... */
   async function sbSet(fullKey, jsonStr){
-    if (sb) {
+    /* Clé publiable (sb_...) : on passe DIRECTEMENT par REST (accès fiable via apikey).
+       Clé JWT : on utilise le SDK, avec repli REST en cas d'échec. */
+    if (sb && _keyIsJwt) {
       try {
         const { error } = await sb.from(CLOUD_TABLE)
           .upsert({ key: fullKey, json: jsonStr, updated_at: new Date().toISOString() }, { onConflict: 'key' });
         if (error) throw error;
         return;
-      } catch(e){ await restSet(fullKey, jsonStr); return; }   /* repli REST si le SDK échoue */
+      } catch(e){ await restSet(fullKey, jsonStr); return; }
     }
-    await restSet(fullKey, jsonStr);                            /* pas de SDK -> REST direct */
+    await restSet(fullKey, jsonStr);
   }
   async function sbGet(fullKey){
-    if (sb) {
+    if (sb && _keyIsJwt) {
       try {
         const { data, error } = await sb.from(CLOUD_TABLE).select('json').eq('key', fullKey).maybeSingle();
         if (error) throw error;
         return data ? data.json : null;
-      } catch(e){ return await restGet(fullKey); }              /* repli REST si le SDK échoue */
+      } catch(e){ return await restGet(fullKey); }
     }
-    return await restGet(fullKey);                              /* pas de SDK -> REST direct */
+    return await restGet(fullKey);
   }
 
   /* Écriture réelle vers Supabase */
@@ -2771,25 +2793,24 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
     try {
       if (typeof navigator !== 'undefined' && navigator.onLine === false){ out.msg='hors-ligne'; return out; }
       var base = SUPABASE_URL + '/rest/v1/' + CLOUD_TABLE;
-      var hdr  = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' };
       var testKey = '__diagnostic_test', stamp = Date.now();
       var wS=0, wT='';
       try {
-        var wr = await withTimeout(fetch(base + '?on_conflict=key', {
+        var wr = await withTimeout(restFetch(base + '?on_conflict=key', {
           method:'POST',
-          headers: Object.assign({}, hdr, { 'Prefer':'resolution=merge-duplicates,return=minimal' }),
+          headers: { 'Content-Type':'application/json', 'Prefer':'resolution=merge-duplicates,return=minimal' },
           body: JSON.stringify({ key:testKey, json: JSON.stringify({test:stamp}), updated_at:new Date().toISOString() })
         }), 12000, 'diag-write');
         wS = wr.status; if(!wr.ok){ try{ wT=(await wr.text()).slice(0,200); }catch(e){} }
       } catch(e){ out.msg='reseau'; out.code=(e&&e.message)||''; out.detail='écriture: '+out.code; return out; }
       var rS=0, rT='', okRead=false;
       try {
-        var rr = await withTimeout(fetch(base + '?select=json&key=eq.' + encodeURIComponent(testKey), { headers: hdr }), 12000, 'diag-read');
+        var rr = await withTimeout(restFetch(base + '?select=json&key=eq.' + encodeURIComponent(testKey), { headers: {} }), 12000, 'diag-read');
         rS = rr.status;
         if(rr.ok){ var arr=await rr.json(); okRead = Array.isArray(arr)&&arr.length>0&&arr[0].json&&JSON.parse(arr[0].json).test===stamp; }
         else { try{ rT=(await rr.text()).slice(0,200); }catch(e){} }
       } catch(e){ out.msg='reseau'; out.code=(e&&e.message)||''; out.detail='lecture: '+out.code; return out; }
-      try { await fetch(base + '?key=eq.' + encodeURIComponent(testKey), { method:'DELETE', headers: hdr }); } catch(e){}
+      try { await restFetch(base + '?key=eq.' + encodeURIComponent(testKey), { method:'DELETE', headers: {} }); } catch(e){}
       out.detail = 'écriture HTTP ' + wS + (wT?(' — '+wT):'') + ' | lecture HTTP ' + rS + (rT?(' — '+rT):'');
       if (wS>=200 && wS<300 && okRead){ out.ok=true; out.msg='ok'; return out; }
       function cls(s, txt){
@@ -2853,7 +2874,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
   async function restGet(fullKey){
     try {
       var url = SUPABASE_URL + '/rest/v1/app_data?select=json&key=eq.' + encodeURIComponent(fullKey);
-      var res = await fetch(url, { headers: { apikey: SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+      var res = await restFetch(url, { headers: {} });
       if (!res.ok) return null;
       var arr = await res.json();
       if (Array.isArray(arr) && arr.length && arr[0] && arr[0].json != null) return arr[0].json;
