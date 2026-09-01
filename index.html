@@ -2436,6 +2436,14 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
        valeur au lieu de la dernière écrite), ce qui faisait « disparaître » les
        comptes créés et « ressusciter » les suppressions. On force la lecture réseau. */
     opts.cache = 'no-store';
+    /* CACHE-BUSTER : rend chaque URL de LECTURE unique, pour contourner TOUT cache
+       (navigateur ET CDN) qui resservait une réponse périmée. On ajoute un filtre
+       toujours-vrai « key != valeur-aléatoire » — accepté par PostgREST et sans
+       effet sur le résultat (la colonne key n'est jamais nulle). GET seulement. */
+    var _method = (opts.method || 'GET').toUpperCase();
+    if (_method === 'GET'){
+      url += (url.indexOf('?')>=0?'&':'?') + 'key=neq.__cachebust_' + Date.now() + Math.random().toString(36).slice(2,8);
+    }
     var isJwt = /^eyJ/.test(SUPABASE_KEY);   /* ancienne clé anon = JWT ; nouvelle clé publiable = sb_... */
     /* Clé publiable (non-JWT) : « apikey » seule d'abord ; clé JWT : Bearer d'abord. */
     var primary = isJwt
@@ -2805,7 +2813,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
           body: JSON.stringify({ key:testKey, json: JSON.stringify({test:stamp}), updated_at:new Date().toISOString() })
         }), 12000, 'diag-write');
         wS = wr.status; try{ wBody=(await wr.text()); }catch(e){}
-      } catch(e){ out.msg='reseau'; out.code=(e&&e.message)||''; out.detail='[v3] écriture: '+out.code; return out; }
+      } catch(e){ out.msg='reseau'; out.code=(e&&e.message)||''; out.detail='[v4] écriture: '+out.code; return out; }
       /* LECTURE de la même clé */
       var rS=0, rBody='', arr=[], okRead=false;
       try {
@@ -2813,12 +2821,12 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
         rS = rr.status; try{ rBody=await rr.text(); }catch(e){}
         try{ arr=JSON.parse(rBody); }catch(e){ arr=[]; }
         okRead = Array.isArray(arr)&&arr.length>0&&arr[0].json&&JSON.parse(arr[0].json).test===stamp;
-      } catch(e){ out.msg='reseau'; out.code=(e&&e.message)||''; out.detail='[v3] lecture: '+out.code; return out; }
+      } catch(e){ out.msg='reseau'; out.code=(e&&e.message)||''; out.detail='[v4] lecture: '+out.code; return out; }
       /* LECTURE globale (combien de lignes visibles dans toute la table ?) */
       var cAll='?';
       try { var ca=await withTimeout(restFetch(base+'?select=key&limit=5',{headers:{}}),12000,'diag-count'); var cb=await ca.text(); var cj=JSON.parse(cb); cAll=Array.isArray(cj)?cj.length:'?'; } catch(e){}
       try { await restFetch(base + '?key=eq.' + encodeURIComponent(testKey), { method:'DELETE', headers: {} }); } catch(e){}
-      out.detail = '[v3] écriture HTTP '+wS+' · lecture HTTP '+rS
+      out.detail = '[v4] écriture HTTP '+wS+' · lecture HTTP '+rS
                  + ' · lignes(clé)='+(Array.isArray(arr)?arr.length:'?')
                  + ' · lignes(table)='+cAll
                  + ' · écrit='+((wBody||'').replace(/\s+/g,' ').slice(0,70)||'(vide)')
