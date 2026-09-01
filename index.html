@@ -2765,21 +2765,46 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
 
   /* Diagnostic en direct : teste écriture + lecture + suppression sur Supabase */
   window.__cloudDiagnostic = async function(){
-    var out = { ok:false, msg:'', code:'' };
+    /* Test EXPLICITE via l'API REST pour capter le vrai code HTTP :
+       401 = clé refusée · 403 = règle RLS · 404 = table/URL · 2xx+lecture vide = policy SELECT manquante. */
+    var out = { ok:false, msg:'', code:'', detail:'' };
     try {
       if (typeof navigator !== 'undefined' && navigator.onLine === false){ out.msg='hors-ligne'; return out; }
-      var testKey = '__diagnostic_test';
-      var stamp = Date.now();
-      await withTimeout(sbSet(testKey, JSON.stringify({ test: stamp })), 12000, 'diag-write');
-      var relu = await withTimeout(sbGet(testKey), 12000, 'diag-read');
-      var okRead = relu && JSON.parse(relu).test === stamp;
-      try { await withTimeout(sb.from(CLOUD_TABLE).delete().eq('key', testKey), 12000, 'diag-del'); } catch(e){}
-      out.ok = !!okRead; out.msg = okRead ? 'ok' : 'lecture-ko';
+      var base = SUPABASE_URL + '/rest/v1/' + CLOUD_TABLE;
+      var hdr  = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' };
+      var testKey = '__diagnostic_test', stamp = Date.now();
+      var wS=0, wT='';
+      try {
+        var wr = await withTimeout(fetch(base + '?on_conflict=key', {
+          method:'POST',
+          headers: Object.assign({}, hdr, { 'Prefer':'resolution=merge-duplicates,return=minimal' }),
+          body: JSON.stringify({ key:testKey, json: JSON.stringify({test:stamp}), updated_at:new Date().toISOString() })
+        }), 12000, 'diag-write');
+        wS = wr.status; if(!wr.ok){ try{ wT=(await wr.text()).slice(0,200); }catch(e){} }
+      } catch(e){ out.msg='reseau'; out.code=(e&&e.message)||''; out.detail='écriture: '+out.code; return out; }
+      var rS=0, rT='', okRead=false;
+      try {
+        var rr = await withTimeout(fetch(base + '?select=json&key=eq.' + encodeURIComponent(testKey), { headers: hdr }), 12000, 'diag-read');
+        rS = rr.status;
+        if(rr.ok){ var arr=await rr.json(); okRead = Array.isArray(arr)&&arr.length>0&&arr[0].json&&JSON.parse(arr[0].json).test===stamp; }
+        else { try{ rT=(await rr.text()).slice(0,200); }catch(e){} }
+      } catch(e){ out.msg='reseau'; out.code=(e&&e.message)||''; out.detail='lecture: '+out.code; return out; }
+      try { await fetch(base + '?key=eq.' + encodeURIComponent(testKey), { method:'DELETE', headers: hdr }); } catch(e){}
+      out.detail = 'écriture HTTP ' + wS + (wT?(' — '+wT):'') + ' | lecture HTTP ' + rS + (rT?(' — '+rT):'');
+      if (wS>=200 && wS<300 && okRead){ out.ok=true; out.msg='ok'; return out; }
+      function cls(s, txt){
+        if(s===401) return 'cle';
+        if(s===403 || /rls|row-level|policy|permission|denied/i.test(txt)) return 'regles';
+        if(s===404 || /does not exist|relation|42P01/i.test(txt)) return 'table';
+        return '';
+      }
+      var c = cls(wS,wT) || cls(rS,rT);
+      if (c){ out.msg = c; return out; }
+      if (wS>=200 && wS<300 && !okRead){ out.msg='regles'; return out; }  /* écrit OK mais lecture vide = policy SELECT manquante */
+      out.msg='erreur';
     } catch(e){
       out.code = ((e && (e.code||e.message))||'') + '';
-      out.msg = /relation|does not exist|42P01|table/i.test(out.code) ? 'table'
-              : /permission|denied|rls|row-level|policy|not allowed|401|403/i.test(out.code) ? 'regles'
-              : /network|fetch|unavailable|failed|offline/i.test(out.code) ? 'reseau' : 'erreur';
+      out.msg = 'erreur';
     }
     return out;
   };
@@ -28320,24 +28345,25 @@ window.cloudDiagnostic = async function(){
   if (!window.__cloudDiagnostic){ alert('Diagnostic indisponible (cloud pas encore chargé). Réessayez dans quelques secondes.'); return; }
   var r = await window.__cloudDiagnostic();
   var title, body;
+  var det = r.detail ? ('<p style="margin-top:10px;padding:8px 10px;background:#F1F5F9;border-radius:8px;color:#334155;font-size:12px">🔎 Détail technique : '+r.detail+'</p>') : (r.code?('<p style="color:#667;font-size:12px">🔎 '+r.code+'</p>'):'');
   if (r.ok){
     title='✅ Cloud OK';
-    body='<p>Écriture, lecture et suppression en ligne <b>fonctionnent</b>. Vos données <b>sont bien enregistrées</b> dans le cloud.</p><p style="color:#667;font-size:13px">Si « en ligne » et « poste » diffèrent encore, c\'est une question de <b>même IEPP</b> connectée des deux côtés et de <b>synchronisation</b> — appuyez sur 🔄 Synchroniser sur les deux appareils.</p>';
+    body='<p>Écriture ET lecture en ligne <b>fonctionnent</b>. Vos données <b>sont bien enregistrées</b> dans le cloud.</p><p style="color:#667;font-size:13px">Si « en ligne » et « poste » diffèrent encore, c\'est une question de <b>synchronisation</b> — appuyez sur 🔄 sur les deux appareils.</p>'+det;
   } else if (r.msg==='table'){
     title='❌ Table manquante';
-    body='<p>La table <b>app_data</b> n\'existe pas encore dans Supabase. Ouvrez Supabase → <b>SQL Editor</b> et exécutez le script de création de la table (celui que je vous ai donné).</p>';
+    body='<p>La table <b>app_data</b> n\'existe pas dans Supabase. Ouvrez Supabase → <b>SQL Editor</b> et exécutez le script de <b>création de la table</b>.</p>'+det;
+  } else if (r.msg==='cle'){
+    title='❌ Clé Supabase refusée';
+    body='<p>La base a répondu <b>401</b> : la <b>clé publique</b> est refusée (clé invalide, expirée, ou projet en pause). Vérifiez la clé et l\'adresse du projet Supabase.</p>'+det;
   } else if (r.msg==='regles'){
-    title='❌ Accès Supabase à autoriser';
-    body='<p><b>Voilà la cause.</b> Supabase <b>refuse l\'enregistrement</b> : la sécurité (RLS) bloque l\'accès. Exécutez dans le <b>SQL Editor</b> la ligne qui crée la règle d\'accès (policy) « acces_iepp », puis réessayez.</p>';
+    title='❌ Accès Supabase à autoriser (RLS)';
+    body='<p><b>Voilà la cause.</b> Supabase <b>refuse la lecture/écriture</b> : la sécurité RLS bloque l\'accès à la table. Dans le <b>SQL Editor</b>, exécutez le script d\'ouverture (policy « app_data_public_all » + grants) que je vous ai donné, PUIS relancez ce test.</p>'+det;
   } else if (r.msg==='reseau' || r.msg==='hors-ligne'){
     title='📴 Hors ligne';
-    body='<p>Pas de connexion au serveur pour le moment. Vérifiez votre <b>Internet</b> et réessayez.</p>';
-  } else if (r.msg==='non-charge'){
-    title='⏳ Cloud pas encore prêt';
-    body='<p>La connexion Firebase n\'est pas encore établie. Attendez quelques secondes après l\'ouverture de la plateforme, puis réessayez.</p>';
+    body='<p>Pas de connexion au serveur Supabase pour le moment. Vérifiez votre <b>Internet</b> (ou un blocage réseau du domaine Supabase) et réessayez.</p>'+det;
   } else {
     title='⚠️ Problème cloud';
-    body='<p>L\'enregistrement en ligne a échoué.</p><p style="color:#667;font-size:13px">Détail technique : '+ (r.code||r.msg||'inconnu') +'</p>';
+    body='<p>L\'accès en ligne a échoué.</p>'+det;
   }
   if (typeof openModal==='function') openModal(title, body, '<button class="btn btn-primary" onclick="closeModal()">Fermer</button>');
   else alert(title.replace(/[^\x20-\x7Eéàèù]/g,'')+'\n\n'+body.replace(/<[^>]+>/g,''));
