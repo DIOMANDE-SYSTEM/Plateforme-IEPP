@@ -1769,7 +1769,7 @@ const KEY = 'iepp_';
    Clés SCOPÉES  = stockées par IEPP : iepp_c_<slug>_<clé>.
    La DRENAET bascule entre ses IEPP ; le Superadmin entre toutes.
    ================================================================== */
-const GLOBAL_KEYS = new Set(['users','usersDeleted','customServices','current_user','drenaet','active_iepp','ieppRegistry','ieppRegistryDeleted','pnapasForm','courrierMsg','courrierMatrice']);
+const GLOBAL_KEYS = new Set(['users','usersDeleted','customServices','current_user','drenaet','active_iepp','ieppRegistry','ieppRegistryDeleted','pnapasForm','courrierMsg','courrierMatrice','ieppStats']);
 const SCOPED_KEY_LIST = ['ecoles','audit','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','carteRapports','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','secteurs','cpppBulletins','pointage','alphaCentres','alphaAuditeurs','alphaMatriceAction','islamStructures','islamApprenants','islamMatriceAction','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted','economatRegDeleted','secretariatRegDeleted','cantineRegDeleted','smossRegDeleted','communicationRegDeleted','biblioRegDeleted','archivisteRegDeleted','svcPermDeleted'];
 function scopeSlug(iepp){
   return 'c_' + String(iepp||'IEPP TENGRELA').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
@@ -2240,6 +2240,7 @@ function save(k, val) {
   try { if (typeof recordMergeTrack === 'function') val = recordMergeTrack(k, val); } catch(e){ console.warn('recordMergeTrack', e); }
   try { if (typeof genericTombTrack === 'function') genericTombTrack(k, val); } catch(e){ console.warn('genericTombTrack', e); }
   try { localStorage.setItem(storeKey(k), JSON.stringify(val)); } catch(e){ console.error('save fail', e); }
+  try { if ((k==='ecoles'||k==='effectifs'||k==='elevesFichier') && typeof publishIeppStats==='function') publishIeppStats(); } catch(e){}
   try { if (window.__cloudPush) return window.__cloudPush(storeKey(k), val); } catch(e){}
   return Promise.resolve({queued:true, ok:false});
 }
@@ -2743,8 +2744,9 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
 
   function refreshAfterPull(){
     try { if (typeof reloadScopedState==='function') reloadScopedState(); } catch(e){}
-    ['users','drenaet','ieppRegistry','customServices','courrierMsg','courrierMatrice','pnapasForm']
+    ['users','drenaet','ieppRegistry','customServices','courrierMsg','courrierMatrice','pnapasForm','ieppStats']
       .forEach(function(k){ try { state[k] = load(k, state[k]); } catch(e){} });
+    try { if (typeof publishIeppStats==='function') publishIeppStats(); } catch(e){}
     try { if (window.__healUsers) window.__healUsers(); } catch(e){}
     try { if (window.fixDrenaetLabels) window.fixDrenaetLabels(); } catch(e){}   /* nettoie aussi les données venues du cloud */
     try {
@@ -4564,6 +4566,68 @@ function ensureDrenaetFromRegistry(){
     return changed;
   }catch(e){ return false; }
 }
+/* ==================================================================
+   EFFECTIFS RÉELS PAR IEPP (vue nationale « Administration des IEPP »)
+   Chaque compte rattaché à une IEPP publie automatiquement son total
+   réel (écoles + élèves) dans la clé GLOBALE 'ieppStats'. La vue
+   nationale lit ces totaux réels au lieu des valeurs de démonstration.
+   ================================================================== */
+function computeIeppTotals(){
+  var ecoles = (state.ecoles||[]).length;
+  var byMatrix = (state.effectifs||[]).reduce(function(a,b){ return a + (+((b&&b.total))||0); }, 0);
+  var byEcole  = (state.ecoles||[]).reduce(function(a,b){ return a + (+((b&&b.effectif))||0); }, 0);
+  var eleves = byMatrix>0 ? byMatrix : (byEcole>0 ? byEcole : (state.elevesFichier||[]).length);
+  return { ecoles: ecoles, eleves: eleves };
+}
+function publishIeppStats(){
+  try{
+    var u = state.user||{};
+    var iepp = String(u.iepp||'').trim();
+    if(!iepp || iepp.toUpperCase()==='TOUTES') return;         /* seulement un compte rattaché à UNE IEPP */
+    if(u.role==='superadmin' || u.role==='drenaet') return;     /* la vue nationale ne publie pas */
+    if(!Array.isArray(state.ieppStats)) state.ieppStats = load('ieppStats', []);
+    var t = computeIeppTotals();
+    var key = iepp.toUpperCase();
+    var arr = state.ieppStats.slice();
+    var i = arr.findIndex(function(s){ return String((s&&s.iepp)||'').trim().toUpperCase()===key; });
+    var prev = i>=0 ? arr[i] : null;
+    if(prev && (+prev.ecoles||0)===t.ecoles && (+prev.eleves||0)===t.eleves) return; /* inchangé : rien à faire */
+    var entry = { iepp:iepp, ecoles:t.ecoles, eleves:t.eleves, at:Date.now() };
+    if(i>=0) arr[i]=entry; else arr.push(entry);
+    state.ieppStats = arr;
+    save('ieppStats', state.ieppStats);
+  }catch(e){}
+}
+function ieppStatFor(name){
+  if(!Array.isArray(state.ieppStats)) state.ieppStats = load('ieppStats', []);
+  var key = String(name||'').trim().toUpperCase();
+  return (state.ieppStats||[]).find(function(s){ return String((s&&s.iepp)||'').trim().toUpperCase()===key; }) || null;
+}
+/* Repli : lire directement les données d'une IEPP déjà présentes sur CET appareil */
+function ieppScopedTotals(name){
+  try{
+    var sc = scopeSlug(name);
+    var ecRaw = localStorage.getItem(KEY+sc+'_ecoles');
+    var efRaw = localStorage.getItem(KEY+sc+'_effectifs');
+    if(ecRaw===null && efRaw===null) return null;
+    var ec = ecRaw ? (JSON.parse(ecRaw)||[]) : [];
+    var ef = efRaw ? (JSON.parse(efRaw)||[]) : [];
+    var ecoles = Array.isArray(ec)?ec.length:0;
+    var byMatrix = Array.isArray(ef)?ef.reduce(function(a,b){ return a+(+((b&&b.total))||0); },0):0;
+    var byEcole  = Array.isArray(ec)?ec.reduce(function(a,b){ return a+(+((b&&b.effectif))||0); },0):0;
+    return { ecoles:ecoles, eleves: byMatrix>0?byMatrix:byEcole };
+  }catch(e){ return null; }
+}
+/* Totaux affichés pour une ligne IEPP : d'abord les stats publiées par l'IEPP,
+   sinon les données locales de cet appareil, sinon 0 (aucune donnée réelle encore). */
+function drRealTotals(d){
+  var s = ieppStatFor(d && d.iepp);
+  if(s) return { ecoles:+s.ecoles||0, eleves:+s.eleves||0 };
+  var loc = ieppScopedTotals(d && d.iepp);
+  if(loc) return loc;
+  return { ecoles:0, eleves:0 };
+}
+
 function renderDrenaet(skipCloud) {
   if (!['superadmin','drenaet'].includes(state.user.role)) {
     setContent(`<div class="card" style="text-align:center;padding:40px">
@@ -4587,8 +4651,8 @@ function renderDrenaet(skipCloud) {
     } catch(e){}
   }
   const list = isRegional ? state.drenaet.filter(d => d.drenaet === myDrenaet) : state.drenaet;
-  const totalEcoles = list.reduce((a,b)=>a+(+b.ecoles||0),0);
-  const totalEleves = list.reduce((a,b)=>a+(+b.eleves||0),0);
+  const totalEcoles = list.reduce((a,b)=>a+drRealTotals(b).ecoles,0);
+  const totalEleves = list.reduce((a,b)=>a+drRealTotals(b).eleves,0);
   const drenaets = [...new Set(list.map(d=>d.drenaet))];
   const iepps = [...new Set(list.map(d=>d.iepp))];
 
@@ -4664,8 +4728,8 @@ function renderDrenaetBody() {
       <td class="fw-7">${escapeHtml(d.iepp)}</td>
       <td><span class="badge badge-blue">${escapeHtml(d.ieppCode||'—')}</span></td>
       <td>${escapeHtml(d.chef||'—')}</td>
-      <td style="text-align:right" class="fw-7">${(+d.ecoles||0).toLocaleString('fr-FR')}</td>
-      <td style="text-align:right" class="fw-7">${(+d.eleves||0).toLocaleString('fr-FR')}</td>
+      <td style="text-align:right" class="fw-7">${drRealTotals(d).ecoles.toLocaleString('fr-FR')}</td>
+      <td style="text-align:right" class="fw-7">${drRealTotals(d).eleves.toLocaleString('fr-FR')}</td>
       <td>${d.statut==='Active' ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-orange">'+escapeHtml(d.statut||'—')+'</span>'}</td>
       <td class="actions-cell">
         ${canEdit ? `<button class="icon-btn" onclick="drenaetForm('${d.id}')" title="Modifier">✏️</button>
@@ -28276,7 +28340,7 @@ function guideInnerHtml(forPrint) {
   const header = `<div style="text-align:center;border-bottom:2px solid #0A4DA6;padding-bottom:12px;margin-bottom:14px">
       ${logo?`<img src="${logo}" style="max-width:210px;height:auto;margin-bottom:6px">`:''}
       <div style="font-size:11px;color:#555">République de Côte d'Ivoire · MENAET · ${escapeHtml(ieppName)}</div>
-      <h1 style="font-size:21px;color:#0A4DA6;margin:8px 0 2px">🎓 Cours de formation — Plateforme IEPP</h1>
+      <h1 style="font-size:19px;color:#0A4DA6;margin:8px 0 2px;line-height:1.3">🎓 Formation des utilisateurs à la plateforme IEPP et mise à disposition d'un guide d'utilisation PDF téléchargeable et imprimable</h1>
       <div style="font-size:12px;color:#666">Prise en main complète · édité le ${new Date().toLocaleDateString('fr-FR')}</div>
     </div>`;
   if (forPrint){
@@ -28295,7 +28359,7 @@ function guideInnerHtml(forPrint) {
 }
 
 function openGuideUtilisation() {
-  openModal('🎓 Cours de formation — Plateforme IEPP',
+  openModal('🎓 Formation des utilisateurs à la plateforme IEPP et mise à disposition d\'un guide d\'utilisation PDF téléchargeable et imprimable',
     `<div style="max-height:74vh;overflow:auto;background:#fff;padding:8px 6px">${guideInnerHtml(false)}</div>`,
     `<button class="btn btn-primary" style="background:#0A4DA6;border-color:#0A4DA6" onclick="downloadGuidePDF()">⬇️ Télécharger en PDF</button>
      <button class="btn btn-green" onclick="downloadGuidePDF()">🖨️ Imprimer</button>
@@ -28304,7 +28368,7 @@ function openGuideUtilisation() {
 function downloadGuidePDF() {
   const w = window.open('', '_blank');
   if (!w) { toast('Autorisez les pop-up pour télécharger le PDF', 'error'); return; }
-  w.document.write(`<html><head><meta charset="utf-8"><title>Cours de formation — Plateforme IEPP</title>
+  w.document.write(`<html><head><meta charset="utf-8"><title>Formation des utilisateurs à la plateforme IEPP et mise à disposition d'un guide d'utilisation PDF téléchargeable et imprimable</title>
     <style>
       body{margin:24px;background:#fff}
       ul{margin:4px 0 4px 18px;padding:0} li{margin:3px 0}
