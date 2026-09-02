@@ -1623,10 +1623,10 @@ const ACL = {
   cpi:          ['dashboard','corbeille','statistiques','rapports','ecoles','cpi','vie-scolaire','rh','absences','archives','users','examens','stat-effectifs','stat-situation','carte-prescolaire','carte-primaire','carte-rapport','pnapas','aser','aser-livret','aser-ace'],
   /* Directeur d'école : voit son école (espace personnel) + modules d'école */
   /* Directeur — accès strictement limité à son espace école */
-  directeur:    ['dashboard','mon-ecole','immatriculation','absences','perroquet-notes'],
+  directeur:    ['dashboard','mon-ecole','immatriculation','absences','examens','perroquet-notes'],
   /* Instituteur : voit sa classe (espace personnel) + demandes personnelles */
   /* Instituteur — accès strictement limité à son espace classe */
-  instituteur:  ['dashboard','ma-classe','immatriculation','perroquet-notes'],
+  instituteur:  ['dashboard','ma-classe','immatriculation','examens','perroquet-notes'],
   correspondant:['dashboard','corbeille','rh','absences','courrier','archives','users','examens', ...CORRESPONDANT_MODULES],
   /* Correspondant statistique (IEPP) : tableaux de bord + tous les tableaux statistiques (correction des données) */
   corresp_stat: ['dashboard','statistiques','rapports','archives','courrier','stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','fiche-prescolaire','fiche-primaire','fiche-alphabetisation','fiche-islamique','fiche-generateur','carte-prescolaire','carte-primaire','carte-secondaire','carte-rapport','pnapas','aser','aser-livret','aser-ace','etat-compositions','perroquet-notes'],
@@ -7521,7 +7521,37 @@ function bulletinExportPDF() {
    ================================================================== */
 let examTab = 'synthese';
 function examCanManage(){ return ['superadmin','drenaet','inspecteur','correspondant','cpi','examens'].includes(state.user.role); }
-function cm2Eleves() { return (state.elevesFichier||[]).filter(e=>e.niveau==='CM2'); }
+/* Édition des notes CM2 : ouverte AUSSI aux instituteurs et directeurs (saisie des
+   notes de leurs élèves), en plus des rôles de gestion. */
+function cm2CanEdit(){ return examCanManage() || ['instituteur','directeur'].includes(state.user.role); }
+/* Onglets visibles selon le rôle : instituteur/directeur = uniquement les notes CM2
+   (pas l'administration : candidats, convocations, examen pédagogique, matrice). */
+function examAllowedTabs(){
+  if (examCanManage()) return ['synthese','cm2','saisie','eff','cand','conv','peda','matrice'];
+  if (['instituteur','directeur'].includes(state.user.role)) return ['synthese','cm2','saisie','eff'];
+  return ['synthese','cm2','saisie','eff','cand','conv','peda','matrice'];
+}
+/* Mention selon la moyenne /20 (barème type « Le Perroquet ») */
+function cm2Mention(moy){
+  if (moy==null || isNaN(moy)) return { label:'—', color:'#8A8F98', bg:'#EEEEEE' };
+  if (moy>=18) return { label:'Excellent',   color:'#0B6B3A', bg:'#D6F2E4' };
+  if (moy>=16) return { label:'Très Bien',   color:'#0B6B3A', bg:'#D6F2E4' };
+  if (moy>=14) return { label:'Bien',        color:'#1F6FB2', bg:'#E1EDFF' };
+  if (moy>=12) return { label:'Assez Bien',  color:'#1F6FB2', bg:'#EAF2FF' };
+  if (moy>=10) return { label:'Passable',    color:'#9A6700', bg:'#FFF3D6' };
+  return { label:'Insuffisant', color:'#A11A4D', bg:'#FFE0EB' };
+}
+function cm2Eleves() {
+  var list = (state.elevesFichier||[]).filter(function(e){ return e.niveau==='CM2'; });
+  var u = state.user||{};
+  /* Instituteur / directeur : UNIQUEMENT les élèves de CM2 de LEUR école. */
+  if (u.role==='instituteur' || u.role==='directeur'){
+    var norm = function(s){ return String(s||'').trim().toUpperCase().replace(/\s+/g,' '); };
+    var mine = norm(u.ecole);
+    if (mine) list = list.filter(function(e){ return norm(e.ecole)===mine; });
+  }
+  return list;
+}
 function cm2MoyAnnuelle(e){
   const vals = ['compo1','compo2','blanc1','blanc2'].map(k=>parseFloat(e[k])).filter(v=>!isNaN(v));
   return vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*100)/100 : null;
@@ -7895,7 +7925,8 @@ function cm2SaveGrade(id, field, value) {
   save('elevesFichier', state.elevesFichier);
 }
 function cm2AddEleve() {
-  eleveAddForm({ title:'+ Élève CM2', ecole:state.ecoles[0]?.nom||'', niveau:'CM2', lockEcole:false, callback:'examRenderPane' });
+  var isTeacher = ['instituteur','directeur'].includes(state.user.role);
+  eleveAddForm({ title:'+ Élève CM2', ecole: isTeacher ? (state.user.ecole||'') : (state.ecoles[0]?.nom||''), niveau:'CM2', lockEcole: isTeacher, callback:'examRenderPane' });
   // Force CM2 in the form niveau
   setTimeout(()=>{ const sel=document.getElementById('el-niv'); if(sel){sel.value='CM2';sel.disabled=true;} },50);
 }
@@ -8156,10 +8187,11 @@ function cm2DisplayCell(e, evalKey) {
 
 /* ===== Onglet Classes CM2 (vue compacte + clic pour saisir 4 matières) ===== */
 function examCM2Html() {
-  const canEdit = examCanManage();
+  const canEdit = cm2CanEdit();
   const list = cm2Eleves();
   const rows = list.length ? list.map(e=>{
     const moy = cm2MoyAnnuelle(e); const statut = cm2StatutFinal(e);
+    const men = cm2Mention(moy);
     const cells = CM2_EVALS.map(ev=>{
       const isFinal = ev.key==='examen6e';
       return `<td style="text-align:center;cursor:${canEdit?'pointer':'default'};padding:6px;${isFinal?'background:#FFF9E6':''}" ${canEdit?`onclick="cm2EditEval('${e.id}','${ev.key}')"`:''} title="Cliquer pour saisir les 4 matières">
@@ -8173,13 +8205,14 @@ function examCM2Html() {
       <td class="text-sm">${escapeHtml(e.ecole||'')}</td>
       ${cells}
       <td style="text-align:center" class="fw-7">${moy!=null?moy:'—'}</td>
+      <td style="text-align:center"><span class="badge" style="background:${men.bg};color:${men.color}">${men.label}</span></td>
       <td style="text-align:center"><span class="badge badge-${statut==='Admis'?'green':statut==='Non admis'?'red':'grey'}">${statut}</span></td>
       ${canEdit?`<td class="actions-cell">
         <button class="icon-btn" onclick="cm2EditEleve('${e.id}')" title="Modifier identité">✏️</button>
-        <button class="icon-btn danger" onclick="cm2DeleteEleve('${e.id}')" title="Supprimer">🗑️</button>
+        ${examCanManage()?`<button class="icon-btn danger" onclick="cm2DeleteEleve('${e.id}')" title="Supprimer">🗑️</button>`:''}
       </td>`:''}
     </tr>`;
-  }).join('') : `<tr><td colspan="${canEdit?12:11}" class="table-empty">Aucun élève CM2 — ajoutez ou importez une liste</td></tr>`;
+  }).join('') : `<tr><td colspan="${canEdit?13:12}" class="table-empty">Aucun élève CM2 — ajoutez ou importez une liste</td></tr>`;
   return `
     <div class="card" style="background:#F9FAFB;padding:10px 14px;margin-bottom:10px;border-left:3px solid var(--blue)">
       <div class="text-xs"><strong>Notes par matière :</strong>
@@ -8197,7 +8230,7 @@ function examCM2Html() {
       <thead><tr>
         <th>Matricule</th><th>Nom & prénoms</th><th>Sexe</th><th>École</th>
         ${CM2_EVALS.map(ev=>`<th style="text-align:center${ev.key==='examen6e'?';background:#FFF9E6':''}">${ev.label}<br><span class="text-xs text-muted" style="text-transform:none;font-weight:normal">/ ${CM2_MAX_TOTAL}</span></th>`).join('')}
-        <th style="text-align:center">Moyenne /20</th><th>Statut</th>${canEdit?'<th style="width:80px"></th>':''}
+        <th style="text-align:center">Moyenne /20</th><th style="text-align:center">Mention</th><th>Statut</th>${canEdit?'<th style="width:80px"></th>':''}
       </tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
@@ -8216,7 +8249,7 @@ function cm2EditEval(id, evKey) {
     ${cur?`<div class="card" style="background:#F0F4F8;padding:10px;margin-top:10px;text-align:center">
       <div class="text-xs text-muted">TOTAL ACTUEL</div>
       <div class="fw-7" style="font-size:18px;color:var(--blue-deep)">${cur.total}/${CM2_MAX_TOTAL}</div>
-      <div class="text-sm">soit ${cur.sur20}/20</div>
+      <div class="text-sm">soit ${cur.sur20}/20 · <span class="badge" style="background:${cm2Mention(cur.sur20).bg};color:${cm2Mention(cur.sur20).color}">${cm2Mention(cur.sur20).label}</span></div>
     </div>`:''}
   `, `<button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
       <button class="btn btn-orange" onclick="cm2EditEvalSave('${id}','${evKey}')">✓ Enregistrer</button>`);
@@ -8474,7 +8507,9 @@ function cm2Export() {
       const x = cm2EvalTotal(e, ev.key);
       r[`${ev.label} — Total/${CM2_MAX_TOTAL}`] = x ? x.total : '';
     });
-    r['Moyenne annuelle /20'] = cm2MoyAnnuelle(e) != null ? cm2MoyAnnuelle(e) : '';
+    var _moy = cm2MoyAnnuelle(e);
+    r['Moyenne annuelle /20'] = _moy != null ? _moy : '';
+    r['Mention'] = _moy != null ? cm2Mention(_moy).label : '';
     r['Statut final'] = cm2StatutFinal(e);
     return r;
   });
@@ -8543,24 +8578,31 @@ function renderExamens() {
       <h3>🎓 Examens & Concours</h3>
       <p>Centres, classes CM2 (notes par matière : Maths /50, Exploitation /50, Éveil /50, Dictée /20), effectifs, candidats Entrée en 6ème et convocations.</p>
     </div>
-    <div class="tabs">
-      <div class="tab ${examTab==='synthese'?'active':''}" onclick="examGo('synthese')">📊 Synthèse</div>
-      <div class="tab ${examTab==='cm2'?'active':''}" onclick="examGo('cm2')">📝 Classes CM2 <span class="badge badge-blue">${cm2Eleves().length}</span></div>
-      <div class="tab ${examTab==='saisie'?'active':''}" onclick="examGo('saisie')">✏️ Saisie des notes</div>
-      <div class="tab ${examTab==='eff'?'active':''}" onclick="examGo('eff')">👥 Effectifs CM2</div>
-      <div class="tab ${examTab==='cand'?'active':''}" onclick="examGo('cand')">🎯 Candidats 6ème</div>
-      <div class="tab ${examTab==='conv'?'active':''}" onclick="examGo('conv')">📨 Convocations</div>
-      <div class="tab ${examTab==='peda'?'active':''}" onclick="examGo('peda')">📚 Examen pédagogique <span class="badge badge-purple">${(state.ceapCandidates||[]).length}</span></div>
-      <div class="tab ${examTab==='matrice'?'active':''}" onclick="examGo('matrice')">📋 Matrice d'action <span class="badge badge-orange">${(state.matriceExamens||[]).length}</span></div>
-    </div>
+    ${(function(){
+      var defs = [
+        {k:'synthese', l:'📊 Synthèse'},
+        {k:'cm2', l:'📝 Classes CM2 <span class="badge badge-blue">'+cm2Eleves().length+'</span>'},
+        {k:'saisie', l:'✏️ Saisie des notes'},
+        {k:'eff', l:'👥 Effectifs CM2'},
+        {k:'cand', l:'🎯 Candidats 6ème'},
+        {k:'conv', l:'📨 Convocations'},
+        {k:'peda', l:'📚 Examen pédagogique <span class="badge badge-purple">'+((state.ceapCandidates||[]).length)+'</span>'},
+        {k:'matrice', l:'📋 Matrice d\'action <span class="badge badge-orange">'+((state.matriceExamens||[]).length)+'</span>'}
+      ];
+      var allowed = examAllowedTabs();
+      return '<div class="tabs">'+ defs.filter(function(d){return allowed.indexOf(d.k)>=0;}).map(function(d){
+        return '<div class="tab '+(examTab===d.k?'active':'')+'" data-tab="'+d.k+'" onclick="examGo(\''+d.k+'\')">'+d.l+'</div>';
+      }).join('') +'</div>';
+    })()}
     <div id="exam-pane"></div>
   `);
   examRenderPane();
   attachReportButton(reportExamens);
 }
-function examGo(t){ examTab=t; document.querySelectorAll('#content .tabs .tab').forEach((el,i)=>el.classList.toggle('active', ['synthese','cm2','saisie','eff','cand','conv','peda','matrice'][i]===t)); examRenderPane(); }
+function examGo(t){ examTab=t; document.querySelectorAll('#content .tabs .tab').forEach(function(el){ el.classList.toggle('active', el.getAttribute('data-tab')===t); }); examRenderPane(); }
 function examRenderPane() {
   const pane = document.getElementById('exam-pane'); if(!pane) return;
+  if (typeof examAllowedTabs==='function' && examAllowedTabs().indexOf(examTab)<0) examTab='cm2';
   if (examTab==='synthese')   pane.innerHTML = examSyntheseHtml();
   else if (examTab==='cm2')   pane.innerHTML = examCM2Html();
   else if (examTab==='saisie') pane.innerHTML = examSaisieHtml();
@@ -28082,111 +28124,179 @@ try { window.__healUsers(); } catch(e){}
    GUIDE D'UTILISATION DE LA PLATEFORME — accessible à tous
    Aperçu en modale + téléchargement / impression PDF.
    ================================================================== */
-function guideSections() {
+/* ==================================================================
+   COURS DE FORMATION — Plateforme IEPP  (remplace l'ancien Guide)
+   Sommaire + chapitres dépliables + VIDÉO intégrée. Le lien vidéo se
+   définit depuis le cours (bouton réservé au super administrateur) et
+   est mémorisé dans platformMeta.guideVideo (synchronisé).
+   ================================================================== */
+var GUIDE_VIDEO_URL = 'formation_iepp.mp4'; /* vidéo de formation fournie, placée à côté de index.html */
+
+function guideVideoUrl(){
+  try { if (state.platformMeta && state.platformMeta.guideVideo) return String(state.platformMeta.guideVideo); } catch(e){}
+  return GUIDE_VIDEO_URL || '';
+}
+function guideYtId(u){ var m=String(u).match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/); return m?m[1]:''; }
+function guideVimeoId(u){ var m=String(u).match(/vimeo\.com\/(?:video\/)?(\d+)/); return m?m[1]:''; }
+function guideVideoEmbed(forPrint){
+  var url = guideVideoUrl();
+  var canSet = (state.user && state.user.role==='superadmin');
+  if (forPrint){
+    return url ? '<p style="font-size:12px;color:#0A4DA6;margin:0 0 10px">🎬 Vidéo de formation : '+escapeHtml(url)+'</p>' : '';
+  }
+  if (url){
+    var yt = guideYtId(url), vi = guideVimeoId(url), frame='';
+    if (yt)      frame = '<iframe src="https://www.youtube.com/embed/'+yt+'" title="Vidéo de formation" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>';
+    else if (vi) frame = '<iframe src="https://player.vimeo.com/video/'+vi+'" title="Vidéo de formation" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>';
+    else if (/\.(mp4|webm|ogg)(\?|$)/i.test(url)) frame = '<video src="'+escapeHtml(url)+'" controls playsinline style="position:absolute;inset:0;width:100%;height:100%;background:#000"></video>';
+    else         frame = '<iframe src="'+escapeHtml(url)+'" title="Vidéo de formation" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>';
+    return '<div style="position:relative;padding-top:56.25%;border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(10,77,166,.18)">'+frame+'</div>'
+      + (canSet?'<div style="text-align:right;margin:6px 0 12px"><button class="btn btn-ghost" style="padding:4px 10px;font-size:12px" onclick="guideSetVideo()">✏️ Changer la vidéo</button></div>':'<div style="margin-bottom:12px"></div>');
+  }
+  return '<div style="border:2px dashed #B7C7E0;border-radius:12px;background:#F4F8FF;padding:26px 18px;text-align:center;margin-bottom:12px">'
+    + '<div style="font-size:36px">🎬</div>'
+    + '<div style="font-weight:800;color:#0A4DA6;margin:6px 0">Vidéo de formation</div>'
+    + '<div style="font-size:12.5px;color:#4A5568;max-width:460px;margin:0 auto 10px">Ajoutez ici la vidéo de présentation de la plateforme (lien YouTube, Vimeo ou fichier .mp4). Elle s\'affichera pour tous les utilisateurs, en tête du cours.</div>'
+    + (canSet
+        ? '<button class="btn btn-primary" style="background:#0A4DA6;border-color:#0A4DA6" onclick="guideSetVideo()">➕ Ajouter la vidéo</button>'
+        : '<div style="font-size:12px;color:#8A94A6">La vidéo sera ajoutée par l\'administrateur.</div>')
+    + '</div>';
+}
+function guideSetVideo(){
+  if (!(state.user && state.user.role==='superadmin')){ toast('Réservé au super administrateur.','error'); return; }
+  var v = prompt('Lien de la vidéo de formation (YouTube, Vimeo ou .mp4) :\n(Laisser vide pour retirer la vidéo.)', guideVideoUrl());
+  if (v===null) return;
+  v = String(v).trim();
+  state.platformMeta = state.platformMeta || {};
+  state.platformMeta.guideVideo = v;
+  try { save('platformMeta', state.platformMeta); } catch(e){}
+  toast(v?'Vidéo enregistrée ✅':'Vidéo retirée.','success');
+  closeModal(); openGuideUtilisation();
+}
+
+/* ---- Contenu pédagogique du cours ---- */
+function guideCourse() {
   return [
-    { t:"1. Présentation", icon:"🏫", html:`
-      <p>La <strong>Plateforme Numérique de Gestion de l'IEPP</strong> centralise la gestion d'une Inspection de l'Enseignement Préscolaire et Primaire (MENAET — Côte d'Ivoire) : écoles, élèves, personnel, statistiques, examens, autorisations d'absence, services (bibliothèque, cantine, économat, COGES, archives, courrier…) et remontées de fiches statistiques.</p>
-      <p>Elle fonctionne entièrement dans le navigateur. Les données sont enregistrées automatiquement sur l'appareil (stockage local) ; aucune saisie n'est perdue entre deux sessions.</p>` },
-    { t:"2. Connexion & profils", icon:"🔑", html:`
-      <p>Chaque utilisateur se connecte avec un identifiant et un mot de passe. Le menu latéral s'adapte automatiquement au <strong>rôle</strong> : on ne voit que les modules autorisés.</p>
+    { t:"1. Bienvenue", icon:"👋", html:`
+      <p>Bienvenue dans le cours de formation de la <strong>Plateforme Numérique de Gestion de l'IEPP</strong> (MENAET — Côte d'Ivoire). Ce cours vous accompagne <strong>pas à pas</strong>.</p>
+      <p><strong>Comment l'utiliser :</strong> regardez d'abord la vidéo en haut, puis dépliez les chapitres qui concernent votre rôle. Vous pouvez tout <strong>imprimer</strong> ou <strong>enregistrer en PDF</strong> avec les boutons en bas.</p>` },
+
+    { t:"2. Se connecter", icon:"🔑", html:`
+      <p>Ouvrez la plateforme, saisissez votre <strong>identifiant</strong> et votre <strong>mot de passe</strong>, puis « Se connecter ». Le menu s'adapte automatiquement à votre rôle.</p>
       <ul>
-        <li><strong>Administrateur / Superadmin</strong> : accès complet, paramétrage, comptes.</li>
-        <li><strong>Inspecteur</strong> : pilotage, approbation des demandes, examens, RH.</li>
-        <li><strong>DRENA</strong> : supervision régionale des IEPP.</li>
-        <li><strong>CPI / CPPP, Conseillers</strong> : suivi pédagogique et vie scolaire.</li>
-        <li><strong>Correspondant fichier / statistique</strong> : écoles, élèves, situation et état des effectifs, remontées de fiches.</li>
-        <li><strong>Directeur</strong> : son école, ses classes, demandes d'autorisation.</li>
-        <li><strong>Instituteur</strong> : sa classe, ses élèves.</li>
-        <li><strong>Services</strong> (bibliothèque, cantine, économat, COGES, SMOSS, communication, secrétariat, archives, RH) : leur espace dédié.</li>
-      </ul>
-      <p style="margin-top:10px"><strong>Les services de l'IEPP.</strong> Tous les espaces de la plateforme relèvent de l'administration de l'IEPP. Ils sont regroupés dans le menu sous le bandeau <em>Administration de l'IEPP</em> et se répartissent ainsi :</p>
-      <ul>
-        <li><strong>Services pédagogiques</strong> : gestion des écoles, examens &amp; concours, et les espaces des <strong>Conseillers</strong> —
-          <strong>CPPP</strong> (Conseiller Pédagogique du Préscolaire et du Primaire),
-          <strong>CVS</strong> (Conseiller Vie Scolaire),
-          <strong>CC</strong> (Conseiller COGES) et
-          <strong>CA</strong> (Conseiller Cantine scolaire).</li>
-        <li><strong>Services administratifs</strong> : ressources humaines, autorisations d'absence, économat, courrier, archives.</li>
-        <li><strong>Services des correspondants</strong> : correspondant fichier et correspondant statistique (immatriculation, fiches, remontées).</li>
-        <li><strong>Services d'appui</strong> : secrétariat, <strong>communication</strong>, cantine, SMOSS (santé scolaire), bibliothèque.</li>
+        <li><strong>Sur plusieurs appareils :</strong> un même compte fonctionne sur téléphone et ordinateur, tant qu'il y a Internet.</li>
+        <li><strong>Installer l'application :</strong> le bouton « Installer l'application » ajoute un raccourci sur votre écran d'accueil.</li>
+        <li><strong>« Identifiants incorrects » ?</strong> Vérifiez l'orthographe de l'identifiant et la connexion Internet. Un compte tout juste créé est reconnu partout dès que la synchronisation cloud est active.</li>
       </ul>` },
-    { t:"3. Navigation", icon:"🧭", html:`
-      <p>Le <strong>menu latéral</strong> gauche regroupe les modules par catégories. Les espaces qui relèvent de l'administration de l'IEPP (services pédagogiques, administratifs, des correspondants et d'appui) sont rassemblés sous le bandeau <strong>Administration de l'IEPP</strong>. Les groupes avec une flèche ▾ se déplient.</p>
-      <p>En haut à droite : l'<strong>année scolaire</strong>, l'<strong>horloge</strong>, l'état de synchronisation et le logo. En bas du menu : votre nom, votre rôle et le bouton de déconnexion.</p>` },
-    { t:"4. Barre d'outils des tableaux", icon:"🧰", html:`
-      <p>La plupart des modules présentent un tableau muni d'une barre d'outils homogène :</p>
+
+    { t:"3. Comprendre son espace (rôles)", icon:"🧭", html:`
+      <p>Chaque rôle ne voit que ses modules :</p>
       <ul>
-        <li>🔍 <strong>Rechercher</strong> : filtre le tableau en direct.</li>
-        <li>📄 <strong>Aperçu PDF</strong> : prévisualise avant impression (en-tête officiel + signatures).</li>
-        <li>📊 <strong>Excel</strong> : export du tableau au format tableur.</li>
-        <li>📄 <strong>Word</strong> : export en document .doc.</li>
-        <li>🖨️ <strong>Imprimer</strong> : impression directe ou enregistrement en PDF.</li>
-        <li>📥 <strong>Importer</strong> : injecte des données depuis un fichier Excel/CSV.</li>
-        <li>➕ <strong>Nouvelle action</strong> : ajoute une ligne / un enregistrement.</li>
-        <li>✏️ <strong>Modifier</strong> et 🗑️ <strong>Supprimer</strong> : sur chaque ligne.</li>
+        <li><strong>Super administrateur national</strong> : pilotage national, activation des IEPP, comptes.</li>
+        <li><strong>DRENAET</strong> : vue régionale sur les IEPP rattachées.</li>
+        <li><strong>Inspecteur (chef IEPP)</strong> : gestion complète de sa circonscription.</li>
+        <li><strong>Correspondant fichier</strong> : élèves, immatriculation, cartes scolaires.</li>
+        <li><strong>Correspondant statistique</strong> : fiches DESPS, statistiques, rapports.</li>
+        <li><strong>CPI</strong> : visites, CPPP, suivi pédagogique.</li>
+        <li><strong>Directeur d'école</strong> : son école, ses classes, demandes d'immatriculation.</li>
+        <li><strong>Instituteur</strong> : sa classe, ses élèves, la saisie des notes CM2.</li>
       </ul>` },
-    { t:"5. Gestion des écoles & élèves", icon:"🏫", html:`
-      <p><strong>Fichier des écoles</strong> : codes d'identification, directeurs, effectifs, statut (Public/Privé/Communautaire), import/export.</p>
-      <p><strong>Immatriculation des élèves</strong> : matricules, cartes scolaires, élèves sans extrait de naissance (suivi prioritaire et régularisation).</p>` },
-    { t:"6. Situation & effectifs", icon:"📈", html:`
-      <p><strong>Situation statistique</strong> (Correspondant statistique) reproduit la fiche officielle DESPS en 3 sections : I. écoles / classes / élèves · II. état des niveaux · III. état des effectifs par niveaux. Une barre d'outils générale en haut permet d'exporter ou imprimer toute la page d'un coup.</p>
-      <p><strong>État des effectifs</strong> : saisie école par école (préscolaire & primaire) et fiches officielles de rentrée par classe (enseignant + effectifs par catégorie). La section III peut être synchronisée depuis ces effectifs.</p>` },
-    { t:"7. Fiches statistiques (type Kobo)", icon:"📝", html:`
-      <p>Les questionnaires officiels (Préscolaire, Primaire, Alphabétisation, Structures islamiques) sont disponibles comme formulaires à remplir en ligne. Pour chacun :</p>
+
+    { t:"4. Écoles, élèves & personnel", icon:"🏫", html:`
+      <p>Gérez la <strong>carte scolaire</strong>, les <strong>effectifs</strong> par classe, les <strong>élèves</strong> et le <strong>personnel</strong>.</p>
       <ul>
-        <li><strong>Remplir</strong> la fiche par sections.</li>
-        <li><strong>Réponses</strong> : voir, modifier, imprimer, supprimer, exporter (Excel/Word/PDF).</li>
-        <li>🔗 <strong>Lien partageable</strong> : à envoyer aux directeurs (WhatsApp/Email) pour une saisie en ligne sans connexion.</li>
-        <li>✨ <strong>Générateur</strong> : créer une fiche identique depuis un fichier Excel ou via une IA standard (avec votre propre clé).</li>
+        <li><strong>Ajouter</strong> une entrée : bouton « + » (visible selon votre rôle).</li>
+        <li><strong>Importer / Exporter Excel</strong> : pour charger ou sauvegarder une liste.</li>
+        <li>Les boutons de modification et de suppression n'apparaissent que pour les rôles autorisés.</li>
       </ul>` },
-    { t:"8. Autorisations d'absence", icon:"📅", html:`
-      <p>Tout le personnel peut soumettre une demande d'autorisation d'absence. Deux circuits :</p>
+
+    { t:"5. Immatriculation des élèves", icon:"🆔", html:`
+      <p>Le circuit d'attribution des matricules :</p>
       <ul>
-        <li><strong>Personnel de l'inspection & Directeurs</strong> : la demande va <strong>directement à l'Inspecteur</strong> pour approbation avant signature.</li>
-        <li><strong>Instituteur (en école)</strong> : la demande passe d'abord par le <strong>Directeur</strong>, puis l'Inspecteur.</li>
-      </ul>
-      <p>L'Inspecteur approuve (✓✓) ou rejette ; l'autorisation officielle est ensuite imprimée.</p>` },
-    { t:"9. Examens & Concours", icon:"🎓", html:`
-      <p>Gestion du CEPE et de l'Entrée en 6ᵉ : centres, classes CM2, saisie des notes par matière, effectifs, candidats, convocations et <strong>matrice d'action</strong> (plan chronologique des phases), avec génération de rapport automatique.</p>` },
-    { t:"10. Services & espaces", icon:"🗂️", html:`
-      <p>Chaque service dispose de son espace : Bibliothèque, Cantine, Économat, COGES, SMOSS, Communication, Secrétariat, Archives, Ressources humaines. Tous proposent tableaux de bord, registres, statistiques et générateurs de rapports.</p>` },
+        <li><strong>L'instituteur ou le directeur</strong> crée une <strong>demande d'immatriculation</strong> depuis son espace, en joignant l'<strong>extrait de naissance</strong> (photo ou PDF).</li>
+        <li><strong>Le correspondant fichier</strong> reçoit la demande, ouvre l'extrait, vérifie sa <strong>conformité</strong> (✅ Conforme / ⚠️ Non conforme), puis <strong>attribue le matricule</strong>.</li>
+        <li>Le matricule peut être donné par <strong>validation</strong>, par <strong>chargement du fichier DESPS</strong>, ou <strong>saisi à la main</strong> — cette attribution est réservée au correspondant.</li>
+      </ul>` },
+
+    { t:"6. Examens & Classes CM2", icon:"📝", html:`
+      <p>Espace de préparation à l'<strong>entrée en 6ème</strong>.</p>
+      <ul>
+        <li><strong>Saisie des notes</strong> : cliquez sur une cellule pour saisir les 4 matières — Maths /50, Exploitation de texte /50, Éveil au milieu /50, Dictée /20 (soit /170 par évaluation).</li>
+        <li>La <strong>moyenne annuelle</strong> (sur 20) est la moyenne des 4 évaluations intermédiaires ; la colonne <strong>Mention</strong> l'affiche (Excellent, Très Bien, Bien, Assez Bien, Passable, Insuffisant).</li>
+        <li>L'<strong>instituteur de CM2</strong> ne voit que les élèves de <strong>son école</strong> et saisit leurs notes.</li>
+        <li><strong>Import / Export Excel</strong> et impression disponibles.</li>
+      </ul>` },
+
+    { t:"7. Absences & services", icon:"🗓️", html:`
+      <p>Gérez les <strong>demandes d'absence</strong> (soumission, validation) et les <strong>services</strong> de la circonscription : bibliothèque, cantine, économat, COGES, archives, courrier.</p>
+      <p>Chaque service a ses propres listes, ajouts et exports, selon les droits de votre rôle.</p>` },
+
+    { t:"8. Statistiques & fiches DESPS", icon:"📊", html:`
+      <p>Remplissez les <strong>fiches statistiques</strong> (préscolaire, primaire, alphabétisation, structures islamiques), consultez les <strong>cartes scolaires</strong> et générez des <strong>rapports</strong>.</p>
+      <p>Les données peuvent être <strong>exportées en Excel</strong> et les documents <strong>imprimés ou enregistrés en PDF</strong>.</p>` },
+
+    { t:"9. Synchronisation cloud", icon:"☁️", html:`
+      <p>Vos données se synchronisent automatiquement entre appareils via le cloud.</p>
+      <ul>
+        <li><strong>🔄 Synchroniser</strong> : force une mise à jour immédiate. Faites-le sur les deux appareils en cas de doute.</li>
+        <li><strong>🩺 Tester la connexion cloud</strong> : vérifie que tout fonctionne (doit afficher « Cloud OK »).</li>
+        <li><strong>Bonnes pratiques</strong> : gardez Internet actif pour la synchro ; après une mise à jour de la plateforme, rechargez en vidant le cache (Ctrl+Shift+R sur ordinateur).</li>
+      </ul>` },
+
+    { t:"10. Activation des IEPP (administration)", icon:"🛡️", html:`
+      <p><em>Réservé au super administrateur national.</em> Depuis la fenêtre d'<strong>Activation des IEPP</strong> : activer/désactiver une IEPP, fixer une <strong>période d'accès</strong>, modifier son code/DRENAET, et <strong>exporter / importer / imprimer</strong> la liste.</p>
+      <p>Toute IEPP ayant au moins un compte apparaît automatiquement dans cette liste.</p>` },
+
     { t:"11. Corbeille", icon:"♻️", html:`
       <p>Toute suppression (élève, ligne de tableau, fiche, document…) part dans la <strong>Corbeille</strong>. On peut y <strong>restaurer</strong> un élément supprimé par erreur, individuellement ou en lot.</p>` },
-    { t:"12. Conseils", icon:"💡", html:`
+
+    { t:"12. Bonnes pratiques & astuces", icon:"💡", html:`
       <ul>
-        <li>Utilisez l'<strong>Aperçu PDF</strong> avant d'imprimer pour vérifier la mise en page.</li>
-        <li>Pour partager une fiche aux directeurs, préférez le <strong>lien partageable</strong>.</li>
-        <li>Exportez régulièrement vos données (Excel) en sauvegarde.</li>
-        <li>En cas de suppression accidentelle, rendez-vous dans la <strong>Corbeille</strong>.</li>
-        <li>Les boutons d'ajout/modification n'apparaissent que pour les rôles autorisés.</li>
+        <li>Utilisez l'<strong>aperçu / PDF</strong> avant d'imprimer pour vérifier la mise en page.</li>
+        <li><strong>Exportez régulièrement</strong> vos données (Excel) en sauvegarde.</li>
+        <li>En cas de suppression accidentelle, allez dans la <strong>Corbeille</strong>.</li>
+        <li>Après une mise à jour du fichier, <strong>rechargez en vidant le cache</strong> (Ctrl+Shift+R).</li>
+        <li>Les boutons d'ajout / modification n'apparaissent que pour les rôles autorisés.</li>
       </ul>` },
   ];
 }
+
 function guideInnerHtml(forPrint) {
   const u = state.user || {};
   const ieppName = activeIeppLabel();
   const logo = (typeof ARMOIRIE_MENAET_B64 !== 'undefined') ? ARMOIRIE_MENAET_B64 : '';
-  const secs = guideSections().map(s=>`
-    <section style="margin-bottom:16px;page-break-inside:avoid">
-      <h3 style="color:#0A4DA6;font-size:15px;margin:0 0 6px;border-bottom:1.5px solid #E2E8F0;padding-bottom:4px">${s.icon} ${s.t}</h3>
-      <div style="font-size:12.5px;line-height:1.55;color:#1F2937">${s.html}</div>
-    </section>`).join('');
-  return `<div style="font-family:Arial,Helvetica,sans-serif;color:#1F2937">
-    <div style="text-align:center;border-bottom:2px solid #0A4DA6;padding-bottom:12px;margin-bottom:16px">
-      ${logo?`<img src="${logo}" style="max-width:230px;height:auto;margin-bottom:6px">`:''}
+  const chapters = guideCourse();
+  const secs = chapters.map((s,i)=> forPrint
+    ? `<section id="gch-${i}" style="margin-bottom:14px;page-break-inside:avoid"><h3 style="color:#0A4DA6;font-size:15px;margin:0 0 6px;border-bottom:1.5px solid #E2E8F0;padding-bottom:4px">${s.icon} ${s.t}</h3><div style="font-size:12.5px;line-height:1.55;color:#1F2937">${s.html}</div></section>`
+    : `<details id="gch-${i}" ${i===0?'open':''} style="margin-bottom:8px;border:1px solid #E2E8F0;border-radius:10px;overflow:hidden">
+         <summary style="cursor:pointer;padding:11px 14px;background:#F7FAFF;font-weight:700;color:#0A4DA6;font-size:13.5px">${s.icon} ${s.t}</summary>
+         <div style="padding:12px 16px;font-size:13px;line-height:1.6;color:#1F2937">${s.html}</div>
+       </details>`).join('');
+  const toc = chapters.map((s,i)=>`<a href="#" onclick="var el=document.getElementById('gch-${i}'); if(el){ el.open=true; el.scrollIntoView({behavior:'smooth',block:'start'}); } return false;" style="background:#EAF2FF;color:#0A4DA6;padding:4px 10px;border-radius:999px;font-size:11.5px;text-decoration:none;font-weight:600">${s.icon} ${escapeHtml(s.t)}</a>`).join('');
+  const header = `<div style="text-align:center;border-bottom:2px solid #0A4DA6;padding-bottom:12px;margin-bottom:14px">
+      ${logo?`<img src="${logo}" style="max-width:210px;height:auto;margin-bottom:6px">`:''}
       <div style="font-size:11px;color:#555">République de Côte d'Ivoire · MENAET · ${escapeHtml(ieppName)}</div>
-      <h1 style="font-size:20px;color:#0A4DA6;margin:8px 0 2px">📘 Guide d'utilisation</h1>
-      <div style="font-size:12px;color:#666">Plateforme Numérique de Gestion de l'IEPP — édité le ${new Date().toLocaleDateString('fr-FR')}</div>
-    </div>
-    ${secs}
-    <div style="margin-top:18px;padding-top:10px;border-top:1px solid #E2E8F0;font-size:10.5px;color:#888;text-align:center">
-      Document généré automatiquement par la plateforme · MENAET · ${escapeHtml(ieppName)}
-    </div>
-  </div>`;
+      <h1 style="font-size:21px;color:#0A4DA6;margin:8px 0 2px">🎓 Cours de formation — Plateforme IEPP</h1>
+      <div style="font-size:12px;color:#666">Prise en main complète · édité le ${new Date().toLocaleDateString('fr-FR')}</div>
+    </div>`;
+  if (forPrint){
+    return `<div style="font-family:Arial,Helvetica,sans-serif;color:#1F2937">${header}${guideVideoEmbed(true)}${secs}
+      <div style="margin-top:18px;padding-top:10px;border-top:1px solid #E2E8F0;font-size:10.5px;color:#888;text-align:center">Support de formation généré par la plateforme · MENAET · ${escapeHtml(ieppName)}</div></div>`;
+  }
+  return `<div style="font-family:'Inter',Arial,sans-serif;color:#1F2937">
+      ${header}
+      ${guideVideoEmbed(false)}
+      <div style="background:#EAF2FF;border-left:4px solid #0A4DA6;border-radius:8px;padding:10px 14px;font-size:12.5px;margin-bottom:12px">
+        Regardez d'abord la vidéo, puis dépliez chaque chapitre selon votre rôle. Cliquez sur un thème du sommaire pour y aller directement.
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">${toc}</div>
+      ${secs}
+    </div>`;
 }
+
 function openGuideUtilisation() {
-  openModal('📘 Guide d\'utilisation de la plateforme',
-    `<div style="max-height:72vh;overflow:auto;background:#fff;padding:6px 4px">${guideInnerHtml(false)}</div>`,
+  openModal('🎓 Cours de formation — Plateforme IEPP',
+    `<div style="max-height:74vh;overflow:auto;background:#fff;padding:8px 6px">${guideInnerHtml(false)}</div>`,
     `<button class="btn btn-primary" style="background:#0A4DA6;border-color:#0A4DA6" onclick="downloadGuidePDF()">⬇️ Télécharger en PDF</button>
      <button class="btn btn-green" onclick="downloadGuidePDF()">🖨️ Imprimer</button>
      <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>`);
@@ -28194,18 +28304,17 @@ function openGuideUtilisation() {
 function downloadGuidePDF() {
   const w = window.open('', '_blank');
   if (!w) { toast('Autorisez les pop-up pour télécharger le PDF', 'error'); return; }
-  w.document.write(`<html><head><meta charset="utf-8"><title>Guide d'utilisation — Plateforme IEPP</title>
+  w.document.write(`<html><head><meta charset="utf-8"><title>Cours de formation — Plateforme IEPP</title>
     <style>
       body{margin:24px;background:#fff}
-      ul{margin:4px 0 4px 18px;padding:0}
-      li{margin:3px 0}
+      ul{margin:4px 0 4px 18px;padding:0} li{margin:3px 0}
       @media print{ @page{margin:14mm} button{display:none} }
     </style></head><body>
     ${guideInnerHtml(true)}
-    <script>window.onload=function(){ setTimeout(function(){ window.print(); }, 300); }<\/script>
+    <script>window.onload=function(){ setTimeout(function(){ window.print(); }, 350); }<\/script>
     </body></html>`);
   w.document.close();
-  toast('Ouverture du guide — choisissez « Enregistrer en PDF »', 'success');
+  toast('Ouverture du cours — choisissez « Enregistrer en PDF »', 'success');
 }
 
 /* ==================================================================
