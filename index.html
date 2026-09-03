@@ -2221,6 +2221,8 @@ function mergeTombstones(a, b){
   var keyOf = function(t){
     if (t==null) return null;
     if (typeof t === 'string' || typeof t === 'number') return 'v:'+t;
+    if (t.u!=null) return 'u:'+t.u;
+    if (t.username!=null) return 'u:'+t.username;
     if (t.path!=null && t.id!=null) return 'p:'+t.path+'\u00a7'+t.id;
     if (t.id!=null) return 'i:'+t.id;
     return null;
@@ -2234,6 +2236,35 @@ function mergeTombstones(a, b){
   };
   a.forEach(add); b.forEach(add);
   return Object.keys(map).map(function(kk){ return map[kk]; });
+}
+
+/* ===== Marques de suppression de comptes AVEC horodatage =====
+   Une RE-création plus récente qu'une suppression l'emporte : un compte recréé
+   n'est plus repurgé par une ancienne marque de suppression. Rétro-compatible
+   avec l'ancien format (identifiant en simple texte = suppression sans date, at=0). */
+function usersDelNorm(list){
+  var out=[];
+  (Array.isArray(list)?list:[]).forEach(function(t){
+    if(t==null) return;
+    if(typeof t==='string' || typeof t==='number'){ out.push({u:String(t), at:0}); }
+    else if(typeof t==='object'){
+      var u = (t.u!=null)?t.u:((t.username!=null)?t.username:null);
+      if(u!=null) out.push({u:String(u), at:(+t.at||0)});
+    }
+  });
+  return out;
+}
+function usersDeadMap(){
+  var m={};
+  usersDelNorm(load('usersDeleted', [])).forEach(function(t){
+    var k=String(t.u); if(m[k]==null || t.at>m[k]) m[k]=t.at;
+  });
+  return m;
+}
+function usersIsDead(username, userUpd){
+  var m=usersDeadMap(); var at=m[String(username)];
+  if(at==null) return false;
+  return at > (+userUpd||0);   /* suppression postérieure à la dernière (re)création -> supprimé */
 }
 
 function save(k, val) {
@@ -2961,9 +2992,9 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
       /* IMPORTANT : les suppressions cloud doivent aussi être appliquées à users. */
       try{
         if (uD.length){
-          var deadMap={}; uD.forEach(function(x){ deadMap[String(x)] = 1; });
+          var deadMap={}; usersDelNorm(uD).forEach(function(t){ var k=String(t.u); if(deadMap[k]==null||t.at>deadMap[k]) deadMap[k]=t.at; });
           var currentUsers = JSON.parse(localStorage.getItem(uKey)||'[]')||[];
-          currentUsers = currentUsers.filter(function(x){ return !deadMap[String(x&&x.username)]; });
+          currentUsers = currentUsers.filter(function(x){ var _at=deadMap[String(x&&x.username)]; return _at==null || _at <= (+((x&&x._upd))||0); });
           localStorage.setItem(uKey, JSON.stringify(currentUsers));
         }
       }catch(e){}
@@ -5767,7 +5798,7 @@ async function userSave(username) {
     data._upd = Date.now();
     state.users.push(data);
     /* Un compte recréé n'est plus « supprimé » : on lève la tombstone */
-    try { var _d = load('usersDeleted', []) || []; var _i = _d.indexOf(data.username); if (_i > -1){ _d.splice(_i,1); save('usersDeleted', _d); } } catch(e){}
+    try { var _d = (load('usersDeleted', []) || []).filter(function(t){ var u=(t&&typeof t==='object')?((t.u!=null)?t.u:t.username):t; return String(u)!==String(data.username); }); save('usersDeleted', _d); } catch(e){}
     logAction('create-user', `Création compte : ${data.username} (${ROLES[data.role].label})`);
     toast('Compte créé', 'success');
   }
@@ -5802,7 +5833,7 @@ function userDelete(username) {
   state.users = state.users.filter(x=>x.username!==username);
   save('users', state.users);
   /* Mémorise la suppression (synchronisée) pour empêcher toute résurrection du compte */
-  try { var _d = load('usersDeleted', []) || []; if (_d.indexOf(username) === -1){ _d.push(username); save('usersDeleted', _d); } } catch(e){}
+  try { var _d = usersDelNorm(load('usersDeleted', [])); var _now=Date.now(); var _i=_d.findIndex(function(t){ return String(t.u)===String(username); }); if(_i>=0)_d[_i].at=_now; else _d.push({u:String(username),at:_now}); save('usersDeleted', _d); } catch(e){}
   logAction('delete-user', `Suppression compte : ${username}`);
   toast('Compte envoyé à la corbeille', 'success');
   if (document.getElementById('us-body')) renderUsersBody();
@@ -25984,11 +26015,14 @@ function corbeilleRestore(trashId) {
       return;
     }
   }
+  if (tr.parentKey === 'users' && tr.data && tr.data.username){
+    tr.data._upd = Date.now();   /* la restauration doit l'emporter sur la marque de suppression */
+  }
   state[tr.parentKey].push(tr.data);
   save(tr.parentKey, state[tr.parentKey]);
-  /* Compte restauré depuis la corbeille : on lève la tombstone éventuelle */
+  /* Compte restauré depuis la corbeille : on lève la marque de suppression (tous formats) */
   if (tr.parentKey === 'users' && tr.data && tr.data.username){
-    try { var _d = load('usersDeleted', []) || []; var _i = _d.indexOf(tr.data.username); if (_i > -1){ _d.splice(_i,1); save('usersDeleted', _d); } } catch(e){}
+    try { var _d = (load('usersDeleted', []) || []).filter(function(t){ var u=(t&&typeof t==='object')?((t.u!=null)?t.u:t.username):t; return String(u)!==String(tr.data.username); }); save('usersDeleted', _d); } catch(e){}
   }
   state.corbeille = state.corbeille.filter(x => x.id !== trashId);
   save('corbeille', state.corbeille);
@@ -28147,7 +28181,7 @@ function usersTombstones(){ try { return load('usersDeleted', []) || []; } catch
        On ne réécrit plus les comptes existants → les modifications de
        l'administrateur (mot de passe, rôle, nom…) ne sont plus effacées. */
     DEFAULT_USERS.forEach(def => {
-      if (dead.indexOf(def.username) !== -1) return;      // compte supprimé : on respecte
+      if (usersIsDead(def.username, 0)) return;            // compte système supprimé : on respecte
       const existing = state.users.find(u => u.username === def.username);
       if (!existing) { state.users.push(Object.assign({}, def, { _upd: 0 })); changed = true; }
     });
@@ -28159,23 +28193,20 @@ function usersTombstones(){ try { return load('usersDeleted', []) || []; } catch
 window.__healUsers = function(){
   try {
     if (!Array.isArray(state.users)) state.users = [];
-    var dead = usersTombstones();
     var changed=false;
-    /* 1) Purge les comptes supprimés en ligne (empêche leur résurrection après synchro) */
-    if (dead.length){
-      var before = state.users.length;
-      state.users = state.users.filter(function(u){ return dead.indexOf(u.username) === -1; });
-      if (state.users.length !== before) changed = true;
-    }
+    /* 1) Purge un compte SEULEMENT si sa suppression est plus récente que sa (re)création */
+    var _before = state.users.length;
+    state.users = state.users.filter(function(u){ return !usersIsDead(u.username, u._upd); });
+    if (state.users.length !== _before) changed = true;
     /* 2) N'ajoute que les comptes système absents et NON supprimés — sans écraser les modifs */
     DEFAULT_USERS.forEach(function(def){
-      if (dead.indexOf(def.username) !== -1) return;
+      if (usersIsDead(def.username, 0)) return;
       var u = state.users.find(function(x){ return x.username===def.username; });
       if(!u){ state.users.push(Object.assign({},def,{_upd:0})); changed=true; }
     });
     /* 3) Anti-verrouillage : garantir au moins un compte superadmin (sauf suppression volontaire) */
     var hasSuper = state.users.some(function(x){ return x.role==='superadmin'; });
-    if(!hasSuper && dead.indexOf('superadmin')===-1){
+    if(!hasSuper && !usersIsDead('superadmin',0)){
       var sa = DEFAULT_USERS.find(function(d){ return d.username==='superadmin'; });
       if(sa){ state.users.push(Object.assign({},sa,{_upd:0})); changed=true; }
     }
