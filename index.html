@@ -28893,8 +28893,22 @@ function vieResetAllData() {
     });
     wrap.appendChild(b); wrap.appendChild(h); card.appendChild(wrap);
   }
-  if(document.readyState!=='loading') addBtn(); else document.addEventListener('DOMContentLoaded', addBtn);
-  setTimeout(addBtn,800); setTimeout(addBtn,1600);
+  /* Pied de page « contacts » (sous le bouton Installer), toujours affiché */
+  function addContact(){
+    var card=document.querySelector('#login-screen .login-card') || document.querySelector('.login-card');
+    if(!card || document.getElementById('login-contact')) return;
+    var c=document.createElement('div'); c.id='login-contact';
+    c.style.cssText='margin-top:14px;padding-top:12px;border-top:1px solid #E5E7EB;text-align:center;font-size:11.5px;line-height:1.7;color:#6b7280';
+    c.innerHTML='\u00A9 EPLUS 2026 \u2014 Tous droits r\u00e9serv\u00e9s \u00b7 Derni\u00e8re mise \u00e0 jour Ao\u00fbt 2026<br>'
+      +'Conception &amp; design <strong style="color:#0A4DA6">DIOM-2Y</strong><br>'
+      +'\ud83d\udcde <a href="tel:+2250172710337" style="color:#0A4DA6;text-decoration:none">(+225) 01-727-10-337</a> \u00b7 '
+      +'<a href="tel:+2250749237462" style="color:#0A4DA6;text-decoration:none">07-492-37-462</a><br>'
+      +'\u2709\ufe0f <a href="mailto:eplus2026@gmail.com" style="color:#0A4DA6;text-decoration:none">eplus2026@gmail.com</a>';
+    card.appendChild(c);
+  }
+  function addLoginExtras(){ try{ addBtn(); }catch(e){} try{ addContact(); }catch(e){} }
+  if(document.readyState!=='loading') addLoginExtras(); else document.addEventListener('DOMContentLoaded', addLoginExtras);
+  setTimeout(addLoginExtras,800); setTimeout(addLoginExtras,1600);
   window.addEventListener('appinstalled', function(){ var b=document.getElementById('login-install-btn'); if(b&&b.parentNode) b.parentNode.style.display='none'; });
 })();
 </script>
