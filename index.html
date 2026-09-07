@@ -3868,6 +3868,23 @@ async function verifyLocalPassword(user, supplied) {
 }
 
 /* ---------- LOGIN ---------- */
+/* Messages d'erreur de connexion + numéros de contact cliquables.
+   (innerHTML : l'identifiant est échappé pour éviter toute injection.) */
+function loginEscape(u){
+  return String(u==null?'':u)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function loginContactHTML(){
+  return ' Veuillez contacter le : '
+    + '📞 <a href="tel:+2250172710337" style="color:inherit;font-weight:600;text-decoration:underline">(+225) 01-727-10-337</a>'
+    + ' · <a href="tel:+2250749237462" style="color:inherit;font-weight:600;text-decoration:underline">07-492-37-462</a>';
+}
+function loginPasswordErrorHTML(u){
+  return '❌ Mot de passe incorrect pour « ' + loginEscape(u) + ' ».' + loginContactHTML();
+}
+function loginAccountErrorHTML(u){
+  return '❌ Identifiant « ' + loginEscape(u) + ' » incorrect ou introuvable.' + loginContactHTML();
+}
 async function doLogin() {
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value;
@@ -3923,7 +3940,7 @@ async function doLogin() {
       } catch(e){}
       var _okNow = await verifyLocalPassword(found, p);
       if (!found || !_okNow) {
-        err.textContent = '❌ Mot de passe incorrect pour « ' + u + ' ».';
+        err.innerHTML = loginPasswordErrorHTML(u);
         err.classList.add('show');
         return;
       }
@@ -3931,7 +3948,7 @@ async function doLogin() {
     } else {
       var _reason = (_diag && _diag.reason) ? _diag.reason : '';
       if (_reason === 'compte-absent-du-cloud') {
-        err.textContent = "❌ Le compte « " + u + " » n'existe pas dans le cloud. Demandez à l'administrateur de le (re)créer, ou vérifiez l'orthographe de l'identifiant.";
+        err.innerHTML = loginAccountErrorHTML(u);
       } else if (_reason === 'hors-ligne') {
         err.textContent = '📡 Pas de connexion Internet détectée. Connectez-vous à Internet, puis réessayez.';
       } else if (_reason === 'acces-supabase-refuse') {
@@ -3941,13 +3958,13 @@ async function doLogin() {
       } else if (_reason) {
         err.textContent = '⚠️ Impossible de vérifier ce compte en ligne (' + _reason + '). Vérifiez votre connexion et réessayez.';
       } else {
-        err.textContent = '❌ Identifiants incorrects. Vérifiez votre nom d\'utilisateur et mot de passe.';
+        err.innerHTML = loginAccountErrorHTML(u);
       }
       err.classList.add('show');
       return;
     }
   } else if (!passwordOk) {
-    err.textContent = '❌ Mot de passe incorrect pour « ' + u + ' ».';
+    err.innerHTML = loginPasswordErrorHTML(u);
     err.classList.add('show');
     return;
   }
@@ -4053,6 +4070,14 @@ function startApp() {
   navigate('dashboard');
 }
 
+/* Examens & Concours chez l'instituteur : réservé au MAÎTRE DE CM2.
+   Les enseignants CP1 → CM1 ne voient pas ce module (le Directeur, lui, le garde). */
+function instituteurExamensAllowed(){
+  var u = state.user||{};
+  if (u.role !== 'instituteur') return true;
+  return String(u.classe||'').trim().toUpperCase() === 'CM2';
+}
+
 function applyACL() {
   if (typeof injectCustomServiceSidebar === 'function') injectCustomServiceSidebar();
   const allowed = ACL[state.user.role] || [];
@@ -4060,7 +4085,9 @@ function applyACL() {
   document.querySelectorAll('.sb-link').forEach(el => {
     const mod = el.dataset.module;
     if (!mod) return; // les en-têtes de groupe accordéon n'ont pas de data-module
-    el.style.display = allowed.includes(mod) ? '' : 'none';
+    let ok = allowed.includes(mod);
+    if (mod === 'examens' && !instituteurExamensAllowed()) ok = false;
+    el.style.display = ok ? '' : 'none';
   });
   // Masquer la section Système si rien d'accessible
   const adminLinks = ['users','audit','parametres'].filter(m => allowed.includes(m));
@@ -4199,7 +4226,7 @@ const MODULES = {
 
 function navigate(mod) {
   // ACL check
-  if (!ACL[state.user.role]?.includes(mod)) {
+  if (!ACL[state.user.role]?.includes(mod) || (mod === 'examens' && !instituteurExamensAllowed())) {
     toast('Accès non autorisé pour votre profil.', 'error');
     return;
   }
@@ -7639,11 +7666,20 @@ function cm2Mention(moy){
 function cm2Eleves() {
   var list = (state.elevesFichier||[]).filter(function(e){ return e.niveau==='CM2'; });
   var u = state.user||{};
-  /* Instituteur / directeur : UNIQUEMENT les élèves de CM2 de LEUR école. */
-  if (u.role==='instituteur' || u.role==='directeur'){
-    var norm = function(s){ return String(s||'').trim().toUpperCase().replace(/\s+/g,' '); };
-    var mine = norm(u.ecole);
-    if (mine) list = list.filter(function(e){ return norm(e.ecole)===mine; });
+  var norm = function(s){ return String(s||'').trim().toUpperCase().replace(/\s+/g,' '); };
+  /* Directeur d'école : TOUS les élèves de CM2 de SON école. */
+  if (u.role==='directeur'){
+    var ecD = norm(u.ecole);
+    if (ecD) list = list.filter(function(e){ return norm(e.ecole)===ecD; });
+    return list;
+  }
+  /* Instituteur : SEUL le maître de CM2 voit les élèves de CM2 (de son école).
+     Les enseignants des autres classes (CP2 → CM1) de la même école ne voient rien ici. */
+  if (u.role==='instituteur'){
+    if (norm(u.classe)!=='CM2') return [];
+    var ecI = norm(u.ecole);
+    if (ecI) list = list.filter(function(e){ return norm(e.ecole)===ecI; });
+    return list;
   }
   return list;
 }
@@ -8319,6 +8355,7 @@ function examCM2Html() {
       <button class="btn btn-ghost" onclick="document.getElementById('cm2-import').click()">📥 Importer Excel</button>
       <input type="file" id="cm2-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="cm2Import(event)">
       <button class="btn btn-green" onclick="cm2Export()">📊 Export Excel</button>
+      <button class="btn btn-ghost" onclick="cm2Print()">🖨️ Imprimer</button>
       ${canEdit?`<button class="btn btn-orange" onclick="cm2AddEleve()">+ Élève CM2</button>`:''}
     </div>
     <div class="card" style="padding:0;overflow:auto"><table style="min-width:1200px">
@@ -8329,6 +8366,58 @@ function examCM2Html() {
       </tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
+}
+/* ===== Impression / PDF de la liste CM2 (respecte le périmètre : instituteur/directeur = leur école) ===== */
+function cm2Print() {
+  const list = cm2Eleves();
+  if (!list.length) { toast('Aucun élève CM2 à imprimer','error'); return; }
+  const ieppName = (typeof activeIeppLabel==='function') ? activeIeppLabel() : (state.activeIepp||'IEPP');
+  const armoirie = (typeof ARMOIRIE_MENAET_B64!=='undefined') ? ARMOIRIE_MENAET_B64 : '';
+  const evalHeads = CM2_EVALS.map(ev=>`<th style="padding:6px;border:1px solid #1F4E79;text-align:center">${escapeHtml(ev.label)}<br><span style="font-weight:normal;font-size:10px">/ ${CM2_MAX_TOTAL}</span></th>`).join('');
+  const rows = list.map((e,i)=>{
+    const moy = cm2MoyAnnuelle(e); const statut = cm2StatutFinal(e); const men = cm2Mention(moy);
+    const cells = CM2_EVALS.map(ev=>{
+      const x = cm2EvalTotal(e, ev.key);
+      return `<td style="padding:6px;border:1px solid #ddd;text-align:center">${x?`${x.total}/${CM2_MAX_TOTAL}<br><span style="font-size:10px;color:#666">${x.sur20}/20</span>`:'—'}</td>`;
+    }).join('');
+    return `<tr>
+      <td style="padding:6px;border:1px solid #ddd;text-align:center">${i+1}</td>
+      <td style="padding:6px;border:1px solid #ddd">${escapeHtml(e.matricule||'—')}</td>
+      <td style="padding:6px;border:1px solid #ddd;font-weight:600">${escapeHtml(e.nom||'')} ${escapeHtml(e.prenoms||'')}</td>
+      <td style="padding:6px;border:1px solid #ddd;text-align:center">${escapeHtml(e.sexe||'')}</td>
+      <td style="padding:6px;border:1px solid #ddd">${escapeHtml(e.ecole||'')}</td>
+      ${cells}
+      <td style="padding:6px;border:1px solid #ddd;text-align:center;font-weight:700">${moy!=null?moy:'—'}</td>
+      <td style="padding:6px;border:1px solid #ddd;text-align:center">${escapeHtml(men.label||'')}</td>
+      <td style="padding:6px;border:1px solid #ddd;text-align:center">${escapeHtml(statut)}</td>
+    </tr>`;
+  }).join('');
+  openModal('🖨️ Classes CM2 — Aperçu', `<div style="max-width:1100px;max-height:90vh;overflow-y:auto;background:#fff;padding:20px">
+      <div style="text-align:center;margin-bottom:14px;border-bottom:2px solid #1F4E79;padding-bottom:10px">
+        ${armoirie?`<img src="${armoirie}" style="max-width:200px;height:auto">`:''}
+        <div style="font-size:11px;color:#555">${escapeHtml(ieppName)}</div>
+        <h2 style="font-size:15px;color:#1F4E79;margin:6px 0">Classes CM2 — Examens &amp; Concours</h2>
+        <div style="font-size:11px;color:#555">${list.length} élève(s) · Année scolaire 2026-2027</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:#1F4E79;color:#fff">
+          <th style="padding:6px;border:1px solid #1F4E79">N°</th>
+          <th style="padding:6px;border:1px solid #1F4E79">Matricule</th>
+          <th style="padding:6px;border:1px solid #1F4E79">Nom &amp; prénoms</th>
+          <th style="padding:6px;border:1px solid #1F4E79">Sexe</th>
+          <th style="padding:6px;border:1px solid #1F4E79">École</th>
+          ${evalHeads}
+          <th style="padding:6px;border:1px solid #1F4E79">Moy /20</th>
+          <th style="padding:6px;border:1px solid #1F4E79">Mention</th>
+          <th style="padding:6px;border:1px solid #1F4E79">Statut</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimer / PDF</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>
+    </div>`);
 }
 function cm2EditEval(id, evKey) {
   const e = state.elevesFichier.find(x=>x.id===id); if (!e) return;
@@ -24717,6 +24806,7 @@ function renderMaClasse() {
       <button class="btn btn-ghost" onclick="document.getElementById('mc-import').click()">📥 Importer Excel</button>
       <input type="file" id="mc-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="mcImportClasse(event)">
       <button class="btn btn-green" onclick="mcExportClasse()">📊 Export Excel</button>
+      <button class="btn btn-ghost" onclick="mcPrintClasse()">🖨️ Imprimer</button>
     </div>
 
     <div class="card" style="padding:18px">
@@ -24886,6 +24976,50 @@ function mcExportClasse() {
     'Père': e.pere||'', 'Mère': e.mere||'', 'Téléphone': e.tel||'', Extrait: e.extrait
   }));
   exportRowsToExcel(rows, `liste_${u.classe}_${u.ecole.replace(/\s+/g,'_')}`, u.classe);
+}
+
+/* Impression / PDF de la liste de MA classe (chaque enseignant CP1 → CM2) */
+function mcPrintClasse() {
+  const u = state.user;
+  const list = state.elevesFichier.filter(e => e.ecole === u.ecole && e.niveau === u.classe);
+  if (!list.length) { toast('Aucun élève à imprimer','error'); return; }
+  const armoirie = (typeof ARMOIRIE_MENAET_B64!=='undefined') ? ARMOIRIE_MENAET_B64 : '';
+  const ieppName = (typeof activeIeppLabel==='function') ? activeIeppLabel() : (state.activeIepp||'IEPP');
+  const g = list.filter(e=>e.sexe==='M').length, f = list.filter(e=>e.sexe==='F').length;
+  const rows = list.map((e,i)=>`<tr>
+      <td style="padding:6px;border:1px solid #ddd;text-align:center">${i+1}</td>
+      <td style="padding:6px;border:1px solid #ddd">${escapeHtml(e.matricule||'—')}</td>
+      <td style="padding:6px;border:1px solid #ddd;font-weight:600">${escapeHtml(e.nom||'')} ${escapeHtml(e.prenoms||'')}</td>
+      <td style="padding:6px;border:1px solid #ddd;text-align:center">${escapeHtml(e.sexe||'')}</td>
+      <td style="padding:6px;border:1px solid #ddd;text-align:center">${escapeHtml(e.dateN||'')}</td>
+      <td style="padding:6px;border:1px solid #ddd">${escapeHtml(e.lieuN||'')}</td>
+      <td style="padding:6px;border:1px solid #ddd;text-align:center">${e.extrait==='OUI'?'Oui':'Non'}</td>
+    </tr>`).join('');
+  openModal('🖨️ Liste de ma classe — Aperçu', `<div style="max-width:1000px;max-height:90vh;overflow-y:auto;background:#fff;padding:20px">
+      <div style="text-align:center;margin-bottom:14px;border-bottom:2px solid #1F4E79;padding-bottom:10px">
+        ${armoirie?`<img src="${armoirie}" style="max-width:200px;height:auto">`:''}
+        <div style="font-size:11px;color:#555">${escapeHtml(ieppName)}</div>
+        <h2 style="font-size:15px;color:#1F4E79;margin:6px 0">Liste des élèves — Classe ${escapeHtml(u.classe||'')}</h2>
+        <div style="font-size:11px;color:#555">${escapeHtml(u.ecole||'')} · ${escapeHtml(u.name||'')}</div>
+        <div style="font-size:11px;color:#555">${list.length} élève(s) — ${g} garçon(s), ${f} fille(s) · Année scolaire 2026-2027</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:#1F4E79;color:#fff">
+          <th style="padding:6px;border:1px solid #1F4E79">N°</th>
+          <th style="padding:6px;border:1px solid #1F4E79">Matricule</th>
+          <th style="padding:6px;border:1px solid #1F4E79">Nom &amp; prénoms</th>
+          <th style="padding:6px;border:1px solid #1F4E79">Sexe</th>
+          <th style="padding:6px;border:1px solid #1F4E79">Date naiss.</th>
+          <th style="padding:6px;border:1px solid #1F4E79">Lieu naiss.</th>
+          <th style="padding:6px;border:1px solid #1F4E79">Extrait</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimer / PDF</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>
+    </div>`);
 }
 
 /* Demande d'immatriculation : flux Instituteur → Correspondant
