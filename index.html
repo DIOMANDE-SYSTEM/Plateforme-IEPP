@@ -1770,7 +1770,7 @@ const KEY = 'iepp_';
    La DRENAET bascule entre ses IEPP ; le Superadmin entre toutes.
    ================================================================== */
 const GLOBAL_KEYS = new Set(['users','usersDeleted','customServices','current_user','drenaet','active_iepp','ieppRegistry','ieppRegistryDeleted','pnapasForm','courrierMsg','courrierMatrice','ieppStats']);
-const SCOPED_KEY_LIST = ['ecoles','audit','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','carteRapports','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','secteurs','cpppBulletins','pointage','alphaCentres','alphaAuditeurs','alphaMatriceAction','islamStructures','islamApprenants','islamMatriceAction','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted','economatRegDeleted','secretariatRegDeleted','cantineRegDeleted','smossRegDeleted','communicationRegDeleted','biblioRegDeleted','archivisteRegDeleted','svcPermDeleted'];
+const SCOPED_KEY_LIST = ['ecoles','audit','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','carteRapports','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','secteurs','cpppBulletins','pointage','alphaCentres','alphaAuditeurs','alphaMatriceAction','islamStructures','islamApprenants','islamMatriceAction','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted','economatRegDeleted','secretariatRegDeleted','cantineRegDeleted','smossRegDeleted','communicationRegDeleted','biblioRegDeleted','archivisteRegDeleted','svcPermDeleted','pnapasClasse','aserEleves'];
 function scopeSlug(iepp){
   return 'c_' + String(iepp||'IEPP TENGRELA').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 }
@@ -24801,6 +24801,7 @@ function renderMaClasse() {
       <button class="btn btn-ghost" onclick="immatRequestForm()">📨 Demande d'immatriculation</button>
       <button class="btn btn-ghost" onclick="absRequestForm()">📅 Demander une absence</button>
       <button class="btn btn-ghost" onclick="navigate('perroquet-notes')" style="background:#D6F2E4;color:#00754A">🦜 Le Perroquet (notes)</button>
+      ${(state.user.role==='instituteur' && ['CE1','CE2','CM1','CM2'].includes(String(state.user.classe||'').trim().toUpperCase())) ? `<button class="btn" style="background:#7C3AED;color:#fff" onclick="pcOpen()">🎯 PNAPAS / ASER</button>` : ''}
       <div style="flex:1"></div>
       <button class="btn btn-ghost" onclick="mcRemonteeListe()">📤 Remonter la liste de mes élèves</button>
       <button class="btn btn-ghost" onclick="document.getElementById('mc-import').click()">📥 Importer Excel</button>
@@ -31009,5 +31010,273 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
 
 </script>
 
+
+<script id="pnapas-aser-classe">
+/* ============================================================================
+   MODULE ENSEIGNANT · PNAPAS / ASER (classes CE1 -> CM2)
+   - Onglet "Test ASER des eleves" : niveau Lecture & Maths par eleve + groupe de remediation (auto)
+   - Onglet "Activites PNAPAS" : registre de remediation de la classe (CRUD + exports)
+   Donnees cloisonnees par circonscription (cles aserEleves / pnapasClasse),
+   filtrees par ecole + classe + enseignant. N'altere aucun module existant.
+   ============================================================================ */
+(function(){
+  var PC_LEC = ['Non testé','Débutant','Lettre','Mot','Paragraphe','Histoire','Compréhension'];
+  var PC_MAT = ['Non testé','Débutant','1 Chiffre','2 Chiffres','Soustraction','Division'];
+  var PC_DOM = ['Lecture','Écriture','Mathématiques'];
+  var PC_STA = ['Planifiée','Réalisée'];
+  var pcTab = 'aser';
+
+  function esc(s){ return (typeof escapeHtml==='function') ? escapeHtml(s) : String(s==null?'':s); }
+  function pcToast(m,t){ if(typeof toast==='function') toast(m,t||'success'); }
+  function pcSave(k,v){ try{ if(typeof save==='function') save(k,v); }catch(e){} }
+  function pcToday(){ return new Date().toISOString().slice(0,10); }
+  function pcUser(){ return state.user||{}; }
+  function pcUid(){ return (typeof uid==='function') ? uid() : (Date.now().toString(36)+Math.random().toString(36).slice(2,7)); }
+
+  function pcEnsure(){
+    if(!Array.isArray(state.aserEleves))   state.aserEleves   = (typeof load==='function') ? (load('aserEleves',[])||[])   : [];
+    if(!Array.isArray(state.pnapasClasse)) state.pnapasClasse = (typeof load==='function') ? (load('pnapasClasse',[])||[]) : [];
+  }
+  function pcEligible(){
+    var u=pcUser();
+    return u.role==='instituteur' && ['CE1','CE2','CM1','CM2'].indexOf(String(u.classe||'').trim().toUpperCase())>=0;
+  }
+  function pcClassEleves(){
+    var u=pcUser();
+    return (state.elevesFichier||[]).filter(function(e){ return e.ecole===u.ecole && e.niveau===u.classe; })
+      .sort(function(a,b){ return String(a.nom||'').localeCompare(String(b.nom||'')); });
+  }
+  function pcMyActs(){
+    var u=pcUser();
+    return (state.pnapasClasse||[]).filter(function(a){ return a.ecole===u.ecole && a.classe===u.classe && a.enseignant===u.username; });
+  }
+  function pcAserRec(eleveId){
+    var u=pcUser();
+    return (state.aserEleves||[]).find(function(r){ return r.eleveId===eleveId && r.enseignant===u.username; });
+  }
+  function pcGroup(lec){
+    var r = PC_LEC.indexOf(lec);
+    if(!lec || lec==='Non testé' || r<=0) return {label:'Non testé', bg:'#e2e8f0', fg:'#475569'};
+    if(r<=2) return {label:'Groupe 1 · Débutant', bg:'#FEE2E2', fg:'#B91C1C'};
+    if(r===3) return {label:'Groupe 2 · Mot', bg:'#FFEDD5', fg:'#C2410C'};
+    if(r===4) return {label:'Groupe 3 · Paragraphe', bg:'#DBEAFE', fg:'#1D4ED8'};
+    return {label:'Groupe 4 · Maîtrise', bg:'#DCFCE7', fg:'#15803D'};
+  }
+
+  /* ---------- OVERLAY ---------- */
+  function pcBuildOverlay(){
+    if(document.getElementById('pcov')) return;
+    var d=document.createElement('div');
+    d.id='pcov';
+    d.style.cssText='display:none;position:fixed;inset:0;z-index:150;background:rgba(15,23,42,.55);overflow:auto;padding:20px';
+    d.innerHTML =
+      '<style>#pcov .pc-btn{border:0;border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer;font-size:13px}'+
+      '#pcov .pc-sel{padding:5px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#fff}'+
+      '#pcov table{border-collapse:collapse;width:100%}'+
+      '#pcov th{background:#1F4E79;color:#fff;padding:8px;font-size:12px;text-align:left}'+
+      '#pcov td{border:1px solid #e5e7eb;padding:6px 8px;font-size:13px}'+
+      '@media print{#pcov{display:none !important}}</style>'+
+      '<div style="max-width:1200px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35)">'+
+        '<div style="background:linear-gradient(135deg,#4C1D95,#7C3AED);color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center">'+
+          '<div><div style="font-size:18px;font-weight:800">🎯 PNAPAS / ASER — Ma classe</div>'+
+          '<div id="pc-sub" style="font-size:12px;opacity:.9;margin-top:2px"></div></div>'+
+          '<button class="pc-btn" style="background:rgba(255,255,255,.2);color:#fff" onclick="pcClose()">✕ Fermer</button>'+
+        '</div>'+
+        '<div style="display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid #e5e7eb;background:#f8fafc">'+
+          '<button id="pc-tab-aser" class="pc-btn" onclick="pcTabGo(\'aser\')">📋 Test ASER des élèves</button>'+
+          '<button id="pc-tab-act" class="pc-btn" onclick="pcTabGo(\'act\')">📌 Activités PNAPAS</button>'+
+        '</div>'+
+        '<div id="pc-body" style="padding:16px 18px;max-height:70vh;overflow:auto"></div>'+
+      '</div>';
+    document.body.appendChild(d);
+  }
+  function pcOpen(tab){
+    if(!pcEligible()){ pcToast('Réservé aux instituteurs du CE1 au CM2','error'); return; }
+    pcEnsure(); pcBuildOverlay();
+    pcTab = tab||pcTab||'aser';
+    var u=pcUser();
+    var sub=document.getElementById('pc-sub');
+    if(sub) sub.textContent = (u.name||'')+' · Classe '+(u.classe||'')+' · '+(u.ecole||'');
+    document.getElementById('pcov').style.display='block';
+    pcRender();
+  }
+  function pcClose(){ var o=document.getElementById('pcov'); if(o) o.style.display='none'; }
+  function pcTabGo(t){ pcTab=t; pcRender(); }
+  function pcRender(){
+    var base='border:0;border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer;font-size:13px;';
+    var ta=document.getElementById('pc-tab-aser'), tb=document.getElementById('pc-tab-act');
+    if(ta) ta.style.cssText=base+(pcTab==='aser'?'background:#7C3AED;color:#fff':'background:#ede9fe;color:#5b21b6');
+    if(tb) tb.style.cssText=base+(pcTab==='act'?'background:#7C3AED;color:#fff':'background:#ede9fe;color:#5b21b6');
+    var body=document.getElementById('pc-body'); if(body) body.innerHTML = (pcTab==='act') ? pcActHtml() : pcAserHtml();
+  }
+
+  /* ---------- ASER ---------- */
+  function pcAserStatsHtml(){
+    var els=pcClassEleves(); var total=els.length, testes=0, g={};
+    els.forEach(function(e){ var r=pcAserRec(e.id); var lec=r?r.lecture:''; if(lec && lec!=='Non testé'){testes++; var grp=pcGroup(lec).label; g[grp]=(g[grp]||0)+1;} });
+    function card(l,v,bg,fg){ return '<div style="flex:1;min-width:110px;background:'+bg+';color:'+fg+';border-radius:10px;padding:10px 12px"><div style="font-size:11px;opacity:.85">'+l+'</div><div style="font-size:22px;font-weight:800">'+v+'</div></div>'; }
+    return '<div id="pc-aser-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'+
+      card('Élèves',total,'#EEF2FF','#3730A3')+
+      card('Testés',testes,'#ECFDF5','#065F46')+
+      card('Groupe 1',g['Groupe 1 · Débutant']||0,'#FEE2E2','#B91C1C')+
+      card('Groupe 2',g['Groupe 2 · Mot']||0,'#FFEDD5','#C2410C')+
+      card('Groupe 3',g['Groupe 3 · Paragraphe']||0,'#DBEAFE','#1D4ED8')+
+      card('Groupe 4',g['Groupe 4 · Maîtrise']||0,'#DCFCE7','#15803D')+
+    '</div>';
+  }
+  function pcSel(field, eleveId, val, arr){
+    var o=arr.map(function(x){ return '<option'+(x===val?' selected':'')+'>'+esc(x)+'</option>'; }).join('');
+    return '<select class="pc-sel" onchange="pcAserSet(\''+eleveId+'\',\''+field+'\',this.value)">'+o+'</select>';
+  }
+  function pcAserHtml(){
+    var els=pcClassEleves();
+    var head='<div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px">'+
+        '<button class="pc-btn" style="background:#059669;color:#fff" onclick="pcAserExport()">📊 Export Excel</button>'+
+        '<button class="pc-btn" style="background:#e2e8f0;color:#334155" onclick="pcAserPrint()">🖨️ Imprimer</button>'+
+      '</div>';
+    if(!els.length) return pcAserStatsHtml()+head+'<div style="text-align:center;color:#64748b;padding:30px">Aucun élève dans votre classe. Ajoutez vos élèves depuis « Ma classe ».</div>';
+    var rows=els.map(function(e,i){
+      var r=pcAserRec(e.id)||{}; var lec=r.lecture||'Non testé', mat=r.maths||'Non testé'; var grp=pcGroup(lec);
+      return '<tr>'+
+        '<td style="text-align:center">'+(i+1)+'</td>'+
+        '<td>'+esc(e.matricule||'—')+'</td>'+
+        '<td style="font-weight:600">'+esc(e.nom||'')+' '+esc(e.prenoms||'')+'</td>'+
+        '<td style="text-align:center">'+esc(e.sexe||'')+'</td>'+
+        '<td>'+pcSel('lecture',e.id,lec,PC_LEC)+'</td>'+
+        '<td>'+pcSel('maths',e.id,mat,PC_MAT)+'</td>'+
+        '<td style="text-align:center"><span id="pc-grp-'+e.id+'" style="display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;background:'+grp.bg+';color:'+grp.fg+'">'+grp.label+'</span></td>'+
+        '<td style="text-align:center;font-size:12px;color:#64748b">'+esc(r.date||'—')+'</td>'+
+      '</tr>';
+    }).join('');
+    return pcAserStatsHtml()+head+
+      '<div style="overflow:auto"><table><thead><tr>'+
+        '<th style="text-align:center">N°</th><th>Matricule</th><th>Nom &amp; prénoms</th><th style="text-align:center">Sexe</th>'+
+        '<th>Lecture (ASER)</th><th>Maths (ASER)</th><th style="text-align:center">Groupe de remédiation</th><th style="text-align:center">Date</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
+      '<div style="font-size:11px;color:#94a3b8;margin-top:8px">Le groupe de remédiation est calculé automatiquement d\'après le niveau de lecture ASER.</div>';
+  }
+  function pcAserSet(eleveId, field, value){
+    var u=pcUser(); var els=pcClassEleves(); var e=els.find(function(x){return x.id===eleveId;}); if(!e) return;
+    var r=pcAserRec(eleveId);
+    if(!r){ r={id:'as_'+pcUid(), eleveId:eleveId, matricule:e.matricule, nom:e.nom, prenoms:e.prenoms, sexe:e.sexe, ecole:u.ecole, classe:u.classe, enseignant:u.username, lecture:'Non testé', maths:'Non testé', date:'', obs:''}; state.aserEleves.push(r); }
+    r[field]=value; r.date=pcToday();
+    pcSave('aserEleves', state.aserEleves);
+    if(typeof logAction==='function'){ try{ logAction('aser-eleve','ASER '+field+'='+value+' · '+(e.nom||'')); }catch(x){} }
+    if(field==='lecture'){ var grp=pcGroup(value); var cell=document.getElementById('pc-grp-'+eleveId); if(cell){ cell.textContent=grp.label; cell.style.background=grp.bg; cell.style.color=grp.fg; } }
+    var stats=document.getElementById('pc-aser-stats');
+    if(stats){ var tmp=document.createElement('div'); tmp.innerHTML=pcAserStatsHtml(); if(tmp.firstChild) stats.replaceWith(tmp.firstChild); }
+    pcToast('Enregistré','success');
+  }
+  function pcAserExport(){
+    var els=pcClassEleves(); if(!els.length){ pcToast('Aucun élève','error'); return; }
+    var rows=els.map(function(e,i){ var r=pcAserRec(e.id)||{}; var lec=r.lecture||'Non testé';
+      return {'N°':i+1,'Matricule':e.matricule||'','Nom & prénoms':(e.nom||'')+' '+(e.prenoms||''),'Sexe':e.sexe||'','Lecture (ASER)':lec,'Maths (ASER)':r.maths||'Non testé','Groupe de remédiation':pcGroup(lec).label,'Date':r.date||''}; });
+    var u=pcUser(); var name='aser_'+String(u.classe||'').toLowerCase()+'_'+String(u.ecole||'').toLowerCase().replace(/\W+/g,'_');
+    if(typeof exportRowsToExcel==='function') exportRowsToExcel(rows,name,'Test ASER'); else pcToast('Export indisponible','error');
+  }
+  function pcAserPrint(){
+    var els=pcClassEleves(); if(!els.length){ pcToast('Aucun élève','error'); return; }
+    var u=pcUser(); var armoirie=(typeof ARMOIRIE_MENAET_B64!=='undefined')?ARMOIRIE_MENAET_B64:''; var iepp=(typeof activeIeppLabel==='function')?activeIeppLabel():'IEPP';
+    var body=els.map(function(e,i){ var r=pcAserRec(e.id)||{}; var lec=r.lecture||'Non testé';
+      return '<tr><td style="border:1px solid #ddd;padding:5px;text-align:center">'+(i+1)+'</td><td style="border:1px solid #ddd;padding:5px">'+esc(e.matricule||'')+'</td><td style="border:1px solid #ddd;padding:5px;font-weight:600">'+esc(e.nom||'')+' '+esc(e.prenoms||'')+'</td><td style="border:1px solid #ddd;padding:5px;text-align:center">'+esc(e.sexe||'')+'</td><td style="border:1px solid #ddd;padding:5px">'+esc(lec)+'</td><td style="border:1px solid #ddd;padding:5px">'+esc(r.maths||'Non testé')+'</td><td style="border:1px solid #ddd;padding:5px">'+esc(pcGroup(lec).label)+'</td></tr>'; }).join('');
+    openModal('🖨️ Test ASER — Aperçu',
+      '<div style="max-width:1000px;max-height:90vh;overflow:auto;background:#fff;padding:18px">'+
+        '<div style="text-align:center;border-bottom:2px solid #1F4E79;padding-bottom:10px;margin-bottom:12px">'+(armoirie?'<img src="'+armoirie+'" style="max-width:190px">':'')+
+        '<div style="font-size:11px;color:#555">'+esc(iepp)+'</div>'+
+        '<h2 style="font-size:15px;color:#1F4E79;margin:6px 0">Test ASER — Classe '+esc(u.classe||'')+'</h2>'+
+        '<div style="font-size:11px;color:#555">'+esc(u.ecole||'')+' · '+esc(u.name||'')+' · '+els.length+' élève(s)</div></div>'+
+        '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#1F4E79;color:#fff">'+
+        '<th style="border:1px solid #1F4E79;padding:5px">N°</th><th style="border:1px solid #1F4E79;padding:5px">Matricule</th><th style="border:1px solid #1F4E79;padding:5px">Nom &amp; prénoms</th><th style="border:1px solid #1F4E79;padding:5px">Sexe</th><th style="border:1px solid #1F4E79;padding:5px">Lecture</th><th style="border:1px solid #1F4E79;padding:5px">Maths</th><th style="border:1px solid #1F4E79;padding:5px">Groupe</th></tr></thead><tbody>'+body+'</tbody></table></div>',
+      '<button class="btn btn-primary" onclick="window.print()">🖨️ Imprimer / PDF</button> <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
+  }
+
+  /* ---------- ACTIVITÉS PNAPAS ---------- */
+  function pcActHtml(){
+    var acts=pcMyActs().slice().sort(function(a,b){ return String(b.date||'').localeCompare(String(a.date||'')); });
+    var rows = acts.length ? acts.map(function(a){
+      var sb=a.statut==='Réalisée'?'#DCFCE7':'#FEF3C7', sf=a.statut==='Réalisée'?'#15803D':'#92400E';
+      return '<tr>'+
+        '<td style="text-align:center;white-space:nowrap">'+esc(a.date||'')+'</td>'+
+        '<td>'+esc(a.domaine||'')+'</td>'+
+        '<td>'+esc(a.groupe||'')+'</td>'+
+        '<td style="font-weight:600">'+esc(a.activite||'')+'</td>'+
+        '<td style="text-align:center">'+esc(a.duree||'')+'</td>'+
+        '<td style="text-align:center">'+esc(a.nbEleves||'')+'</td>'+
+        '<td style="text-align:center"><span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:'+sb+';color:'+sf+'">'+esc(a.statut||'')+'</span></td>'+
+        '<td>'+esc(a.obs||'')+'</td>'+
+        '<td style="text-align:center;white-space:nowrap"><button class="pc-btn" style="background:#e0e7ff;color:#3730a3;padding:4px 8px" onclick="pcActForm(\''+a.id+'\')">✏️</button> <button class="pc-btn" style="background:#fee2e2;color:#b91c1c;padding:4px 8px" onclick="pcActDelete(\''+a.id+'\')">🗑️</button></td>'+
+      '</tr>';
+    }).join('') : '<tr><td colspan="9" style="text-align:center;color:#64748b;padding:24px">Aucune activité enregistrée. Cliquez sur « + Nouvelle activité ».</td></tr>';
+    return '<div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px">'+
+        '<button class="pc-btn" style="background:#7C3AED;color:#fff" onclick="pcActForm(\'\')">+ Nouvelle activité</button>'+
+        '<button class="pc-btn" style="background:#059669;color:#fff" onclick="pcActExport()">📊 Export Excel</button>'+
+        '<button class="pc-btn" style="background:#e2e8f0;color:#334155" onclick="pcActPrint()">🖨️ Imprimer</button>'+
+      '</div>'+
+      '<div style="overflow:auto"><table><thead><tr>'+
+        '<th style="text-align:center">Date</th><th>Domaine</th><th>Groupe ciblé</th><th>Activité de remédiation</th><th style="text-align:center">Durée (min)</th><th style="text-align:center">Nb élèves</th><th style="text-align:center">Statut</th><th>Observation</th><th style="text-align:center">Actions</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }
+  function pcActForm(id){
+    var a = id ? (state.pnapasClasse||[]).find(function(x){return x.id===id;}) : null; a=a||{};
+    function opt(arr,v){ return arr.map(function(x){return '<option'+(x===v?' selected':'')+'>'+esc(x)+'</option>';}).join(''); }
+    openModal(id?'Modifier une activité PNAPAS':'Nouvelle activité PNAPAS',
+      '<div class="field"><label>Date</label><input type="date" id="pc-a-date" value="'+esc(a.date||pcToday())+'"></div>'+
+      '<div class="field"><label>Domaine</label><select id="pc-a-dom">'+opt(PC_DOM,a.domaine||'Lecture')+'</select></div>'+
+      '<div class="field"><label>Groupe ciblé</label><input id="pc-a-grp" value="'+esc(a.groupe||'')+'" placeholder="ex : Groupe 1 · Débutant"></div>'+
+      '<div class="field"><label>Activité de remédiation</label><input id="pc-a-act" value="'+esc(a.activite||'')+'" placeholder="ex : Lecture de syllabes, jeux de sons..."></div>'+
+      '<div style="display:flex;gap:10px"><div class="field" style="flex:1"><label>Durée (min)</label><input type="number" id="pc-a-dur" value="'+esc(a.duree||'')+'"></div>'+
+      '<div class="field" style="flex:1"><label>Nb élèves</label><input type="number" id="pc-a-nb" value="'+esc(a.nbEleves||'')+'"></div></div>'+
+      '<div class="field"><label>Statut</label><select id="pc-a-sta">'+opt(PC_STA,a.statut||'Planifiée')+'</select></div>'+
+      '<div class="field"><label>Observation</label><textarea id="pc-a-obs" rows="2">'+esc(a.obs||'')+'</textarea></div>',
+      '<button class="btn btn-green" onclick="pcActSave(\''+(id||'')+'\')">✓ Enregistrer</button> <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>');
+  }
+  function pcActSave(id){
+    var u=pcUser();
+    var rec={ date:document.getElementById('pc-a-date').value, domaine:document.getElementById('pc-a-dom').value,
+      groupe:document.getElementById('pc-a-grp').value.trim(), activite:document.getElementById('pc-a-act').value.trim(),
+      duree:document.getElementById('pc-a-dur').value, nbEleves:document.getElementById('pc-a-nb').value,
+      statut:document.getElementById('pc-a-sta').value, obs:document.getElementById('pc-a-obs').value.trim() };
+    if(!rec.activite){ pcToast('Indiquez l\'activité','error'); return; }
+    if(id){ var i=(state.pnapasClasse||[]).findIndex(function(x){return x.id===id;}); if(i>=0){ state.pnapasClasse[i]=Object.assign(state.pnapasClasse[i],rec); } }
+    else { rec.id='pa_'+pcUid(); rec.ecole=u.ecole; rec.classe=u.classe; rec.enseignant=u.username; state.pnapasClasse.push(rec); }
+    pcSave('pnapasClasse', state.pnapasClasse);
+    if(typeof logAction==='function'){ try{ logAction('pnapas-activite',(id?'MàJ':'Ajout')+' activité · '+rec.activite); }catch(x){} }
+    if(typeof closeModal==='function') closeModal();
+    pcToast('Activité enregistrée','success'); pcRender();
+  }
+  function pcActDelete(id){
+    if(!confirm('Supprimer cette activité ?')) return;
+    state.pnapasClasse=(state.pnapasClasse||[]).filter(function(x){return x.id!==id;});
+    pcSave('pnapasClasse', state.pnapasClasse); pcToast('Activité supprimée','success'); pcRender();
+  }
+  function pcActExport(){
+    var acts=pcMyActs(); if(!acts.length){ pcToast('Aucune activité','error'); return; }
+    var rows=acts.map(function(a){ return {'Date':a.date||'','Domaine':a.domaine||'','Groupe ciblé':a.groupe||'','Activité':a.activite||'','Durée (min)':a.duree||'','Nb élèves':a.nbEleves||'','Statut':a.statut||'','Observation':a.obs||''}; });
+    var u=pcUser(); var name='pnapas_'+String(u.classe||'').toLowerCase()+'_'+String(u.ecole||'').toLowerCase().replace(/\W+/g,'_');
+    if(typeof exportRowsToExcel==='function') exportRowsToExcel(rows,name,'Activités PNAPAS'); else pcToast('Export indisponible','error');
+  }
+  function pcActPrint(){
+    var acts=pcMyActs().slice().sort(function(a,b){return String(a.date||'').localeCompare(String(b.date||''));}); if(!acts.length){ pcToast('Aucune activité','error'); return; }
+    var u=pcUser(); var armoirie=(typeof ARMOIRIE_MENAET_B64!=='undefined')?ARMOIRIE_MENAET_B64:''; var iepp=(typeof activeIeppLabel==='function')?activeIeppLabel():'IEPP';
+    var body=acts.map(function(a){ return '<tr><td style="border:1px solid #ddd;padding:5px;white-space:nowrap">'+esc(a.date||'')+'</td><td style="border:1px solid #ddd;padding:5px">'+esc(a.domaine||'')+'</td><td style="border:1px solid #ddd;padding:5px">'+esc(a.groupe||'')+'</td><td style="border:1px solid #ddd;padding:5px;font-weight:600">'+esc(a.activite||'')+'</td><td style="border:1px solid #ddd;padding:5px;text-align:center">'+esc(a.duree||'')+'</td><td style="border:1px solid #ddd;padding:5px;text-align:center">'+esc(a.nbEleves||'')+'</td><td style="border:1px solid #ddd;padding:5px">'+esc(a.statut||'')+'</td><td style="border:1px solid #ddd;padding:5px">'+esc(a.obs||'')+'</td></tr>'; }).join('');
+    openModal('🖨️ Activités PNAPAS — Aperçu',
+      '<div style="max-width:1000px;max-height:90vh;overflow:auto;background:#fff;padding:18px">'+
+        '<div style="text-align:center;border-bottom:2px solid #1F4E79;padding-bottom:10px;margin-bottom:12px">'+(armoirie?'<img src="'+armoirie+'" style="max-width:190px">':'')+
+        '<div style="font-size:11px;color:#555">'+esc(iepp)+'</div>'+
+        '<h2 style="font-size:15px;color:#1F4E79;margin:6px 0">Registre des activités PNAPAS — Classe '+esc(u.classe||'')+'</h2>'+
+        '<div style="font-size:11px;color:#555">'+esc(u.ecole||'')+' · '+esc(u.name||'')+' · '+acts.length+' activité(s)</div></div>'+
+        '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#1F4E79;color:#fff">'+
+        '<th style="border:1px solid #1F4E79;padding:5px">Date</th><th style="border:1px solid #1F4E79;padding:5px">Domaine</th><th style="border:1px solid #1F4E79;padding:5px">Groupe</th><th style="border:1px solid #1F4E79;padding:5px">Activité</th><th style="border:1px solid #1F4E79;padding:5px">Durée</th><th style="border:1px solid #1F4E79;padding:5px">Nb</th><th style="border:1px solid #1F4E79;padding:5px">Statut</th><th style="border:1px solid #1F4E79;padding:5px">Observation</th></tr></thead><tbody>'+body+'</tbody></table></div>',
+      '<button class="btn btn-primary" onclick="window.print()">🖨️ Imprimer / PDF</button> <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
+  }
+
+  /* Expose handlers (appelés par les onclick) */
+  window.pcOpen=pcOpen; window.pcClose=pcClose; window.pcTabGo=pcTabGo;
+  window.pcAserSet=pcAserSet; window.pcAserExport=pcAserExport; window.pcAserPrint=pcAserPrint;
+  window.pcActForm=pcActForm; window.pcActSave=pcActSave; window.pcActDelete=pcActDelete;
+  window.pcActExport=pcActExport; window.pcActPrint=pcActPrint;
+})();
+
+</script>
 </body>
 </html>
