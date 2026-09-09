@@ -1506,6 +1506,9 @@ function vieResetAllData() {
       </div>
       <button class="icon-btn" onclick="logout()" title="Déconnexion">↩</button>
     </div>
+    <div class="sb-footer" style="padding:12px 14px;margin-top:8px;border-top:1px solid var(--line);font-size:10px;line-height:1.55;color:#607089;text-align:center">
+      © EPLUS 2026 - Tous droits réservés &nbsp;|&nbsp; Dernière mise à jour le 10 septembre 2026 &nbsp;|&nbsp; Conception et design DIOM-2YA — contact : +225 01-727-10-337
+    </div>
   </aside>
 
   <!-- Main content -->
@@ -1537,7 +1540,7 @@ function vieResetAllData() {
       <!-- Page content injected here -->
     </div>
     <footer id="app-footer" style="padding:14px 24px;margin-top:8px;border-top:1px solid var(--line);text-align:center;font-size:12px;color:#607089;line-height:1.6">
-      © EPLUS 2026 - Tous droits réservés &nbsp;|&nbsp; Dernière mise à jour Août 2026 &nbsp;|&nbsp; Conception et design DIOM-2Y — contact : +225 01-727-10-337
+      © EPLUS 2026 - Tous droits réservés &nbsp;|&nbsp; Dernière mise à jour le 10 septembre 2026 &nbsp;|&nbsp; Conception et design DIOM-2YA — contact : +225 01-727-10-337
     </footer>
   </main>
   <!-- Bouton flottant universel : Demande d'autorisation d'absence (tous les services) -->
@@ -2486,13 +2489,24 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
       url += (url.indexOf('?')>=0?'&':'?') + 'key=neq.__cachebust_' + Date.now() + Math.random().toString(36).slice(2,8);
     }
     var isJwt = /^eyJ/.test(SUPABASE_KEY);   /* ancienne clé anon = JWT ; nouvelle clé publiable = sb_... */
-    /* Clé publiable (non-JWT) : « apikey » seule d'abord ; clé JWT : Bearer d'abord. */
-    var primary = isJwt
-      ? Object.assign({ 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }, (opts.headers||{}))
-      : Object.assign({ 'apikey': SUPABASE_KEY }, (opts.headers||{}));
-    var res = await fetch(url, Object.assign({}, opts, { headers: primary }));
+    /* NIVEAU 2 — si un utilisateur est authentifié (Supabase Auth), on envoie SON jeton
+       (Bearer <access_token>) : les requêtes passent alors les règles RLS « authenticated ».
+       Sinon, comportement d'origine (clé publiable en apikey / Bearer selon le type de clé). */
+    function _hdr(useUserToken){
+      var h = Object.assign({ 'apikey': SUPABASE_KEY }, (opts.headers||{}));
+      if (useUserToken && __sbAccess) { h['Authorization'] = 'Bearer ' + __sbAccess; }
+      else if (isJwt) { h['Authorization'] = 'Bearer ' + SUPABASE_KEY; }
+      return h;
+    }
+    var res = await fetch(url, Object.assign({}, opts, { headers: _hdr(true) }));
+    /* 401 avec session : le jeton a pu expirer -> on le rafraîchit puis on réessaie une fois */
+    if (res.status === 401 && __sbAccess){
+      var _ref = await __authRefresh();
+      if (_ref){ try { res = await fetch(url, Object.assign({}, opts, { headers: _hdr(true) })); } catch(e){} }
+      else { __authClear(); }
+    }
+    /* 401 restant : repli d'origine (autre combinaison avec la clé publiable) */
     if (res.status === 401){
-      /* Dernier recours : on tente l'autre méthode. */
       var alt = isJwt
         ? Object.assign({ 'apikey': SUPABASE_KEY }, (opts.headers||{}))
         : Object.assign({ 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }, (opts.headers||{}));
@@ -2500,6 +2514,93 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
     }
     return res;
   }
+
+  /* ==================================================================
+     NIVEAU 2 — AUTHENTIFICATION SUPABASE (GoTrue REST)
+     Chaque utilisateur ouvre SA session -> un jeton JWT est attaché aux
+     requêtes -> les règles RLS « authenticated » protègent les données.
+     Le compte Supabase est créé automatiquement au 1er login. Aucun mot de
+     passe n'est stocké ; le jeton reste en mémoire (durée de l'onglet). */
+  var __sbAccess = null, __sbRefresh = null, __sbExp = 0;
+  function authEmail(username){
+    var s = String(username||'').trim().toLowerCase()
+      .replace(/[^a-z0-9._-]/g,'.').replace(/\.+/g,'.').replace(/^\.|\.$/g,'');
+    if(!s) s='user';
+    return s + '@iepp-plateforme.ci';
+  }
+  function authPass(plain){ return String(plain==null?'':plain) + '::IEPP-plateforme-2026'; }
+  async function __authToken(email, password){
+    try{
+      var r = await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=password', {
+        method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Content-Type':'application/json' },
+        body: JSON.stringify({ email:email, password:password })
+      });
+      if(!r.ok) return null;
+      var j = await r.json(); return (j && j.access_token) ? j : null;
+    }catch(e){ return null; }
+  }
+  async function __authSignup(email, password){
+    try{
+      var r = await fetch(SUPABASE_URL+'/auth/v1/signup', {
+        method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Content-Type':'application/json' },
+        body: JSON.stringify({ email:email, password:password })
+      });
+      var j=null; try{ j=await r.json(); }catch(e){}
+      return { ok:r.ok, status:r.status, j:j };
+    }catch(e){ return { ok:false, status:0, j:null }; }
+  }
+  function __authSet(j){
+    __sbAccess = j.access_token; __sbRefresh = j.refresh_token || null;
+    __sbExp = Date.now() + ((j.expires_in||3600)*1000) - 60000;
+  }
+  function __authClear(){ __sbAccess=null; __sbRefresh=null; __sbExp=0; }
+  async function __authRefresh(){
+    if(!__sbRefresh) return false;
+    try{
+      var r = await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token', {
+        method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Content-Type':'application/json' },
+        body: JSON.stringify({ refresh_token:__sbRefresh })
+      });
+      if(!r.ok) return false;
+      var j = await r.json(); if(!j||!j.access_token) return false;
+      __authSet(j); return true;
+    }catch(e){ return false; }
+  }
+  async function cloudAuthSignIn(username, plain){
+    var email=authEmail(username), pw=authPass(plain);
+    var j = await __authToken(email, pw);
+    if(!j){
+      var su = await __authSignup(email, pw);
+      if(su.ok && su.j && su.j.access_token){ __authSet(su.j); console.log('%c[Cloud][Auth] compte créé + connecté','color:#2A9D8F;font-weight:bold'); return true; }
+      j = await __authToken(email, pw); /* signup sans session immédiate (confirmation e-mail activée) */
+    }
+    if(j){ __authSet(j); console.log('%c[Cloud][Auth] session ouverte','color:#2A9D8F;font-weight:bold'); return true; }
+    console.warn('[Cloud][Auth] Session Supabase impossible pour « '+username+' ». La synchro utilisera l\'accès public tant que la RLS l\'autorise (vérifiez que la confirmation e-mail est désactivée dans Supabase).');
+    return false;
+  }
+  async function cloudAuthSignOut(){
+    try{ if(__sbAccess){ await fetch(SUPABASE_URL+'/auth/v1/logout', { method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+__sbAccess } }); } }catch(e){}
+    __authClear();
+  }
+  window.__cloudAuthSignIn = cloudAuthSignIn;
+  window.__cloudAuthSignOut = cloudAuthSignOut;
+  window.__cloudAuthState = function(){ return { authenticated: !!__sbAccess, expiresAt: __sbExp }; };
+  /* Met à jour le mot de passe Supabase de l'utilisateur ACTUELLEMENT connecté
+     (session active requise). Best-effort : renvoie false sans lever d'erreur. */
+  async function cloudAuthUpdatePassword(newPlain){
+    if(!__sbAccess) return false;
+    try{
+      var r = await fetch(SUPABASE_URL+'/auth/v1/user', {
+        method:'PUT', headers:{ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+__sbAccess, 'Content-Type':'application/json' },
+        body: JSON.stringify({ password: authPass(newPlain) })
+      });
+      if(r.ok){ console.log('%c[Cloud][Auth] mot de passe Supabase synchronisé','color:#2A9D8F;font-weight:bold'); return true; }
+      console.warn('[Cloud][Auth] mise à jour du mot de passe Supabase refusée (HTTP '+r.status+').');
+      return false;
+    }catch(e){ console.warn('[Cloud][Auth] mise à jour du mot de passe Supabase impossible', e); return false; }
+  }
+  window.__cloudAuthUpdatePassword = cloudAuthUpdatePassword;
+
   async function restSet(fullKey, jsonStr){
     var url = SUPABASE_URL + '/rest/v1/' + CLOUD_TABLE + '?on_conflict=key';
     var res = await restFetch(url, {
@@ -4008,6 +4109,11 @@ async function doLogin() {
   }
   state.user = found;
   save('current_user', found.username);
+  /* NIVEAU 2 : ouverture d'une session Supabase Auth avec les identifiants saisis
+     (le compte Supabase est créé automatiquement au tout premier login). Le jeton
+     obtenu protège ensuite la synchro. N'empêche JAMAIS la connexion locale :
+     en cas d'échec (hors ligne, réglage manquant), on continue normalement. */
+  try { if (typeof window.__cloudAuthSignIn === 'function') { await window.__cloudAuthSignIn(found.username, p); } } catch(e){ console.warn('[Auth]', e); }
   /* « Se souvenir de moi » : mémorise UNIQUEMENT l'identifiant sur cet appareil.
      Aucun mot de passe n'est désormais stocké dans localStorage. */
   try {
@@ -4020,6 +4126,7 @@ async function doLogin() {
 }
 function logout() {
   logAction('logout', 'Déconnexion');
+  try { if (typeof window.__cloudAuthSignOut === 'function') window.__cloudAuthSignOut(); } catch(e){}
   state.user = null;
   localStorage.removeItem(KEY+'current_user');
   document.getElementById('app').classList.remove('active');
@@ -5825,6 +5932,11 @@ async function userSave(username) {
     Object.assign(u, data);
     delete u.password;
     u._upd = Date.now();
+    /* NIVEAU 2 : si l'utilisateur modifie SON PROPRE mot de passe, on synchronise
+       aussi son mot de passe Supabase (session active). Best-effort : ne casse rien. */
+    if (newPassword && me && data.username === me.username && typeof window.__cloudAuthUpdatePassword === 'function') {
+      try { await window.__cloudAuthUpdatePassword(newPassword); } catch(e){ console.warn('[Auth]', e); }
+    }
     logAction('update-user', `Modification compte : ${data.username}`);
     toast('Compte mis à jour', 'success');
   } else {
@@ -29053,8 +29165,8 @@ function vieResetAllData() {
     if(!card || document.getElementById('login-contact')) return;
     var c=document.createElement('div'); c.id='login-contact';
     c.style.cssText='margin-top:14px;padding-top:12px;border-top:1px solid #E5E7EB;text-align:center;font-size:11.5px;line-height:1.7;color:#6b7280';
-    c.innerHTML='\u00A9 EPLUS 2026 \u2014 Tous droits r\u00e9serv\u00e9s \u00b7 Derni\u00e8re mise \u00e0 jour Ao\u00fbt 2026<br>'
-      +'Conception &amp; design <strong style="color:#0A4DA6">DIOM-2Y</strong><br>'
+    c.innerHTML='\u00A9 EPLUS 2026 \u2014 Tous droits r\u00e9serv\u00e9s \u00b7 Derni\u00e8re mise \u00e0 jour le 10 septembre 2026<br>'
+      +'Conception &amp; design <strong style="color:#0A4DA6">DIOM-2YA</strong><br>'
       +'\ud83d\udcde <a href="tel:+2250172710337" style="color:#0A4DA6;text-decoration:none">(+225) 01-727-10-337</a> \u00b7 '
       +'<a href="tel:+2250749237462" style="color:#0A4DA6;text-decoration:none">07-492-37-462</a><br>'
       +'\u2709\ufe0f <a href="mailto:eplus2026@gmail.com" style="color:#0A4DA6;text-decoration:none">eplus2026@gmail.com</a>';
@@ -30491,6 +30603,11 @@ window.caUserResetPwd = function(username){
     u.passwordHash=h; u._upd=Date.now(); save('users', state.users);
     logAction('user-password-reset', 'Réinitialisation du mot de passe de '+username);
     toast('Mot de passe réinitialisé pour '+(u.name||username)+' ✅', 'success');
+    /* NIVEAU 2 : si l'admin réinitialise SON PROPRE mot de passe, on synchronise Supabase.
+       (Pour un AUTRE compte, la synchro se fera à sa prochaine connexion.) */
+    if (state.user && u.username===state.user.username && typeof window.__cloudAuthUpdatePassword==='function'){
+      try{ window.__cloudAuthUpdatePassword(np); }catch(e){}
+    }
   });
 };
 window.caUserDelete = function(username){
@@ -30653,7 +30770,7 @@ window.caBackupImport = function(ev){
 };
 
 /* 9. PARAMÈTRES & MAINTENANCE */
-var CA_DEFAULT_FOOTER = '© EPLUS 2026 - Tous droits réservés  |  Dernière mise à jour Août 2026  |  Conception et design DIOM-2Y — contact : +225 01-727-10-337';
+var CA_DEFAULT_FOOTER = '© EPLUS 2026 - Tous droits réservés  |  Dernière mise à jour le 10 septembre 2026  |  Conception et design DIOM-2YA — contact : +225 01-727-10-337';
 function caMeta(){
   if(!state.platformMeta){
     var saved=null; try{ saved=load('platformMeta', null); }catch(e){}
