@@ -1216,6 +1216,12 @@ function vieResetAllData() {
       <div class="sb-link" data-module="ma-classe" onclick="navigate('ma-classe')">
         <span class="sb-icon" style="background:#EFE0FA;color:#5B1F94">🎒</span><span>Ma classe</span>
       </div>
+      <div class="sb-link" data-module="aser-classe" onclick="navigate('aser-classe')">
+        <span class="sb-icon" style="background:#DBEAFE;color:#1D4ED8">📋</span><span>Test ASER</span>
+      </div>
+      <div class="sb-link" data-module="pnapas-classe" onclick="navigate('pnapas-classe')">
+        <span class="sb-icon" style="background:#EDE9FE;color:#6D28D9">📌</span><span>Activités PNAPAS</span>
+      </div>
       <div class="sb-link" data-module="mon-ecole" onclick="navigate('mon-ecole')">
         <span class="sb-icon" style="background:var(--orange-soft);color:var(--orange-deep)">🏫</span><span>Mon école</span>
       </div>
@@ -1422,6 +1428,9 @@ function vieResetAllData() {
           <div class="sb-link" data-module="aser-ace" onclick="navigate('aser-ace')">
             <span class="sb-icon">🗂️</span><span>Fiche de vérification ASER</span>
           </div>
+          <div class="sb-link" data-module="aser-stats" onclick="navigate('aser-stats')">
+            <span class="sb-icon" style="background:#DCFCE7;color:#0E6B5E">📊</span><span>Test ASER — Études &amp; analyses</span>
+          </div>
         </div>
       </div>
     </div>
@@ -1601,7 +1610,7 @@ const CORRESPONDANT_MODULES = [
   'matrice','fichier-ecoles','fichier-eleves','cartes-scolaires',
   'stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','fiche-prescolaire','fiche-primaire','fiche-alphabetisation','fiche-islamique','fiche-generateur',
   'carte-prescolaire','carte-primaire','carte-secondaire','carte-rapport',
-  'pnapas','aser','aser-livret','aser-ace','etat-compositions','perroquet-notes'
+  'pnapas','aser','aser-livret','aser-ace','aser-stats','etat-compositions','perroquet-notes'
 ];
 
 /* Modules des Services de l'IEPP (Secrétariat, Cantine, SMOSS, Bibliothèque) — ajout */
@@ -1617,19 +1626,19 @@ const ACL = {
   /* Grand Administrateur National : voit le module DRENAET (pilotage national multi-IEPP) + accès complet */
   superadmin:   ['dashboard','corbeille','drenaet','statistiques','rapports','ecoles','examens','cpi','vie-scolaire','rh','absences','coges','economat','courrier','archives','archiviste','secretariat','communication','cantine','smoss','users','audit','parametres', ...CORRESPONDANT_MODULES],
   /* Directeur DRENAET : voit le module DRENAET mais limité à sa région + tout sauf comptes utilisateurs nationaux */
-  drenaet:      ['dashboard','corbeille','drenaet','statistiques','rapports','ecoles','examens','cpi','rh','absences','coges','courrier','archives','audit','parametres','users','stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','fiche-prescolaire','fiche-primaire','fiche-alphabetisation','fiche-islamique','fiche-generateur','carte-prescolaire','carte-primaire','carte-secondaire','carte-rapport','pnapas','aser','aser-livret','aser-ace','etat-compositions','perroquet-notes'],
+  drenaet:      ['dashboard','corbeille','drenaet','statistiques','rapports','ecoles','examens','cpi','rh','absences','coges','courrier','archives','audit','parametres','users','stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','fiche-prescolaire','fiche-primaire','fiche-alphabetisation','fiche-islamique','fiche-generateur','carte-prescolaire','carte-primaire','carte-secondaire','carte-rapport','pnapas','aser','aser-livret','aser-ace','aser-stats','etat-compositions','perroquet-notes'],
   /* Inspecteur IEPP : voit son IEPP, pas le pilotage régional */
   inspecteur:   ['dashboard','corbeille','immatriculation','statistiques','rapports','ecoles','examens','cpi','vie-scolaire','rh','absences','coges','economat','courrier','archives','archiviste','secretariat','communication','cantine','smoss','users','audit','parametres', ...CORRESPONDANT_MODULES],
-  cpi:          ['dashboard','corbeille','statistiques','rapports','ecoles','cpi','vie-scolaire','rh','absences','archives','users','examens','stat-effectifs','stat-situation','carte-prescolaire','carte-primaire','carte-rapport','pnapas','aser','aser-livret','aser-ace'],
+  cpi:          ['dashboard','corbeille','statistiques','rapports','ecoles','cpi','vie-scolaire','rh','absences','archives','users','examens','stat-effectifs','stat-situation','carte-prescolaire','carte-primaire','carte-rapport','pnapas','aser','aser-livret','aser-ace','aser-stats'],
   /* Directeur d'école : voit son école (espace personnel) + modules d'école */
   /* Directeur — accès strictement limité à son espace école */
   directeur:    ['dashboard','mon-ecole','immatriculation','absences','examens','perroquet-notes'],
   /* Instituteur : voit sa classe (espace personnel) + demandes personnelles */
   /* Instituteur — accès strictement limité à son espace classe */
-  instituteur:  ['dashboard','ma-classe','immatriculation','examens','perroquet-notes'],
+  instituteur:  ['dashboard','ma-classe','immatriculation','examens','perroquet-notes','aser-classe','pnapas-classe'],
   correspondant:['dashboard','corbeille','rh','absences','courrier','archives','users','examens', ...CORRESPONDANT_MODULES],
   /* Correspondant statistique (IEPP) : tableaux de bord + tous les tableaux statistiques (correction des données) */
-  corresp_stat: ['dashboard','statistiques','rapports','archives','courrier','stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','fiche-prescolaire','fiche-primaire','fiche-alphabetisation','fiche-islamique','fiche-generateur','carte-prescolaire','carte-primaire','carte-secondaire','carte-rapport','pnapas','aser','aser-livret','aser-ace','etat-compositions','perroquet-notes'],
+  corresp_stat: ['dashboard','statistiques','rapports','archives','courrier','stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','fiche-prescolaire','fiche-primaire','fiche-alphabetisation','fiche-islamique','fiche-generateur','carte-prescolaire','carte-primaire','carte-secondaire','carte-rapport','pnapas','aser','aser-livret','aser-ace','aser-stats','etat-compositions','perroquet-notes'],
   agent:        ['dashboard','statistiques','rapports','archives','courrier','matrice','stat-situation','stat-effectifs','absences'],
   /* ---- Profils créés par le Correspondant Fichier (accès ciblé par fonction) ---- */
   secretaire:   ['dashboard','courrier','archives','rh','absences','rapports'],
@@ -1677,7 +1686,7 @@ try { window.ACL = ACL; } catch(e){}
   ACL.archiviste     = ['dashboard','archiviste','archives'];                      // Espace Archiviste
   ACL.corresp_stat   = ['dashboard','stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','fiche-prescolaire','fiche-primaire','fiche-alphabetisation','fiche-islamique','fiche-generateur']; // Correspondant Statistique
   ACL.carte_scolaire = ['dashboard','carte-prescolaire','carte-primaire','carte-secondaire','carte-rapport'];                         // Correspondant Carte Scolaire
-  ACL.suivi_eval     = ['dashboard','etat-compositions','perroquet-notes','pnapas','aser','aser-livret','aser-ace'];  // Suivi Évaluation des Programmes et Projets
+  ACL.suivi_eval     = ['dashboard','etat-compositions','perroquet-notes','pnapas','aser','aser-livret','aser-ace','aser-stats'];  // Suivi Évaluation des Programmes et Projets
   ACL.secretaire     = ['dashboard','secretariat','courrier','archives']; // Espace Secrétariat
   ACL.communication  = ['dashboard','communication','courrier'];          // Service Communication
   ACL.cantine        = ['dashboard','cantine','courrier','archives'];              // Espace Conseiller Cantine
@@ -4078,6 +4087,13 @@ function instituteurExamensAllowed(){
   return String(u.classe||'').trim().toUpperCase() === 'CM2';
 }
 
+/* PNAPAS / Test ASER (espace enseignant) : réservés aux instituteurs du CE1 au CM2. */
+function pnapasClasseEligible(){
+  var u = state.user||{};
+  if (u.role !== 'instituteur') return true;
+  return ['CE1','CE2','CM1','CM2'].indexOf(String(u.classe||'').trim().toUpperCase()) >= 0;
+}
+
 function applyACL() {
   if (typeof injectCustomServiceSidebar === 'function') injectCustomServiceSidebar();
   const allowed = ACL[state.user.role] || [];
@@ -4087,6 +4103,7 @@ function applyACL() {
     if (!mod) return; // les en-têtes de groupe accordéon n'ont pas de data-module
     let ok = allowed.includes(mod);
     if (mod === 'examens' && !instituteurExamensAllowed()) ok = false;
+    if ((mod === 'pnapas-classe' || mod === 'aser-classe') && !pnapasClasseEligible()) ok = false;
     el.style.display = ok ? '' : 'none';
   });
   // Masquer la section Système si rien d'accessible
@@ -4152,6 +4169,8 @@ function initials(name) {
 const MODULES = {
   'dashboard':    { title:'Tableau de bord',         sub:'Vue d\'ensemble de la plateforme IEPP',           render: renderDashboard },
   'ma-classe':    { title:'Ma classe',                sub:'Espace personnel de l\'instituteur — effectif, élèves, demandes', render: renderMaClasse },
+  'aser-classe':  { title:'Test ASER des élèves',     sub:'Évaluation ASER (Lecture & Maths) par élève · groupe de remédiation PNAPAS', render: ()=> (typeof renderAserClasse==='function'? renderAserClasse() : setContent('<div class="card" style="padding:18px">Module en cours de chargement…</div>')) },
+  'pnapas-classe':{ title:'Activités PNAPAS',          sub:'Registre des activités de remédiation de la classe (CE1 → CM2)', render: ()=> (typeof renderPnapasClasse==='function'? renderPnapasClasse() : setContent('<div class="card" style="padding:18px">Module en cours de chargement…</div>')) },
   'mon-ecole':    { title:'Mon école',                sub:'Espace personnel du directeur — classes, effectifs, personnel',  render: renderMonEcole },
   'drenaet':      { title:'Administration des IEPP',  sub:'Pilotage régional multi-IEPP · réservé au Grand Administrateur', render: renderDrenaet },
   'statistiques': { title:'Module Statistiques',     sub:'Effectifs · carte scolaire · résultats',         render: renderStats },
@@ -4201,6 +4220,7 @@ const MODULES = {
   'aser':            { title:'Test ASER',                             sub:'Évaluation des acquis · Annual Status of Education Report', render: renderASER },
   'aser-livret':      { title:'Livret d\'évaluation ASER',             sub:'Outils ASER Lecture & Mathématiques · fiches de résultats (PDF)', render: renderAserLivret },
   'aser-ace':         { title:'Fiche de collecte des données de vérification ASER', sub:'Formulaire numérique remplissable · contre-test du superviseur', render: renderAserAce },
+  'aser-stats':       { title:'Test ASER — Études & analyses', sub:'Statistiques graphiques (anneaux & tubes) · agrégat de la circonscription par enquête', render: ()=> (typeof renderAserStats==='function'? renderAserStats() : setContent('<div class="card" style="padding:18px">Module en cours de chargement…</div>')) },
   'etat-compositions':{ title:'État des compositions',                sub:'Résultats des compositions 1 à 4 par école et par niveau · ajout, modification, suppression', render: renderEtatCompositions },
   'perroquet-notes':  { title:'Remontées des notes (Perroquet)',      sub:'Plateforme Le Perroquet PGNEP — remontée des notes des élèves', render: renderPerroquetNotes },
 
@@ -4226,7 +4246,7 @@ const MODULES = {
 
 function navigate(mod) {
   // ACL check
-  if (!ACL[state.user.role]?.includes(mod) || (mod === 'examens' && !instituteurExamensAllowed())) {
+  if (!ACL[state.user.role]?.includes(mod) || (mod === 'examens' && !instituteurExamensAllowed()) || ((mod === 'pnapas-classe' || mod === 'aser-classe') && !pnapasClasseEligible())) {
     toast('Accès non autorisé pour votre profil.', 'error');
     return;
   }
@@ -24801,7 +24821,6 @@ function renderMaClasse() {
       <button class="btn btn-ghost" onclick="immatRequestForm()">📨 Demande d'immatriculation</button>
       <button class="btn btn-ghost" onclick="absRequestForm()">📅 Demander une absence</button>
       <button class="btn btn-ghost" onclick="navigate('perroquet-notes')" style="background:#D6F2E4;color:#00754A">🦜 Le Perroquet (notes)</button>
-      ${(state.user.role==='instituteur' && ['CE1','CE2','CM1','CM2'].includes(String(state.user.classe||'').trim().toUpperCase())) ? `<button class="btn" style="background:#7C3AED;color:#fff" onclick="pcOpen()">🎯 PNAPAS / ASER</button>` : ''}
       <div style="flex:1"></div>
       <button class="btn btn-ghost" onclick="mcRemonteeListe()">📤 Remonter la liste de mes élèves</button>
       <button class="btn btn-ghost" onclick="document.getElementById('mc-import').click()">📥 Importer Excel</button>
@@ -31013,33 +31032,83 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
 
 <script id="pnapas-aser-classe">
 /* ============================================================================
-   MODULE ENSEIGNANT · PNAPAS / ASER (classes CE1 -> CM2)
-   - Onglet "Test ASER des eleves" : niveau Lecture & Maths par eleve + groupe de remediation (auto)
-   - Onglet "Activites PNAPAS" : registre de remediation de la classe (CRUD + exports)
-   Donnees cloisonnees par circonscription (cles aserEleves / pnapasClasse),
-   filtrees par ecole + classe + enseignant. N'altere aucun module existant.
+   MODULES ENSEIGNANT (menu latéral) · Test ASER + Activités PNAPAS (CE1 -> CM2)
+   + ÉTUDES & ANALYSES GRAPHIQUES (anneaux + tubes, enquêtes Début/Mi/Fin)
+   - renderAserClasse()   : saisie par élève (par enquête) + études & analyses (classe)
+   - renderPnapasClasse() : registre des activités de remédiation (CRUD) [inchangé]
+   - renderAserStats()    : études & analyses agrégées de la circonscription (suivi-évaluation)
+   Données cloisonnées par circonscription (clés aserEleves / pnapasClasse),
+   filtrées par école + classe + enseignant. N'altère aucun module existant.
    ============================================================================ */
 (function(){
   var PC_LEC = ['Non testé','Débutant','Lettre','Mot','Paragraphe','Histoire','Compréhension'];
   var PC_MAT = ['Non testé','Débutant','1 Chiffre','2 Chiffres','Soustraction','Division'];
   var PC_DOM = ['Lecture','Écriture','Mathématiques'];
   var PC_STA = ['Planifiée','Réalisée'];
-  var pcTab = 'aser';
+  var PC_PHASES = [{k:'debut',l:'Début'},{k:'mi',l:'Mi-parcours'},{k:'fin',l:'Fin'}];
+  var PC_CLASSES = ['CE1','CE2','CM1','CM2'];
+
+  var LEC_ORDER = ['Débutant','Lettre','Mot','Paragraphe','Histoire','Compréhension'];
+  var MAT_ORDER = ['Débutant','1 Chiffre','2 Chiffres','Soustraction','Division'];
+  var LEC_COL = {'Débutant':'#F5B301','Lettre':'#B7B08E','Mot':'#EFEDE0','Paragraphe':'#6FC7BD','Histoire':'#24A597','Compréhension':'#0B6B5C'};
+  var MAT_COL = {'Débutant':'#F5B301','1 Chiffre':'#B7B08E','2 Chiffres':'#EFEDE0','Soustraction':'#6FC7BD','Division':'#0B6B5C'};
+  var LEC_GROUPS = [
+    {l:'Niveau 1 (Débutant + Lettre)',       keys:['Débutant','Lettre'],        c:'#F5B301'},
+    {l:'Niveau 2 (Mot + Paragraphe)',        keys:['Mot','Paragraphe'],         c:'#E7E3CE'},
+    {l:'Niveau 3 (Histoire + Compréhension)',keys:['Histoire','Compréhension'], c:'#24A597'}
+  ];
+  var MAT_GROUPS = [
+    {l:'Niveau 1 (Débutant + 1 chiffre)',    keys:['Débutant','1 Chiffre'],     c:'#F5B301'},
+    {l:'Niveau 2 (2 chiffres)',              keys:['2 Chiffres'],               c:'#E7E3CE'},
+    {l:'Niveau 3 (Soustraction + Division)', keys:['Soustraction','Division'],  c:'#24A597'}
+  ];
+  var LIGHT_SEG = {'#F5B301':1,'#B7B08E':1,'#EFEDE0':1,'#E7E3CE':1};
+
+  /* état d'affichage (module) */
+  var pcPhase = 'debut';     // enquête courante (saisie instituteur)
+  var pcView  = 'saisie';    // 'saisie' | 'stats' (onglets instituteur)
+  var pcStatClasse = 'Toutes'; // filtre classe (agrégat correspondant)
 
   function esc(s){ return (typeof escapeHtml==='function') ? escapeHtml(s) : String(s==null?'':s); }
   function pcToast(m,t){ if(typeof toast==='function') toast(m,t||'success'); }
   function pcSave(k,v){ try{ if(typeof save==='function') save(k,v); }catch(e){} }
   function pcToday(){ return new Date().toISOString().slice(0,10); }
-  function pcUser(){ return state.user||{}; }
+  function pcUser(){ return (typeof state!=='undefined' && state.user) ? state.user : {}; }
   function pcUid(){ return (typeof uid==='function') ? uid() : (Date.now().toString(36)+Math.random().toString(36).slice(2,7)); }
+  function pcSetContent(html){ if(typeof setContent==='function') setContent(html); else { var c=document.getElementById('content'); if(c) c.innerHTML=html; } }
+  function pcPct(a,b){ b=b||0; return b>0 ? (a/b*100) : 0; }
+  function pcF1(x){ return (Math.round(x*100)/100).toFixed(2); }
+  function pcInt(x){ return String(Math.round(x||0)); }
 
   function pcEnsure(){
     if(!Array.isArray(state.aserEleves))   state.aserEleves   = (typeof load==='function') ? (load('aserEleves',[])||[])   : [];
     if(!Array.isArray(state.pnapasClasse)) state.pnapasClasse = (typeof load==='function') ? (load('pnapasClasse',[])||[]) : [];
+    pcMigrate();
   }
+  /* migration NON destructive : ancienne saisie unique -> enquête « Début » */
+  function pcMigrate(){
+    var changed=false;
+    (state.aserEleves||[]).forEach(function(r){
+      if(!r.ph || typeof r.ph!=='object'){
+        r.ph={};
+        if((r.lecture && r.lecture!=='Non testé') || (r.maths && r.maths!=='Non testé')){
+          r.ph.debut={ l:r.lecture||'Non testé', m:r.maths||'Non testé', d:r.date||'' };
+        }
+        changed=true;
+      }
+    });
+    if(changed) pcSave('aserEleves', state.aserEleves);
+  }
+  function pcGetPh(r,k){ var p=(r&&r.ph&&r.ph[k])?r.ph[k]:null; return { l:(p&&p.l)||'Non testé', m:(p&&p.m)||'Non testé', d:(p&&p.d)||'' }; }
+  function pcSetPhVal(r,k,which,val){ if(!r.ph) r.ph={}; if(!r.ph[k]) r.ph[k]={l:'Non testé',m:'Non testé',d:''}; r.ph[k][which]=val; r.ph[k].d=pcToday(); }
+  function pcLastTested(r){ // niveau actuel = dernière enquête renseignée
+    for(var i=PC_PHASES.length-1;i>=0;i--){ var v=pcGetPh(r,PC_PHASES[i].k); if(v.l && v.l!=='Non testé') return v; }
+    return {l:'Non testé',m:'Non testé',d:''};
+  }
+
   function pcEligible(){
     var u=pcUser();
-    return u.role==='instituteur' && ['CE1','CE2','CM1','CM2'].indexOf(String(u.classe||'').trim().toUpperCase())>=0;
+    return u.role==='instituteur' && PC_CLASSES.indexOf(String(u.classe||'').trim().toUpperCase())>=0;
   }
   function pcClassEleves(){
     var u=pcUser();
@@ -31054,6 +31123,10 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
     var u=pcUser();
     return (state.aserEleves||[]).find(function(r){ return r.eleveId===eleveId && r.enseignant===u.username; });
   }
+  function pcMyRecords(){
+    var u=pcUser();
+    return (state.aserEleves||[]).filter(function(r){ return r.enseignant===u.username && r.ecole===u.ecole && r.classe===u.classe; });
+  }
   function pcGroup(lec){
     var r = PC_LEC.indexOf(lec);
     if(!lec || lec==='Non testé' || r<=0) return {label:'Non testé', bg:'#e2e8f0', fg:'#475569'};
@@ -31063,57 +31136,205 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
     return {label:'Groupe 4 · Maîtrise', bg:'#DCFCE7', fg:'#15803D'};
   }
 
-  /* ---------- OVERLAY ---------- */
-  function pcBuildOverlay(){
-    if(document.getElementById('pcov')) return;
-    var d=document.createElement('div');
-    d.id='pcov';
-    d.style.cssText='display:none;position:fixed;inset:0;z-index:150;background:rgba(15,23,42,.55);overflow:auto;padding:20px';
-    d.innerHTML =
-      '<style>#pcov .pc-btn{border:0;border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer;font-size:13px}'+
-      '#pcov .pc-sel{padding:5px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#fff}'+
-      '#pcov table{border-collapse:collapse;width:100%}'+
-      '#pcov th{background:#1F4E79;color:#fff;padding:8px;font-size:12px;text-align:left}'+
-      '#pcov td{border:1px solid #e5e7eb;padding:6px 8px;font-size:13px}'+
-      '@media print{#pcov{display:none !important}}</style>'+
-      '<div style="max-width:1200px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35)">'+
-        '<div style="background:linear-gradient(135deg,#4C1D95,#7C3AED);color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center">'+
-          '<div><div style="font-size:18px;font-weight:800">🎯 PNAPAS / ASER — Ma classe</div>'+
-          '<div id="pc-sub" style="font-size:12px;opacity:.9;margin-top:2px"></div></div>'+
-          '<button class="pc-btn" style="background:rgba(255,255,255,.2);color:#fff" onclick="pcClose()">✕ Fermer</button>'+
-        '</div>'+
-        '<div style="display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid #e5e7eb;background:#f8fafc">'+
-          '<button id="pc-tab-aser" class="pc-btn" onclick="pcTabGo(\'aser\')">📋 Test ASER des élèves</button>'+
-          '<button id="pc-tab-act" class="pc-btn" onclick="pcTabGo(\'act\')">📌 Activités PNAPAS</button>'+
-        '</div>'+
-        '<div id="pc-body" style="padding:16px 18px;max-height:70vh;overflow:auto"></div>'+
-      '</div>';
-    document.body.appendChild(d);
+  function pcStyleTag(){
+    return '<style>.pc-wrap table{border-collapse:collapse;width:100%}'+
+      '.pc-wrap th{background:#1F4E79;color:#fff;padding:8px;font-size:12px;text-align:left}'+
+      '.pc-wrap td{border:1px solid #e5e7eb;padding:6px 8px;font-size:13px}'+
+      '.pc-wrap .pc-sel{padding:5px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#fff}'+
+      '.pc-wrap .pc-btn{border:0;border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer;font-size:13px}'+
+      '.pc-tabbar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}'+
+      '.pc-tab{border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:9px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:13px}'+
+      '.pc-tab.active{background:#1F4E79;color:#fff;border-color:#1F4E79}'+
+      '.pc-seg{display:inline-flex;border:1px solid #cbd5e1;border-radius:9px;overflow:hidden}'+
+      '.pc-seg button{border:0;background:#fff;color:#334155;padding:7px 14px;font-weight:700;cursor:pointer;font-size:12px}'+
+      '.pc-seg button.active{background:#0E6B5E;color:#fff}'+
+      '.pc-card{background:#fff;border:1px solid #e8edf2;border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(15,23,42,.05)}'+
+      '.pc-sec{background:linear-gradient(90deg,#12b886,#0E6B5E);color:#fff;border-radius:12px;padding:12px 18px;font-weight:800;font-size:15px;margin:20px 0 12px;box-shadow:0 3px 8px rgba(14,107,94,.25)}'+
+      '.pc-grid{display:grid;gap:14px}'+
+      '.pc-col{position:relative;width:78px;height:230px;background:#fbfcfd;border:1px solid #eef2f5;border-radius:8px;display:flex;flex-direction:column-reverse;overflow:hidden}'+
+      '.pc-colwrap{display:flex;flex-direction:column;align-items:center;gap:6px}'+
+      '.pc-seglbl{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;overflow:hidden}'+
+      '</style>';
   }
-  function pcOpen(tab){
-    if(!pcEligible()){ pcToast('Réservé aux instituteurs du CE1 au CM2','error'); return; }
-    pcEnsure(); pcBuildOverlay();
-    pcTab = tab||pcTab||'aser';
+  function pcHeaderInfo(){
     var u=pcUser();
-    var sub=document.getElementById('pc-sub');
-    if(sub) sub.textContent = (u.name||'')+' · Classe '+(u.classe||'')+' · '+(u.ecole||'');
-    document.getElementById('pcov').style.display='block';
-    pcRender();
+    return '<div style="font-size:12px;color:#64748b;margin-bottom:12px">Classe <strong>'+esc(u.classe||'')+'</strong> · '+esc(u.ecole||'')+' · '+esc(u.name||'')+'</div>';
   }
-  function pcClose(){ var o=document.getElementById('pcov'); if(o) o.style.display='none'; }
-  function pcTabGo(t){ pcTab=t; pcRender(); }
-  function pcRender(){
-    var base='border:0;border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer;font-size:13px;';
-    var ta=document.getElementById('pc-tab-aser'), tb=document.getElementById('pc-tab-act');
-    if(ta) ta.style.cssText=base+(pcTab==='aser'?'background:#7C3AED;color:#fff':'background:#ede9fe;color:#5b21b6');
-    if(tb) tb.style.cssText=base+(pcTab==='act'?'background:#7C3AED;color:#fff':'background:#ede9fe;color:#5b21b6');
-    var body=document.getElementById('pc-body'); if(body) body.innerHTML = (pcTab==='act') ? pcActHtml() : pcAserHtml();
+  function pcNotEligible(){
+    pcSetContent('<div class="card" style="padding:22px;text-align:center;color:#64748b">Cet espace est réservé aux instituteurs des classes du CE1 au CM2.</div>');
   }
 
-  /* ---------- ASER ---------- */
-  function pcAserStatsHtml(){
+  /* ===================================================================
+     BLOCS GRAPHIQUES (anneaux + tubes) — pur SVG/HTML autonome
+     =================================================================== */
+  function pcTextOn(hex){ return LIGHT_SEG[hex] ? '#334155' : '#ffffff'; }
+
+  // Anneau simple (jauge %) : grand chiffre au centre
+  function pcRing(pct, color, bigText, sub){
+    pct=Math.max(0,Math.min(100,pct||0));
+    var R=52, C=2*Math.PI*R, off=C*(1-pct/100);
+    return '<svg viewBox="0 0 130 130" style="width:118px;height:118px">'+
+      '<circle cx="65" cy="65" r="'+R+'" fill="none" stroke="#eef2f5" stroke-width="14"/>'+
+      '<circle cx="65" cy="65" r="'+R+'" fill="none" stroke="'+color+'" stroke-width="14" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'" transform="rotate(-90 65 65)"/>'+
+      '<text x="65" y="62" text-anchor="middle" font-size="21" font-weight="800" fill="#0f172a">'+esc(bigText)+'</text>'+
+      (sub?'<text x="65" y="82" text-anchor="middle" font-size="10" fill="#64748b">'+esc(sub)+'</text>':'')+
+    '</svg>';
+  }
+  // Anneau segmenté (répartition) + légende
+  function pcDonut(parts){ // parts=[{label,val,color}]
+    var tot=parts.reduce(function(s,p){return s+(p.val||0);},0)||0;
+    var R=52, C=2*Math.PI*R, acc=0, segs='';
+    if(tot>0){
+      parts.forEach(function(p){
+        var frac=(p.val||0)/tot; if(frac<=0) return;
+        var dash=C*frac;
+        segs+='<circle cx="65" cy="65" r="'+R+'" fill="none" stroke="'+p.color+'" stroke-width="24" stroke-dasharray="'+dash.toFixed(2)+' '+(C-dash).toFixed(2)+'" stroke-dashoffset="'+(-acc).toFixed(2)+'" transform="rotate(-90 65 65)"/>';
+        acc+=dash;
+      });
+    } else {
+      segs='<circle cx="65" cy="65" r="'+R+'" fill="none" stroke="#eef2f5" stroke-width="24"/>';
+    }
+    var svg='<svg viewBox="0 0 130 130" style="width:118px;height:118px">'+segs+
+      '<text x="65" y="70" text-anchor="middle" font-size="16" font-weight="800" fill="#0f172a">'+pcInt(tot)+'</text></svg>';
+    var leg=parts.map(function(p){ var pc=tot>0?pcF1(pcPct(p.val,tot)):'0.00';
+      return '<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#334155;margin:2px 0"><span style="width:11px;height:11px;border-radius:3px;background:'+p.color+';display:inline-block"></span>'+esc(p.label)+' : <strong>'+pcInt(p.val)+'</strong> ('+pc+'%)</div>';
+    }).join('');
+    return '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">'+svg+'<div>'+leg+'</div></div>';
+  }
+
+  // Tube = colonne empilée 100% (un niveau par segment, bas -> haut selon order)
+  function pcTube(dist, order, colmap){
+    var tot=order.reduce(function(s,k){return s+(dist[k]||0);},0);
+    if(tot<=0){ return '<div class="pc-col"><div style="margin:auto;color:#94a3b8;font-size:11px">—</div></div>'; }
+    var inner=order.map(function(k){
+      var v=dist[k]||0; if(v<=0) return '';
+      var pct=v/tot*100; var col=colmap[k]||'#cbd5e1';
+      var lbl=pct>=6 ? (pcF1(pct)+'%') : '';
+      return '<div class="pc-seglbl" style="height:'+pct.toFixed(2)+'%;background:'+col+';color:'+pcTextOn(col)+'">'+lbl+'</div>';
+    }).join('');
+    return '<div class="pc-col">'+inner+'</div>';
+  }
+  // Groupe de tubes : une colonne par enquête + légende
+  function pcTubeGroup(title, phaseData, order, colmap){
+    // phaseData = [{l:'Début', dist:{...}, n:tot}]
+    var cols=phaseData.map(function(p){
+      return '<div class="pc-colwrap">'+pcTube(p.dist,order,colmap)+
+        '<div style="font-size:11px;color:#334155;text-align:center;font-weight:700">'+esc(p.l)+'<br><span style="font-weight:400;color:#94a3b8">(n='+pcInt(p.n)+')</span></div></div>';
+    }).join('');
+    var leg=order.map(function(k){ var col=colmap[k]||'#cbd5e1';
+      return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#334155;margin:2px 8px 2px 0"><span style="width:11px;height:11px;border-radius:3px;background:'+col+';display:inline-block"></span>'+esc(k)+'</span>';
+    }).join('');
+    return '<div class="pc-card"><div style="font-weight:800;color:#0E6B5E;text-align:center;margin-bottom:12px">'+esc(title)+'</div>'+
+      '<div style="display:flex;gap:20px;justify-content:center;align-items:flex-end;flex-wrap:wrap">'+cols+'</div>'+
+      '<div style="text-align:center;margin-top:12px">'+leg+'</div></div>';
+  }
+
+  /* ===================================================================
+     CALCUL DES DISTRIBUTIONS
+     =================================================================== */
+  function pcDistLevels(records, phaseKey, which){ // which 'l'|'m'
+    var d={}; records.forEach(function(r){ var v=pcGetPh(r,phaseKey)[which]; if(v && v!=='Non testé') d[v]=(d[v]||0)+1; }); return d;
+  }
+  function pcDistGroups(records, phaseKey, which, groups){
+    var order=groups.map(function(g){return g.l;}); var col={}; var d={}; order.forEach(function(o){d[o]=0;});
+    records.forEach(function(r){ var v=pcGetPh(r,phaseKey)[which]; if(!v||v==='Non testé') return;
+      for(var i=0;i<groups.length;i++){ if(groups[i].keys.indexOf(v)>=0){ d[groups[i].l]++; break; } }
+    });
+    groups.forEach(function(g){ col[g.l]=g.c; });
+    return {dist:d, order:order, col:col};
+  }
+  function pcTested(records, phaseKey){ var n=0; records.forEach(function(r){ var v=pcGetPh(r,phaseKey).l; if(v && v!=='Non testé') n++; }); return n; }
+
+  /* ===================================================================
+     TABLEAU DE BORD ANALYTIQUE (commun classe / circonscription)
+     ctx = { eleves:[], records:[], showClasse:bool, showEcole:bool }
+     =================================================================== */
+  function pcAnalyseHtml(ctx){
+    var eleves=ctx.eleves||[], records=ctx.records||[];
+    var effectif=eleves.length;
+
+    /* --- Cartes par enquête (testés / effectif + taux) --- */
+    var cards=PC_PHASES.map(function(p){
+      var t=pcTested(records,p.k); var tx=pcF1(pcPct(t,effectif));
+      return '<div class="pc-card" style="flex:1;min-width:210px;border-top:5px solid #0E6B5E">'+
+        '<div style="font-size:12px;font-weight:800;color:#334155;letter-spacing:.5px">TEST '+p.l.toUpperCase()+'</div>'+
+        '<div style="font-size:30px;font-weight:800;color:#12b886;margin:6px 0">'+pcInt(t)+' <span style="font-size:16px;color:#94a3b8">/ '+pcInt(effectif)+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #eef2f5;padding-top:8px"><span style="font-size:12px;color:#64748b">Soumission : '+pcInt(t)+'</span><span style="font-size:15px;font-weight:800;color:#0E6B5E">'+tx+'%</span></div>'+
+      '</div>';
+    }).join('');
+    var kpiRow='<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px">'+cards+'</div>';
+
+    /* --- Anneaux : taux global testés (dernière enquête dispo), sexe, classe --- */
+    // taux global = testés (dernière enquête renseignée globalement) — on prend Début par défaut d'analyse rapide
+    var g=0,f=0; eleves.forEach(function(e){ var s=String(e.sexe||'').toUpperCase(); if(s.indexOf('M')===0||s.indexOf('G')===0) g++; else if(s.indexOf('F')===0) f++; });
+    var sexeDonut=pcDonut([{label:'Garçons',val:g,color:'#F5B301'},{label:'Filles',val:f,color:'#0E6B5E'}]);
+    var ringGlobal=pcRing(pcPct(pcTested(records,'debut'),effectif), '#12b886', pcF1(pcPct(pcTested(records,'debut'),effectif))+'%', 'Taux testés · Début');
+    var anneaux='<div class="pc-card"><div style="font-weight:800;color:#0E6B5E;text-align:center;margin-bottom:10px">Taux d\'élèves testés (Début)</div><div style="display:flex;justify-content:center">'+ringGlobal+'</div></div>'+
+      '<div class="pc-card"><div style="font-weight:800;color:#0E6B5E;text-align:center;margin-bottom:10px">Répartition par sexe</div>'+sexeDonut+'</div>';
+    if(ctx.showClasse){
+      var byC={}; PC_CLASSES.forEach(function(c){byC[c]=0;}); eleves.forEach(function(e){ var c=String(e.niveau||'').toUpperCase(); if(byC[c]!=null) byC[c]++; });
+      var classeDonut=pcDonut([
+        {label:'CE1',val:byC.CE1,color:'#F5B301'},{label:'CE2',val:byC.CE2,color:'#B7B08E'},
+        {label:'CM1',val:byC.CM1,color:'#EFEDE0'},{label:'CM2',val:byC.CM2,color:'#24A597'}
+      ]);
+      anneaux+='<div class="pc-card"><div style="font-weight:800;color:#0E6B5E;text-align:center;margin-bottom:10px">Répartition par classe</div>'+classeDonut+'</div>';
+    }
+    var anneauxRow='<div class="pc-grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">'+anneaux+'</div>';
+
+    /* --- Niveaux d'apprentissage globaux (tubes) --- */
+    function phaseSet(which){ return PC_PHASES.map(function(p){ var d=pcDistLevels(records,p.k,which); var n=Object.keys(d).reduce(function(s,k){return s+d[k];},0); return {l:p.l,dist:d,n:n}; }); }
+    var lecTubes=pcTubeGroup("Résultat d'apprentissage en Lecture", phaseSet('l'), LEC_ORDER, LEC_COL);
+    var matTubes=pcTubeGroup("Résultat d'apprentissage en Mathématiques", phaseSet('m'), MAT_ORDER, MAT_COL);
+    var sec3='<div class="pc-sec">Niveaux d\'apprentissage globaux</div>'+
+      '<div class="pc-grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">'+lecTubes+matTubes+'</div>';
+
+    /* --- Niveaux par groupe (tubes) --- */
+    function phaseGroupSet(which,groups){ return PC_PHASES.map(function(p){ var gg=pcDistGroups(records,p.k,which,groups); var n=Object.keys(gg.dist).reduce(function(s,k){return s+gg.dist[k];},0); return {l:p.l,dist:gg.dist,n:n,order:gg.order,col:gg.col}; }); }
+    var lg=phaseGroupSet('l',LEC_GROUPS), mg=phaseGroupSet('m',MAT_GROUPS);
+    var lecG=pcTubeGroup("Résultat d'apprentissage en Lecture", lg, lg[0].order, lg[0].col);
+    var matG=pcTubeGroup("Résultat d'apprentissage en Mathématiques", mg, mg[0].order, mg[0].col);
+    var sec4='<div class="pc-sec">Niveaux d\'apprentissage globaux par groupe</div>'+
+      '<div class="pc-grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">'+lecG+matG+'</div>';
+
+    /* --- Groupes de remédiation (niveau actuel) --- */
+    var grp={'Groupe 1 · Débutant':0,'Groupe 2 · Mot':0,'Groupe 3 · Paragraphe':0,'Groupe 4 · Maîtrise':0,'Non testé':0};
+    records.forEach(function(r){ var lv=pcLastTested(r).l; grp[pcGroup(lv).label]++; });
+    function gcard(l,v,bg,fg){ return '<div class="pc-card" style="flex:1;min-width:150px;background:'+bg+';color:'+fg+';text-align:center"><div style="font-size:12px;font-weight:700;opacity:.9">'+l+'</div><div style="font-size:28px;font-weight:800">'+v+'</div></div>'; }
+    var sec5='<div class="pc-sec">Groupes de remédiation (niveau actuel)</div>'+
+      '<div style="display:flex;gap:12px;flex-wrap:wrap">'+
+        gcard('Groupe 1 · Débutant',grp['Groupe 1 · Débutant'],'#FEE2E2','#B91C1C')+
+        gcard('Groupe 2 · Mot',grp['Groupe 2 · Mot'],'#FFEDD5','#C2410C')+
+        gcard('Groupe 3 · Paragraphe',grp['Groupe 3 · Paragraphe'],'#DBEAFE','#1D4ED8')+
+        gcard('Groupe 4 · Maîtrise',grp['Groupe 4 · Maîtrise'],'#DCFCE7','#15803D')+
+      '</div>';
+
+    /* --- (Circonscription) Suivi de la saisie par école --- */
+    var secEcole='';
+    if(ctx.showEcole){
+      var effByE={}, ecoles={};
+      eleves.forEach(function(e){ var k=e.ecole||'—'; effByE[k]=(effByE[k]||0)+1; ecoles[k]=1; });
+      var tByE={debut:{},mi:{},fin:{}};
+      records.forEach(function(r){ var k=r.ecole||'—'; ecoles[k]=1; PC_PHASES.forEach(function(p){ var v=pcGetPh(r,p.k).l; if(v&&v!=='Non testé') tByE[p.k][k]=(tByE[p.k][k]||0)+1; }); });
+      var list=Object.keys(ecoles).sort();
+      var rows=list.map(function(k){ var eff=effByE[k]||0;
+        function cell(pk){ var t=tByE[pk][k]||0; return '<td style="text-align:center">'+pcInt(t)+'/'+pcInt(eff)+' ('+pcF1(pcPct(t,eff))+'%)</td>'; }
+        return '<tr><td style="font-weight:600">'+esc(k)+'</td><td style="text-align:center">'+pcInt(eff)+'</td>'+cell('debut')+cell('mi')+cell('fin')+'</tr>';
+      }).join('');
+      secEcole='<div class="pc-sec">Suivi de la saisie des données (par école)</div>'+
+        '<div class="pc-wrap" style="overflow:auto"><table><thead><tr>'+
+        '<th>École</th><th style="text-align:center">Effectif</th><th style="text-align:center">Test Début %</th><th style="text-align:center">Test Mi-parcours %</th><th style="text-align:center">Test Fin %</th>'+
+        '</tr></thead><tbody>'+(rows||'<tr><td colspan="5" style="text-align:center;color:#64748b;padding:20px">Aucune donnée.</td></tr>')+'</tbody></table></div>';
+    }
+
+    return kpiRow+anneauxRow+sec3+sec4+sec5+secEcole;
+  }
+
+  /* ===================================================================
+     TEST ASER — INSTITUTEUR (onglets Saisie / Analyses)
+     =================================================================== */
+  function pcAserStatsStrip(){
     var els=pcClassEleves(); var total=els.length, testes=0, g={};
-    els.forEach(function(e){ var r=pcAserRec(e.id); var lec=r?r.lecture:''; if(lec && lec!=='Non testé'){testes++; var grp=pcGroup(lec).label; g[grp]=(g[grp]||0)+1;} });
+    els.forEach(function(e){ var r=pcAserRec(e.id); var lec=r?pcGetPh(r,pcPhase).l:''; if(lec && lec!=='Non testé'){testes++; var grp=pcGroup(lec).label; g[grp]=(g[grp]||0)+1;} });
     function card(l,v,bg,fg){ return '<div style="flex:1;min-width:110px;background:'+bg+';color:'+fg+';border-radius:10px;padding:10px 12px"><div style="font-size:11px;opacity:.85">'+l+'</div><div style="font-size:22px;font-weight:800">'+v+'</div></div>'; }
     return '<div id="pc-aser-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'+
       card('Élèves',total,'#EEF2FF','#3730A3')+
@@ -31128,15 +31349,23 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
     var o=arr.map(function(x){ return '<option'+(x===val?' selected':'')+'>'+esc(x)+'</option>'; }).join('');
     return '<select class="pc-sel" onchange="pcAserSet(\''+eleveId+'\',\''+field+'\',this.value)">'+o+'</select>';
   }
-  function pcAserHtml(){
+  function pcPhaseSeg(cb){
+    return '<div class="pc-seg">'+PC_PHASES.map(function(p){ return '<button class="'+(p.k===pcPhase?'active':'')+'" onclick="'+cb+'(\''+p.k+'\')">'+p.l+'</button>'; }).join('')+'</div>';
+  }
+  function pcSaisieHtml(){
     var els=pcClassEleves();
-    var head='<div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px">'+
-        '<button class="pc-btn" style="background:#059669;color:#fff" onclick="pcAserExport()">📊 Export Excel</button>'+
-        '<button class="pc-btn" style="background:#e2e8f0;color:#334155" onclick="pcAserPrint()">🖨️ Imprimer</button>'+
+    var bar='<div style="display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:12px">'+
+        '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:#64748b;font-weight:700">Enquête :</span>'+pcPhaseSeg('pcSetPhase')+'</div>'+
+        '<div style="display:flex;gap:8px">'+
+          '<button class="pc-btn" style="background:#059669;color:#fff" onclick="pcAserExport()">📊 Export Excel</button>'+
+          '<button class="pc-btn" style="background:#e2e8f0;color:#334155" onclick="pcAserPrint()">🖨️ Imprimer</button>'+
+        '</div>'+
       '</div>';
-    if(!els.length) return pcAserStatsHtml()+head+'<div style="text-align:center;color:#64748b;padding:30px">Aucun élève dans votre classe. Ajoutez vos élèves depuis « Ma classe ».</div>';
+    if(!els.length){
+      return pcAserStatsStrip()+bar+'<div style="text-align:center;color:#64748b;padding:30px">Aucun élève dans votre classe. Ajoutez vos élèves depuis « Ma classe ».</div>';
+    }
     var rows=els.map(function(e,i){
-      var r=pcAserRec(e.id)||{}; var lec=r.lecture||'Non testé', mat=r.maths||'Non testé'; var grp=pcGroup(lec);
+      var r=pcAserRec(e.id)||{}; var ph=pcGetPh(r,pcPhase); var lec=ph.l, mat=ph.m; var grp=pcGroup(lec);
       return '<tr>'+
         '<td style="text-align:center">'+(i+1)+'</td>'+
         '<td>'+esc(e.matricule||'—')+'</td>'+
@@ -31145,53 +31374,124 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
         '<td>'+pcSel('lecture',e.id,lec,PC_LEC)+'</td>'+
         '<td>'+pcSel('maths',e.id,mat,PC_MAT)+'</td>'+
         '<td style="text-align:center"><span id="pc-grp-'+e.id+'" style="display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;background:'+grp.bg+';color:'+grp.fg+'">'+grp.label+'</span></td>'+
-        '<td style="text-align:center;font-size:12px;color:#64748b">'+esc(r.date||'—')+'</td>'+
+        '<td style="text-align:center;font-size:12px;color:#64748b">'+esc(ph.d||'—')+'</td>'+
       '</tr>';
     }).join('');
-    return pcAserStatsHtml()+head+
+    return pcAserStatsStrip()+bar+
       '<div style="overflow:auto"><table><thead><tr>'+
         '<th style="text-align:center">N°</th><th>Matricule</th><th>Nom &amp; prénoms</th><th style="text-align:center">Sexe</th>'+
         '<th>Lecture (ASER)</th><th>Maths (ASER)</th><th style="text-align:center">Groupe de remédiation</th><th style="text-align:center">Date</th>'+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
-      '<div style="font-size:11px;color:#94a3b8;margin-top:8px">Le groupe de remédiation est calculé automatiquement d\'après le niveau de lecture ASER.</div>';
+      '<div style="font-size:11px;color:#94a3b8;margin-top:8px">Enquête sélectionnée : <strong>'+esc((PC_PHASES.find(function(p){return p.k===pcPhase;})||{}).l||'')+'</strong>. Le groupe de remédiation est calculé automatiquement d\'après le niveau de lecture ASER.</div>';
   }
+  function renderAserClasse(){
+    if(!pcEligible()){ pcNotEligible(); return; }
+    pcEnsure();
+    var tabs='<div class="pc-tabbar">'+
+      '<button class="pc-tab '+(pcView==='saisie'?'active':'')+'" onclick="pcSetView(\'saisie\')">📝 Saisie du test</button>'+
+      '<button class="pc-tab '+(pcView==='stats'?'active':'')+'" onclick="pcSetView(\'stats\')">📊 Études &amp; analyses</button>'+
+    '</div>';
+    var body;
+    if(pcView==='stats'){
+      body='<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="pc-btn" style="background:#059669;color:#fff" onclick="pcAnalyseExport()">📊 Export Excel</button></div>'+
+        pcAnalyseHtml({ eleves:pcClassEleves(), records:pcMyRecords(), showClasse:false, showEcole:false });
+    } else {
+      body='<div id="pc-saisie">'+pcSaisieHtml()+'</div>';
+    }
+    pcSetContent(pcStyleTag()+'<div class="pc-wrap card" style="padding:18px">'+pcHeaderInfo()+tabs+body+'</div>');
+  }
+  function pcSetView(v){ pcView=v; renderAserClasse(); }
+  function pcSetPhase(k){ pcPhase=k; var host=document.getElementById('pc-saisie'); if(host){ host.innerHTML=pcSaisieHtml(); } else { renderAserClasse(); } }
   function pcAserSet(eleveId, field, value){
     var u=pcUser(); var els=pcClassEleves(); var e=els.find(function(x){return x.id===eleveId;}); if(!e) return;
     var r=pcAserRec(eleveId);
-    if(!r){ r={id:'as_'+pcUid(), eleveId:eleveId, matricule:e.matricule, nom:e.nom, prenoms:e.prenoms, sexe:e.sexe, ecole:u.ecole, classe:u.classe, enseignant:u.username, lecture:'Non testé', maths:'Non testé', date:'', obs:''}; state.aserEleves.push(r); }
-    r[field]=value; r.date=pcToday();
+    if(!r){ r={id:'as_'+pcUid(), eleveId:eleveId, matricule:e.matricule, nom:e.nom, prenoms:e.prenoms, sexe:e.sexe, ecole:u.ecole, classe:u.classe, enseignant:u.username, lecture:'Non testé', maths:'Non testé', date:'', obs:'', ph:{}}; state.aserEleves.push(r); }
+    var which = (field==='lecture') ? 'l' : 'm';
+    pcSetPhVal(r, pcPhase, which, value);
+    // miroir de compat (enquête Début -> anciens champs)
+    if(pcPhase==='debut'){ if(field==='lecture') r.lecture=value; else r.maths=value; r.date=pcToday(); }
     pcSave('aserEleves', state.aserEleves);
-    if(typeof logAction==='function'){ try{ logAction('aser-eleve','ASER '+field+'='+value+' · '+(e.nom||'')); }catch(x){} }
+    if(typeof logAction==='function'){ try{ logAction('aser-eleve','ASER '+pcPhase+' '+field+'='+value+' · '+(e.nom||'')); }catch(x){} }
     if(field==='lecture'){ var grp=pcGroup(value); var cell=document.getElementById('pc-grp-'+eleveId); if(cell){ cell.textContent=grp.label; cell.style.background=grp.bg; cell.style.color=grp.fg; } }
     var stats=document.getElementById('pc-aser-stats');
-    if(stats){ var tmp=document.createElement('div'); tmp.innerHTML=pcAserStatsHtml(); if(tmp.firstChild) stats.replaceWith(tmp.firstChild); }
+    if(stats){ var tmp=document.createElement('div'); tmp.innerHTML=pcAserStatsStrip(); if(tmp.firstChild) stats.replaceWith(tmp.firstChild); }
     pcToast('Enregistré','success');
   }
   function pcAserExport(){
     var els=pcClassEleves(); if(!els.length){ pcToast('Aucun élève','error'); return; }
-    var rows=els.map(function(e,i){ var r=pcAserRec(e.id)||{}; var lec=r.lecture||'Non testé';
-      return {'N°':i+1,'Matricule':e.matricule||'','Nom & prénoms':(e.nom||'')+' '+(e.prenoms||''),'Sexe':e.sexe||'','Lecture (ASER)':lec,'Maths (ASER)':r.maths||'Non testé','Groupe de remédiation':pcGroup(lec).label,'Date':r.date||''}; });
+    var rows=els.map(function(e,i){ var r=pcAserRec(e.id)||{};
+      function ph(k,w){ return pcGetPh(r,k)[w]; }
+      return {'N°':i+1,'Matricule':e.matricule||'','Nom & prénoms':(e.nom||'')+' '+(e.prenoms||''),'Sexe':e.sexe||'',
+        'Lecture Début':ph('debut','l'),'Maths Début':ph('debut','m'),
+        'Lecture Mi-parcours':ph('mi','l'),'Maths Mi-parcours':ph('mi','m'),
+        'Lecture Fin':ph('fin','l'),'Maths Fin':ph('fin','m'),
+        'Groupe (actuel)':pcGroup(pcLastTested(r).l).label}; });
     var u=pcUser(); var name='aser_'+String(u.classe||'').toLowerCase()+'_'+String(u.ecole||'').toLowerCase().replace(/\W+/g,'_');
     if(typeof exportRowsToExcel==='function') exportRowsToExcel(rows,name,'Test ASER'); else pcToast('Export indisponible','error');
+  }
+  function pcAnalyseExport(){
+    var records = pcEligible() ? pcMyRecords() : pcCurrentStatRecords();
+    var rows=[];
+    PC_PHASES.forEach(function(p){
+      LEC_ORDER.forEach(function(k){ var d=pcDistLevels(records,p.k,'l'); rows.push({'Enquête':p.l,'Domaine':'Lecture','Niveau':k,'Effectif':d[k]||0}); });
+      MAT_ORDER.forEach(function(k){ var d=pcDistLevels(records,p.k,'m'); rows.push({'Enquête':p.l,'Domaine':'Mathématiques','Niveau':k,'Effectif':d[k]||0}); });
+    });
+    if(typeof exportRowsToExcel==='function') exportRowsToExcel(rows,'aser_analyses','Analyses ASER'); else pcToast('Export indisponible','error');
   }
   function pcAserPrint(){
     var els=pcClassEleves(); if(!els.length){ pcToast('Aucun élève','error'); return; }
     var u=pcUser(); var armoirie=(typeof ARMOIRIE_MENAET_B64!=='undefined')?ARMOIRIE_MENAET_B64:''; var iepp=(typeof activeIeppLabel==='function')?activeIeppLabel():'IEPP';
-    var body=els.map(function(e,i){ var r=pcAserRec(e.id)||{}; var lec=r.lecture||'Non testé';
-      return '<tr><td style="border:1px solid #ddd;padding:5px;text-align:center">'+(i+1)+'</td><td style="border:1px solid #ddd;padding:5px">'+esc(e.matricule||'')+'</td><td style="border:1px solid #ddd;padding:5px;font-weight:600">'+esc(e.nom||'')+' '+esc(e.prenoms||'')+'</td><td style="border:1px solid #ddd;padding:5px;text-align:center">'+esc(e.sexe||'')+'</td><td style="border:1px solid #ddd;padding:5px">'+esc(lec)+'</td><td style="border:1px solid #ddd;padding:5px">'+esc(r.maths||'Non testé')+'</td><td style="border:1px solid #ddd;padding:5px">'+esc(pcGroup(lec).label)+'</td></tr>'; }).join('');
-    openModal('🖨️ Test ASER — Aperçu',
+    var phL=(PC_PHASES.find(function(p){return p.k===pcPhase;})||{}).l||'';
+    var body=els.map(function(e,i){ var r=pcAserRec(e.id)||{}; var ph=pcGetPh(r,pcPhase); var lec=ph.l;
+      return '<tr><td style="border:1px solid #ddd;padding:5px;text-align:center">'+(i+1)+'</td><td style="border:1px solid #ddd;padding:5px">'+esc(e.matricule||'')+'</td><td style="border:1px solid #ddd;padding:5px;font-weight:600">'+esc(e.nom||'')+' '+esc(e.prenoms||'')+'</td><td style="border:1px solid #ddd;padding:5px;text-align:center">'+esc(e.sexe||'')+'</td><td style="border:1px solid #ddd;padding:5px">'+esc(lec)+'</td><td style="border:1px solid #ddd;padding:5px">'+esc(ph.m)+'</td><td style="border:1px solid #ddd;padding:5px">'+esc(pcGroup(lec).label)+'</td></tr>'; }).join('');
+    openModal('🖨️ Test ASER — Aperçu ('+esc(phL)+')',
       '<div style="max-width:1000px;max-height:90vh;overflow:auto;background:#fff;padding:18px">'+
         '<div style="text-align:center;border-bottom:2px solid #1F4E79;padding-bottom:10px;margin-bottom:12px">'+(armoirie?'<img src="'+armoirie+'" style="max-width:190px">':'')+
         '<div style="font-size:11px;color:#555">'+esc(iepp)+'</div>'+
-        '<h2 style="font-size:15px;color:#1F4E79;margin:6px 0">Test ASER — Classe '+esc(u.classe||'')+'</h2>'+
+        '<h2 style="font-size:15px;color:#1F4E79;margin:6px 0">Test ASER — Classe '+esc(u.classe||'')+' · Enquête '+esc(phL)+'</h2>'+
         '<div style="font-size:11px;color:#555">'+esc(u.ecole||'')+' · '+esc(u.name||'')+' · '+els.length+' élève(s)</div></div>'+
         '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#1F4E79;color:#fff">'+
         '<th style="border:1px solid #1F4E79;padding:5px">N°</th><th style="border:1px solid #1F4E79;padding:5px">Matricule</th><th style="border:1px solid #1F4E79;padding:5px">Nom &amp; prénoms</th><th style="border:1px solid #1F4E79;padding:5px">Sexe</th><th style="border:1px solid #1F4E79;padding:5px">Lecture</th><th style="border:1px solid #1F4E79;padding:5px">Maths</th><th style="border:1px solid #1F4E79;padding:5px">Groupe</th></tr></thead><tbody>'+body+'</tbody></table></div>',
       '<button class="btn btn-primary" onclick="window.print()">🖨️ Imprimer / PDF</button> <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
   }
 
-  /* ---------- ACTIVITÉS PNAPAS ---------- */
-  function pcActHtml(){
+  /* ===================================================================
+     ÉTUDES & ANALYSES — CORRESPONDANT SUIVI-ÉVALUATION (agrégat IEPP)
+     =================================================================== */
+  function pcStatEnsure(){
+    if(!Array.isArray(state.aserEleves)) state.aserEleves = (typeof load==='function') ? (load('aserEleves',[])||[]) : [];
+    pcMigrate();
+  }
+  function pcStatEleves(){
+    var arr=(state.elevesFichier||[]).filter(function(e){ return PC_CLASSES.indexOf(String(e.niveau||'').toUpperCase())>=0; });
+    if(pcStatClasse!=='Toutes') arr=arr.filter(function(e){ return String(e.niveau||'').toUpperCase()===pcStatClasse; });
+    return arr;
+  }
+  function pcCurrentStatRecords(){
+    var arr=(state.aserEleves||[]);
+    if(pcStatClasse!=='Toutes') arr=arr.filter(function(r){ return String(r.classe||'').toUpperCase()===pcStatClasse; });
+    return arr;
+  }
+  function renderAserStats(){
+    pcStatEnsure();
+    var iepp=(typeof activeIeppLabel==='function')?activeIeppLabel():'IEPP';
+    var opts=['Toutes'].concat(PC_CLASSES).map(function(c){ return '<option'+(c===pcStatClasse?' selected':'')+'>'+esc(c==='Toutes'?'Toutes les classes':c)+'</option>'; }).join('');
+    var bar='<div style="display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:14px">'+
+        '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:#64748b;font-weight:700">Classe :</span>'+
+          '<select class="pc-sel" onchange="pcStatSetClasse(this.value)">'+opts+'</select></div>'+
+        '<button class="pc-btn" style="background:#059669;color:#fff" onclick="pcAnalyseExport()">📊 Export Excel</button>'+
+      '</div>';
+    var head='<div style="font-size:12px;color:#64748b;margin-bottom:10px">Circonscription <strong>'+esc(iepp)+'</strong> · agrégat des saisies ASER des instituteurs · '+
+      (pcStatClasse==='Toutes'?'toutes les classes (CE1 → CM2)':('classe '+esc(pcStatClasse)))+'</div>';
+    var analyse=pcAnalyseHtml({ eleves:pcStatEleves(), records:pcCurrentStatRecords(), showClasse:(pcStatClasse==='Toutes'), showEcole:true });
+    pcSetContent(pcStyleTag()+'<div class="pc-wrap card" style="padding:18px">'+head+bar+analyse+'</div>');
+  }
+  function pcStatSetClasse(v){ pcStatClasse = (v==='Toutes les classes' ? 'Toutes' : v); renderAserStats(); }
+
+  /* =================== ACTIVITÉS PNAPAS (inchangé) =================== */
+  function renderPnapasClasse(){
+    if(!pcEligible()){ pcNotEligible(); return; }
+    pcEnsure();
     var acts=pcMyActs().slice().sort(function(a,b){ return String(b.date||'').localeCompare(String(a.date||'')); });
     var rows = acts.length ? acts.map(function(a){
       var sb=a.statut==='Réalisée'?'#DCFCE7':'#FEF3C7', sf=a.statut==='Réalisée'?'#15803D':'#92400E';
@@ -31207,7 +31507,7 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
         '<td style="text-align:center;white-space:nowrap"><button class="pc-btn" style="background:#e0e7ff;color:#3730a3;padding:4px 8px" onclick="pcActForm(\''+a.id+'\')">✏️</button> <button class="pc-btn" style="background:#fee2e2;color:#b91c1c;padding:4px 8px" onclick="pcActDelete(\''+a.id+'\')">🗑️</button></td>'+
       '</tr>';
     }).join('') : '<tr><td colspan="9" style="text-align:center;color:#64748b;padding:24px">Aucune activité enregistrée. Cliquez sur « + Nouvelle activité ».</td></tr>';
-    return '<div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px">'+
+    var inner='<div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px">'+
         '<button class="pc-btn" style="background:#7C3AED;color:#fff" onclick="pcActForm(\'\')">+ Nouvelle activité</button>'+
         '<button class="pc-btn" style="background:#059669;color:#fff" onclick="pcActExport()">📊 Export Excel</button>'+
         '<button class="pc-btn" style="background:#e2e8f0;color:#334155" onclick="pcActPrint()">🖨️ Imprimer</button>'+
@@ -31215,6 +31515,7 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
       '<div style="overflow:auto"><table><thead><tr>'+
         '<th style="text-align:center">Date</th><th>Domaine</th><th>Groupe ciblé</th><th>Activité de remédiation</th><th style="text-align:center">Durée (min)</th><th style="text-align:center">Nb élèves</th><th style="text-align:center">Statut</th><th>Observation</th><th style="text-align:center">Actions</th>'+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+    pcSetContent(pcStyleTag()+'<div class="pc-wrap card" style="padding:18px">'+pcHeaderInfo()+inner+'</div>');
   }
   function pcActForm(id){
     var a = id ? (state.pnapasClasse||[]).find(function(x){return x.id===id;}) : null; a=a||{};
@@ -31242,12 +31543,12 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
     pcSave('pnapasClasse', state.pnapasClasse);
     if(typeof logAction==='function'){ try{ logAction('pnapas-activite',(id?'MàJ':'Ajout')+' activité · '+rec.activite); }catch(x){} }
     if(typeof closeModal==='function') closeModal();
-    pcToast('Activité enregistrée','success'); pcRender();
+    pcToast('Activité enregistrée','success'); renderPnapasClasse();
   }
   function pcActDelete(id){
     if(!confirm('Supprimer cette activité ?')) return;
     state.pnapasClasse=(state.pnapasClasse||[]).filter(function(x){return x.id!==id;});
-    pcSave('pnapasClasse', state.pnapasClasse); pcToast('Activité supprimée','success'); pcRender();
+    pcSave('pnapasClasse', state.pnapasClasse); pcToast('Activité supprimée','success'); renderPnapasClasse();
   }
   function pcActExport(){
     var acts=pcMyActs(); if(!acts.length){ pcToast('Aucune activité','error'); return; }
@@ -31270,9 +31571,10 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
       '<button class="btn btn-primary" onclick="window.print()">🖨️ Imprimer / PDF</button> <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
   }
 
-  /* Expose handlers (appelés par les onclick) */
-  window.pcOpen=pcOpen; window.pcClose=pcClose; window.pcTabGo=pcTabGo;
+  /* Expose (registre MODULES + onclick) */
+  window.renderAserClasse=renderAserClasse; window.renderPnapasClasse=renderPnapasClasse; window.renderAserStats=renderAserStats;
   window.pcAserSet=pcAserSet; window.pcAserExport=pcAserExport; window.pcAserPrint=pcAserPrint;
+  window.pcSetView=pcSetView; window.pcSetPhase=pcSetPhase; window.pcStatSetClasse=pcStatSetClasse; window.pcAnalyseExport=pcAnalyseExport;
   window.pcActForm=pcActForm; window.pcActSave=pcActSave; window.pcActDelete=pcActDelete;
   window.pcActExport=pcActExport; window.pcActPrint=pcActPrint;
 })();
