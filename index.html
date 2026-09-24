@@ -1784,7 +1784,7 @@ const KEY = 'iepp_';
    La DRENAET bascule entre ses IEPP ; le Superadmin entre toutes.
    ================================================================== */
 const GLOBAL_KEYS = new Set(['users','usersDeleted','customServices','current_user','drenaet','active_iepp','ieppRegistry','ieppRegistryDeleted','pnapasForm','courrierMsg','courrierMatrice','ieppStats']);
-const SCOPED_KEY_LIST = ['ecoles','audit','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','carteRapports','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','secteurs','cpppBulletins','pointage','alphaCentres','alphaAuditeurs','alphaMatriceAction','islamStructures','islamApprenants','islamMatriceAction','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted','economatRegDeleted','secretariatRegDeleted','cantineRegDeleted','smossRegDeleted','communicationRegDeleted','biblioRegDeleted','archivisteRegDeleted','svcPermDeleted','pnapasClasse','aserEleves'];
+const SCOPED_KEY_LIST = ['ecoles','audit','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','carteRapports','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','secteurs','cpppBulletins','pointage','alphaCentres','alphaAuditeurs','alphaMatriceAction','islamStructures','islamApprenants','islamMatriceAction','ecolesDeleted','secteursDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted','economatRegDeleted','secretariatRegDeleted','cantineRegDeleted','smossRegDeleted','communicationRegDeleted','biblioRegDeleted','archivisteRegDeleted','svcPermDeleted','pnapasClasse','aserEleves'];
 function scopeSlug(iepp){
   return 'c_' + String(iepp||'IEPP TENGRELA').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 }
@@ -1924,7 +1924,8 @@ var RECORD_MERGE = {
   matriceRH:          { tomb: 'matriceRHDeleted' },
   matriceCpi:         { tomb: 'matriceCpiDeleted' },
   matriceExamens:     { tomb: 'matriceExamensDeleted' },
-  matriceVieScolaire: { tomb: 'matriceVieScolaireDeleted' }
+  matriceVieScolaire: { tomb: 'matriceVieScolaireDeleted' },
+  secteurs:           { tomb: 'secteursDeleted' }
 };
 /* Clés de type OBJET { chemin: [enregistrements] } — fusionnées par chemin puis par id
    (matrice COGES = cogesReg ; matrices de service = svcMat) */
@@ -29268,6 +29269,30 @@ function vieResetAllData() {
   function toastMsg(m,t){ if(typeof toast==='function') toast(m, t||'success'); }
   var selId=null;
 
+  /* ---- Récupération / publication des secteurs déjà saisis localement ----
+     Les secteurs créés avant cette mise à jour n'ont pas d'horodatage (_upd) ;
+     sans lui, une copie vide sur un autre poste pouvait écraser les données en
+     ligne. On horodate ici les secteurs qui ont du contenu (écoles, enseignants
+     ou CPPP responsable) puis on ré-enregistre : save() les pousse alors dans le
+     cloud (Supabase) et ils apparaissent sur les autres postes. Les secteurs
+     vides reçoivent un horodatage minimal pour ne JAMAIS écraser une version
+     enrichie venue d'ailleurs. Exécuté une seule fois par circonscription. */
+  var _stampedScopes={};
+  function migrateSectStamps(){
+    var tag=''; try{ if(typeof activeScope!=='undefined'&&activeScope) tag=activeScope; }catch(e){}
+    if(_stampedScopes[tag]) return; _stampedScopes[tag]=true;
+    var arr=loadSec(); if(!Array.isArray(arr)||!arr.length) return;
+    var changed=false, now=Date.now();
+    arr.forEach(function(t){
+      if(t && t._upd==null){
+        var hasContent=(t.ecoles&&t.ecoles.length)||(t.enseignants&&t.enseignants.length)||(t.cppp&&String(t.cppp).trim());
+        t._upd = hasContent ? now : 1;
+        changed=true;
+      }
+    });
+    if(changed) saveSec(arr);   /* pousse vers le cloud avec horodatage */
+  }
+
   window.SEC={
     open:function(id){ selId=id; render(); },
     back:function(){ selId=null; render(); },
@@ -29289,6 +29314,7 @@ function vieResetAllData() {
 
   function render(){
     if(typeof setContent!=='function') return;
+    try{ migrateSectStamps(); }catch(e){}
     var arr=loadSec();
     if(!selId){
       var cards = arr.length ? arr.map(function(t){ return ''
