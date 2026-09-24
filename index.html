@@ -1506,6 +1506,9 @@ function vieResetAllData() {
       </div>
       <button class="icon-btn" onclick="logout()" title="Déconnexion">↩</button>
     </div>
+    <div class="sb-footer" style="padding:12px 14px;margin-top:8px;border-top:1px solid var(--line);font-size:10px;line-height:1.55;color:#607089;text-align:center">
+      © EPLUS 2026 - Tous droits réservés &nbsp;|&nbsp; Dernière mise à jour le 10 septembre 2026 &nbsp;|&nbsp; Conception et design DIOM-2YA — contact : +225 01-727-10-337
+    </div>
   </aside>
 
   <!-- Main content -->
@@ -1537,7 +1540,7 @@ function vieResetAllData() {
       <!-- Page content injected here -->
     </div>
     <footer id="app-footer" style="padding:14px 24px;margin-top:8px;border-top:1px solid var(--line);text-align:center;font-size:12px;color:#607089;line-height:1.6">
-      © EPLUS 2026 - Tous droits réservés &nbsp;|&nbsp; Dernière mise à jour Août 2026 &nbsp;|&nbsp; Conception et design DIOM-2Y — contact : +225 01-727-10-337
+      © EPLUS 2026 - Tous droits réservés &nbsp;|&nbsp; Dernière mise à jour le 10 septembre 2026 &nbsp;|&nbsp; Conception et design DIOM-2YA — contact : +225 01-727-10-337
     </footer>
   </main>
   <!-- Bouton flottant universel : Demande d'autorisation d'absence (tous les services) -->
@@ -1595,6 +1598,7 @@ const ROLES = {
   smoss:      { label: 'SMOSS (santé scolaire)',                short: 'SMOSS',              color: 'red' },
   cantine:    { label: 'Cantine scolaire',                      short: 'Cantine',            color: 'green' },
   coges:      { label: 'COGES (Comité de gestion)',             short: 'COGES',              color: 'orange' },
+  alphabetisation: { label: 'Conseiller Alphabétisation',         short: 'Alphabétisation',    color: 'purple' },
   autres:     { label: 'Autres (profil personnalisé)',          short: 'Autres',             color: 'grey' },
   /* ---- Profils d'accès ciblé par espace (cloisonnement IEPP · ajout) ---- */
   examens:        { label: 'Service Examens & Concours',                   short: 'Examens & Concours',  color: 'blue' },
@@ -1602,9 +1606,6 @@ const ROLES = {
   carte_scolaire: { label: 'Correspondant Carte Scolaire',                 short: 'Carte Scolaire',      color: 'blue' },
   suivi_eval:     { label: 'Suivi & Évaluation des Programmes et Projets',  short: 'Suivi & Évaluation',  color: 'purple' },
   bibliothecaire: { label: 'Service Bibliothèque',                          short: 'Bibliothèque',        color: 'yellow' },
-  /* ---- Conseiller Extra-Scolaire : Alphabétisation & Structures Islamiques (ajout) ---- */
-  alpha:      { label: 'Conseiller Alphabétisation',                        short: 'Alphabétisation',    color: 'green' },
-  islam:      { label: 'Conseiller Structures Islamiques d\'Éducation',      short: 'Struct. islamiques', color: 'purple' },
 };
 
 /* Modules accessibles par rôle (pages visibles dans la sidebar) */
@@ -1652,6 +1653,7 @@ const ACL = {
   smoss:        ['dashboard','vie-scolaire','courrier','archives'],
   cantine:      ['dashboard','economat','courrier','archives'],
   coges:        ['dashboard','coges','courrier','archives'],
+  alphabetisation: ['dashboard','alpha','islam','courrier','archives'],
   autres:       ['dashboard','courrier','archives'],
 };
 
@@ -1684,6 +1686,7 @@ try { window.ACL = ACL; } catch(e){}
   ACL.viescolaire    = ['dashboard','vie-scolaire'];                              // Espace Conseiller Vie Scolaire
   ACL.rh             = ['dashboard','rh'];                                         // Chargé Ressources humaines
   ACL.coges          = ['dashboard','coges'];                                      // Espace Conseiller COGES
+  ACL.alphabetisation = ['dashboard','alpha','islam'];                             // Espace Conseiller Alphabétisation (+ Structures islamiques)
   ACL.econome        = ['dashboard','economat'];                                   // Espace Économat
   ACL.courrier       = ['dashboard','courrier'];                                   // Service Courrier
   ACL.archiviste     = ['dashboard','archiviste','archives'];                      // Espace Archiviste
@@ -1695,8 +1698,6 @@ try { window.ACL = ACL; } catch(e){}
   ACL.cantine        = ['dashboard','cantine','courrier','archives'];              // Espace Conseiller Cantine
   ACL.smoss          = ['dashboard','smoss','courrier','archives'];                // Espace SMOSS
   ACL.bibliothecaire = ['dashboard','bibliotheque-espace','svc-biblio-mat','svc-biblio-perm'];           // Espace Bibliothèque
-  ACL.alpha          = ['dashboard','alpha'];                                      // Espace Conseiller Alphabétisation
-  ACL.islam          = ['dashboard','islam'];                                      // Structure Islamique d'Éducation
 
   /* 3) Courrier : messagerie interne PARTAGÉE — accessible à TOUT le personnel */
   Object.keys(ACL).forEach(role => {
@@ -1729,6 +1730,7 @@ function can(action) {
     smoss:         ['view','print','view-mail'],
     cantine:       ['view','print','view-mail'],
     coges:         ['view','print','view-mail'],
+    alphabetisation: ['view','print','view-mail','export-data'],
     autres:        ['view'],
     examens:        ['view','print','export-data'],
     rh:             ['view','print','export-data'],
@@ -1784,7 +1786,7 @@ const KEY = 'iepp_';
    La DRENAET bascule entre ses IEPP ; le Superadmin entre toutes.
    ================================================================== */
 const GLOBAL_KEYS = new Set(['users','usersDeleted','customServices','current_user','drenaet','active_iepp','ieppRegistry','ieppRegistryDeleted','pnapasForm','courrierMsg','courrierMatrice','ieppStats']);
-const SCOPED_KEY_LIST = ['ecoles','audit','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','carteRapports','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','secteurs','cpppBulletins','pointage','alphaCentres','alphaAuditeurs','alphaMatriceAction','islamStructures','islamApprenants','islamMatriceAction','ecolesDeleted','secteursDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted','economatRegDeleted','secretariatRegDeleted','cantineRegDeleted','smossRegDeleted','communicationRegDeleted','biblioRegDeleted','archivisteRegDeleted','svcPermDeleted','pnapasClasse','aserEleves'];
+const SCOPED_KEY_LIST = ['ecoles','audit','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','carteRapports','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','secteurs','cpppBulletins','pointage','alphaCentres','alphaAuditeurs','alphaMatriceAction','islamStructures','islamApprenants','islamMatriceAction','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted','economatRegDeleted','secretariatRegDeleted','cantineRegDeleted','smossRegDeleted','communicationRegDeleted','biblioRegDeleted','archivisteRegDeleted','svcPermDeleted','pnapasClasse','aserEleves'];
 function scopeSlug(iepp){
   return 'c_' + String(iepp||'IEPP TENGRELA').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 }
@@ -1924,8 +1926,7 @@ var RECORD_MERGE = {
   matriceRH:          { tomb: 'matriceRHDeleted' },
   matriceCpi:         { tomb: 'matriceCpiDeleted' },
   matriceExamens:     { tomb: 'matriceExamensDeleted' },
-  matriceVieScolaire: { tomb: 'matriceVieScolaireDeleted' },
-  secteurs:           { tomb: 'secteursDeleted' }
+  matriceVieScolaire: { tomb: 'matriceVieScolaireDeleted' }
 };
 /* Clés de type OBJET { chemin: [enregistrements] } — fusionnées par chemin puis par id
    (matrice COGES = cogesReg ; matrices de service = svcMat) */
@@ -1956,9 +1957,9 @@ function recordMergeTrack(k, val){
   val.forEach(function(it){
     if (!it || it.id==null) return;
     var before = prevById[it.id];
-    var strip = function(o){ var c=Object.assign({},o); delete c._upd; return JSON.stringify(c); };
+    var strip = function(o){ var c=Object.assign({},o); delete c._upd; delete c._sub; delete c._ft; return JSON.stringify(c); };
     if (!before) { if(it._upd==null) it._upd = now; }            /* nouvel enregistrement */
-    else if (strip(before) !== strip(it)) { it._upd = now; }      /* modifié → nouveau tampon */
+    else if (strip(before) !== strip(it)) { it._upd = now; try{ cpsTrackSub(before, it, now); }catch(e){} }      /* modifié → nouveau tampon */
     else if (it._upd==null) { it._upd = before._upd || now; }     /* inchangé → on garde le tampon */
   });
   /* Tombstones : ids disparus */
@@ -2006,7 +2007,176 @@ function genericRecKey(r){
   if (r.code!=null && r.nom!=null) return 'cn:'+r.code+'|'+r.nom;
   return 'j:'+JSON.stringify(r);
 }
-function genericUnionMerge(cloudArr, localArr){
+/* Horodate (_upd) chaque élément réellement ajouté/modifié d'une liste fusionnée
+   par union (CPPP/CPS, secteurs, bulletins…), pour que la modification faite sur
+   un poste l'emporte sur les autres postes et soit mise en ligne. */
+var CPS_SYNC_KEYS = ['secteurs','cppp','cpppBulletins'];
+/* Journaux « en ajout seul » : pas besoin de fusion fine */
+var DEEP_MERGE_EXCLUDE = ['audit','notifications','corbeille'];
+function isDeepMergeKey(k){ return isGenericMergeKey(k) && DEEP_MERGE_EXCLUDE.indexOf(k)<0; }
+function genericStampUpd(k, val){
+  try{
+    if (!isDeepMergeKey(k) || !Array.isArray(val)) return;
+    var prev=[];
+    try{ prev = JSON.parse(localStorage.getItem(storeKey(k))||'[]')||[]; }catch(e){ prev=[]; }
+    if (!Array.isArray(prev)) prev=[];
+    function sig(o){ try{ var c={}; Object.keys(o).forEach(function(x){ if(x!=='_upd' && x!=='_sub' && x!=='_ft') c[x]=o[x]; }); return JSON.stringify(c); }catch(e){ return ''; } }
+    var pm={}, po={}; prev.forEach(function(it){ if(it&&typeof it==='object'){ var kk0=genericRecKey(it); pm[kk0]=sig(it); po[kk0]=it; } });
+    var now=Date.now();
+    val.forEach(function(it){
+      if (!it || typeof it!=='object' || Array.isArray(it)) return;
+      var kk=genericRecKey(it);
+      if (kk.indexOf('j:')===0) return;               /* identité = contenu : ne pas toucher */
+      if (!(kk in pm) || pm[kk]!==sig(it)){
+        it._upd = now;
+        if (po[kk]){ try{ cpsTrackSub(po[kk], it, now); }catch(e){} }
+      }
+    });
+  }catch(e){ console.warn('genericStampUpd', e); }
+}
+/* ---- Fusion FINE des enregistrements CPPP / CPS / secteurs ----
+   Une ancienne version ne remplace jamais une autre : on AJOUTE ce qui manque
+   (écoles, enseignants, secteurs…). Seules les suppressions explicites
+   (marquées dans _sub avec leur date) retirent un sous-élément partout. */
+function cpsSubKey(x){
+  if (x==null) return 'n:';
+  if (typeof x!=='object') return 'v:'+String(x);
+  if (x.id!=null) return 'id:'+x.id;
+  try{ return 'j:'+JSON.stringify(x); }catch(e){ return 'j:?'; }
+}
+function cpsTrackSub(prevIt, it, now){
+  /* date de modification PAR CHAMP (_ft) : une modif ancienne d'un champ ne
+     remplace pas une modif plus récente d'un autre champ faite ailleurs */
+  try{
+    var ft = (it._ft && typeof it._ft==='object') ? it._ft : ((prevIt && prevIt._ft) ? JSON.parse(JSON.stringify(prevIt._ft)) : {});
+    var ks={}; Object.keys(it).forEach(function(x){ ks[x]=1; }); if(prevIt) Object.keys(prevIt).forEach(function(x){ ks[x]=1; });
+    var chg=false;
+    Object.keys(ks).forEach(function(x){
+      if (x==='_upd'||x==='_sub'||x==='_ft') return;
+      var a='', b=''; try{ a=JSON.stringify(prevIt?prevIt[x]:undefined); b=JSON.stringify(it[x]); }catch(e){}
+      if (a!==b){ ft[x]=now; chg=true; }
+    });
+    if (chg || Object.keys(ft).length) it._ft = ft;
+  }catch(e){}
+  var fields={};
+  Object.keys(it).forEach(function(f){ if(Array.isArray(it[f])) fields[f]=1; });
+  if (prevIt) Object.keys(prevIt).forEach(function(f){ if(Array.isArray(prevIt[f])) fields[f]=1; });
+  var sub = (it._sub && typeof it._sub==='object') ? it._sub : ((prevIt && prevIt._sub) ? JSON.parse(JSON.stringify(prevIt._sub)) : {});
+  var touched=false;
+  Object.keys(fields).forEach(function(f){
+    var nowK={}, prevK={};
+    (Array.isArray(it[f])?it[f]:[]).forEach(function(x){ nowK[cpsSubKey(x)]=1; });
+    (prevIt && Array.isArray(prevIt[f])?prevIt[f]:[]).forEach(function(x){ prevK[cpsSubKey(x)]=1; });
+    sub[f]=sub[f]||{};
+    Object.keys(nowK).forEach(function(k){ if(!prevK[k]){ sub[f][k]=sub[f][k]||{}; sub[f][k].a=now; touched=true; } });
+    Object.keys(prevK).forEach(function(k){ if(!nowK[k]){ sub[f][k]=sub[f][k]||{}; sub[f][k].d=now; touched=true; } });
+    if (!Object.keys(sub[f]).length) delete sub[f];
+  });
+  if (touched || Object.keys(sub).length) it._sub = sub;
+}
+function cpsMergeSub(a, b){
+  var out={};
+  [a,b].forEach(function(src){
+    if (!src || typeof src!=='object') return;
+    Object.keys(src).forEach(function(f){
+      out[f]=out[f]||{};
+      Object.keys(src[f]||{}).forEach(function(k){
+        var s=src[f][k]||{}, o=out[f][k]||{};
+        out[f][k]={ a:Math.max(o.a||0, s.a||0), d:Math.max(o.d||0, s.d||0) };
+      });
+    });
+  });
+  return out;
+}
+function cpsTs(r){
+  if (r==null || typeof r!=='object') return 0;
+  var t = r._upd||r.updatedAt||r.updated_at||r._updatedAt;
+  var n = t ? (typeof t==='number'?t:Date.parse(t)) : 0;
+  return isNaN(n)?0:n;
+}
+function cpsDeepMerge(c, l){
+  if (!c || typeof c!=='object' || Array.isArray(c)) return l;
+  if (!l || typeof l!=='object' || Array.isArray(l)) return c;
+  var tc=cpsTs(c), tl=cpsTs(l), newer, older;
+  if (tc===0 && tl===0){
+    var jl='', jc=''; try{ jl=JSON.stringify(l); jc=JSON.stringify(c); }catch(e){}
+    newer = (jl.length>=jc.length) ? l : c;
+  } else newer = (tl>=tc) ? l : c;
+  older = (newer===l) ? c : l;
+  var res={}; Object.keys(older).forEach(function(k){ res[k]=older[k]; }); Object.keys(newer).forEach(function(k){ res[k]=newer[k]; });
+  /* champ par champ : la modification la plus récente l'emporte */
+  var fn=newer._ft||{}, fo=older._ft||{}, ftm={};
+  Object.keys(fo).forEach(function(x){ ftm[x]=fo[x]; }); Object.keys(fn).forEach(function(x){ ftm[x]=Math.max(ftm[x]||0, fn[x]||0); });
+  Object.keys(fo).forEach(function(x){ if (x in older && (fo[x]||0) > (fn[x]||0) && !Array.isArray(older[x])) res[x]=older[x]; });
+  if (Object.keys(ftm).length) res._ft=ftm; else delete res._ft;
+  var sub = cpsMergeSub(c._sub, l._sub);
+  var fields={};
+  Object.keys(res).forEach(function(f){ if(Array.isArray(c[f]) || Array.isArray(l[f])) fields[f]=1; });
+  Object.keys(fields).forEach(function(f){
+    var map={}, order=[];
+    [newer[f], older[f]].forEach(function(arr){
+      (Array.isArray(arr)?arr:[]).forEach(function(x){
+        var k=cpsSubKey(x);
+        if (!(k in map)){ map[k]=x; order.push(k); }
+        else if (x && typeof x==='object' && map[k] && typeof map[k]==='object' && x.id!=null){ map[k]=cpsDeepMerge(x, map[k]); }
+      });
+    });
+    var sf=sub[f]||{};
+    var hasIdless=false;
+    [c[f], l[f]].forEach(function(arr){ (Array.isArray(arr)?arr:[]).forEach(function(x){ if(x && typeof x==='object' && x.id==null) hasIdless=true; }); });
+    if (hasIdless && !sub[f]){ res[f] = Array.isArray(newer[f]) ? newer[f] : older[f]; return; }
+    res[f]=order.filter(function(k){ var st=sf[k]; return !(st && (st.d||0) > (st.a||0)); }).map(function(k){ return map[k]; });
+  });
+  if (Object.keys(sub).length) res._sub=sub;
+  var mx=Math.max(tc,tl); if (mx) res._upd=mx;
+  return res;
+}
+/* Toute suppression (liste ou registre) est envoyée à la Corbeille de l'IEPP,
+   sauf si le module l'y a déjà mise. Elle disparaît partout via les tombstones. */
+var AUTO_TRASH_EXCLUDE = ['audit','notifications','corbeille','users','usersDeleted','ieppRegistry','ieppStats','drenaet','customServices','effMeta','effRentreeMeta'];
+var AUTO_TRASH_LABELS = { ecoles:'Gestion des écoles', elevesFichier:'Fichier élèves', effectifs:'Effectifs', personnel:'Personnel / RH', pointage:'Pointage', absences:'Absences', visites:'Visites', examens:'Examens', matrice:"Matrice d'action", matriceRH:'Matrice RH', matriceCpi:'Matrice CPI', matriceExamens:'Matrice Examens', matriceVieScolaire:'Matrice Vie scolaire', cppp:'Espace CPPP / CPS', secteurs:'Secteurs (CPPP)', cpppBulletins:'Bulletins CPPP', immatRequests:'Immatriculation', alphaCentres:'Alphabétisation', alphaAuditeurs:'Alphabétisation', alphaMatriceAction:'Alphabétisation', islamStructures:'Structures islamiques', islamApprenants:'Structures islamiques', islamMatriceAction:'Structures islamiques', courrier:'Courrier', archives:'Archives' };
+function autoTrashTrack(k, val){
+  try{
+    if (AUTO_TRASH_EXCLUDE.indexOf(k)>=0 || isTombstoneKey(k) || /__(gtomb|ometa)$/.test(k)) return;
+    if (typeof state==='undefined' || !state || !state.user) return;
+    var prevRaw=null; try{ prevRaw=JSON.parse(localStorage.getItem(storeKey(k))||'null'); }catch(e){ prevRaw=null; }
+    if (prevRaw==null) return;
+    var removed=[];   /* {item, regKey, subPath} */
+    if (Array.isArray(val) && Array.isArray(prevRaw) && (RECORD_MERGE[k] || isGenericMergeKey(k))){
+      var nowK={}; val.forEach(function(it){ nowK[genericRecKey(it)]=1; });
+      prevRaw.forEach(function(it){ if(it && typeof it==='object' && !nowK[genericRecKey(it)]) removed.push({item:it}); });
+    } else if (RECORD_MERGE_OBJ[k] && isPlainObj(val) && isPlainObj(prevRaw)){
+      Object.keys(prevRaw).forEach(function(p){
+        if (!Array.isArray(prevRaw[p])) return;
+        var ids={}; (Array.isArray(val[p])?val[p]:[]).forEach(function(it){ if(it&&it.id!=null) ids[it.id]=1; });
+        prevRaw[p].forEach(function(it){ if(it&&it.id!=null&&!ids[it.id]) removed.push({item:it, regKey:k, subPath:p}); });
+      });
+    }
+    if (!removed.length) return;
+    if (removed.length>50) removed = removed.slice(0,50);
+    setTimeout(function(){
+      try{
+        if (typeof trashGeneric!=='function') return;
+        var cb = (state.corbeille||[]), since=Date.now()-120000;
+        function strip(o){ try{ var c={}; Object.keys(o).forEach(function(x){ if(x!=='_upd'&&x!=='_sub'&&x!=='_ft') c[x]=o[x]; }); return JSON.stringify(c); }catch(e){ return ''; } }
+        removed.forEach(function(r){
+          var it=r.item, idv=(it.id!=null?it.id:(it.username!=null?it.username:null)), sj=strip(it);
+          var dup = cb.some(function(t){
+            var at=Date.parse(t.deletedAt||'')||0; if (at && at<since) return false;
+            if (idv!=null && (t.matchVal===idv || (t.data && (t.data.id===idv || (t.data.ens&&t.data.ens.id===idv))))) return true;
+            return !!(t.data && strip(t.data)===sj);
+          });
+          if (dup) return;
+          var c=JSON.parse(JSON.stringify(it)); delete c._sub; delete c._ft;
+          trashGeneric({ item:c, type:'auto', parentKey:(r.regKey?null:k), regKey:r.regKey||null, subPath:r.subPath||null,
+            moduleLabel: AUTO_TRASH_LABELS[k] || AUTO_TRASH_LABELS[r.regKey] || k });
+          cb = state.corbeille||[];
+        });
+      }catch(e){ console.warn('autoTrash', e); }
+    }, 700);
+  }catch(e){ console.warn('autoTrashTrack', e); }
+}
+function genericUnionMerge(cloudArr, localArr, preferRicher){
   /* Fusion UNION pour les listes hors RECORD_MERGE (ex. comptes users) :
      conserve les ajouts et modifications locaux au lieu d'écraser par le cloud.
      En cas de conflit : le plus récent (_upd) gagne ; à égalité, le LOCAL est conservé. */
@@ -2022,7 +2192,20 @@ function genericUnionMerge(cloudArr, localArr){
   (Array.isArray(localArr)?localArr:[]).forEach(function(r){
     var k=keyOf(r);
     if(!(k in map)){ map[k]=r; order.push(k); }
-    else { map[k] = (ts(r) >= ts(map[k])) ? r : map[k]; }
+    else {
+      var tl=ts(r), tc=ts(map[k]);
+      if (preferRicher){
+        /* Espace CPPP / CPS : fusion fine — on complète au lieu d'écraser */
+        map[k] = cpsDeepMerge(map[k], r);
+      } else if (false && tl===0 && tc===0){
+        /* Anciens éléments sans horodatage : on garde la version la plus complète
+           (récupère les saisies restées sur un seul poste). */
+        var jl='', jc=''; try{ jl=JSON.stringify(r); jc=JSON.stringify(map[k]); }catch(e){}
+        map[k] = (jl.length >= jc.length) ? r : map[k];
+      } else {
+        map[k] = (tl >= tc) ? r : map[k];
+      }
+    }
   });
   return order.map(function(k){ return map[k]; });
 }
@@ -2040,12 +2223,18 @@ function isGenericMergeKey(k){
 function genericTombKey(k){ return k + '__gtomb'; }
 function mergeGenericTomb(a, b){
   var map={};
-  (Array.isArray(a)?a:[]).forEach(function(t){ if(t&&t.k!=null) map[t.k]=t; });
-  (Array.isArray(b)?b:[]).forEach(function(t){
-    if(t&&t.k!=null){ if(!map[t.k] || (t.at||0) > (map[t.k].at||0)) map[t.k]=t; }
+  [a,b].forEach(function(src){
+    (Array.isArray(src)?src:[]).forEach(function(t){
+      if(!t||t.k==null) return;
+      var o=map[t.k];
+      if(!o) map[t.k]={k:t.k, at:t.at||0, r:t.r||0};
+      else { o.at=Math.max(o.at||0,t.at||0); o.r=Math.max(o.r||0,t.r||0); }
+    });
   });
-  return Object.keys(map).map(function(kk){ return map[kk]; });
+  return Object.keys(map).map(function(kk){ var t=map[kk]; if(!t.r) delete t.r; return t; });
 }
+/* Une suppression est active tant qu'elle est plus récente que la dernière restauration/recréation */
+function gtombActive(t){ return !!t && (t.at||0) > (t.r||0); }
 /* Appelée par save() AVANT l'écriture : compare l'ancienne liste et la nouvelle,
    marque en tombstone les identités disparues, et lève la tombstone d'une
    identité re-présente (recréée). */
@@ -2063,14 +2252,94 @@ function genericTombTrack(k, val){
     try{ tomb = JSON.parse(localStorage.getItem(tk)||'[]')||[]; }catch(e){ tomb=[]; }
     var map={}; tomb.forEach(function(t){ if(t&&t.k!=null) map[t.k]=t; });
     var changed=false, now=Date.now();
-    removed.forEach(function(kk){ if(!map[kk]){ map[kk]={k:kk, at:now}; changed=true; } });
-    Object.keys(nowKeys).forEach(function(kk){ if(map[kk]){ delete map[kk]; changed=true; } });
+    removed.forEach(function(kk){ if(!map[kk] || !gtombActive(map[kk])){ map[kk]={k:kk, at:now, r:(map[kk]&&map[kk].r)||0}; changed=true; } });
+    Object.keys(nowKeys).forEach(function(kk){ if(map[kk] && gtombActive(map[kk])){ map[kk].r=now; changed=true; } });
     if (changed){
       var arr = Object.keys(map).map(function(kk){ return map[kk]; });
       try{ localStorage.setItem(tk, JSON.stringify(arr)); }catch(e){}
       try{ if(window.__cloudPush) window.__cloudPush(tk, arr); }catch(e){}
     }
   }catch(e){ console.warn('genericTombTrack', e); }
+}
+
+/* Clé OBJET simple (hors registres) : suivi par chemin dans <clé>__ometa
+   { t:{chemin: date de dernière modif}, s:{chemin:{sous-élément:{a:ajout,d:suppression}}} } */
+var OBJ_MERGE_EXCLUDE = ['current_user','active_iepp'];
+function isPlainObj(v){ return !!v && typeof v==='object' && !Array.isArray(v); }
+function isObjMergeKey(k){
+  return OBJ_MERGE_EXCLUDE.indexOf(k)<0 && !RECORD_MERGE_OBJ[k] && !RECORD_MERGE[k]
+      && !isTombstoneKey(k) && !/__(gtomb|ometa)$/.test(k);
+}
+function objMetaMerge(a, b){
+  var out={t:{}, s:{}};
+  [a,b].forEach(function(m){
+    if(!isPlainObj(m)) return;
+    Object.keys(m.t||{}).forEach(function(p){ out.t[p]=Math.max(out.t[p]||0, m.t[p]||0); });
+  });
+  out.s = cpsMergeSub(a&&a.s, b&&b.s);
+  return out;
+}
+function objMetaTrack(k, val){
+  try{
+    if (!isObjMergeKey(k) || !isPlainObj(val)) return;
+    var prev={}; try{ prev=JSON.parse(localStorage.getItem(storeKey(k))||'{}')||{}; }catch(e){ prev={}; }
+    if (!isPlainObj(prev)) prev={};
+    var mk=storeKey(k+'__ometa'), meta={t:{},s:{}};
+    try{ meta=JSON.parse(localStorage.getItem(mk)||'null')||{t:{},s:{}}; }catch(e){}
+    meta.t=meta.t||{}; meta.s=meta.s||{};
+    var now=Date.now(), changed=false, paths={};
+    Object.keys(val).forEach(function(p){ paths[p]=1; }); Object.keys(prev).forEach(function(p){ paths[p]=1; });
+    Object.keys(paths).forEach(function(p){
+      var a=prev[p], b=val[p], ja='', jb='';
+      try{ ja=JSON.stringify(a); jb=JSON.stringify(b); }catch(e){}
+      if (ja===jb) return;
+      meta.t[p]=now; changed=true;
+      if (Array.isArray(a) || Array.isArray(b)){
+        var nk={}, pk={};
+        (Array.isArray(b)?b:[]).forEach(function(x){ nk[cpsSubKey(x)]=1; });
+        (Array.isArray(a)?a:[]).forEach(function(x){ pk[cpsSubKey(x)]=1; });
+        meta.s[p]=meta.s[p]||{};
+        Object.keys(nk).forEach(function(x){ if(!pk[x]){ meta.s[p][x]=meta.s[p][x]||{}; meta.s[p][x].a=now; } });
+        Object.keys(pk).forEach(function(x){ if(!nk[x]){ meta.s[p][x]=meta.s[p][x]||{}; meta.s[p][x].d=now; } });
+      }
+    });
+    if (changed){
+      try{ localStorage.setItem(mk, JSON.stringify(meta)); }catch(e){}
+      try{ if(window.__cloudPush) window.__cloudPush(mk, meta); }catch(e){}
+    }
+  }catch(e){ console.warn('objMetaTrack', e); }
+}
+function objMerge(c, l, cMeta, lMeta){
+  c=isPlainObj(c)?c:{}; l=isPlainObj(l)?l:{};
+  var ct=(cMeta&&cMeta.t)||{}, lt=(lMeta&&lMeta.t)||{};
+  var sub=cpsMergeSub(cMeta&&cMeta.s, lMeta&&lMeta.s);
+  var out={}, paths={};
+  Object.keys(c).forEach(function(p){ paths[p]=1; }); Object.keys(l).forEach(function(p){ paths[p]=1; });
+  Object.keys(paths).forEach(function(p){
+    var cv=c[p], lv=l[p];
+    if (cv===undefined){ out[p]=lv; return; }
+    if (lv===undefined){ out[p]=cv; return; }
+    var tc=ct[p]||0, tl=lt[p]||0, lNewer;
+    if (tc===0 && tl===0){ var jl='',jc=''; try{ jl=JSON.stringify(lv); jc=JSON.stringify(cv); }catch(e){} lNewer = jl.length>=jc.length; }
+    else lNewer = tl>=tc;
+    var nv=lNewer?lv:cv, ov=lNewer?cv:lv;
+    if (Array.isArray(nv) || Array.isArray(ov)){
+      var hasIdless=false;
+      [nv,ov].forEach(function(arr){ (Array.isArray(arr)?arr:[]).forEach(function(x){ if(x&&typeof x==='object'&&x.id==null) hasIdless=true; }); });
+      if (hasIdless && !sub[p]){ out[p]=Array.isArray(nv)?nv:ov; return; }
+      var map={}, order=[];
+      [nv,ov].forEach(function(arr){ (Array.isArray(arr)?arr:[]).forEach(function(x){
+        var k=cpsSubKey(x);
+        if(!(k in map)){ map[k]=x; order.push(k); }
+        else if (x&&typeof x==='object'&&x.id!=null&&map[k]&&typeof map[k]==='object') map[k]=cpsDeepMerge(x, map[k]);
+      }); });
+      var sf=sub[p]||{};
+      out[p]=order.filter(function(k){ var st=sf[k]; return !(st && (st.d||0)>(st.a||0)); }).map(function(k){ return map[k]; });
+    } else if (isPlainObj(nv) && isPlainObj(ov)){
+      var o={}; Object.keys(ov).forEach(function(x){ o[x]=ov[x]; }); Object.keys(nv).forEach(function(x){ o[x]=nv[x]; }); out[p]=o;
+    } else out[p]=nv;
+  });
+  return out;
 }
 
 function recordMergeArrays(listKey, cloudArr, localArr, cloudTomb, localTomb){
@@ -2083,7 +2352,7 @@ function recordMergeArrays(listKey, cloudArr, localArr, cloudTomb, localTomb){
   var consider = function(it){
     if (!it || it.id==null) return;
     var ex = byId[it.id];
-    if (!ex || (it._upd||0) >= (ex._upd||0)) byId[it.id] = it;   /* le plus récent gagne */
+    byId[it.id] = ex ? cpsDeepMerge(ex, it) : it;   /* on complète : rien n'est écrasé */
   };
   localArr.forEach(consider);
   cloudArr.forEach(consider);
@@ -2105,7 +2374,7 @@ function recordMergeTrackObj(k, val){
   var prev = {};
   try { prev = JSON.parse(localStorage.getItem(storeKey(k)) || '{}') || {}; } catch(e){ prev = {}; }
   var now = Date.now();
-  var strip = function(o){ var c=Object.assign({},o); delete c._upd; return JSON.stringify(c); };
+  var strip = function(o){ var c=Object.assign({},o); delete c._upd; delete c._sub; delete c._ft; return JSON.stringify(c); };
   Object.keys(val).forEach(function(path){
     if (!Array.isArray(val[path])) return;
     var prevArr = Array.isArray(prev[path]) ? prev[path] : [];
@@ -2114,7 +2383,7 @@ function recordMergeTrackObj(k, val){
       if (!it || it.id==null) return;
       var before = prevById[it.id];
       if (!before){ if(it._upd==null) it._upd=now; }
-      else if (strip(before)!==strip(it)){ it._upd=now; }
+      else if (strip(before)!==strip(it)){ it._upd=now; try{ cpsTrackSub(before, it, now); }catch(e){} }
       else if (it._upd==null){ it._upd = before._upd || now; }
     });
   });
@@ -2150,7 +2419,7 @@ function recordMergeObjects(k, cloudObj, localObj, cloudTomb, localTomb){
   Object.keys(paths).forEach(function(path){
     if(!Array.isArray(localObj[path]) && !Array.isArray(cloudObj[path])){ out[path] = (localObj[path]!==undefined?localObj[path]:cloudObj[path]); return; }
     var byId = {};
-    var consider = function(it){ if(!it||it.id==null) return; var ex=byId[it.id]; if(!ex||(it._upd||0)>=(ex._upd||0)) byId[it.id]=it; };
+    var consider = function(it){ if(!it||it.id==null) return; var ex=byId[it.id]; byId[it.id] = ex ? cpsDeepMerge(ex, it) : it; };
     (Array.isArray(localObj[path])?localObj[path]:[]).forEach(consider);
     (Array.isArray(cloudObj[path])?cloudObj[path]:[]).forEach(consider);
     var arr = [];
@@ -2284,7 +2553,10 @@ function usersIsDead(username, userUpd){
 
 function save(k, val) {
   try { if (typeof recordMergeTrack === 'function') val = recordMergeTrack(k, val); } catch(e){ console.warn('recordMergeTrack', e); }
+  try { if (typeof genericStampUpd === 'function') genericStampUpd(k, val); } catch(e){ console.warn('genericStampUpd', e); }
   try { if (typeof genericTombTrack === 'function') genericTombTrack(k, val); } catch(e){ console.warn('genericTombTrack', e); }
+  try { if (typeof objMetaTrack === 'function') objMetaTrack(k, val); } catch(e){ console.warn('objMetaTrack', e); }
+  try { if (typeof autoTrashTrack === 'function') autoTrashTrack(k, val); } catch(e){ console.warn('autoTrashTrack', e); }
   try { localStorage.setItem(storeKey(k), JSON.stringify(val)); } catch(e){ console.error('save fail', e); }
   try { if ((k==='ecoles'||k==='effectifs'||k==='elevesFichier') && typeof publishIeppStats==='function') publishIeppStats(); } catch(e){}
   try { if (window.__cloudPush) return window.__cloudPush(storeKey(k), val); } catch(e){}
@@ -2492,13 +2764,24 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
       url += (url.indexOf('?')>=0?'&':'?') + 'key=neq.__cachebust_' + Date.now() + Math.random().toString(36).slice(2,8);
     }
     var isJwt = /^eyJ/.test(SUPABASE_KEY);   /* ancienne clé anon = JWT ; nouvelle clé publiable = sb_... */
-    /* Clé publiable (non-JWT) : « apikey » seule d'abord ; clé JWT : Bearer d'abord. */
-    var primary = isJwt
-      ? Object.assign({ 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }, (opts.headers||{}))
-      : Object.assign({ 'apikey': SUPABASE_KEY }, (opts.headers||{}));
-    var res = await fetch(url, Object.assign({}, opts, { headers: primary }));
+    /* NIVEAU 2 — si un utilisateur est authentifié (Supabase Auth), on envoie SON jeton
+       (Bearer <access_token>) : les requêtes passent alors les règles RLS « authenticated ».
+       Sinon, comportement d'origine (clé publiable en apikey / Bearer selon le type de clé). */
+    function _hdr(useUserToken){
+      var h = Object.assign({ 'apikey': SUPABASE_KEY }, (opts.headers||{}));
+      if (useUserToken && __sbAccess) { h['Authorization'] = 'Bearer ' + __sbAccess; }
+      else if (isJwt) { h['Authorization'] = 'Bearer ' + SUPABASE_KEY; }
+      return h;
+    }
+    var res = await fetch(url, Object.assign({}, opts, { headers: _hdr(true) }));
+    /* 401 avec session : le jeton a pu expirer -> on le rafraîchit puis on réessaie une fois */
+    if (res.status === 401 && __sbAccess){
+      var _ref = await __authRefresh();
+      if (_ref){ try { res = await fetch(url, Object.assign({}, opts, { headers: _hdr(true) })); } catch(e){} }
+      else { __authClear(); }
+    }
+    /* 401 restant : repli d'origine (autre combinaison avec la clé publiable) */
     if (res.status === 401){
-      /* Dernier recours : on tente l'autre méthode. */
       var alt = isJwt
         ? Object.assign({ 'apikey': SUPABASE_KEY }, (opts.headers||{}))
         : Object.assign({ 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }, (opts.headers||{}));
@@ -2506,6 +2789,93 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
     }
     return res;
   }
+
+  /* ==================================================================
+     NIVEAU 2 — AUTHENTIFICATION SUPABASE (GoTrue REST)
+     Chaque utilisateur ouvre SA session -> un jeton JWT est attaché aux
+     requêtes -> les règles RLS « authenticated » protègent les données.
+     Le compte Supabase est créé automatiquement au 1er login. Aucun mot de
+     passe n'est stocké ; le jeton reste en mémoire (durée de l'onglet). */
+  var __sbAccess = null, __sbRefresh = null, __sbExp = 0;
+  function authEmail(username){
+    var s = String(username||'').trim().toLowerCase()
+      .replace(/[^a-z0-9._-]/g,'.').replace(/\.+/g,'.').replace(/^\.|\.$/g,'');
+    if(!s) s='user';
+    return s + '@iepp-plateforme.ci';
+  }
+  function authPass(plain){ return String(plain==null?'':plain) + '::IEPP-plateforme-2026'; }
+  async function __authToken(email, password){
+    try{
+      var r = await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=password', {
+        method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Content-Type':'application/json' },
+        body: JSON.stringify({ email:email, password:password })
+      });
+      if(!r.ok) return null;
+      var j = await r.json(); return (j && j.access_token) ? j : null;
+    }catch(e){ return null; }
+  }
+  async function __authSignup(email, password){
+    try{
+      var r = await fetch(SUPABASE_URL+'/auth/v1/signup', {
+        method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Content-Type':'application/json' },
+        body: JSON.stringify({ email:email, password:password })
+      });
+      var j=null; try{ j=await r.json(); }catch(e){}
+      return { ok:r.ok, status:r.status, j:j };
+    }catch(e){ return { ok:false, status:0, j:null }; }
+  }
+  function __authSet(j){
+    __sbAccess = j.access_token; __sbRefresh = j.refresh_token || null;
+    __sbExp = Date.now() + ((j.expires_in||3600)*1000) - 60000;
+  }
+  function __authClear(){ __sbAccess=null; __sbRefresh=null; __sbExp=0; }
+  async function __authRefresh(){
+    if(!__sbRefresh) return false;
+    try{
+      var r = await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token', {
+        method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Content-Type':'application/json' },
+        body: JSON.stringify({ refresh_token:__sbRefresh })
+      });
+      if(!r.ok) return false;
+      var j = await r.json(); if(!j||!j.access_token) return false;
+      __authSet(j); return true;
+    }catch(e){ return false; }
+  }
+  async function cloudAuthSignIn(username, plain){
+    var email=authEmail(username), pw=authPass(plain);
+    var j = await __authToken(email, pw);
+    if(!j){
+      var su = await __authSignup(email, pw);
+      if(su.ok && su.j && su.j.access_token){ __authSet(su.j); console.log('%c[Cloud][Auth] compte créé + connecté','color:#2A9D8F;font-weight:bold'); return true; }
+      j = await __authToken(email, pw); /* signup sans session immédiate (confirmation e-mail activée) */
+    }
+    if(j){ __authSet(j); console.log('%c[Cloud][Auth] session ouverte','color:#2A9D8F;font-weight:bold'); return true; }
+    console.warn('[Cloud][Auth] Session Supabase impossible pour « '+username+' ». La synchro utilisera l\'accès public tant que la RLS l\'autorise (vérifiez que la confirmation e-mail est désactivée dans Supabase).');
+    return false;
+  }
+  async function cloudAuthSignOut(){
+    try{ if(__sbAccess){ await fetch(SUPABASE_URL+'/auth/v1/logout', { method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+__sbAccess } }); } }catch(e){}
+    __authClear();
+  }
+  window.__cloudAuthSignIn = cloudAuthSignIn;
+  window.__cloudAuthSignOut = cloudAuthSignOut;
+  window.__cloudAuthState = function(){ return { authenticated: !!__sbAccess, expiresAt: __sbExp }; };
+  /* Met à jour le mot de passe Supabase de l'utilisateur ACTUELLEMENT connecté
+     (session active requise). Best-effort : renvoie false sans lever d'erreur. */
+  async function cloudAuthUpdatePassword(newPlain){
+    if(!__sbAccess) return false;
+    try{
+      var r = await fetch(SUPABASE_URL+'/auth/v1/user', {
+        method:'PUT', headers:{ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+__sbAccess, 'Content-Type':'application/json' },
+        body: JSON.stringify({ password: authPass(newPlain) })
+      });
+      if(r.ok){ console.log('%c[Cloud][Auth] mot de passe Supabase synchronisé','color:#2A9D8F;font-weight:bold'); return true; }
+      console.warn('[Cloud][Auth] mise à jour du mot de passe Supabase refusée (HTTP '+r.status+').');
+      return false;
+    }catch(e){ console.warn('[Cloud][Auth] mise à jour du mot de passe Supabase impossible', e); return false; }
+  }
+  window.__cloudAuthUpdatePassword = cloudAuthUpdatePassword;
+
   async function restSet(fullKey, jsonStr){
     var url = SUPABASE_URL + '/rest/v1/' + CLOUD_TABLE + '?on_conflict=key';
     var res = await restFetch(url, {
@@ -2677,6 +3047,94 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
     } catch(e){ console.warn('[Cloud] __cloudFetchRegistry échoué', e); return false; }
   };
 
+  /* Clés de l'Espace CPPP / CPS : l'envoi FUSIONNE avec le cloud au lieu de
+     l'écraser (un poste en retard ne peut plus effacer les saisies d'un autre). */
+  /* ==== ENVOI FUSIONNÉ UNIVERSEL ====
+     Chaque envoi relit le cloud, COMPLÈTE avec les données du poste (ajout de ce
+     qui manque, version la plus récente par élément, suppressions respectées)
+     puis écrit le résultat. Un poste en retard ne peut plus rien écraser.
+     Lecture impossible → on n'écrit pas et on réessaie plus tard. */
+  function baseKeyOf(fullKey){
+    try{
+      var list = keysForCurrentScope();
+      for (var i=0;i<list.length;i++){
+        var k=list[i];
+        if (storeKey(k)===fullKey) return k;
+        if (storeKey(k+'__gtomb')===fullKey) return k+'__gtomb';
+        if (storeKey(k+'__ometa')===fullKey) return k+'__ometa';
+      }
+    }catch(e){}
+    return null;
+  }
+  async function sbGetJson(key){ var raw=await sbGet(key); if(raw==null||raw==='') return null; return JSON.parse(raw); }
+  async function mergedValueFor(fullKey, base, val){
+    var cv = await sbGetJson(fullKey);                 /* erreur → exception → pas d'écriture */
+    if (cv==null) return val;
+    if (isTombstoneKey(base)) return mergeTombstones(Array.isArray(cv)?cv:[], Array.isArray(val)?val:[]);
+    if (/__gtomb$/.test(base)) return mergeGenericTomb(cv, val);
+    if (/__ometa$/.test(base)) return objMetaMerge(cv, val);
+    if (RECORD_MERGE[base] && Array.isArray(val)){
+      var tk=rmTombKey(base), cT=[], lT=[];
+      if (tk){ try{ cT=(await sbGetJson(storeKey(tk)))||[]; }catch(e){} try{ lT=JSON.parse(localStorage.getItem(storeKey(tk))||'[]')||[]; }catch(e){} }
+      return recordMergeArrays(base, Array.isArray(cv)?cv:[], val, cT, lT);
+    }
+    if (RECORD_MERGE_OBJ[base] && isPlainObj(val)){
+      var tko=RECORD_MERGE_OBJ[base].tomb, cTo=[], lTo=[];
+      try{ cTo=(await sbGetJson(storeKey(tko)))||[]; }catch(e){}
+      try{ lTo=JSON.parse(localStorage.getItem(storeKey(tko))||'[]')||[]; }catch(e){}
+      return recordMergeObjects(base, isPlainObj(cv)?cv:{}, val, cTo, lTo);
+    }
+    if (Array.isArray(val) && Array.isArray(cv)){
+      var m = genericUnionMerge(cv, val, isDeepMergeKey(base));
+      if (isGenericMergeKey(base)){
+        var gk=storeKey(base+'__gtomb'), cG=[], lG=[];
+        try{ cG=(await sbGetJson(gk))||[]; }catch(e){}
+        try{ lG=JSON.parse(localStorage.getItem(gk)||'[]')||[]; }catch(e){}
+        var uG=mergeGenericTomb(cG, lG), set={};
+        uG.forEach(function(t){ if(t&&t.k!=null&&gtombActive(t)) set[t.k]=1; });
+        m = m.filter(function(r){ return !set[genericRecKey(r)]; });
+      }
+      return m;
+    }
+    if (isPlainObj(val) && isPlainObj(cv) && isObjMergeKey(base)){
+      var mk=storeKey(base+'__ometa'), cM=null, lM=null;
+      try{ cM=await sbGetJson(mk); }catch(e){}
+      try{ lM=JSON.parse(localStorage.getItem(mk)||'null'); }catch(e){}
+      return objMerge(cv, val, cM, lM);
+    }
+    return val;
+  }
+  var _mpState = {};   /* un seul envoi à la fois par clé ; les envois rapprochés sont regroupés */
+  function mergedPush(fullKey, val){
+    var base = baseKeyOf(fullKey);
+    if (!base) return Promise.resolve(realPush(fullKey, val));
+    var st = _mpState[fullKey] || (_mpState[fullKey] = { running:false, next:null, waiters:[] });
+    st.next = val;
+    return new Promise(function(resolve){
+      st.waiters.push(resolve);
+      if (st.running) return;
+      (async function loop(){
+        st.running = true;
+        while (st.next !== null){
+          var v = st.next; st.next = null; var ws = st.waiters; st.waiters = [];
+          var ok = false;
+          try{
+            var merged = await mergedValueFor(fullKey, base, v);
+            await sbSet(fullKey, JSON.stringify(merged));
+            console.log('[Cloud] ✔ poussé (fusionné)', fullKey);
+            ok = true;
+          }catch(e){
+            console.warn('[Cloud] envoi fusionné reporté (réessai auto)', fullKey, e);
+            setTimeout(function(){ try{ var raw=localStorage.getItem(fullKey); if(raw!=null) window.__cloudPush(fullKey, JSON.parse(raw)); }catch(_){} }, 20000);
+          }
+          ws.forEach(function(r){ r(ok); });
+        }
+        st.running = false;
+      })();
+    });
+  }
+  window.__cpsMergedPush = function(fullKey, val){ return mergedPush(fullKey, val); };
+  window.__cloudMergedPush = window.__cpsMergedPush;
   window.__cloudPush = function(fullKey, val){
     if (!cloudReady){
       pendingPushes.set(fullKey, val);
@@ -2691,7 +3149,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
     if (isIeppRegKey(fullKey)){
       return Promise.resolve(pushIeppRegMerged(fullKey, val)).then(function(){ return {queued:false, ok:true}; });
     }
-    return Promise.resolve(realPush(fullKey, val)).then(function(ok){ return {queued:false, ok:ok!==false}; });
+    return Promise.resolve(mergedPush(fullKey, val)).then(function(ok){ return {queued:false, ok:ok!==false}; });
   };
 
   function flushPending(){
@@ -2699,7 +3157,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
     pendingPushes.forEach(function(val, fullKey){
       if (isUsersKey(fullKey)) usersPushChain = usersPushChain.then(function(){ return pushUsersMerged(fullKey, val); }).catch(function(e){ console.warn('[Cloud] file comptes', e); });
       else if (isIeppRegKey(fullKey)) pushIeppRegMerged(fullKey, val);
-      else realPush(fullKey, val);
+      else mergedPush(fullKey, val);
     });
     pendingPushes.clear();
   }
@@ -2757,7 +3215,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
             try{ _cA=JSON.parse(cloudJson); }catch(e){}
             try{ _lA=(localRaw!=null)?JSON.parse(localRaw):null; }catch(e){}
             if (Array.isArray(_cA) && Array.isArray(_lA)){
-              var _m = genericUnionMerge(_cA, _lA);
+              var _m = genericUnionMerge(_cA, _lA, isDeepMergeKey(k));
               /* Tombstones génériques : on retire ce qui a été supprimé sur un
                  appareil, pour que la fusion-union ne le fasse pas réapparaître. */
               if (isGenericMergeKey(k)){
@@ -2767,7 +3225,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
                 try { _lT = JSON.parse(localStorage.getItem(_tk)||'[]')||[]; } catch(e){}
                 var _uT = mergeGenericTomb(_cT, _lT);
                 if (_uT.length){
-                  var _tset={}; _uT.forEach(function(t){ if(t&&t.k!=null) _tset[t.k]=1; });
+                  var _tset={}; _uT.forEach(function(t){ if(t&&t.k!=null && gtombActive(t)) _tset[t.k]=1; });
                   _m = _m.filter(function(r){ return !_tset[genericRecKey(r)]; });
                 }
                 localStorage.setItem(_tk, JSON.stringify(_uT));
@@ -2775,6 +3233,17 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
               }
               localStorage.setItem(fullKey, JSON.stringify(_m));
               try { await withTimeout(sbSet(fullKey, JSON.stringify(_m)), 15000, fullKey); } catch(e){}
+            } else if (isPlainObj(_cA) && isPlainObj(_lA) && isObjMergeKey(k)){
+              /* Objet simple : on COMPLÈTE (ajout de ce qui manque, plus récent par chemin, suppressions suivies) */
+              var _mk = storeKey(k+'__ometa'), _cM=null, _lM=null;
+              try { var _cmRaw = await withTimeout(sbGet(_mk), 15000, _mk); if(_cmRaw) _cM = JSON.parse(_cmRaw); } catch(e){}
+              try { _lM = JSON.parse(localStorage.getItem(_mk)||'null'); } catch(e){}
+              var _om = objMerge(_cA, _lA, _cM, _lM);
+              var _mm = objMetaMerge(_cM, _lM);
+              localStorage.setItem(_mk, JSON.stringify(_mm));
+              try { await withTimeout(sbSet(_mk, JSON.stringify(_mm)), 15000, _mk); } catch(e){}
+              localStorage.setItem(fullKey, JSON.stringify(_om));
+              try { await withTimeout(sbSet(fullKey, JSON.stringify(_om)), 15000, fullKey); } catch(e){}
             } else if (cloudIsEmptierThanLocal(cloudJson, localRaw)){
               await withTimeout(sbSet(fullKey, localRaw), 15000, fullKey);   /* cloud vide → on renvoie le local */
             } else {
@@ -4014,6 +4483,11 @@ async function doLogin() {
   }
   state.user = found;
   save('current_user', found.username);
+  /* NIVEAU 2 : ouverture d'une session Supabase Auth avec les identifiants saisis
+     (le compte Supabase est créé automatiquement au tout premier login). Le jeton
+     obtenu protège ensuite la synchro. N'empêche JAMAIS la connexion locale :
+     en cas d'échec (hors ligne, réglage manquant), on continue normalement. */
+  try { if (typeof window.__cloudAuthSignIn === 'function') { await window.__cloudAuthSignIn(found.username, p); } } catch(e){ console.warn('[Auth]', e); }
   /* « Se souvenir de moi » : mémorise UNIQUEMENT l'identifiant sur cet appareil.
      Aucun mot de passe n'est désormais stocké dans localStorage. */
   try {
@@ -4026,6 +4500,7 @@ async function doLogin() {
 }
 function logout() {
   logAction('logout', 'Déconnexion');
+  try { if (typeof window.__cloudAuthSignOut === 'function') window.__cloudAuthSignOut(); } catch(e){}
   state.user = null;
   localStorage.removeItem(KEY+'current_user');
   document.getElementById('app').classList.remove('active');
@@ -4463,6 +4938,22 @@ function ieppActivRefresh(){
   try{ if(typeof caRenderPanel==="function") caRenderPanel(); }catch(e){}
   try{ if(state.module==="drenaet" && typeof renderDrenaet==="function") renderDrenaet(); }catch(e){}
 }
+/* Recharge les COMPTES + le registre des IEPP depuis le cloud, puis ré-affiche le
+   panneau : un compte créé par un superviseur sur un AUTRE poste devient visible ici
+   (le panneau, sinon, n'affiche que ce qui a été chargé à la connexion). */
+async function ieppActivResync(){
+  var btn = document.getElementById('iepp-activ-resync');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Actualisation…'; }
+  try{
+    if(typeof window.cloudSyncNow==='function'){ await window.cloudSyncNow(); }
+    else if(typeof window.__cloudResyncScope==='function'){ await window.__cloudResyncScope(); }
+    else if(typeof window.__cloudFetchUsers==='function'){ await window.__cloudFetchUsers(); }
+  }catch(e){}
+  try{ ensureRegistryFromAccounts(); }catch(e){}
+  try{ if(typeof caRenderPanel==='function') caRenderPanel(); }catch(e){}
+  try{ if(typeof toast==='function') toast('Liste des comptes actualisée depuis le cloud ✅','success'); }catch(e){}
+}
+window.ieppActivResync = ieppActivResync;
 function iepDateIso(v){
   v = String(v==null?"":v).trim(); if(!v) return "";
   if(/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
@@ -4617,11 +5108,18 @@ function ieppActivationPanelHtml(){
     +'<p class="text-xs text-muted" style="margin:2px 0 10px">Activez/désactivez une IEPP, ou fixez une période d\'accès (dates de début/fin). Hors période ou si désactivée, aucun utilisateur de cette IEPP ne peut se connecter — sauf vous. <br>Toutes les IEPP ayant au moins un compte apparaissent ici ; les nouvelles sont ajoutées automatiquement. <br>Boutons : ⛔ désactiver · ✅ activer · 💾 période · 👥⛔ / 👥✅ tous les comptes · ✏️ modifier · 🗑️ supprimer.</p>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:2px 0 10px">'
       +'<span class="text-xs text-muted" style="margin-right:auto">'+reg.length+' IEPP · '+_iepNbTot+' compte(s) rattaché(s)</span>'
+      +'<button class="btn btn-ghost" id="iepp-activ-resync" style="padding:6px 10px;color:var(--green-deep)" onclick="ieppActivResync()" title="Recharger la liste des comptes depuis le cloud (comptes créés par les superviseurs sur d\'autres postes)">🔄 Actualiser</button>'
       +'<button class="btn btn-ghost" style="padding:6px 10px" onclick="ieppActivExportExcel()" title="Exporter au format Excel/CSV">📊 Export Excel</button>'
       +'<button class="btn btn-ghost" style="padding:6px 10px" onclick="document.getElementById(\'iepp-activ-import\').click()" title="Importer un fichier Excel/CSV">📥 Importer</button>'
       +'<input type="file" id="iepp-activ-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="ieppActivImport(event)">'
       +'<button class="btn btn-ghost" style="padding:6px 10px" onclick="ieppActivPrint()" title="Imprimer ou enregistrer en PDF">🖨️ Imprimer / PDF</button>'
     +'</div>'
+    + (function(){
+        var noIepp=(state.users||[]).filter(function(u){ return u.role!=='superadmin' && !String((u.iepp)||'').trim(); });
+        if(!noIepp.length) return '';
+        var names=noIepp.slice(0,6).map(function(u){ return escapeHtml(u.username||u.name||'?'); }).join(', ');
+        return '<div style="background:#FEF3C7;border:1px solid #FDE68A;color:#92400E;border-radius:8px;padding:8px 10px;margin:0 0 10px;font-size:12px">⚠️ '+noIepp.length+' compte(s) sans IEPP rattachée ('+names+(noIepp.length>6?'…':'')+'). Ils n\'apparaissent pas dans la liste ci-dessous tant qu\'aucune IEPP ne leur est attribuée : ouvrez le compte (module Comptes) et renseignez son champ « IEPP ».</div>';
+      })()
     +'<div style="overflow:auto;max-height:60vh;border:1px solid var(--line);border-radius:8px"><table class="table" style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr style="text-align:left;color:var(--ink-soft);position:sticky;top:0;background:#F8FAFC"><th>IEPP</th><th>État</th><th>Accès du</th><th>Accès au</th><th style="text-align:right">Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
 }
 function ensureDrenaetFromRegistry(){
@@ -4708,6 +5206,11 @@ function drRealTotals(d){
   var s = ieppStatFor(d && d.iepp);
   if(s) return { ecoles:+s.ecoles||0, eleves:+s.eleves||0 };
   var loc = ieppScopedTotals(d && d.iepp);
+  if(loc && ((+loc.ecoles||0)>0 || (+loc.eleves||0)>0)) return loc;
+  /* Repli : valeurs saisies/importées dans le registre (affichées tant qu'aucune
+     donnée réelle n'a été publiée par l'IEPP). Les données réelles gardent la priorité. */
+  var se = +(d && d.ecoles)||0, sv = +(d && d.eleves)||0;
+  if(se>0 || sv>0) return { ecoles:se, eleves:sv };
   if(loc) return loc;
   return { ecoles:0, eleves:0 };
 }
@@ -5831,6 +6334,11 @@ async function userSave(username) {
     Object.assign(u, data);
     delete u.password;
     u._upd = Date.now();
+    /* NIVEAU 2 : si l'utilisateur modifie SON PROPRE mot de passe, on synchronise
+       aussi son mot de passe Supabase (session active). Best-effort : ne casse rien. */
+    if (newPassword && me && data.username === me.username && typeof window.__cloudAuthUpdatePassword === 'function') {
+      try { await window.__cloudAuthUpdatePassword(newPassword); } catch(e){ console.warn('[Auth]', e); }
+    }
     logAction('update-user', `Modification compte : ${data.username}`);
     toast('Compte mis à jour', 'success');
   } else {
@@ -5914,8 +6422,7 @@ const COMPTES_CATEGORIES = [
   { role:'smoss',       icon:'⚕️', desc:'Santé scolaire — suivi médico-social' },
   { role:'cantine',     icon:'🍽️', desc:'Cantine scolaire — repas et stocks' },
   { role:'coges',       icon:'🤝', desc:'Comité de gestion de l\'établissement' },
-  { role:'alpha',       icon:'🔤', desc:'Conseiller Alphabétisation — centres, auditeurs, matrice' },
-  { role:'islam',       icon:'🕌', desc:'Structures islamiques d\'éducation — recensement, apprenants' },
+  { role:'alphabetisation', icon:'🔤', desc:'Conseiller Alphabétisation — centres, auditeurs, structures islamiques' },
   { role:'autres',      icon:'➕', desc:'Profil personnalisé / fonction non listée' },
 ];
 
@@ -6991,6 +7498,7 @@ function cpiCpppHtml() {
       <div class="search-input"><input id="cppp-search" placeholder="Rechercher un CPPP ou un secteur..." oninput="cpppRenderBody()"></div>
       <button class="btn btn-ghost" onclick="document.getElementById('cppp-import').click()" title="Importer Excel/CSV">📥 Importer</button>
       <input type="file" id="cppp-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="cpppImport(event)">
+      <button class="btn" style="background:#0EA5E9;color:#fff" onclick="cpsMettreEnLigne()" title="Envoie les CPPP, secteurs et écoles de ce poste dans le cloud">☁️ Mettre en ligne</button>
       <button class="btn btn-green" onclick="cpppExport()">📊 Excel</button>
       <button class="btn btn-ghost" onclick="cpppExportWord()">📄 Word</button>
       <button class="btn btn-ghost" onclick="cpppExportPDF()">🖨️ PDF</button>
@@ -19850,6 +20358,7 @@ const PROVISION_ROLES = [
   { role:'archiviste',   suffix:'arch',   name:'Bibliothèque/Archives' },
   { role:'econome',      suffix:'econ',   name:'Économe' },
   { role:'coges',        suffix:'coges',  name:'COGES' },
+  { role:'alphabetisation', suffix:'alpha', name:'Conseiller Alphabétisation' },
   { role:'agent',        suffix:'agent',  name:'Agent administratif' },
 ];
 function ieppCode(name){
@@ -20119,6 +20628,7 @@ function downloadFile(content, name, mime) {
    ================================================================== */
 function exportRowsToExcel(rows, baseName, sheetName) {
   if (!rows || !rows.length) { toast('Aucune donnée à exporter','error'); return; }
+  try { rows = rows.map(function(r){ if(!r||typeof r!=='object') return r; if(!('_upd' in r) && !('_sub' in r) && !('_ft' in r)) return r; var c={}; Object.keys(r).forEach(function(k){ if(k!=='_upd'&&k!=='_sub'&&k!=='_ft') c[k]=r[k]; }); return c; }); } catch(e){}
   // Si SheetJS est disponible → vrai fichier .xlsx
   if (window.__XLSX_READY && window.XLSX) {
     try {
@@ -29061,8 +29571,8 @@ function vieResetAllData() {
     if(!card || document.getElementById('login-contact')) return;
     var c=document.createElement('div'); c.id='login-contact';
     c.style.cssText='margin-top:14px;padding-top:12px;border-top:1px solid #E5E7EB;text-align:center;font-size:11.5px;line-height:1.7;color:#6b7280';
-    c.innerHTML='\u00A9 EPLUS 2026 \u2014 Tous droits r\u00e9serv\u00e9s \u00b7 Derni\u00e8re mise \u00e0 jour Ao\u00fbt 2026<br>'
-      +'Conception &amp; design <strong style="color:#0A4DA6">DIOM-2Y</strong><br>'
+    c.innerHTML='\u00A9 EPLUS 2026 \u2014 Tous droits r\u00e9serv\u00e9s \u00b7 Derni\u00e8re mise \u00e0 jour le 10 septembre 2026<br>'
+      +'Conception &amp; design <strong style="color:#0A4DA6">DIOM-2YA</strong><br>'
       +'\ud83d\udcde <a href="tel:+2250172710337" style="color:#0A4DA6;text-decoration:none">(+225) 01-727-10-337</a> \u00b7 '
       +'<a href="tel:+2250749237462" style="color:#0A4DA6;text-decoration:none">07-492-37-462</a><br>'
       +'\u2709\ufe0f <a href="mailto:eplus2026@gmail.com" style="color:#0A4DA6;text-decoration:none">eplus2026@gmail.com</a>';
@@ -29269,30 +29779,6 @@ function vieResetAllData() {
   function toastMsg(m,t){ if(typeof toast==='function') toast(m, t||'success'); }
   var selId=null;
 
-  /* ---- Récupération / publication des secteurs déjà saisis localement ----
-     Les secteurs créés avant cette mise à jour n'ont pas d'horodatage (_upd) ;
-     sans lui, une copie vide sur un autre poste pouvait écraser les données en
-     ligne. On horodate ici les secteurs qui ont du contenu (écoles, enseignants
-     ou CPPP responsable) puis on ré-enregistre : save() les pousse alors dans le
-     cloud (Supabase) et ils apparaissent sur les autres postes. Les secteurs
-     vides reçoivent un horodatage minimal pour ne JAMAIS écraser une version
-     enrichie venue d'ailleurs. Exécuté une seule fois par circonscription. */
-  var _stampedScopes={};
-  function migrateSectStamps(){
-    var tag=''; try{ if(typeof activeScope!=='undefined'&&activeScope) tag=activeScope; }catch(e){}
-    if(_stampedScopes[tag]) return; _stampedScopes[tag]=true;
-    var arr=loadSec(); if(!Array.isArray(arr)||!arr.length) return;
-    var changed=false, now=Date.now();
-    arr.forEach(function(t){
-      if(t && t._upd==null){
-        var hasContent=(t.ecoles&&t.ecoles.length)||(t.enseignants&&t.enseignants.length)||(t.cppp&&String(t.cppp).trim());
-        t._upd = hasContent ? now : 1;
-        changed=true;
-      }
-    });
-    if(changed) saveSec(arr);   /* pousse vers le cloud avec horodatage */
-  }
-
   window.SEC={
     open:function(id){ selId=id; render(); },
     back:function(){ selId=null; render(); },
@@ -29314,7 +29800,6 @@ function vieResetAllData() {
 
   function render(){
     if(typeof setContent!=='function') return;
-    try{ migrateSectStamps(); }catch(e){}
     var arr=loadSec();
     if(!selId){
       var cards = arr.length ? arr.map(function(t){ return ''
@@ -29330,7 +29815,8 @@ function vieResetAllData() {
       setContent(''
         +'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">'
         +'  <div style="font-size:13px;color:var(--ink-soft)">Chaque secteur regroupe des écoles ; les enseignants (craie en main) y sont rattachés.</div>'
-        +'  <button class="btn btn-primary" onclick="SEC.create()">+ Nouveau secteur</button>'
+        +'  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+((typeof cpsAutoToggleHtml==='function')?cpsAutoToggleHtml():'')+'<button class="btn" style="background:#0EA5E9;color:#fff" onclick="cpsMettreEnLigne()" title="Envoie les secteurs, écoles et CPPP de ce poste dans le cloud">☁️ Mettre mes données en ligne</button>'
+        +'  <button class="btn btn-primary" onclick="SEC.create()">+ Nouveau secteur</button></div>'
         +'</div>'+cards);
       return;
     }
@@ -30524,6 +31010,11 @@ window.caUserResetPwd = function(username){
     u.passwordHash=h; u._upd=Date.now(); save('users', state.users);
     logAction('user-password-reset', 'Réinitialisation du mot de passe de '+username);
     toast('Mot de passe réinitialisé pour '+(u.name||username)+' ✅', 'success');
+    /* NIVEAU 2 : si l'admin réinitialise SON PROPRE mot de passe, on synchronise Supabase.
+       (Pour un AUTRE compte, la synchro se fera à sa prochaine connexion.) */
+    if (state.user && u.username===state.user.username && typeof window.__cloudAuthUpdatePassword==='function'){
+      try{ window.__cloudAuthUpdatePassword(np); }catch(e){}
+    }
   });
 };
 window.caUserDelete = function(username){
@@ -30686,7 +31177,7 @@ window.caBackupImport = function(ev){
 };
 
 /* 9. PARAMÈTRES & MAINTENANCE */
-var CA_DEFAULT_FOOTER = '© EPLUS 2026 - Tous droits réservés  |  Dernière mise à jour Août 2026  |  Conception et design DIOM-2Y — contact : +225 01-727-10-337';
+var CA_DEFAULT_FOOTER = '© EPLUS 2026 - Tous droits réservés  |  Dernière mise à jour le 10 septembre 2026  |  Conception et design DIOM-2YA — contact : +225 01-727-10-337';
 function caMeta(){
   if(!state.platformMeta){
     var saved=null; try{ saved=load('platformMeta', null); }catch(e){}
@@ -31612,6 +32103,281 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
   window.pcActExport=pcActExport; window.pcActPrint=pcActPrint;
 })();
 
+</script>
+
+<script id="iepp-cps-cloud-publish">
+/* ==================================================================
+   ESPACE CPPP / CPS — MISE EN LIGNE DES DONNÉES DU POSTE (ajout)
+   Récupère les secteurs, écoles associées, CPPP et bulletins enregistrés
+   sur CE poste, les marque comme « plus récents » et les envoie au cloud
+   (fusion, sans rien effacer), puis vérifie la relecture.
+   ================================================================== */
+(function(){
+  var KEYS=['secteurs','cppp','cpppBulletins'];
+  function tm(m,t){ try{ if(typeof toast==='function') toast(m,t||'success'); else alert(m); }catch(e){} }
+  window.cpsMettreEnLigne = async function(){
+    try{
+      if (typeof storeKey!=='function' || typeof load!=='function'){ tm('Fonction indisponible','error'); return; }
+      var now=Date.now(), bilan=[], okAll=true;
+      for (var i=0;i<KEYS.length;i++){
+        var k=KEYS[i], fk=storeKey(k);
+        var arr=[]; try{ arr=JSON.parse(localStorage.getItem(fk)||'[]')||[]; }catch(e){ arr=[]; }
+        if (!Array.isArray(arr) || !arr.length) continue;
+        arr.forEach(function(it){ if(it && typeof it==='object' && !Array.isArray(it)) it._upd=now; });
+        try{ localStorage.setItem(fk, JSON.stringify(arr)); }catch(e){}
+        try{ if (typeof state!=='undefined' && state && (k==='cppp'||k==='cpppBulletins')) state[k]=arr; }catch(e){}
+        var ok=false;
+        try{
+          if (window.__cpsMergedPush) ok = await window.__cpsMergedPush(fk, arr);
+          else if (window.__cloudPush){ var r=await window.__cloudPush(fk, arr); ok=!!(r&&r.ok); }
+        }catch(e){ ok=false; }
+        if (!ok) okAll=false;
+        var lib = (k==='secteurs')?'secteur(s)':(k==='cppp'?'CPPP/CPS':'bulletin(s)');
+        bilan.push(arr.length+' '+lib);
+      }
+      if (!bilan.length){ tm('Aucune donnée de secteur/CPPP trouvée sur ce poste.','error'); return; }
+      if (typeof logAction==='function'){ try{ logAction('cps-mise-en-ligne','Mise en ligne : '+bilan.join(', ')); }catch(e){} }
+      tm((okAll?'☁️ Données mises en ligne : ':'⚠️ Envoi incomplet (vérifiez la connexion) : ')+bilan.join(', '), okAll?'success':'error');
+      try{ if (typeof state!=='undefined' && state.module && typeof navigate==='function') navigate(state.module); }catch(e){}
+    }catch(e){ console.warn('cpsMettreEnLigne', e); tm('Erreur lors de la mise en ligne','error'); }
+  };
+})();
+</script>
+
+<script id="iepp-cps-auto-sync">
+/* ==================================================================
+   ESPACE CPPP / CPS — MISE EN LIGNE AUTOMATIQUE (ajout)
+   Par défaut : AUTOMATIQUE dès que le poste est connecté à Internet
+   (au démarrage, au retour du réseau, puis toutes les 60 s).
+   Envoi FUSIONNÉ et sûr : rien n'est écrasé, la modification la plus
+   récente l'emporte. Mode MANUEL possible (réglage propre au poste) :
+   on utilise alors le bouton « ☁️ Mettre mes données en ligne ».
+   ================================================================== */
+(function(){
+  var KEYS=['secteurs','cppp','cpppBulletins'];
+  var PREF='iepp_cps_autosync_mode';          /* 'auto' (défaut) | 'manuel' — propre au poste */
+  var busy=false, lastOk=0;
+
+  function mode(){ try{ return localStorage.getItem(PREF)==='manuel' ? 'manuel' : 'auto'; }catch(e){ return 'auto'; } }
+  window.cpsAutoSyncMode = mode;
+  function hhmm(t){ try{ var d=new Date(t); return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }catch(e){ return ''; } }
+
+  window.cpsAutoToggleHtml = function(){
+    var m=mode(), on=(m==='auto');
+    var net=(typeof navigator!=='undefined' && navigator.onLine===false) ? ' · hors ligne' : '';
+    var last=(on && lastOk) ? ' · dernier envoi '+hhmm(lastOk) : '';
+    return '<label id="cps-auto-label" title="Automatique : les données du secteur sont mises en ligne dès que le poste a Internet. Manuel : utilisez le bouton ☁️." '
+      +'style="display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:'+(on?'#ECFDF5':'#FFF7ED')+';cursor:pointer">'
+      +'<input type="checkbox" '+(on?'checked':'')+' onchange="cpsSetAutoSync(this.checked)" style="margin:0">'
+      +'<span>Mise en ligne <strong>'+(on?'automatique':'manuelle')+'</strong><span id="cps-auto-info" style="color:var(--ink-soft)">'+net+last+'</span></span></label>';
+  };
+
+  window.cpsSetAutoSync = function(on){
+    try{ localStorage.setItem(PREF, on?'auto':'manuel'); }catch(e){}
+    try{ if(typeof toast==='function') toast(on?'☁️ Mise en ligne automatique activée sur ce poste':'✋ Mode manuel : utilisez « ☁️ Mettre mes données en ligne »', on?'success':'info'); }catch(e){}
+    if (on) cpsAutoSync(true);
+    var lbl=document.getElementById('cps-auto-label'); if(lbl){ var w=document.createElement('span'); w.innerHTML=cpsAutoToggleHtml(); lbl.replaceWith(w.firstChild); }
+  };
+
+  function refreshInfo(){
+    var el=document.getElementById('cps-auto-info'); if(!el) return;
+    var net=(navigator.onLine===false)?' · hors ligne':'';
+    el.textContent = net + (lastOk ? ' · dernier envoi '+hhmm(lastOk) : '');
+  }
+
+  /* Envoi automatique : fusion cloud + poste (sans forcer la date) → sûr sur tous les postes */
+  window.cpsAutoSync = async function(force){
+    if (busy) return;
+    if (!force && mode()!=='auto') return;
+    if (typeof navigator!=='undefined' && navigator.onLine===false){ refreshInfo(); return; }
+    try{ if (typeof state==='undefined' || !state || !state.user) return; }catch(e){ return; }
+    if (typeof storeKey!=='function' || !window.__cpsMergedPush) return;
+    busy=true;
+    try{
+      var sent=0, ok=true;
+      for (var i=0;i<KEYS.length;i++){
+        var fk=storeKey(KEYS[i]), arr=null;
+        try{ arr=JSON.parse(localStorage.getItem(fk)||'null'); }catch(e){ arr=null; }
+        if (!Array.isArray(arr) || !arr.length) continue;
+        var r=false; try{ r=await window.__cpsMergedPush(fk, arr); }catch(e){ r=false; }
+        if (r===false) ok=false; else sent++;
+      }
+      if (sent && ok) lastOk=Date.now();
+    }catch(e){ console.warn('cpsAutoSync', e); }
+    finally{ busy=false; refreshInfo(); }
+  };
+
+  /* Déclencheurs : démarrage, retour du réseau, intervalle régulier */
+  function kick(){ try{ cpsAutoSync(false); }catch(e){} }
+  try{ window.addEventListener('online', function(){ setTimeout(kick, 2500); }); }catch(e){}
+  try{ window.addEventListener('offline', refreshInfo); }catch(e){}
+  setTimeout(kick, 8000);
+  setInterval(kick, 60000);
+  /* Après chaque navigation vers l'espace CPPP / Secteurs, envoi rapide */
+  try{
+    var _nav=window.navigate;
+    if (typeof _nav==='function'){
+      window.navigate=function(mod){ var r=_nav.apply(this, arguments); if(mod==='secteurs'||mod==='cpi') setTimeout(kick, 1500); return r; };
+    }
+  }catch(e){}
+})();
+</script>
+
+<script id="iepp-cps-corbeille">
+/* ==================================================================
+   ESPACE CPPP / CPS — SUPPRESSIONS → CORBEILLE (ajout)
+   Tout élément supprimé (secteur, école retirée d'un secteur, enseignant
+   du secteur, CPPP/CPS, bulletin) disparaît partout après synchronisation
+   et est conservé dans la Corbeille (restauration possible).
+   ================================================================== */
+(function(){
+  function L(){ try{ return (load('secteurs',[])||[]); }catch(e){ return []; } }
+  function clone(x){ try{ return JSON.parse(JSON.stringify(x)); }catch(e){ return x; } }
+  function strip(x){ var c=clone(x); if(c&&typeof c==='object'){ delete c._sub; delete c._ft; } return c; }
+  function trash(o){ try{ if(typeof trashGeneric==='function') trashGeneric(o); }catch(e){ console.warn('cps trash', e); } }
+
+  function diffSecteurs(before, after){
+    var am={}; after.forEach(function(t){ am[t.id]=t; });
+    before.forEach(function(t){
+      var n=am[t.id];
+      if (!n){
+        trash({ item:strip(t), type:'secteur', parentKey:'secteurs', moduleLabel:'Secteurs (CPPP)', label:'Secteur : '+(t.nom||'') });
+        return;
+      }
+      var ne={}; (n.ecoles||[]).forEach(function(e){ ne[e]=1; });
+      (t.ecoles||[]).forEach(function(e){ if(!ne[e]) trash({ item:{ id:'se_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), secteurId:t.id, secteurNom:t.nom, ecole:e, nom:e }, type:'sec-ecole', parentKey:'__sec_ecole', moduleLabel:'Secteurs (CPPP)', label:'École « '+e+' » retirée du secteur '+(t.nom||'') }); });
+      var ni={}; (n.enseignants||[]).forEach(function(e){ ni[e.id]=1; });
+      (t.enseignants||[]).forEach(function(e){ if(!ni[e.id]) trash({ item:{ id:e.id, secteurId:t.id, secteurNom:t.nom, ens:clone(e), nom:e.nom }, type:'sec-enseignant', parentKey:'__sec_ens', moduleLabel:'Secteurs (CPPP)', label:'Enseignant « '+(e.nom||'')+' » ('+(t.nom||'')+')' }); });
+    });
+  }
+  function wrapSec(name){
+    try{
+      if (!window.SEC || typeof window.SEC[name]!=='function' || window.SEC[name].__cpsTrash) return;
+      var orig=window.SEC[name];
+      var f=function(){ var before=clone(L()); var r=orig.apply(this, arguments); try{ diffSecteurs(before, L()); }catch(e){} return r; };
+      f.__cpsTrash=true; window.SEC[name]=f;
+    }catch(e){}
+  }
+  ['remove','delEcole','delEns'].forEach(wrapSec);
+
+  function wrapFlat(fnName, key, type, labelFn){
+    try{
+      var orig=window[fnName]; if (typeof orig!=='function' || orig.__cpsTrash) return;
+      var f=function(){
+        var before=clone(state[key]||[]); var r=orig.apply(this, arguments);
+        try{
+          var ids={}; (state[key]||[]).forEach(function(x){ ids[x.id]=1; });
+          before.forEach(function(x){ if(!ids[x.id]) trash({ item:strip(x), type:type, parentKey:key, moduleLabel:'Espace CPPP / CPS', label:labelFn(x) }); });
+        }catch(e){}
+        return r;
+      };
+      f.__cpsTrash=true; window[fnName]=f;
+    }catch(e){}
+  }
+  wrapFlat('cpppDelete','cppp','cppp', function(x){ return 'CPPP/CPS : '+(x.nom||''); });
+  wrapFlat('bulletinDelete','cpppBulletins','bulletin-cppp', function(x){ return 'Bulletin CPPP '+(x.periode||''); });
+
+  /* Restauration depuis la corbeille des éléments de secteur */
+  try{
+    var _rest=window.corbeilleRestore;
+    if (typeof _rest==='function' && !_rest.__cps){
+      var nr=function(trashId){
+        var tr=((state&&state.corbeille)||[]).find(function(x){ return x.id===trashId; });
+        if (tr && (tr.type==='sec-ecole' || tr.type==='sec-enseignant')){
+          var arr=L(), d=tr.data||{}, t=arr.find(function(x){ return x.id===d.secteurId; });
+          if (!t){ if(typeof toast==='function') toast('Le secteur « '+(d.secteurNom||'')+' » n\'existe plus : restaurez-le d\'abord.','error'); return; }
+          if (tr.type==='sec-ecole'){ t.ecoles=t.ecoles||[]; if(t.ecoles.indexOf(d.ecole)<0) t.ecoles.push(d.ecole); }
+          else { t.enseignants=t.enseignants||[]; if(!t.enseignants.some(function(e){ return e.id===(d.ens&&d.ens.id); })) t.enseignants.push(d.ens); }
+          save('secteurs', arr);
+          state.corbeille=(state.corbeille||[]).filter(function(x){ return x.id!==trashId; });
+          save('corbeille', state.corbeille);
+          try{ logAction('trash-restore', '['+tr.type+'] '+tr.label+' restauré'); }catch(e){}
+          if (typeof toast==='function') toast('Élément restauré','success');
+          if (typeof renderCorbeille==='function') renderCorbeille();
+          return;
+        }
+        if (tr && tr.parentKey==='secteurs'){ try{ state.secteurs = L(); }catch(e){} }
+        return _rest.apply(this, arguments);
+      };
+      nr.__cps=true; window.corbeilleRestore=nr;
+    }
+  }catch(e){}
+})();
+</script>
+
+<script id="iepp-corbeille-universelle-restore">
+/* Restauration universelle : la liste/registre d'origine est rechargée avant
+   restauration (rien n'est écrasé) et l'élément restauré devient « le plus
+   récent » pour réapparaître sur tous les postes. */
+(function(){
+  try{
+    var _r = window.corbeilleRestore;
+    if (typeof _r!=='function' || _r.__univ) return;
+    var f = function(trashId){
+      try{
+        var tr=((state&&state.corbeille)||[]).find(function(x){ return x.id===trashId; });
+        if (tr && tr.type!=='sec-ecole' && tr.type!=='sec-enseignant'){
+          if (tr.regKey){ if (!state[tr.regKey] || typeof state[tr.regKey]!=='object' || Array.isArray(state[tr.regKey])) state[tr.regKey]=load(tr.regKey,{})||{}; }
+          else if (tr.parentKey){ if (!Array.isArray(state[tr.parentKey])) state[tr.parentKey]=load(tr.parentKey,[])||[]; }
+          if (tr.data && typeof tr.data==='object') tr.data._upd = Date.now();
+        }
+      }catch(e){}
+      return _r.apply(this, arguments);
+    };
+    f.__univ=true; window.corbeilleRestore=f;
+  }catch(e){}
+})();
+</script>
+
+<style id="iepp-btn-enregistrer-style">
+.btn-enregistrer-vert, button.btn-enregistrer-vert{ background:#009E60 !important; background-color:#009E60 !important; border-color:#009E60 !important; color:#fff !important; }
+.btn-enregistrer-vert:hover{ background:#007A4A !important; background-color:#007A4A !important; border-color:#007A4A !important; }
+</style>
+<script id="iepp-btn-enregistrer">
+/* ==================================================================
+   FORMULAIRES — bouton de validation « Enregistrer » VERT (ajout)
+   Dans toutes les fenêtres de formulaire du système, le bouton
+   « Ajouter » devient « Enregistrer » et passe de l'orange au vert.
+   Les boutons « + Ajouter » des pages (qui ouvrent le formulaire)
+   ne sont pas modifiés. Aucune fonction n'est changée (même onclick).
+   ================================================================== */
+(function(){
+  var RX=/^\s*(\+\s*)?(ajouter|enregistrer)\s*$/i;
+  function inDialog(el){
+    if (el.closest && el.closest('#modal-footer, .modal, .modal-footer, .modal-actions, [role="dialog"]')) return true;
+    /* fenêtres personnalisées : conteneur en position fixe (surcouche) */
+    var n=el.parentElement, depth=0;
+    while (n && n!==document.body && depth<12){
+      try{ if (getComputedStyle(n).position==='fixed') return true; }catch(e){}
+      n=n.parentElement; depth++;
+    }
+    return false;
+  }
+  function fix(root){
+    try{
+      var list=(root||document).querySelectorAll('button, input[type="button"], input[type="submit"]');
+      for (var i=0;i<list.length;i++){
+        var b=list[i];
+        if (b.__enrOk) continue;
+        var isInput=(b.tagName==='INPUT');
+        var txt=isInput ? (b.value||'') : (b.textContent||'');
+        if (!RX.test(txt)) continue;
+        if (!inDialog(b)) continue;
+        if (b.classList.contains('btn-ghost') || b.classList.contains('danger')) continue;
+        if (isInput) b.value='Enregistrer'; else b.textContent='Enregistrer';
+        b.classList.add('btn-enregistrer-vert');
+        b.__enrOk=true;
+      }
+    }catch(e){}
+  }
+  var pending=false;
+  function schedule(){ if(pending) return; pending=true; (window.requestAnimationFrame||setTimeout)(function(){ pending=false; fix(document); }); }
+  function start(){
+    fix(document);
+    try{ new MutationObserver(schedule).observe(document.body, {childList:true, subtree:true, characterData:true}); }catch(e){}
+  }
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
 </script>
 </body>
 </html>
