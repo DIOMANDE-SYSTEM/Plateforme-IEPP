@@ -1599,6 +1599,8 @@ const ROLES = {
   cantine:    { label: 'Cantine scolaire',                      short: 'Cantine',            color: 'green' },
   coges:      { label: 'COGES (Comité de gestion)',             short: 'COGES',              color: 'orange' },
   alphabetisation: { label: 'Conseiller Alphabétisation',         short: 'Alphabétisation',    color: 'purple' },
+  alpha:          { label: 'Alphabétisation',                      short: 'Alphabétisation',    color: 'purple' },
+  islam:          { label: 'Structures islamiques',                short: 'Structures islamiques', color: 'green' },
   autres:     { label: 'Autres (profil personnalisé)',          short: 'Autres',             color: 'grey' },
   /* ---- Profils d'accès ciblé par espace (cloisonnement IEPP · ajout) ---- */
   examens:        { label: 'Service Examens & Concours',                   short: 'Examens & Concours',  color: 'blue' },
@@ -1636,7 +1638,7 @@ const ACL = {
   cpi:          ['dashboard','corbeille','statistiques','rapports','ecoles','cpi','vie-scolaire','rh','absences','archives','users','examens','stat-effectifs','stat-situation','carte-prescolaire','carte-primaire','carte-rapport','pnapas','aser','aser-livret','aser-ace','aser-stats'],
   /* Directeur d'école : voit son école (espace personnel) + modules d'école */
   /* Directeur — accès strictement limité à son espace école */
-  directeur:    ['dashboard','mon-ecole','immatriculation','absences','examens','perroquet-notes'],
+  directeur:    ['dashboard','mon-ecole','users','immatriculation','absences','examens','perroquet-notes'],
   /* Instituteur : voit sa classe (espace personnel) + demandes personnelles */
   /* Instituteur — accès strictement limité à son espace classe */
   instituteur:  ['dashboard','ma-classe','immatriculation','examens','perroquet-notes','aser-classe','pnapas-classe'],
@@ -1654,6 +1656,8 @@ const ACL = {
   cantine:      ['dashboard','economat','courrier','archives'],
   coges:        ['dashboard','coges','courrier','archives'],
   alphabetisation: ['dashboard','alpha','islam','courrier','archives'],
+  alpha:          ['dashboard','alpha'],
+  islam:          ['dashboard','islam'],
   autres:       ['dashboard','courrier','archives'],
 };
 
@@ -6097,7 +6101,7 @@ function canSeeUser(target) {
   if (target.role === 'drenaet') return false;           // une IEPP ne voit pas la DRENAET
   return (target.iepp || '') === (me.iepp || '') && (target.drenaet || '') === (me.drenaet || '');
 }
-function canCreateUsers() { return ['superadmin','drenaet','inspecteur','cpi','correspondant'].includes(state.user.role); }
+function canCreateUsers() { return ['superadmin','drenaet','inspecteur','cpi','correspondant','directeur'].includes(state.user.role); }
 function usersInScope() { return state.users.filter(canSeeUser); }
 /* Rôles qu'un utilisateur a le droit de créer/attribuer */
 function assignableRoles() {
@@ -6185,21 +6189,89 @@ function renderUsersBody() {
     <tr>
       <td><span class="badge badge-grey">${escapeHtml(u.username)}</span></td>
       <td class="fw-7">${escapeHtml(u.name)}${canCreateUsers()?userStatutBadge(u):''}</td>
-      <td><span class="badge badge-${ROLES[u.role].color}">${ROLES[u.role].short}</span></td>
+      <td><span class="badge badge-${(ROLES[u.role]||{color:'grey'}).color}">${escapeHtml((ROLES[u.role]||{short:u.role||'Profil inconnu'}).short)}</span></td>
       <td class="text-sm">${escapeHtml(u.email||'—')}</td>
       <td class="text-sm">${escapeHtml(u.iepp||'—')}${u.ecole?'<br><span class="text-xs text-muted">'+escapeHtml(u.ecole)+'</span>':''}</td>
       <td class="text-sm">
         ${(u.tel||u.contact)?`<span style="font-variant-numeric:tabular-nums">${escapeHtml(u.tel||u.contact)}</span>`:'<span class="text-muted text-xs">—</span>'}
         ${canCreateUsers()?`<button class="icon-btn" style="margin-left:4px" onclick="userTelEdit('${u.username}')" title="${(u.tel||u.contact)?'Modifier':'Ajouter'} le téléphone">📞</button>`:''}
       </td>
-      <td class="actions-cell">
-        ${userToggleBtn(u)}
+      <td class="actions-cell" style="white-space:nowrap">
+        <button class="icon-btn" onclick="userView('${u.username}')" title="Voir le compte">👁️</button>
         ${canCreateUsers()?`<button class="icon-btn" onclick="userForm('${u.username}')" title="Modifier">✏️</button>
+        <button class="icon-btn" onclick="userResetPassword('${u.username}')" title="Réinitialiser le mot de passe">🔑</button>
+        ${userToggleBtn(u)}
         ${u.username !== state.user.username ? `<button class="icon-btn danger" onclick="userDelete('${u.username}')" title="Supprimer">🗑️</button>` : ''}`:''}
       </td>
     </tr>
   `).join('');
 }
+/* ===== ACTIONS COMPTE : VOIR / RÉINITIALISER ===== */
+function userView(username){
+  const u = (state.users||[]).find(x=>x.username===username);
+  if(!u || !canSeeUser(u)){ toast('Compte hors de votre périmètre.','error'); return; }
+  const roleLabel = (ROLES[u.role] && ROLES[u.role].label) || u.role || '—';
+  const statut = userStatutInfo(u);
+  const pwdInfo = u.password ? escapeHtml(u.password) : '•••••••• (mot de passe protégé — non récupérable)';
+  openModal('👁️ Compte utilisateur', `
+    <div class="card" style="padding:14px;background:var(--bg);margin-bottom:10px">
+      <div class="form-row">
+        <div class="field"><label>Identifiant</label><input value="${escapeHtml(u.username||'')}" readonly></div>
+        <div class="field"><label>Mot de passe</label><input value="${pwdInfo}" readonly></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Nom complet</label><input value="${escapeHtml(u.name||'')}" readonly></div>
+        <div class="field"><label>Profil</label><input value="${escapeHtml(roleLabel)}" readonly></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>DRENAET</label><input value="${escapeHtml(u.drenaet||'—')}" readonly></div>
+        <div class="field"><label>IEPP</label><input value="${escapeHtml(u.iepp||'—')}" readonly></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>École</label><input value="${escapeHtml(u.ecole||'—')}" readonly></div>
+        <div class="field"><label>Téléphone</label><input value="${escapeHtml(u.tel||u.contact||'—')}" readonly></div>
+      </div>
+      <div class="text-xs text-muted" style="margin-top:8px">État : <strong>${escapeHtml(statut.label)}</strong>${u.classe?' · Classe : '+escapeHtml(u.classe):''}</div>
+    </div>
+    <div class="text-xs text-muted">Pour des raisons de sécurité, un mot de passe déjà hashé ne peut pas être retrouvé. Utilisez « Réinitialiser » pour en générer un nouveau.</div>
+  `, `
+    <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>
+    ${canCreateUsers() && u.role!=='superadmin'?`<button class="btn btn-primary" onclick="closeModal();userResetPassword('${String(username).replace(/'/g,"\\'")}')">🔑 Réinitialiser</button>`:''}
+  `);
+}
+
+async function userResetPassword(username){
+  const u = (state.users||[]).find(x=>x.username===username);
+  const directorOwnAdjoint = !!(state.user && state.user.role==='directeur' && u && u.role==='instituteur' && u.createdBy===state.user.username && u.ecole===state.user.ecole);
+  if(!canCreateUsers() && !directorOwnAdjoint){ toast('Action réservée aux administrateurs ou au Directeur pour ses adjoints.','error'); return; }
+  if(!u || !canSeeUser(u)){ toast('Compte hors de votre périmètre.','error'); return; }
+  if(u.role==='superadmin'){ toast('Le compte super administrateur est protégé.','info'); return; }
+  const np = prompt('Nouveau mot de passe pour « '+(u.name||username)+' » :');
+  if(np===null) return;
+  const pwd = String(np).trim();
+  if(pwd.length < 4){ toast('Mot de passe trop court (minimum 4 caractères).','error'); return; }
+  try{
+    u.passwordHash = await hashPassword(pwd);
+    delete u.password;
+    u._upd = Date.now();
+    await save('users', state.users);
+    logAction('user-password-reset','Réinitialisation du mot de passe de '+username);
+    toast('Mot de passe réinitialisé et synchronisé : '+username+' ✅','success');
+    if(document.getElementById('us-body')) renderUsersBody();
+    if(document.getElementById('cc-body')) renderComptesBody();
+    /* Affiche les nouveaux identifiants à l'administrateur qui vient de les générer. */
+    openModal('🔐 Nouveau mot de passe', `
+      <div class="card" style="padding:18px;background:var(--bg)">
+        <div class="field"><label>Identifiant</label><input value="${escapeHtml(username)}" readonly></div>
+        <div class="field"><label>Nouveau mot de passe</label><input value="${escapeHtml(pwd)}" readonly></div>
+        <p class="text-xs text-muted" style="margin-top:8px">Notez ces informations : le mot de passe est ensuite stocké sous forme protégée.</p>
+      </div>
+    `, `<button class="btn btn-primary" onclick="closeModal()">Fermer</button>`);
+  }catch(e){
+    toast('Échec de la réinitialisation : '+(e.message||e),'error');
+  }
+}
+
 function userTelEdit(username) {
   const u = state.users.find(x=>x.username===username); if (!u) return;
   if (!canSeeUser(u)) { toast('Compte hors de votre circonscription.', 'error'); return; }
@@ -6388,7 +6460,9 @@ async function userSave(username) {
 }
 function userDelete(username) {
   const u = state.users.find(x=>x.username===username);
+  const directorOwnAdjoint = !!(state.user && state.user.role==='directeur' && u && u.role==='instituteur' && u.createdBy===state.user.username && u.ecole===state.user.ecole);
   if (!u || !canSeeUser(u)) { toast('Compte hors de votre circonscription.', 'error'); return; }
+  if (!canCreateUsers() && !directorOwnAdjoint) { toast('Suppression réservée aux administrateurs ou au Directeur pour ses adjoints.', 'error'); return; }
   if (!confirm(`Supprimer le compte "${username}" ?\n(Récupérable depuis la Corbeille)`)) return;
   trashItemUser(u);
   state.users = state.users.filter(x=>x.username!==username);
@@ -6422,7 +6496,9 @@ const COMPTES_CATEGORIES = [
   { role:'smoss',       icon:'⚕️', desc:'Santé scolaire — suivi médico-social' },
   { role:'cantine',     icon:'🍽️', desc:'Cantine scolaire — repas et stocks' },
   { role:'coges',       icon:'🤝', desc:'Comité de gestion de l\'établissement' },
-  { role:'alphabetisation', icon:'🔤', desc:'Conseiller Alphabétisation — centres, auditeurs, structures islamiques' },
+  { role:'alphabetisation', icon:'🔤', desc:'Conseiller Alphabétisation — centres, auditeurs, activités' },
+  { role:'alpha',         icon:'🔤', desc:'Profil Alphabétisation — centres et apprenants' },
+  { role:'islam',         icon:'🕌', desc:'Profil Structures islamiques — structures et apprenants' },
   { role:'autres',      icon:'➕', desc:'Profil personnalisé / fonction non listée' },
 ];
 
@@ -6521,9 +6597,11 @@ function renderComptesBody() {
       <td><span class="badge badge-${ROLES[u.role]?.color||'grey'}">${ROLES[u.role]?.short||escapeHtml(u.role)}</span></td>
       <td class="text-sm">${escapeHtml(u.email||'—')}</td>
       <td class="text-sm">${escapeHtml(u.iepp||'—')}${u.ecole?'<br><span class="text-xs text-muted">'+escapeHtml(u.ecole)+'</span>':''}</td>
-      <td class="actions-cell">
-        ${userToggleBtn(u)}
+      <td class="actions-cell" style="white-space:nowrap">
+        <button class="icon-btn" onclick="userView('${u.username}')" title="Voir le compte">👁️</button>
         <button class="icon-btn" onclick="userForm('${u.username}')" title="Modifier">✏️</button>
+        <button class="icon-btn" onclick="userResetPassword('${u.username}')" title="Réinitialiser le mot de passe">🔑</button>
+        ${userToggleBtn(u)}
         ${u.username !== state.user.username ? `<button class="icon-btn danger" onclick="userDelete('${u.username}')" title="Supprimer">🗑️</button>` : ''}
       </td>
     </tr>
@@ -25856,6 +25934,20 @@ function renderMonEcole() {
   });
   const classesOrder = ['MPS','MMS','MGS','CP1','CP2','CE1','CE2','CM1','CM2','NON-AFFECTE'];
   const classesList = Object.values(classes).sort((a,b) => classesOrder.indexOf(a.niveau) - classesOrder.indexOf(b.niveau));
+  const adjointAccounts = state.users.filter(x => x.role==='instituteur' && x.ecole===monEcole && x.createdByRole==='directeur' && x.createdBy===u.username);
+  const adjointRows = adjointAccounts.length ? adjointAccounts.map(a => `
+    <tr>
+      <td class="fw-7">${escapeHtml(a.name||'')}</td>
+      <td><span class="badge badge-grey">${escapeHtml(a.username||'')}</span></td>
+      <td>${escapeHtml(a.classe||'—')}</td>
+      <td>${userStatutBadge(a)}</td>
+      <td class="actions-cell" style="white-space:nowrap">
+        <button class="icon-btn" onclick="userView('${a.username}')" title="Voir le compte">👁️</button>
+        <button class="icon-btn" onclick="meAdjointAccountEdit('${a.username}')" title="Modifier">✏️</button>
+        <button class="icon-btn" onclick="userResetPassword('${a.username}')" title="Réinitialiser">🔑</button>
+        <button class="icon-btn danger" onclick="userDelete('${a.username}')" title="Supprimer">🗑️</button>
+      </td>
+    </tr>`).join('') : '<tr><td colspan="5" class="table-empty">Aucun compte d’adjoint créé par ce Directeur.</td></tr>';
 
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,var(--orange) 0%,var(--orange-deep) 100%)">
@@ -25914,6 +26006,22 @@ function renderMonEcole() {
               <td></td>
             </tr>
           </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="padding:18px;margin-bottom:14px;border-left:4px solid var(--orange)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap">
+        <div>
+          <div style="font-family:'Fraunces',serif;font-size:17px;font-weight:700">👥 Comptes des adjoints de l'école</div>
+          <div class="text-xs text-muted">Le Directeur peut créer et gérer jusqu'à 6 comptes d'adjoints affectés à ${escapeHtml(monEcole||'son école')}.</div>
+        </div>
+        <button class="btn btn-orange btn-sm" onclick="meAdjointAccountForm()">➕ Ajouter un adjoint</button>
+      </div>
+      <div class="table-wrap" style="border:none">
+        <table>
+          <thead><tr><th>Nom</th><th>Identifiant</th><th>Classe</th><th>État</th><th>Actions</th></tr></thead>
+          <tbody>${adjointRows}</tbody>
         </table>
       </div>
     </div>
@@ -26029,6 +26137,65 @@ function meRejeterAbs(id) {
   logAction('reject-abs', `Directeur a rejeté l'absence de ${a.demandeur}`);
   toast('Demande rejetée','success');
   renderMonEcole();
+}
+
+function meAdjointAccountForm(username){
+  const me = state.user;
+  if(!me || me.role!=='directeur'){ toast('Accès réservé au Directeur de l’école.','error'); return; }
+  const existing = username ? state.users.find(x=>x.username===username) : null;
+  if(existing && (!canSeeUser(existing) || existing.createdBy!==me.username)){ toast('Compte hors de votre périmètre.','error'); return; }
+  const mine = state.users.filter(x=>x.role==='instituteur' && x.ecole===me.ecole && x.createdByRole==='directeur' && x.createdBy===me.username);
+  if(!existing && mine.length>=6){ toast('Maximum de 6 comptes d’adjoints atteint pour cette école.','info'); return; }
+  const u = existing || {username:'',name:'',email:'',classe:'',tel:'',actif:true,ecole:me.ecole,iepp:me.iepp,drenaet:me.drenaet};
+  openModal(existing?'Modifier le compte adjoint':'Créer le compte d’un adjoint', `
+    <div class="form-row">
+      <div class="field"><label>Identifiant *</label><input id="adj-user" value="${escapeHtml(u.username||'')}" ${existing?'readonly':''} placeholder="ex. adjoint1"></div>
+      <div class="field"><label>Mot de passe ${existing?'(laisser vide = inchangé)':'*'}</label><input id="adj-pass" type="password" autocomplete="new-password"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Nom complet *</label><input id="adj-name" value="${escapeHtml(u.name||'')}"></div>
+      <div class="field"><label>Classe / niveau *</label><select id="adj-classe">${['CP1','CP2','CE1','CE2','CM1','CM2'].map(n=>`<option value="${n}" ${u.classe===n?'selected':''}>${n}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Téléphone</label><input id="adj-tel" value="${escapeHtml(u.tel||'')}"></div>
+      <div class="field"><label>Email</label><input id="adj-email" type="email" value="${escapeHtml(u.email||'')}"></div>
+    </div>
+    <div class="text-xs text-muted">École : <strong>${escapeHtml(me.ecole||'—')}</strong> · IEPP : <strong>${escapeHtml(me.iepp||'—')}</strong> · ${mine.length}/6 comptes utilisés.</div>
+  `, `
+    <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-orange" onclick="meAdjointAccountSave('${existing?String(username).replace(/'/g,"\\'"):''}')">Enregistrer</button>
+  `);
+}
+function meAdjointAccountEdit(username){ meAdjointAccountForm(username); }
+async function meAdjointAccountSave(username){
+  const me=state.user;
+  if(!me || me.role!=='directeur'){ toast('Accès réservé au Directeur.','error'); return; }
+  const login=(document.getElementById('adj-user')?.value||'').trim().toLowerCase().replace(/[^a-z0-9._-]/g,'');
+  const name=(document.getElementById('adj-name')?.value||'').trim();
+  const classe=(document.getElementById('adj-classe')?.value||'').trim();
+  const pass=(document.getElementById('adj-pass')?.value||'').trim();
+  if(!login || !name || !classe){ toast('Identifiant, nom et classe sont obligatoires.','error'); return; }
+  const existing=username ? state.users.find(x=>x.username===username) : null;
+  if(existing && (existing.createdBy!==me.username || !canSeeUser(existing))){ toast('Compte hors de votre périmètre.','error'); return; }
+  if(!existing && state.users.some(x=>x.username===login)){ toast('Cet identifiant est déjà utilisé.','error'); return; }
+  if(!existing && !pass){ toast('Le mot de passe est obligatoire à la création.','error'); return; }
+  if(pass && pass.length<4){ toast('Mot de passe trop court (minimum 4 caractères).','error'); return; }
+  let u=existing;
+  if(!u){
+    u={username:login,passwordHash:await hashPassword(pass),name,role:'instituteur',email:(document.getElementById('adj-email')?.value||'').trim(),iepp:me.iepp||'',drenaet:me.drenaet||'',ecole:me.ecole||'',classe,tel:(document.getElementById('adj-tel')?.value||'').trim(),contact:(document.getElementById('adj-tel')?.value||'').trim(),actif:true,createdBy:me.username,createdByRole:'directeur',_upd:Date.now()};
+    state.users.push(u);
+  }else{
+    u.name=name; u.classe=classe; u.email=(document.getElementById('adj-email')?.value||'').trim(); u.tel=(document.getElementById('adj-tel')?.value||'').trim(); u.contact=u.tel; u.ecole=me.ecole||u.ecole; u.iepp=me.iepp||u.iepp; u.drenaet=me.drenaet||u.drenaet; u.role='instituteur'; u._upd=Date.now();
+    if(pass) u.passwordHash=await hashPassword(pass);
+    delete u.password;
+  }
+  try{
+    await save('users',state.users);
+    closeModal();
+    renderMonEcole();
+    toast(existing?'Compte adjoint mis à jour ✅':'Compte adjoint créé et synchronisé ✅','success');
+    if(!existing) userView(login);
+  }catch(e){ toast('Erreur lors de l’enregistrement : '+(e.message||e),'error'); }
 }
 
 function mePersoForm(id) {
@@ -32377,6 +32544,643 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
     try{ new MutationObserver(schedule).observe(document.body, {childList:true, subtree:true, characterData:true}); }catch(e){}
   }
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+</script>
+
+<script>
+/* =====================================================================
+   PATCH COMPTES UTILISATEURS — profils hérités + gestion Directeur
+   Ce bloc complète le fichier existant sans supprimer les données/modules.
+   ===================================================================== */
+(function(){
+  'use strict';
+
+  function roleInfo(role){
+    var r = (typeof ROLES!=='undefined' && ROLES[role]) ? ROLES[role] : null;
+    return r || {label: role || 'Profil inconnu', short: role || 'Profil inconnu', color:'grey'};
+  }
+  window.ieppRoleInfo = roleInfo;
+
+  function isDirector(){ return !!(window.state && state.user && state.user.role==='directeur'); }
+  function directorCanManage(u){
+    if(!isDirector() || !u) return false;
+    return u.role==='instituteur'
+      && String(u.iepp||'')===String(state.user.iepp||'')
+      && String(u.ecole||'')===String(state.user.ecole||'');
+  }
+  window.directorCanManageUser = directorCanManage;
+
+  /* Les comptes hérités alpha/islam sont reconnus même s'ils viennent d'une
+     ancienne version. Les profils futurs restent affichables. */
+  try{
+    if(typeof ROLES==='object'){
+      if(!ROLES.alpha) ROLES.alpha={label:'Alphabétisation',short:'Alphabétisation',color:'purple'};
+      if(!ROLES.islam) ROLES.islam={label:'Structures islamiques',short:'Structures islamiques',color:'green'};
+    }
+    if(typeof ACL==='object'){
+      if(!ACL.alpha) ACL.alpha=['dashboard','alpha','courrier'];
+      if(!ACL.islam) ACL.islam=['dashboard','islam','courrier'];
+      if(!ACL.directeur) ACL.directeur=['dashboard','mon-ecole','users'];
+      if(ACL.directeur.indexOf('users')<0) ACL.directeur.push('users');
+      if(ACL.directeur.indexOf('courrier')<0) ACL.directeur.push('courrier');
+    }
+  }catch(e){}
+
+  /* ------------------ VOIR UN COMPTE + IMPRIMER ------------------ */
+  window.printUserAccount = function(username){
+    var u=(state.users||[]).find(function(x){return x.username===username;});
+    if(!u || !canSeeUser(u)){ toast('Compte hors de votre périmètre.','error'); return; }
+    var r=roleInfo(u.role);
+    var pwd=u.password ? String(u.password) : '';
+    var html='<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Fiche compte - '+escapeHtml(u.username||'')+'</title>'+
+      '<style>body{font-family:Arial,sans-serif;margin:35px;color:#222}h1{font-size:20px}table{width:100%;border-collapse:collapse;margin-top:20px}td{border:1px solid #ccc;padding:9px}td:first-child{font-weight:bold;width:30%;background:#f5f5f5}.note{margin-top:18px;font-size:12px;color:#666}</style></head><body>'+
+      '<h1>Fiche de compte utilisateur</h1><table>'+ 
+      '<tr><td>Identifiant</td><td>'+escapeHtml(u.username||'')+'</td></tr>'+ 
+      '<tr><td>Nom complet</td><td>'+escapeHtml(u.name||'')+'</td></tr>'+ 
+      '<tr><td>Profil</td><td>'+escapeHtml(r.label)+'</td></tr>'+ 
+      '<tr><td>DRENAET</td><td>'+escapeHtml(u.drenaet||'—')+'</td></tr>'+ 
+      '<tr><td>IEPP</td><td>'+escapeHtml(u.iepp||'—')+'</td></tr>'+ 
+      '<tr><td>École</td><td>'+escapeHtml(u.ecole||'—')+'</td></tr>'+ 
+      '<tr><td>Classe</td><td>'+escapeHtml(u.classe||'—')+'</td></tr>'+ 
+      '<tr><td>Téléphone</td><td>'+escapeHtml(u.tel||u.contact||'—')+'</td></tr>'+ 
+      '<tr><td>État</td><td>'+escapeHtml(typeof userStatutInfo==='function'?userStatutInfo(u).label:(u.actif===false?'Désactivé':'Actif'))+'</td></tr>'+ 
+      '<tr><td>Mot de passe</td><td>'+escapeHtml(pwd||'Mot de passe protégé — réinitialiser pour en définir un nouveau')+'</td></tr>'+ 
+      '</table><div class="note">Document généré depuis la plateforme IEPP.</div></body></html>';
+    var w=window.open('','_blank','width=900,height=700');
+    if(!w){ toast('Autorisez les fenêtres contextuelles pour imprimer la fiche.','error'); return; }
+    w.document.open(); w.document.write(html); w.document.close();
+    setTimeout(function(){try{w.print();}catch(e){}},350);
+  };
+
+  window.toggleUserPassword = function(){
+    var input=document.getElementById('user-view-password');
+    var btn=document.getElementById('user-view-password-toggle');
+    if(!input) return;
+    if(input.type==='password'){ input.type='text'; if(btn) btn.textContent='🙈 Masquer'; }
+    else { input.type='password'; if(btn) btn.textContent='👁️ Afficher'; }
+  };
+
+  window.userView = function(username){
+    var u=(state.users||[]).find(function(x){return x.username===username;});
+    if(!u || !canSeeUser(u)){ toast('Compte hors de votre périmètre.','error'); return; }
+    if(isDirector() && !directorCanManage(u)){ toast('Le Directeur ne peut consulter que les instituteurs de son école.','error'); return; }
+    var r=roleInfo(u.role);
+    var st=(typeof userStatutInfo==='function')?userStatutInfo(u):{label:u.actif===false?'Désactivé':'Actif'};
+    var hasPwd=!!u.password;
+    var pwd=hasPwd?String(u.password):'';
+    var canManage=!isDirector() || directorCanManage(u);
+    openModal('👁️ Compte utilisateur',
+      '<div class="card" style="padding:14px;background:var(--bg);margin-bottom:10px">'+
+      '<div class="form-row"><div class="field"><label>Identifiant</label><input value="'+escapeHtml(u.username||'')+'" readonly></div>'+ 
+      '<div class="field"><label>Mot de passe</label><div style="display:flex;gap:6px"><input id="user-view-password" type="password" value="'+escapeHtml(hasPwd?pwd:'Mot de passe protégé — non récupérable')+'" readonly style="flex:1">'+
+      (hasPwd?'<button id="user-view-password-toggle" type="button" class="btn btn-ghost" onclick="toggleUserPassword()">👁️ Afficher</button>':'')+'</div></div></div>'+ 
+      '<div class="form-row"><div class="field"><label>Nom complet</label><input value="'+escapeHtml(u.name||'')+'" readonly></div>'+ 
+      '<div class="field"><label>Profil</label><input value="'+escapeHtml(r.label)+'" readonly></div></div>'+ 
+      '<div class="form-row"><div class="field"><label>DRENAET</label><input value="'+escapeHtml(u.drenaet||'—')+'" readonly></div>'+ 
+      '<div class="field"><label>IEPP</label><input value="'+escapeHtml(u.iepp||'—')+'" readonly></div></div>'+ 
+      '<div class="form-row"><div class="field"><label>École</label><input value="'+escapeHtml(u.ecole||'—')+'" readonly></div>'+ 
+      '<div class="field"><label>Classe</label><input value="'+escapeHtml(u.classe||'—')+'" readonly></div></div>'+ 
+      '<div class="form-row"><div class="field"><label>Téléphone</label><input value="'+escapeHtml(u.tel||u.contact||'—')+'" readonly></div>'+ 
+      '<div class="field"><label>État</label><input value="'+escapeHtml(st.label)+'" readonly></div></div></div>'+ 
+      '<div class="text-xs text-muted">'+(hasPwd?'Le mot de passe affiché a été fixé ou réinitialisé par un administrateur et est conservé pour consultation administrateur.':'Le mot de passe est protégé et ne peut pas être récupéré. Utilisez 🔑 Réinitialiser.')+'</div>',
+      '<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>'+ 
+      (canManage && u.role!=='superadmin'?'<button class="btn btn-ghost" onclick="closeModal();printUserAccount(\''+String(username).replace(/'/g,"\\'")+'\')">🖨️ Imprimer</button>':'')+
+      (canManage && u.role!=='superadmin'?'<button class="btn btn-primary" onclick="closeModal();userResetPassword(\''+String(username).replace(/'/g,"\\'")+'\')">🔑 Réinitialiser</button>':'')
+    );
+  };
+
+  /* ------------------ FORMULAIRE DIRECTEUR ------------------ */
+  var _oldUserForm=window.userForm;
+  window.userForm=function(username,presetRole){
+    var existing=username ? (state.users||[]).find(function(x){return x.username===username;}) : null;
+    if(isDirector()){
+      if(existing && !directorCanManage(existing)){ toast('Le Directeur ne peut gérer que les instituteurs de son école.','error'); return; }
+      if(!existing && String(presetRole||'instituteur')!=='instituteur'){ presetRole='instituteur'; }
+      var u=existing||{username:'',passwordHash:'',name:'',role:'instituteur',email:'',iepp:state.user.iepp||'',drenaet:state.user.drenaet||'',ecole:state.user.ecole||'',actif:true};
+      openModal(username?'Modifier l’instituteur':'➕ Nouveau compte instituteur',
+        '<div class="form-row"><div class="field"><label>Identifiant *</label><input id="u-user" value="'+escapeHtml(u.username||'')+'" '+(username?'readonly':'')+'></div>'+ 
+        '<div class="field"><label>Mot de passe *</label><input id="u-pass" type="password" autocomplete="new-password" placeholder="Mot de passe"></div></div>'+ 
+        '<div class="field"><label>Nom complet *</label><input id="u-name" value="'+escapeHtml(u.name||'')+'"></div>'+ 
+        '<div class="form-row"><div class="field"><label>Profil</label><input value="Instituteur" readonly><input type="hidden" id="u-role" value="instituteur"></div>'+ 
+        '<div class="field"><label>Classe / Niveau *</label><select id="u-classe">'+
+        '<option value="">— Sélectionner —</option>'+['CP1','CP2','CE1','CE2','CM1','CM2'].map(function(n){return '<option value="'+n+'" '+(u.classe===n?'selected':'')+'>'+n+'</option>';}).join('')+'</select></div></div>'+ 
+        '<div class="form-row"><div class="field"><label>IEPP</label><input id="u-iepp" value="'+escapeHtml(state.user.iepp||'')+'" readonly></div>'+ 
+        '<div class="field"><label>École</label><input id="u-ecole" value="'+escapeHtml(state.user.ecole||'')+'" readonly></div></div>'+ 
+        '<div class="form-row"><div class="field"><label>DRENAET</label><input id="u-drenaet" value="'+escapeHtml(state.user.drenaet||'')+'" readonly></div>'+ 
+        '<div class="field"><label>Téléphone</label><input id="u-tel" value="'+escapeHtml(u.tel||u.contact||'')+'"></div></div>'+ 
+        '<input type="hidden" id="u-email" value="'+escapeHtml(u.email||'')+'"><input type="hidden" id="u-actif" value="1"><input type="hidden" id="u-debut" value="'+escapeHtml(u.debut||'')+'"><input type="hidden" id="u-fin" value="'+escapeHtml(u.fin||'')+'">'+
+        '<p class="text-xs text-muted">🔒 Le compte sera automatiquement rattaché à votre école. Le Directeur ne peut gérer que les instituteurs de cette école.</p>',
+        '<button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="userSave(\''+String(username||'').replace(/'/g,"\\'")+'\')">Enregistrer</button>'
+      );
+      return;
+    }
+    if(typeof _oldUserForm==='function') return _oldUserForm(username,presetRole);
+  };
+
+  /* ------------------ ENREGISTREMENT : garde Directeur + mot de passe visible admin ------------------ */
+  var _oldUserSave=window.userSave;
+  window.userSave=async function(username){
+    var director=isDirector();
+    if(director){
+      var existing=username ? (state.users||[]).find(function(x){return x.username===username;}) : null;
+      if(existing && !directorCanManage(existing)){ toast('Le Directeur ne peut gérer que les instituteurs de son école.','error'); return; }
+      if(!existing){
+        var count=(state.users||[]).filter(function(x){return x.role==='instituteur' && String(x.iepp||'')===String(state.user.iepp||'') && String(x.ecole||'')===String(state.user.ecole||'');}).length;
+        /* Pas de limite artificielle ici : le Directeur peut gérer tous les instituteurs de son école. */
+        void count;
+      }
+      document.getElementById('u-role').value='instituteur';
+      document.getElementById('u-iepp').value=state.user.iepp||'';
+      document.getElementById('u-ecole').value=state.user.ecole||'';
+      document.getElementById('u-drenaet').value=state.user.drenaet||'';
+    }
+    var pwdEl=document.getElementById('u-pass');
+    var pwd=pwdEl ? String(pwdEl.value||'') : '';
+    var loginBefore=((document.getElementById('u-user')?.value||username||'')).trim();
+    if(director && !username && pwd.length<4){ toast('Mot de passe obligatoire (minimum 4 caractères).','error'); return; }
+    await _oldUserSave(username);
+    var login=(loginBefore||username||'').trim();
+    var u=(state.users||[]).find(function(x){return x.username===login;});
+    if(u && pwd){
+      /* Conserve le mot de passe défini par l'administrateur pour la fiche compte. */
+      u.password=pwd; u._upd=Date.now();
+      await save('users',state.users);
+    }
+    if(director && u){
+      u.role='instituteur'; u.iepp=state.user.iepp||''; u.drenaet=state.user.drenaet||''; u.ecole=state.user.ecole||''; u.createdBy=state.user.username;
+      u._upd=Date.now(); await save('users',state.users);
+    }
+  };
+
+  /* ------------------ RÉINITIALISATION : génération ou saisie manuelle ------------------ */
+  var _oldReset=window.userResetPassword;
+  window.userResetPassword=async function(username){
+    var u=(state.users||[]).find(function(x){return x.username===username;});
+    if(!u || !canSeeUser(u)){ toast('Compte hors de votre périmètre.','error'); return; }
+    if(isDirector() && !directorCanManage(u)){ toast('Le Directeur ne peut réinitialiser que les instituteurs de son école.','error'); return; }
+    if(!isDirector() && typeof canCreateUsers==='function' && !canCreateUsers()){ toast('Action réservée aux administrateurs.','error'); return; }
+    if(u.role==='superadmin'){ toast('Le compte super administrateur est protégé.','info'); return; }
+    var generated=Math.random().toString(36).slice(2,6).toUpperCase()+'@'+Math.random().toString(36).slice(2,6).toLowerCase();
+    openModal('🔑 Réinitialiser le mot de passe',
+      '<p class="text-sm">Compte : <strong>'+escapeHtml(u.name||username)+'</strong> ('+escapeHtml(username)+')</p>'+ 
+      '<div class="field"><label>Nouveau mot de passe</label><div style="display:flex;gap:7px"><input id="reset-user-password" value="'+generated+'" style="flex:1"><button class="btn btn-ghost" type="button" onclick="document.getElementById(\'reset-user-password\').value=Math.random().toString(36).slice(2,7).toUpperCase()+\'@\'+Math.random().toString(36).slice(2,7).toLowerCase()">🎲 Générer</button></div></div>'+ 
+      '<p class="text-xs text-muted">Le mot de passe doit comporter au moins 4 caractères.</p>',
+      '<button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="applyUserPasswordReset(\''+String(username).replace(/'/g,"\\'")+'\')">Enregistrer</button>'
+    );
+  };
+  window.applyUserPasswordReset=async function(username){
+    var u=(state.users||[]).find(function(x){return x.username===username;});
+    if(!u || !canSeeUser(u)) return;
+    if(isDirector() && !directorCanManage(u)){ toast('Action non autorisée.','error'); return; }
+    var pwd=String(document.getElementById('reset-user-password')?.value||'').trim();
+    if(pwd.length<4){ toast('Mot de passe trop court (minimum 4 caractères).','error'); return; }
+    try{
+      u.passwordHash=await hashPassword(pwd); u.password=pwd; u._upd=Date.now();
+      await save('users',state.users); logAction('user-password-reset','Réinitialisation du mot de passe de '+username);
+      closeModal(); toast('Mot de passe réinitialisé et synchronisé : '+username+' ✅','success');
+      if(document.getElementById('us-body')) renderUsersBody(); if(document.getElementById('cc-body')) renderComptesBody();
+      openModal('🔐 Nouveau mot de passe', '<div class="card" style="padding:18px;background:var(--bg)"><div class="field"><label>Identifiant</label><input value="'+escapeHtml(username)+'" readonly></div><div class="field"><label>Nouveau mot de passe</label><input value="'+escapeHtml(pwd)+'" readonly></div><p class="text-xs text-muted">Conseil : l’utilisateur devrait changer ce mot de passe après sa première connexion.</p></div>', '<button class="btn btn-primary" onclick="closeModal()">Fermer</button>');
+    }catch(e){ toast('Échec de la réinitialisation : '+(e.message||e),'error'); }
+  };
+
+  /* ------------------ SUPPRESSION / ACTIVATION / TÉLÉPHONE : garde Directeur ------------------ */
+  var _oldDelete=window.userDelete;
+  window.userDelete=function(username){
+    var u=(state.users||[]).find(function(x){return x.username===username;});
+    if(isDirector() && !directorCanManage(u)){ toast('Le Directeur ne peut supprimer que les instituteurs de son école.','error'); return; }
+    return _oldDelete(username);
+  };
+  var _oldToggle=window.userSetActif;
+  window.userSetActif=function(username,actif){
+    var u=(state.users||[]).find(function(x){return x.username===username;});
+    if(isDirector() && !directorCanManage(u)){ toast('Le Directeur ne peut activer/désactiver que les instituteurs de son école.','error'); return; }
+    return _oldToggle(username,actif);
+  };
+  var _oldTelEdit=window.userTelEdit;
+  window.userTelEdit=function(username){
+    var u=(state.users||[]).find(function(x){return x.username===username;});
+    if(isDirector() && !directorCanManage(u)){ toast('Le Directeur ne peut modifier que les instituteurs de son école.','error'); return; }
+    return _oldTelEdit(username);
+  };
+
+  /* ------------------ TABLEAUX : aucun profil inconnu ne doit bloquer ------------------ */
+  window.renderUsersBody=function(){
+    var tb=document.getElementById('us-body'); if(!tb) return;
+    var q=(document.getElementById('us-search')?.value||'').toLowerCase();
+    var list=usersInScope().filter(function(u){
+      return String(u.username||'').toLowerCase().includes(q)||String(u.name||'').toLowerCase().includes(q)||String(u.email||'').toLowerCase().includes(q);
+    });
+    if(!list.length){tb.innerHTML='<tr><td colspan="7" class="table-empty">Aucun compte</td></tr>';return;}
+    tb.innerHTML=list.map(function(u){
+      var r=roleInfo(u.role); var canManage=!isDirector()||directorCanManage(u);
+      var canActions=(typeof canCreateUsers==='function'&&canCreateUsers()&&canManage);
+      var esc=String(u.username||'').replace(/'/g,"\\'");
+      return '<tr><td><span class="badge badge-grey">'+escapeHtml(u.username||'')+'</span></td>'+ 
+        '<td class="fw-7">'+escapeHtml(u.name||'')+(canActions?userStatutBadge(u):'')+'</td>'+ 
+        '<td><span class="badge badge-'+escapeHtml(r.color)+'">'+escapeHtml(r.short)+'</span></td>'+ 
+        '<td class="text-sm">'+escapeHtml(u.email||'—')+'</td>'+ 
+        '<td class="text-sm">'+escapeHtml(u.iepp||'—')+(u.ecole?'<br><span class="text-xs text-muted">'+escapeHtml(u.ecole)+'</span>':'')+'</td>'+ 
+        '<td class="text-sm">'+(u.tel||u.contact?escapeHtml(u.tel||u.contact):'<span class="text-muted text-xs">—</span>')+(canActions?'<button class="icon-btn" style="margin-left:4px" onclick="userTelEdit(\''+esc+'\')" title="Téléphone">📞</button>':'')+'</td>'+ 
+        '<td class="actions-cell" style="white-space:nowrap"><button class="icon-btn" onclick="userView(\''+esc+'\')" title="Voir le compte">👁️</button>'+ 
+        (canActions?'<button class="icon-btn" onclick="userForm(\''+esc+'\')" title="Modifier">✏️</button><button class="icon-btn" onclick="userResetPassword(\''+esc+'\')" title="Réinitialiser le mot de passe">🔑</button>'+((typeof userToggleBtn==='function')?userToggleBtn(u):'')+(u.username!==state.user.username?'<button class="icon-btn danger" onclick="userDelete(\''+esc+'\')" title="Supprimer">🗑️</button>':''):'')+'</td></tr>';
+    }).join('');
+  };
+
+  window.renderComptesBody=function(){
+    var tb=document.getElementById('cc-body'); if(!tb) return;
+    var q=(document.getElementById('cc-search')?.value||'').toLowerCase(); var f=document.getElementById('cc-filter')?.value||'';
+    var list=usersInScope().filter(function(u){return (!f||u.role===f)&&(String(u.username||'').toLowerCase().includes(q)||String(u.name||'').toLowerCase().includes(q)||String(u.email||'').toLowerCase().includes(q));});
+    if(!list.length){tb.innerHTML='<tr><td colspan="6" class="table-empty">Aucun compte pour ce filtre</td></tr>';return;}
+    tb.innerHTML=list.map(function(u){var r=roleInfo(u.role);var esc=String(u.username||'').replace(/'/g,"\\'");return '<tr><td><span class="badge badge-grey">'+escapeHtml(u.username||'')+'</span></td><td class="fw-7">'+escapeHtml(u.name||'')+'</td><td><span class="badge badge-'+escapeHtml(r.color)+'">'+escapeHtml(r.short)+'</span></td><td class="text-sm">'+escapeHtml(u.email||'—')+'</td><td class="text-sm">'+escapeHtml(u.iepp||'—')+(u.ecole?'<br><span class="text-xs text-muted">'+escapeHtml(u.ecole)+'</span>':'')+'</td><td class="actions-cell" style="white-space:nowrap"><button class="icon-btn" onclick="userView(\''+esc+'\')" title="Voir">👁️</button>'+((!isDirector()||directorCanManage(u))&&typeof canCreateUsers==='function'&&canCreateUsers()?'<button class="icon-btn" onclick="userForm(\''+esc+'\')" title="Modifier">✏️</button><button class="icon-btn" onclick="userResetPassword(\''+esc+'\')" title="Réinitialiser">🔑</button><button class="icon-btn danger" onclick="userDelete(\''+esc+'\')" title="Supprimer">🗑️</button>':'')+'</td></tr>';}).join('');
+  };
+
+  /* Pour le Directeur, la liste elle-même est limitée aux instituteurs de son école. */
+  window.usersInScope=function(){
+    var arr=(state.users||[]).filter(canSeeUser);
+    return isDirector() ? arr.filter(directorCanManage) : arr;
+  };
+
+  /* Rafraîchissement cloud conservé : on réaffiche toujours après synchronisation. */
+  try{
+    if(typeof window.__cloudFetchUsers==='function'){
+      window.__cloudFetchUsers().then(function(ok){ if(ok){ try{renderUsersBody();renderComptesBody();}catch(e){} } });
+    }
+  }catch(e){}
+})();
+</script>
+<script id="iepp-superadmin-total-control">
+/* =====================================================================
+   SUPER ADMINISTRATEUR — CONTRÔLE TOTAL / RÉCUPÉRATION DES COMPTES
+   - Accès à tous les modules et à tous les rôles
+   - Attribution de n'importe quel rôle existant
+   - Récupération des comptes initiaux manquants
+   - Restauration des comptes utilisateurs placés en corbeille
+   - Suppression/restauration protégée contre les tombstones cloud
+   ===================================================================== */
+(function(){
+  'use strict';
+  function isSuper(){ return !!(window.state && state.user && state.user.role==='superadmin'); }
+  function esc(v){ return typeof escapeHtml==='function' ? escapeHtml(v==null?'':String(v)) : String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function safeSaveUsers(){
+    try { return Promise.resolve(save('users', state.users)); } catch(e){ return Promise.reject(e); }
+  }
+  function clearUserTombstone(username){
+    try{
+      var d=usersDelNorm(load('usersDeleted',[])).filter(function(t){return String(t.u)!==String(username);});
+      save('usersDeleted',d);
+    }catch(e){}
+  }
+  function roleLabel(role){
+    try { return (ROLES[role]&&ROLES[role].label)||role||'Profil inconnu'; } catch(e){return role||'Profil inconnu';}
+  }
+
+  /* Le Super Administrateur hérite réellement de tous les modules déclarés.
+     Cette union est faite après le chargement de MODULES pour inclure aussi
+     les modules ajoutés plus tard dans le fichier. */
+  function grantAllSuperModules(){
+    try{
+      if(typeof ACL!=='undefined'){
+        var all=[];
+        if(typeof MODULES==='object') all=all.concat(Object.keys(MODULES));
+        if(typeof ALL_SERVICE_MODULES!=='undefined' && Array.isArray(ALL_SERVICE_MODULES)) all=all.concat(ALL_SERVICE_MODULES);
+        if(typeof CORRESPONDANT_MODULES!=='undefined' && Array.isArray(CORRESPONDANT_MODULES)) all=all.concat(CORRESPONDANT_MODULES);
+        all=all.filter(function(v,i,a){return v && a.indexOf(v)===i;});
+        ACL.superadmin=all;
+      }
+    }catch(e){ console.warn('grantAllSuperModules',e); }
+  }
+  grantAllSuperModules();
+
+  /* Toute fonction d'attribution de rôle doit laisser le Super Admin choisir
+     n'importe quel profil déclaré dans ROLES. */
+  window.superadminCanManageAllRoles=function(){ return isSuper(); };
+
+  /* -------- Récupération d'un compte initialisé -------- */
+  window.superadminRecoverInitial=function(username){
+    if(!isSuper()){toast('Réservé au Super Administrateur.','error');return;}
+    var defs=Array.isArray(window.DEFAULT_USERS)?DEFAULT_USERS:[];
+    var def=defs.find(function(x){return String(x.username)===String(username);});
+    if(!def){toast('Compte initial introuvable dans les comptes système.','error');return;}
+    var existing=(state.users||[]).find(function(x){return String(x.username)===String(username);});
+    if(existing){
+      clearUserTombstone(username);
+      toast('Le compte '+username+' existe déjà. La marque de suppression a été levée.','info');
+      try{save('users',state.users);}catch(e){}
+      renderSuperadminRecovery();
+      return;
+    }
+    var restored=JSON.parse(JSON.stringify(def));
+    restored._upd=Date.now();
+    restored.actif=true;
+    state.users=Array.isArray(state.users)?state.users:[];
+    state.users.push(restored);
+    clearUserTombstone(username);
+    safeSaveUsers().then(function(){
+      try{ if(typeof logAction==='function') logAction('user-initial-recover','Récupération du compte initial : '+username); }catch(e){}
+      toast('Compte initial '+username+' récupéré et enregistré.','success');
+      renderSuperadminRecovery();
+      if(document.getElementById('us-body')) renderUsersBody();
+      if(document.getElementById('cc-body')&&typeof renderComptesBody==='function') renderComptesBody();
+    }).catch(function(e){toast('Erreur lors de la récupération : '+(e.message||e),'error');});
+  };
+
+  /* -------- Restauration d'un compte utilisateur supprimé -------- */
+  window.superadminRestoreDeleted=function(trashId){
+    if(!isSuper()){toast('Réservé au Super Administrateur.','error');return;}
+    var tr=(state.corbeille||[]).find(function(x){return x.id===trashId && x.type==='user';});
+    if(!tr || !tr.data || !tr.data.username){toast('Compte supprimé introuvable.','error');return;}
+    var username=String(tr.data.username);
+    var exists=(state.users||[]).find(function(x){return String(x.username)===username;});
+    if(exists){
+      clearUserTombstone(username);
+      state.corbeille=state.corbeille.filter(function(x){return x.id!==trashId;});
+      save('corbeille',state.corbeille);
+      toast('Le compte existait déjà : marque de suppression levée.','info');
+      renderSuperadminRecovery();
+      return;
+    }
+    var u=JSON.parse(JSON.stringify(tr.data));
+    u._upd=Date.now();
+    state.users=Array.isArray(state.users)?state.users:[];
+    state.users.push(u);
+    clearUserTombstone(username);
+    state.corbeille=state.corbeille.filter(function(x){return x.id!==trashId;});
+    try{save('corbeille',state.corbeille);}catch(e){}
+    safeSaveUsers().then(function(){
+      try{if(typeof logAction==='function')logAction('user-restore','Restauration du compte : '+username);}catch(e){}
+      toast('Compte '+username+' restauré et synchronisé.','success');
+      renderSuperadminRecovery();
+      if(document.getElementById('us-body')) renderUsersBody();
+      if(document.getElementById('cc-body')&&typeof renderComptesBody==='function') renderComptesBody();
+    }).catch(function(e){toast('Erreur lors de la restauration : '+(e.message||e),'error');});
+  };
+
+  window.superadminRemoveDeletedEntry=function(trashId){
+    if(!isSuper()){toast('Réservé au Super Administrateur.','error');return;}
+    var tr=(state.corbeille||[]).find(function(x){return x.id===trashId&&x.type==='user';});
+    if(!tr)return;
+    if(!confirm('Supprimer définitivement de la corbeille le compte « '+(tr.data&&tr.data.username||'')+' » ?\nCette action retire uniquement la sauvegarde de restauration.'))return;
+    state.corbeille=state.corbeille.filter(function(x){return x.id!==trashId;});
+    try{save('corbeille',state.corbeille);}catch(e){}
+    try{if(typeof logAction==='function')logAction('user-trash-purge','Purge de la corbeille : '+(tr.data&&tr.data.username||''));}catch(e){}
+    toast('Entrée retirée de la corbeille.','success');
+    renderSuperadminRecovery();
+  };
+
+  function renderSuperadminRecovery(){
+    if(!isSuper())return;
+    var defs=Array.isArray(window.DEFAULT_USERS)?DEFAULT_USERS:[];
+    var users=Array.isArray(state.users)?state.users:[];
+    var initialMissing=defs.filter(function(d){return !users.some(function(u){return String(u.username)===String(d.username);});});
+    var trash=(state.corbeille||[]).filter(function(x){return x&&x.type==='user'&&x.data&&x.data.username;});
+    var body='<div style="max-height:70vh;overflow:auto">';
+    body+='<div class="alert" style="padding:12px;background:#EEF6FF;border-left:4px solid #1D4ED8;border-radius:8px;margin-bottom:14px">👑 <strong>Super Administrateur — récupération des comptes</strong><br><span class="text-sm">Tous les rôles sont administrables. Une récupération lève également la marque de suppression synchronisée afin d’éviter la disparition du compte après synchronisation.</span></div>';
+    body+='<h4 style="margin:12px 0 8px">⚙️ Comptes initiaux manquants ('+initialMissing.length+')</h4>';
+    if(!initialMissing.length) body+='<div class="text-sm text-muted" style="padding:10px">Tous les comptes initiaux sont présents.</div>';
+    else body+='<table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:7px">Compte</th><th style="text-align:left;padding:7px">Rôle</th><th style="padding:7px">Action</th></tr></thead><tbody>'+initialMissing.map(function(d){return '<tr><td style="padding:7px;border-top:1px solid #eee"><strong>'+esc(d.username)+'</strong><br><span class="text-xs text-muted">'+esc(d.name||'')+'</span></td><td style="padding:7px;border-top:1px solid #eee">'+esc(roleLabel(d.role))+'</td><td style="padding:7px;border-top:1px solid #eee;text-align:right"><button class="btn btn-ghost btn-sm" onclick="superadminRecoverInitial(\''+esc(d.username).replace(/'/g,"\\'")+'\')">♻️ Récupérer</button></td></tr>';}).join('')+'</tbody></table>';
+    body+='<h4 style="margin:20px 0 8px">🗑️ Comptes supprimés — corbeille ('+trash.length+')</h4>';
+    if(!trash.length) body+='<div class="text-sm text-muted" style="padding:10px">Aucun compte utilisateur dans la corbeille.</div>';
+    else body+='<table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:7px">Compte</th><th style="text-align:left;padding:7px">Rôle</th><th style="text-align:left;padding:7px">Supprimé le</th><th style="padding:7px">Actions</th></tr></thead><tbody>'+trash.map(function(t){var u=t.data||{};return '<tr><td style="padding:7px;border-top:1px solid #eee"><strong>'+esc(u.username||'')+'</strong><br><span class="text-xs text-muted">'+esc(u.name||'')+'</span></td><td style="padding:7px;border-top:1px solid #eee">'+esc(roleLabel(u.role))+'</td><td style="padding:7px;border-top:1px solid #eee">'+esc(t.deletedAt?new Date(t.deletedAt).toLocaleString('fr-FR'):'—')+'</td><td style="padding:7px;border-top:1px solid #eee;text-align:right;white-space:nowrap"><button class="btn btn-primary btn-sm" onclick="superadminRestoreDeleted(\''+esc(t.id).replace(/'/g,"\\'")+'\')">↩️ Restaurer</button> <button class="icon-btn danger" onclick="superadminRemoveDeletedEntry(\''+esc(t.id).replace(/'/g,"\\'")+'\')" title="Retirer de la corbeille">🗑️</button></td></tr>';}).join('')+'</tbody></table>';
+    body+='</div>';
+    openModal('👑 Super Administrateur — Comptes / récupération',body,'<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
+  }
+  window.renderSuperadminRecovery=renderSuperadminRecovery;
+
+  /* Ajoute le centre de récupération à la page Comptes utilisateurs. */
+  var oldRenderUsers=window.renderUsers;
+  window.renderUsers=function(){
+    oldRenderUsers.apply(this,arguments);
+    if(!isSuper())return;
+    var tb=document.querySelector('#us-search');
+    if(!tb)return;
+    var toolbar=tb.closest('.toolbar');
+    if(toolbar && !document.getElementById('sa-recovery-btn')){
+      var b=document.createElement('button');
+      b.id='sa-recovery-btn'; b.className='btn btn-ghost'; b.innerHTML='♻️ Récupération / Corbeille';
+      b.onclick=renderSuperadminRecovery;
+      toolbar.appendChild(b);
+    }
+    var info=document.createElement('div');
+    info.id='sa-total-rights';
+    info.style='margin:0 0 12px;padding:9px 12px;border-radius:8px;background:#F0FDF4;border:1px solid #BBF7D0;font-size:12px;color:#166534';
+    info.innerHTML='👑 <strong>Super Administrateur :</strong> accès à tous les modules et gestion de tous les profils ('+Object.keys(ROLES||{}).length+' rôles déclarés).';
+    var card=document.querySelector('#us-body')?.closest('.card');
+    if(card && !document.getElementById('sa-total-rights')) card.parentNode.insertBefore(info,card);
+  };
+
+  /* Les tableaux de comptes restent accessibles à tous les profils au Super Admin. */
+  try{ grantAllSuperModules(); if(typeof applyACL==='function') applyACL(); }catch(e){}
+})();
+</script>
+
+<script id="iepp-superadmin-ui-v2">
+/* =====================================================================
+   SUPER ADMIN V2 — formulaire complet + barre d'actions toujours visible
+   - Le Super Administrateur peut modifier l'identifiant des autres comptes.
+   - Il peut définir/réinitialiser directement le mot de passe.
+   - Il voit les 5 actions : 👁️ ✏️ 🔑 ⛔/✅ 🗑️.
+   - Son propre compte reste protégé contre changement d'identifiant/suppression.
+   ===================================================================== */
+(function(){
+  'use strict';
+  function isSuper(){ return !!(window.state && state.user && state.user.role==='superadmin'); }
+  function esc(v){ return typeof escapeHtml==='function' ? escapeHtml(v==null?'':String(v)) : String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function roleInfoSafe(role){
+    try { return (typeof ROLES!=='undefined' && ROLES[role]) || {label:role||'Profil inconnu',short:role||'Profil inconnu',color:'grey'}; }
+    catch(e){ return {label:role||'Profil inconnu',short:role||'Profil inconnu',color:'grey'}; }
+  }
+  function q(v){ return String(v||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+  /* ---------------- FORMULAIRE SUPER ADMIN ---------------- */
+  window.superadminUserForm=function(username){
+    if(!isSuper()){ toast('Réservé au Super Administrateur.','error'); return; }
+    var existing=(state.users||[]).find(function(x){return String(x.username)===String(username);})||null;
+    var me=state.user||{};
+    var u=existing||{username:'',name:'',role:'instituteur',email:'',drenaet:'',iepp:'',ecole:'',classe:'',tel:'',contact:'',actif:true,debut:'',fin:''};
+    var roles=Object.keys(ROLES||{});
+    if(u.role && roles.indexOf(u.role)<0) roles.push(u.role);
+    roles=roles.filter(function(v,i,a){return v&&a.indexOf(v)===i;});
+    var opts=roles.map(function(k){var r=roleInfoSafe(k);return '<option value="'+esc(k)+'" '+(u.role===k?'selected':'')+'>'+esc(r.label||k)+'</option>';}).join('');
+    var self=!!existing && String(existing.username)===String(me.username);
+    openModal(existing?'👑 Modifier le compte — Super Administrateur':'👑 Nouveau compte — Super Administrateur',
+      '<div class="alert" style="padding:10px 12px;margin-bottom:12px;background:#EFF6FF;border-left:4px solid #2563EB;border-radius:8px">👑 <strong>Mode Super Administrateur</strong> — accès complet à tous les profils et toutes les circonscriptions.</div>'+ 
+      '<div class="form-row"><div class="field"><label>Identifiant *</label><input id="sa-u-user" value="'+esc(u.username||'')+'" '+(self?'readonly':'')+' autocomplete="username"></div>'+ 
+      '<div class="field"><label>Mot de passe '+(existing?'(laisser vide = inchangé)':'*')+'</label><input id="sa-u-pass" type="password" value="" autocomplete="new-password" placeholder="'+(existing?'Nouveau mot de passe':'Mot de passe initial')+'"></div></div>'+ 
+      '<div class="form-row"><div class="field"><label>Nom complet *</label><input id="sa-u-name" value="'+esc(u.name||'')+'"></div>'+ 
+      '<div class="field"><label>Profil (rôle) *</label><select id="sa-u-role" onchange="superadminToggleClasse()">'+opts+'</select></div></div>'+ 
+      '<div class="form-row"><div class="field"><label>Email</label><input type="email" id="sa-u-email" value="'+esc(u.email||'')+'"></div>'+ 
+      '<div class="field"><label>Téléphone</label><input id="sa-u-tel" value="'+esc(u.tel||u.contact||'')+'"></div></div>'+ 
+      '<div class="form-row"><div class="field"><label>DRENAET</label><input id="sa-u-drenaet" value="'+esc(u.drenaet||'')+'"></div>'+ 
+      '<div class="field"><label>IEPP</label><input id="sa-u-iepp" value="'+esc(u.iepp||'')+'"></div></div>'+ 
+      '<div class="form-row"><div class="field"><label>École (si applicable)</label><input id="sa-u-ecole" value="'+esc(u.ecole||'')+'"></div>'+ 
+      '<div class="field"><label>Classe / Niveau</label><select id="sa-u-classe">'+['','Petite Section','Moyenne Section','Grande Section','CP1','CP2','CE1','CE2','CM1','CM2'].map(function(n){return '<option value="'+esc(n)+'" '+(u.classe===n?'selected':'')+'>'+esc(n||'— Non applicable —')+'</option>';}).join('')+'</select></div></div>'+ 
+      '<div class="form-row"><div class="field"><label>État du compte</label><select id="sa-u-actif"><option value="1" '+(u.actif!==false?'selected':'')+'>✅ Actif</option><option value="0" '+(u.actif===false?'selected':'')+'>⛔ Désactivé</option></select></div>'+ 
+      '<div class="field"><label>Accès à partir du</label><input type="date" id="sa-u-debut" value="'+esc(u.debut||'')+'"></div></div>'+ 
+      '<div class="form-row"><div class="field"><label>Accès jusqu’au</label><input type="date" id="sa-u-fin" value="'+esc(u.fin||'')+'"></div><div class="field"><label>&nbsp;</label><div class="text-xs text-muted" style="padding-top:9px">Le Super Administrateur peut modifier toutes les affectations.</div></div></div>',
+      '<button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="superadminSaveUser(\''+q(username||'')+'\')">💾 Enregistrer</button>'
+    );
+  };
+  window.superadminToggleClasse=function(){
+    var role=document.getElementById('sa-u-role')?.value;
+    var row=document.getElementById('sa-u-classe');
+    if(row) row.parentElement.style.opacity=(role==='instituteur'||role==='directeur')?'1':'0.65';
+  };
+  window.superadminSaveUser=async function(oldUsername){
+    if(!isSuper()){toast('Réservé au Super Administrateur.','error');return;}
+    var oldU=(state.users||[]).find(function(x){return String(x.username)===String(oldUsername);})||null;
+    var newUsername=String(document.getElementById('sa-u-user')?.value||'').trim();
+    var role=String(document.getElementById('sa-u-role')?.value||'').trim();
+    var name=String(document.getElementById('sa-u-name')?.value||'').trim();
+    var pwd=String(document.getElementById('sa-u-pass')?.value||'');
+    if(!newUsername||!name||!role){toast('Identifiant, nom et profil sont obligatoires.','error');return;}
+    if(!ROLES[role]){toast('Profil inconnu.','error');return;}
+    if(oldU && String(oldU.username)===String(state.user.username) && newUsername!==String(state.user.username)){toast('Pour préserver la session, le propre identifiant du Super Administrateur ne peut pas être renommé ici.','error');return;}
+    var duplicate=(state.users||[]).find(function(x){return String(x.username)===newUsername && x!==oldU;});
+    if(duplicate){toast('Cet identifiant est déjà utilisé.','error');return;}
+    var data={username:newUsername,name:name,role:role,email:String(document.getElementById('sa-u-email')?.value||'').trim(),drenaet:String(document.getElementById('sa-u-drenaet')?.value||'').trim(),iepp:String(document.getElementById('sa-u-iepp')?.value||'').trim(),ecole:String(document.getElementById('sa-u-ecole')?.value||'').trim(),classe:String(document.getElementById('sa-u-classe')?.value||'').trim(),tel:String(document.getElementById('sa-u-tel')?.value||'').trim(),contact:String(document.getElementById('sa-u-tel')?.value||'').trim(),actif:document.getElementById('sa-u-actif')?.value!=='0',debut:String(document.getElementById('sa-u-debut')?.value||''),fin:String(document.getElementById('sa-u-fin')?.value||''),_upd:Date.now()};
+    if(role==='superadmin') data.actif=true;
+    if(role==='instituteur' && !data.classe){toast('Veuillez préciser la classe / le niveau de l’instituteur.','error');return;}
+    try{
+      if(oldU){
+        var oldKey=oldU.username;
+        Object.keys(data).forEach(function(k){oldU[k]=data[k];});
+        if(pwd){oldU.passwordHash=await hashPassword(pwd);oldU.password=pwd;} else if(oldU.passwordHash){/* inchangé */}
+        if(oldKey!==newUsername){
+          try{var del=(load('usersDeleted',[])||[]).filter(function(t){var k=(t&&typeof t==='object')?(t.u!=null?t.u:t.username):t;return String(k)!==String(newUsername)&&String(k)!==String(oldKey);});save('usersDeleted',del);}catch(e){}
+        } else clearUserTombstoneSA(newUsername);
+        logAction('superadmin-update-user','Super Admin : modification du compte '+oldKey+(oldKey!==newUsername?' → '+newUsername:''));
+      }else{
+        if(!pwd){toast('Le mot de passe initial est obligatoire.','error');return;}
+        data.passwordHash=await hashPassword(pwd);data.password=pwd;
+        state.users.push(data);clearUserTombstoneSA(newUsername);
+        logAction('superadmin-create-user','Super Admin : création du compte '+newUsername+' ('+roleInfoSafe(role).label+')');
+      }
+      await save('users',state.users);
+      if(typeof window.__cloudVerifyUser==='function') await window.__cloudVerifyUser(newUsername);
+      closeModal();
+      if(document.getElementById('us-body')) renderUsersBody();
+      if(document.getElementById('cc-body')&&typeof renderComptesBody==='function') renderComptesBody();
+      toast(oldU?'Compte modifié et synchronisé dans le cloud ✅':'Compte créé et synchronisé dans le cloud ✅','success');
+    }catch(e){toast('Échec de l’enregistrement : '+(e.message||e),'error');}
+  };
+  function clearUserTombstoneSA(username){
+    try{var d=(load('usersDeleted',[])||[]).filter(function(t){var k=(t&&typeof t==='object')?(t.u!=null?t.u:t.username):t;return String(k)!==String(username);});save('usersDeleted',d);}catch(e){}
+  }
+
+  /* ---------------- BARRE D'ACTIONS SUPER ADMIN ---------------- */
+  function superActions(u){
+    if(!isSuper()||!u) return '';
+    var e=q(u.username), self=String(u.username)===String(state.user.username);
+    var toggle=self ? '' : ((u.actif===false)
+      ? '<button class="icon-btn" onclick="userSetActif(\''+e+'\',true)" title="Activer le compte">✅</button>'
+      : '<button class="icon-btn danger" onclick="userSetActif(\''+e+'\',false)" title="Désactiver le compte">⛔</button>');
+    var del=self ? '' : '<button class="icon-btn danger" onclick="userDelete(\''+e+'\')" title="Supprimer / envoyer dans la corbeille">🗑️</button>';
+    return '<span class="sa-action-bar" style="display:inline-flex;gap:4px;align-items:center;white-space:nowrap">'+
+      '<button class="icon-btn" onclick="userView(\''+e+'\')" title="Voir">👁️</button>'+ 
+      '<button class="icon-btn" onclick="superadminUserForm(\''+e+'\')" title="Modifier l’identifiant et le compte">✏️</button>'+ 
+      '<button class="icon-btn" onclick="userResetPassword(\''+e+'\')" title="Réinitialiser le mot de passe">🔑</button>'+toggle+del+'</span>';
+  }
+  window.superadminActions=superActions;
+
+  /* Re-render spécifique : pour le Super Admin les 5 actions sont toujours
+     affichées et la colonne Actions reste visible même sur petit écran. */
+  window.renderUsersBody=function(){
+    var tb=document.getElementById('us-body');if(!tb)return;
+    var qv=(document.getElementById('us-search')?.value||'').toLowerCase();
+    var list=(typeof usersInScope==='function'?usersInScope():(state.users||[])).filter(function(u){return String(u.username||'').toLowerCase().includes(qv)||String(u.name||'').toLowerCase().includes(qv)||String(u.email||'').toLowerCase().includes(qv);});
+    if(!list.length){tb.innerHTML='<tr><td colspan="7" class="table-empty">Aucun compte</td></tr>';return;}
+    tb.innerHTML=list.map(function(u){
+      var r=roleInfoSafe(u.role),e=q(u.username),actions=isSuper()?superActions(u):'';
+      if(!isSuper()){
+        var canManage=(typeof canCreateUsers==='function'&&canCreateUsers()&&(!isDirector||!isDirector()||directorCanManageUser(u)));
+        actions='<span style="display:inline-flex;gap:4px;align-items:center;white-space:nowrap"><button class="icon-btn" onclick="userView(\''+e+'\')" title="Voir">👁️</button>'+(canManage?'<button class="icon-btn" onclick="userForm(\''+e+'\')" title="Modifier">✏️</button><button class="icon-btn" onclick="userResetPassword(\''+e+'\')" title="Réinitialiser">🔑</button>'+((typeof userToggleBtn==='function')?userToggleBtn(u):'')+(u.username!==state.user.username?'<button class="icon-btn danger" onclick="userDelete(\''+e+'\')" title="Supprimer">🗑️</button>':''):'')+'</span>';
+      }
+      var st=(typeof userStatutBadge==='function')?userStatutBadge(u):'';
+      return '<tr><td><span class="badge badge-grey">'+esc(u.username||'')+'</span></td><td class="fw-7">'+esc(u.name||'')+st+'</td><td><span class="badge badge-'+esc(r.color||'grey')+'">'+esc(r.short||r.label||'Profil inconnu')+'</span></td><td class="text-sm">'+esc(u.email||'—')+'</td><td class="text-sm">'+esc(u.iepp||'—')+(u.ecole?'<br><span class="text-xs text-muted">'+esc(u.ecole)+'</span>':'')+'</td><td class="text-sm">'+esc(u.tel||u.contact||'—')+'</td><td class="actions-cell sa-actions-cell">'+actions+'</td></tr>';
+    }).join('');
+    var table=tb.closest('table');if(table){table.style.minWidth='1120px';}
+    var wrap=tb.closest('.table-wrap');if(wrap){wrap.style.overflowX='auto';wrap.style.overflowY='visible';}
+    var ths=table?table.querySelectorAll('thead th'):[];if(ths.length)ths[ths.length-1].style.cssText='position:sticky;right:0;background:var(--card,#fff);z-index:3;min-width:190px;width:190px;';
+    tb.querySelectorAll('.sa-actions-cell').forEach(function(td){td.style.cssText='position:sticky;right:0;background:var(--card,#fff);z-index:2;min-width:190px;width:190px;text-align:center;';});
+  };
+
+  /* Pour le Super Admin, le bouton Nouveau compte ouvre directement le
+     formulaire complet. */
+  var oldRenderUsersSA=window.renderUsers;
+  window.renderUsers=function(){
+    oldRenderUsersSA.apply(this,arguments);
+    if(!isSuper()) return;
+    var b=document.querySelector('.toolbar .btn.btn-orange');
+    if(b){b.onclick=function(){superadminUserForm('');};b.title='Créer un compte avec n’importe quel profil';}
+    setTimeout(function(){renderUsersBody();},0);
+  };
+
+  /* Le Super Admin garde aussi les actions dans l'espace Correspondant si
+     celui-ci réutilise le tableau #cc-body. */
+  window.renderComptesBody=function(){
+    var tb=document.getElementById('cc-body');if(!tb)return;
+    var qv=(document.getElementById('cc-search')?.value||'').toLowerCase(),f=document.getElementById('cc-filter')?.value||'';
+    var list=(typeof usersInScope==='function'?usersInScope():(state.users||[])).filter(function(u){return (!f||u.role===f)&&(String(u.username||'').toLowerCase().includes(qv)||String(u.name||'').toLowerCase().includes(qv)||String(u.email||'').toLowerCase().includes(qv));});
+    if(!list.length){tb.innerHTML='<tr><td colspan="6" class="table-empty">Aucun compte</td></tr>';return;}
+    tb.innerHTML=list.map(function(u){var r=roleInfoSafe(u.role),e=q(u.username);return '<tr><td><span class="badge badge-grey">'+esc(u.username||'')+'</span></td><td class="fw-7">'+esc(u.name||'')+'</td><td><span class="badge badge-'+esc(r.color||'grey')+'">'+esc(r.short||r.label||'Profil inconnu')+'</span></td><td class="text-sm">'+esc(u.email||'—')+'</td><td class="text-sm">'+esc(u.iepp||'—')+(u.ecole?'<br><span class="text-xs text-muted">'+esc(u.ecole)+'</span>':'')+'</td><td class="actions-cell sa-actions-cell">'+(isSuper()?superActions(u):'<button class="icon-btn" onclick="userView(\''+e+'\')" title="Voir">👁️</button>')+'</td></tr>';}).join('');
+  };
+})();
+</script>
+
+<script id="iepp-superadmin-v3">
+(function(){
+  'use strict';
+  function isSuper(){return !!(window.state&&state.user&&state.user.role==='superadmin');}
+  function esc(v){return typeof escapeHtml==='function'?escapeHtml(v==null?'':String(v)):String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function key(v){return String(v||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+  /* Le Super Admin peut réinitialiser le mot de passe de n'importe quel
+     profil, y compris un autre Super Admin. Son propre compte reste protégé. */
+  window.userResetPassword=async function(username){
+    var u=(state.users||[]).find(function(x){return String(x.username)===String(username);});
+    if(!isSuper()){
+      toast('Cette action est réservée au Super Administrateur dans cette vue.','error');return;
+    }
+    if(!u){toast('Compte introuvable.','error');return;}
+    if(String(u.username)===String(state.user.username)){toast('Utilisez votre procédure de changement de mot de passe pour votre propre compte.','info');return;}
+    var generated=Math.random().toString(36).slice(2,7).toUpperCase()+'@'+Math.random().toString(36).slice(2,7).toLowerCase();
+    openModal('🔑 Réinitialiser le mot de passe — Super Administrateur',
+      '<p class="text-sm">Compte : <strong>'+esc(u.name||username)+'</strong> ('+esc(username)+')</p>'+ 
+      '<div class="field"><label>Nouveau mot de passe</label><div style="display:flex;gap:7px"><input id="reset-user-password" value="'+esc(generated)+'" style="flex:1"><button class="btn btn-ghost" type="button" onclick="document.getElementById(\'reset-user-password\').value=Math.random().toString(36).slice(2,8).toUpperCase()+\'@\'+Math.random().toString(36).slice(2,8).toLowerCase()">🎲 Générer</button></div></div>'+ 
+      '<p class="text-xs text-muted">Le nouveau mot de passe sera hashé pour la connexion et conservé dans la fiche administrateur pour permettre sa consultation par le Super Administrateur.</p>',
+      '<button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="applyUserPasswordReset(\''+key(username)+'\')">💾 Enregistrer</button>'
+    );
+  };
+  window.userSetActif=function(username,actif){
+    if(!isSuper()){toast('Action réservée aux administrateurs.','error');return;}
+    var u=(state.users||[]).find(function(x){return String(x.username)===String(username);});
+    if(!u){toast('Compte introuvable.','error');return;}
+    if(String(u.username)===String(state.user.username)){toast('Votre propre compte Super Administrateur est protégé.','info');return;}
+    u.actif=!!actif;u._upd=Date.now();
+    Promise.resolve(save('users',state.users)).then(function(){try{logAction('user-activation',(actif?'Activation':'Désactivation')+' compte : '+username);}catch(e){};renderUsersBody();if(typeof renderComptesBody==='function')renderComptesBody();toast('Compte '+username+' — '+(actif?'activé ✅':'désactivé ⛔'),'success');}).catch(function(e){toast('Erreur de synchronisation : '+(e.message||e),'error');});
+  };
+  /* Vue détaillée avec accès direct aux fonctions du Super Admin. */
+  window.userView=function(username){
+    var u=(state.users||[]).find(function(x){return String(x.username)===String(username);});
+    if(!u){toast('Compte introuvable.','error');return;}
+    if(!isSuper() && typeof canSeeUser==='function' && !canSeeUser(u)){toast('Compte hors de votre périmètre.','error');return;}
+    var r=(typeof ROLES!=='undefined'&&ROLES[u.role])||{label:u.role||'Profil inconnu'};
+    var pwd=u.password?String(u.password):'';
+    var self=String(username)===String(state.user.username);
+    var e=key(username);
+    openModal('👁️ Détails du compte',
+      '<div class="card" style="padding:14px;background:var(--bg)">'+
+      '<div class="form-row"><div class="field"><label>Identifiant</label><input value="'+esc(u.username||'')+'" readonly></div><div class="field"><label>Mot de passe administrateur</label><div style="display:flex;gap:6px"><input id="user-view-password" type="password" value="'+esc(pwd||'Mot de passe protégé — réinitialiser')+'" readonly style="flex:1">'+(pwd?'<button id="user-view-password-toggle" type="button" class="btn btn-ghost" onclick="toggleUserPassword()">👁️ Afficher</button>':'')+'</div></div></div>'+ 
+      '<div class="form-row"><div class="field"><label>Nom complet</label><input value="'+esc(u.name||'')+'" readonly></div><div class="field"><label>Profil</label><input value="'+esc(r.label||u.role||'')+'" readonly></div></div>'+ 
+      '<div class="form-row"><div class="field"><label>DRENAET</label><input value="'+esc(u.drenaet||'—')+'" readonly></div><div class="field"><label>IEPP</label><input value="'+esc(u.iepp||'—')+'" readonly></div></div>'+ 
+      '<div class="form-row"><div class="field"><label>École</label><input value="'+esc(u.ecole||'—')+'" readonly></div><div class="field"><label>Classe</label><input value="'+esc(u.classe||'—')+'" readonly></div></div>'+ 
+      '<div class="form-row"><div class="field"><label>Email</label><input value="'+esc(u.email||'—')+'" readonly></div><div class="field"><label>Téléphone</label><input value="'+esc(u.tel||u.contact||'—')+'" readonly></div></div>'+ 
+      '<div class="text-xs text-muted">'+(pwd?'Le mot de passe a été défini/réinitialisé par un administrateur et est disponible dans la fiche administrateur.':'Aucun mot de passe administrateur en clair n’est disponible. Utilisez 🔑 pour en définir un nouveau.')+'</div></div>',
+      '<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>'+ 
+      '<button class="btn btn-ghost" onclick="closeModal();printUserAccount(\''+e+'\')">🖨️ Imprimer</button>'+ 
+      '<button class="btn btn-ghost" onclick="closeModal();superadminUserForm(\''+e+'\')">✏️ Modifier</button>'+ 
+      (!self?'<button class="btn btn-primary" onclick="closeModal();userResetPassword(\''+e+'\')">🔑 Réinitialiser</button>':'')
+    );
+  };
 })();
 </script>
 </body>
