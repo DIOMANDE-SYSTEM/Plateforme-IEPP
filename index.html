@@ -38125,6 +38125,31 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
 })();
 </script>
 
+<script id="module-fonction-compte">
+/* Affiche, sous le nom du compte connecté, sa fonction réelle (et école / classe le cas échéant) — additif */
+(function(){
+  try{
+    function fonction(u){
+      if(!u) return '';
+      var f=String(u.fonction||u.poste||u.emploi||'').trim();
+      var lab=(typeof ROLES!=='undefined'&&ROLES[u.role]&&ROLES[u.role].label)||u.role||'';
+      lab=lab.replace(/\s*\((?:toutes les IEPP|région|Chef de circonscription|ancien profil|agent du courrier|Comité de gestion|santé scolaire|profil personnalisé|CPPP \/ CPI|IEPP)\)\s*/i,' ').replace(/\s+/g,' ').trim();
+      if(u.role==='autres'||u.role==='agent') lab=f||lab;
+      var s=f&&u.role!=='autres'&&u.role!=='agent'&&f.toLowerCase()!==lab.toLowerCase()?f:lab;
+      if(u.role==='directeur'&&u.ecole) s+=' — '+u.ecole;
+      if(u.role==='instituteur'){ if(u.classe) s+=' — '+u.classe; if(u.ecole) s+=' — '+u.ecole; }
+      return s;
+    }
+    function upd(){
+      if(!window.state||!state.user) return;
+      var e=document.getElementById('user-role'); if(!e) return;
+      var t=fonction(state.user); if(t&&e.textContent!==t){ e.textContent=t; e.title=t; e.style.whiteSpace='normal'; e.style.lineHeight='1.25'; e.style.overflow='visible'; e.style.textOverflow='clip'; }
+    }
+    setInterval(upd,800); upd();
+  }catch(e){ console.warn('[fonction-compte]',e); }
+})();
+</script>
+
 <script id="module-persistance-corbeille">
 /* ============================================================================
    PERSISTANCE LOCALE + CORBEILLE (ajout, n'altère rien)
