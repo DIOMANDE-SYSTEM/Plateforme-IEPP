@@ -37249,7 +37249,7 @@ function userRestoreFromTrash(trashId){
   var $=function(s){ return document.querySelector(s); };
   var esc=function(s){ return (typeof escapeHtml==='function')?escapeHtml(String(s==null?'':s)):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
   var U=function(){ return (window.state&&state.user)||{}; };
-  var EDIT_R=['alphabetisation','alpha','superadmin'];
+  var EDIT_R=['alphabetisation','alpha','superadmin','inspecteur'];
   var NIV=['CPU','CEU','CMU'];
   var LIB={CPU:'Cours préparatoire unique',CEU:'Cours élémentaire unique',CMU:'Cours moyen unique'};
   function arr(k){ if(!Array.isArray(state[k])){ var v=null; try{ v=load(k,null); }catch(e){} state[k]=Array.isArray(v)?v:[]; } return state[k]; }
@@ -38150,6 +38150,11 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
 })();
 </script>
 
+<style id="iepp-click-fix">
+/* Cibles de clic stables : pas de déplacement vertical au survol, boutons désactivés clairement grisés */
+.btn:hover,.btn-primary:hover,.btn-green:hover,.btn-ghost:hover{transform:scale(1.03)!important}
+.btn[disabled],.btn:disabled{opacity:.45!important;cursor:not-allowed!important;filter:grayscale(.8)!important;transform:none!important;animation:none!important;box-shadow:none!important}
+</style>
 <script id="module-persistance-corbeille">
 /* ============================================================================
    PERSISTANCE LOCALE + CORBEILLE (ajout, n'altère rien)
