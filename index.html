@@ -36105,7 +36105,7 @@ function userRestoreFromTrash(trashId){
     var single=(u.role==='directeur'||u.role==='instituteur');
     var vt=[['tous','Tous ('+N.tous+')'],['forts','🔴 Doublons certains ('+N.forts+')'],['faibles','🟠 Homonymes à vérifier ('+N.faibles+')'],['meme','Dans la même école ('+N.meme+')'],['inter','Entre écoles ('+N.inter+')'],['ign','Ignorés ('+N.ign+')']];
     var list=G.filter(pass).filter(function(g){ if(!q) return true; var nq=nrm(q); return g.recs.some(function(r){ return nrm(C.fields.map(function(f){return r[f[0]];}).join(' ')).indexOf(nq)>=0; }); });
-    var h='<div class="hero" style="background:linear-gradient(135deg,#7C2D12 0%,#C2410C 100%)"><h3>🧹 Doublons — '+esc(C.label)+'</h3><p>Détection par matricule, nom et prénoms, date de naissance et noms des parents. '+(single?'Périmètre : '+esc(u.role==='instituteur'?('ma classe ('+(u.ecole||'')+')'):('mon école ('+(u.ecole||'')+')')):'Périmètre : '+(perim==='ecole'&&ecoleSel?esc(ecoleSel):'toute l\'IEPP en cours ('+esc(String(state.activeIepp||''))+')'))+'.</p></div>';
+    var h='<div class="hero" style="background:linear-gradient(135deg,#7C2D12 0%,#C2410C 100%)"><h3>🧹 Traitement des doublons — '+esc(C.label)+'</h3><p>Détection par matricule, nom et prénoms, date de naissance et noms des parents. '+(single?'Périmètre : '+esc(u.role==='instituteur'?('ma classe ('+(u.ecole||'')+')'):('mon école ('+(u.ecole||'')+')')):'Périmètre : '+(perim==='ecole'&&ecoleSel?esc(ecoleSel):'toute l\'IEPP en cours ('+esc(String(state.activeIepp||''))+')'))+'.</p></div>';
     h+='<div class="toolbar" style="margin-top:12px">'+tabs.map(function(t){ return '<button class="btn '+(t===cur?'btn-primary':'btn-ghost')+'" onclick="dupTab(\''+t+'\')">'+COLLS[t].icon+' '+COLLS[t].label+'</button>'; }).join('')+'</div>';
     h+='<div class="card" style="padding:12px;margin-top:8px"><div class="toolbar" style="gap:8px;flex-wrap:wrap;margin:0">';
     if(!single) h+='<label class="text-sm">Périmètre : <select onchange="dupPerim(this.value)" style="padding:7px;border:1px solid var(--line);border-radius:8px"><option value="iepp"'+(perim==='iepp'?' selected':'')+'>Toute l\'IEPP en cours</option><option value="ecole"'+(perim==='ecole'?' selected':'')+'>Une école</option></select></label>'
@@ -36170,17 +36170,17 @@ function userRestoreFromTrash(trashId){
   window.dupPrint=function(){
     var r=rowsOut(); if(!r.length){ toast('Aucun doublon à imprimer','error'); return; } var heads=Object.keys(r[0]);
     var w=window.open('','_blank'); if(!w){ toast('Autorisez les fenêtres pop-up.','error'); return; }
-    w.document.write('<html><head><meta charset="utf-8"><title>Doublons</title><style>body{font-family:Arial;padding:16px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #888;padding:3px 5px;font-size:10.5px}th{background:#e8eef7}</style></head><body><h3>Doublons — '+esc(COLLS[cur].label)+' — '+esc(String(state.activeIepp||''))+' — '+new Date().toLocaleDateString('fr-FR')+'</h3><table><thead><tr>'+heads.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+'</tr></thead><tbody>'+r.map(function(x){ return '<tr>'+heads.map(function(h){return '<td>'+esc(x[h])+'</td>';}).join('')+'</tr>'; }).join('')+'</tbody></table><script>window.onload=function(){window.print();}<\/script></body></html>'); w.document.close();
+    w.document.write('<html><head><meta charset="utf-8"><title>Traitement des doublons</title><style>body{font-family:Arial;padding:16px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #888;padding:3px 5px;font-size:10.5px}th{background:#e8eef7}</style></head><body><h3>Doublons — '+esc(COLLS[cur].label)+' — '+esc(String(state.activeIepp||''))+' — '+new Date().toLocaleDateString('fr-FR')+'</h3><table><thead><tr>'+heads.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+'</tr></thead><tbody>'+r.map(function(x){ return '<tr>'+heads.map(function(h){return '<td>'+esc(x[h])+'</td>';}).join('')+'</tr>'; }).join('')+'</tbody></table><script>window.onload=function(){window.print();}<\/script></body></html>'); w.document.close();
   };
   window.renderDoublons=function(){ cache=null; shown=pageSz; render(); };
   try{
-    MODULES['doublons']={ title:'Doublons', sub:'Élèves · enseignants · administratifs — détection, filtrage, suppression', render:window.renderDoublons };
+    MODULES['doublons']={ title:'Traitement des doublons', sub:'Élèves · enseignants · administratifs — détection, filtrage, suppression', render:window.renderDoublons };
     ['superadmin','correspondant','inspecteur','directeur','instituteur','corresp_stat','cpi','rh','suivi_eval'].forEach(function(r){ if(ACL[r]&&ACL[r].indexOf('doublons')<0) ACL[r].push('doublons'); });
     var tryLink=function(){
       if(document.querySelector('.sb-link[data-module="doublons"]')) return;
       var d=document.querySelector('.sb-link[data-module="donnees"]')||document.querySelector('.sb-link[data-module="dashboard"]'); if(!d) return;
       var a=document.createElement('div'); a.className='sb-link'; a.setAttribute('data-module','doublons'); a.setAttribute('onclick',"navigate('doublons')");
-      a.innerHTML='<span class="sb-icon">🧹</span><span>Doublons</span>'; d.parentNode.insertBefore(a,d.nextSibling);
+      a.innerHTML='<span class="sb-icon">🧹</span><span>Traitement des doublons</span>'; d.parentNode.insertBefore(a,d.nextSibling);
       if(typeof applyACL==='function'&&state&&state.user) applyACL();
     };
     tryLink(); setInterval(tryLink,3000);
@@ -36219,7 +36219,7 @@ function userRestoreFromTrash(trashId){
     var NIV=pre?'École Préscolaire':'École Primaire';
     var isRent=true, tri=(model==='rentree')?0:parseInt(model.slice(1),10);  /* les trimestres reprennent le modèle de la rentrée, seuls les titres changent */
     var title=(tri===0)?'RAPPORT DE LA RENTRÉE':('RAPPORT DU '+(tri===1?'1ER':tri+'E')+' TRIMESTRE');
-    var short=(tri===0)?'Rapport de la rentrée scolaire':('Rapport du '+(tri===1?'1er':tri+'e')+' trimestre');
+    var short=(tri===0)?'Rapport de la rentrée scolaire':(tri===3?"Rapport 3ème trimestre ou Bilan de Fin d'Année (BFA)":('Rapport du '+(tri===1?'1er':tri+'e')+' trimestre'));
     /* ---- en-tête / identification ---- */
     B.push(H('Identification de l\'école'));
     B.push(F(3,[['ecole','Nom de l\'école'],['codeecole','Code école'],['secteur','Secteur pédagogique'],['lat','Latitude (GPS)'],['lon','Longitude (GPS)'],['prec','Précision (≤ 5)','n']]));
@@ -36450,7 +36450,7 @@ function userRestoreFromTrash(trashId){
   var ROLES_ALL=['instituteur','directeur','corresp_stat','correspondant','inspecteur','cpi','suivi_eval','superadmin','drenaet'];
   var FICH=['corresp_stat','correspondant'], ADM=['inspecteur','cpi','suivi_eval','superadmin','drenaet'];
   var STAT={ brouillon:['Brouillon','#64748B'], transmis:['Transmis','#B45309'], a_corriger:['À corriger','#B91C1C'], valide:['Validé','#15803D'] };
-  var MLAB={ rentree:'Rapport de la rentrée', t1:'Rapport du 1er trimestre', t2:'Rapport du 2e trimestre', t3:'Rapport du 3e trimestre' };
+  var MLAB={ rentree:'Rapport de la rentrée', t1:'Rapport du 1er trimestre', t2:'Rapport du 2e trimestre', t3:"Rapport 3ème trimestre ou Bilan de Fin d'Année (BFA)" };
   var NLAB={ primaire:'Primaire', prescolaire:'Préscolaire' };
   function role(){ var u=U(); if(u.role==='instituteur'&&/adjoint.*directeur|directeur.*adjoint/i.test(String(u.fonction||'')+' '+String(u.poste||'')+' '+String(u.emploi||''))) return 'directeur'; return u.role; }
   function annee(){ return window.ANNEE_SCOLAIRE||'2026-2027'; }
@@ -36458,11 +36458,11 @@ function userRestoreFromTrash(trashId){
   function recById(id){ return recs().filter(function(r){ return r.id===id; })[0]; }
   function mine(r){ var u=U(); if(role()==='instituteur') return r.kind==='classe'&&r.ecole===u.ecole&&String(r.classe||'').toUpperCase()===String(u.classe||'').toUpperCase();
     if(role()==='directeur') return r.ecole===u.ecole; return true; }
-  function visible(r){ var ro=role(); if(!mine(r)) return false; if(FICH.concat(ADM).indexOf(ro)>=0&&r.kind==='classe') return true; if(FICH.concat(ADM).indexOf(ro)>=0&&r.statut==='brouillon') return false; return true; }
+  function visible(r){ var ro=role(); if(!mine(r)) return false; if(FICH.concat(ADM).indexOf(ro)>=0&&r.kind==='classe') return true; if(FICH.concat(ADM).indexOf(ro)>=0&&r.statut==='brouillon') return FICH.indexOf(ro)>=0&&r.username===U().username; return true; }
   function canEdit(r){ var ro=role(), st=r.statut;
     if(ro==='instituteur') return mine(r)&&r.kind==='classe'&&(st==='brouillon'||st==='a_corriger');
     if(ro==='directeur') return mine(r)&&((r.kind==='ecole'&&(st==='brouillon'||st==='a_corriger'))||(r.kind==='classe'&&st!=='valide'));
-    if(FICH.indexOf(ro)>=0) return r.kind==='ecole'&&st==='transmis';
+    if(FICH.indexOf(ro)>=0) return r.kind==='ecole'&&(st==='transmis'||(r.username===U().username&&st!=='valide'));
     return false; }
   function anyEcole(){ return U().ecole||''; }
   function niveauOfClasse(c){ c=String(c||'').toUpperCase(); return CL_PRE.indexOf(c)>=0||/^(PS|MS|GS)/.test(c)?'prescolaire':'primaire'; }
@@ -36521,9 +36521,9 @@ function userRestoreFromTrash(trashId){
   }
   /* =========================== INTERFACE =========================== */
   var ui={ tab:null, open:null, mode:'edit', fModel:'', fStat:'', fEcole:'', fQ:'', bModel:'rentree', bNiv:'primaire' };
-  function modelsFor(){ var ro=role(), u=U(); if(ro==='instituteur') return [niveauOfClasse(u.classe)]; if(ro==='directeur') return [niveauOfEcole(u.ecole)]; return ['primaire','prescolaire']; }
+  function modelsFor(){ var ro=role(), u=U(); if(ro==='instituteur') return [niveauOfClasse(u.classe)]; if(ro==='directeur') return [niveauOfEcole(u.ecole)]; if(FICH.indexOf(ro)>=0&&ui.saisieEcole) return [niveauOfEcole(ui.saisieEcole)]; return ['primaire','prescolaire']; }
   function badge(st){ var s=STAT[st]||STAT.brouillon; return '<span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;color:#fff;background:'+s[1]+'">'+s[0]+'</span>'; }
-  function tabsFor(){ var ro=role(), t=[]; if(ro==='instituteur'||ro==='directeur') t.push(['mes','✍️ Ma saisie']); t.push(['suivi',ro==='instituteur'?'📋 Mes rapports':(ro==='directeur'?'📥 Remontées de mon école':'📥 Remontées reçues')]); if(FICH.concat(ADM).indexOf(ro)>=0) t.push(['base','📊 Base consolidée']); if(['directeur'].concat(FICH,ADM).indexOf(ro)>=0) t.push(['structure','🌳 École › Classe › Élèves']); if(FICH.concat(ADM).indexOf(ro)>=0) t.push(['stats','📈 Statistiques & rapports']); t.push(['modeles','📄 Modèles & liens']); return t; }
+  function tabsFor(){ var ro=role(), t=[]; if(ro==='instituteur'||ro==='directeur'||FICH.indexOf(ro)>=0) t.push(['mes','✍️ Ma saisie']); if(ro==='directeur') t.push(['consol','🧮 Consolidation de mon école']); t.push(['suivi',ro==='instituteur'?'📋 Mes rapports':(ro==='directeur'?'📥 Remontées de mon école':'📥 Remontées reçues')]); if(FICH.concat(ADM).indexOf(ro)>=0) t.push(['base','📊 Base consolidée']); if(['directeur'].concat(FICH,ADM).indexOf(ro)>=0) t.push(['structure','🌳 École › Classe › Élèves']); if(FICH.concat(ADM).indexOf(ro)>=0) t.push(['stats','📈 Statistiques & rapports']); t.push(['modeles','📄 Modèles & liens']); return t; }
   function pageHtml(){
     var ro=role(), tabs=tabsFor(); if(!ui.tab||!tabs.some(function(t){return t[0]===ui.tab;})) ui.tab=tabs[0][0];
     var sub={ instituteur:'Renseignez les données de votre classe, puis transmettez-les au directeur.', directeur:'Complétez et contrôlez les données de votre école, consolidez celles des classes, puis transmettez à l\'IEPP.', corresp_stat:'Recevez, vérifiez et centralisez les données remontées par les écoles.', correspondant:'Recevez, vérifiez et centralisez les données remontées par les écoles.' }[ro]||'Exploitez la base consolidée : statistiques, tableaux de bord et rapports de l\'IEPP en cours.';
@@ -36534,13 +36534,15 @@ function userRestoreFromTrash(trashId){
   }
   function paintBody(){
     var b=document.getElementById('rr-body'); if(!b) return;
-    b.innerHTML=(ui.tab==='mes'?mesHtml():ui.tab==='suivi'?suiviHtml():ui.tab==='base'?baseHtml():ui.tab==='structure'?structHtml():ui.tab==='stats'?statsHtml():modelesHtml());
+    b.innerHTML=(ui.tab==='mes'?mesHtml():ui.tab==='suivi'?suiviHtml():ui.tab==='consol'?consolHtml():ui.tab==='base'?baseHtml():ui.tab==='structure'?structHtml():ui.tab==='stats'?statsHtml():modelesHtml());
   }
   function mesHtml(){
-    var ro=role(), u=U(), h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:12px">';
+    var ro=role(), u=U(), h='';
+    if(FICH.indexOf(ro)>=0){ var ecs=(state.ecoles||[]).map(function(e){return e.nom;}).filter(Boolean).sort(); h+='<div class="card" style="padding:12px;margin-top:12px"><label style="font-size:12px;font-weight:700">École concernée par la saisie</label><select onchange="rrSaisieEcole(this.value)" style="padding:8px;border:1px solid var(--line);border-radius:8px;width:100%;max-width:460px;margin-top:4px"><option value="">— Choisir l\'école —</option>'+ecs.map(function(n){ return '<option'+(ui.saisieEcole===n?' selected':'')+'>'+esc(n)+'</option>'; }).join('')+'</select><div class="text-xs text-muted" style="margin-top:6px">Vous saisissez le rapport de l\'école choisie dans le même formulaire que le directeur, puis vous le validez pour l\'intégrer à la base consolidée.</div></div>'; if(!ui.saisieEcole) return h; u={ecole:ui.saisieEcole,classe:''}; }
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:12px">';
     modelsFor().forEach(function(niv){
       ['rentree','t1','t2','t3'].forEach(function(m){
-        var kind=ro==='directeur'?'ecole':'classe', r=findRec(kind,m,niv,u.ecole,u.classe), M=MODELS[m+'_'+niv];
+        var kind=(ro==='directeur'||FICH.indexOf(ro)>=0)?'ecole':'classe', r=findRec(kind,m,niv,u.ecole,u.classe), M=MODELS[m+'_'+niv];
         var extra='';
         if(ro==='directeur'){ var cs=recs().filter(function(c){ return c.kind==='classe'&&c.model===m&&c.niveau===niv&&c.ecole===u.ecole&&c.annee===annee(); }); extra='<div class="text-xs text-muted" style="margin-top:4px">Parties « classe » : '+cs.length+' reçue(s) — '+cs.filter(function(c){return c.statut==='transmis';}).length+' à contrôler, '+cs.filter(function(c){return c.statut==='valide';}).length+' validée(s)</div>'; }
         h+='<div class="card" style="padding:14px"><div style="font-weight:800">'+esc(MLAB[m])+'</div><div class="text-sm text-muted">'+esc(M.nivLabel)+(ro==='instituteur'?' — classe '+esc(u.classe||'?'):'')+'</div><div style="margin:8px 0">'+(r?badge(r.statut):'<span class="text-xs text-muted">Non commencé</span>')+(r&&r.ctl&&r.ctl.msg&&r.statut==='a_corriger'?'<div class="text-xs" style="color:#B91C1C;margin-top:4px">✎ '+esc(r.ctl.msg)+'</div>':'')+'</div>'+extra
@@ -36563,7 +36565,26 @@ function userRestoreFromTrash(trashId){
         return '<tr><td>'+esc(MLAB[r.model])+'</td><td>'+esc(NLAB[r.niveau])+'</td><td>'+(r.kind==='ecole'?'Rapport d\'école':'Partie classe')+'</td><td class="fw-7">'+esc(r.ecole)+'</td><td>'+esc(r.classe||'—')+'</td><td>'+esc(r.by||'')+'</td><td>'+badge(r.statut)+(r.ctl&&r.ctl.msg&&r.statut==='a_corriger'?' <span title="'+esc(r.ctl.msg)+'" style="color:#B91C1C">✎</span>':'')+'</td><td class="text-xs">'+esc(String(r.updStr||(r._upd?new Date(r._upd).toLocaleDateString('fr-FR'):'')))+'</td><td class="actions-cell" style="white-space:nowrap">'+acts+'</td></tr>'; }).join('')||'<tr><td class="table-empty" colspan="9">Aucun rapport pour le moment.</td></tr>')+'</tbody></table></div></div>';
     return h;
   }
-  function canDel(r){ var ro=role(); if(ro==='superadmin') return true; if(ro==='instituteur') return mine(r)&&r.statut==='brouillon'; if(ro==='directeur') return mine(r)&&(r.statut==='brouillon'||r.kind==='classe'); return false; }
+  function canDel(r){ var ro=role(); if(ro==='superadmin') return true; if(ro==='instituteur') return mine(r)&&r.statut==='brouillon'; if(ro==='directeur') return mine(r)&&(r.statut==='brouillon'||r.kind==='classe'); if(FICH.indexOf(ro)>=0) return r.username===U().username&&r.statut==='brouillon'; return false; }
+  /* ---------- consolidation de l'école (directeur) : parties « classe » → rapport de l'école ---------- */
+  function consolHtml(){
+    var u=U(), niv=niveauOfEcole(u.ecole), m=ui.cModel||'rentree', CL=(niv==='prescolaire'?CL_PRE:CL_PRIM), N=function(v){ return num(v); };
+    var h='<div class="card" style="padding:12px;margin-top:12px"><div class="toolbar" style="gap:8px;flex-wrap:wrap;margin:0"><select onchange="rrCm(this.value)" style="padding:7px;border:1px solid var(--line);border-radius:8px">'+['rentree','t1','t2','t3'].map(function(x){ return '<option value="'+x+'"'+(m===x?' selected':'')+'>'+esc(MLAB[x])+'</option>'; }).join('')+'</select><button class="btn btn-green" onclick="rrConsolAll(\''+m+'\')">🔄 Consolider dans le rapport de l\'école</button><span class="text-xs text-muted">École : <b>'+esc(u.ecole||'—')+'</b></span></div></div>';
+    var tg=0,tf=0,tx=0,rows='';
+    CL.forEach(function(c){
+      var r=recs().filter(function(x){ return x.kind==='classe'&&x.model===m&&x.niveau===niv&&x.ecole===u.ecole&&x.annee===annee()&&String(x.classe).toUpperCase()===c; })[0], d=r?(r.data||{}):{};
+      var g=N(d.eff_0_0), f=N(d.eff_1_0), sx=N(d.sx_0_0)+N(d.sx_1_0); if(r){ tg+=g; tf+=f; tx+=sx; }
+      rows+='<tr><td class="fw-7">'+c+'</td><td>'+(r?esc(r.by||''):'<span class="text-muted text-xs">—</span>')+'</td><td>'+(r?badge(r.statut):'<span class="text-muted text-xs">Non remonté</span>')+'</td><td style="text-align:center">'+(r?g:'—')+'</td><td style="text-align:center">'+(r?f:'—')+'</td><td style="text-align:center"><b>'+(r?g+f:'—')+'</b></td><td style="text-align:center">'+(r?sx:'—')+'</td>'+(m!=='rentree'?'<td style="text-align:center">'+(r&&d.res_1_0!==undefined?esc(d.res_1_0):'—')+'</td><td style="text-align:center">'+(r&&d.res_2_0!==undefined?esc(d.res_2_0):'—')+'</td>':'')+'<td class="actions-cell">'+(r?'<button class="icon-btn" title="Ouvrir" onclick="rrOpen(\''+r.id+'\')">'+(canEdit(r)?'✏️':'👁️')+'</button>':'')+'</td></tr>';
+    });
+    h+='<div class="card" style="padding:0;margin-top:10px"><div class="table-wrap" style="border:none"><table data-noenh="1"><thead><tr><th>Classe</th><th>Enseignant</th><th>Statut</th><th>Garçons</th><th>Filles</th><th>Total</th><th>Sans extrait</th>'+(m!=='rentree'?'<th>Moyenne</th><th>Taux de réussite</th>':'')+'<th></th></tr></thead><tbody>'+rows
+      +'<tr style="font-weight:800;background:#ECFDF5"><td>TOTAL ÉCOLE</td><td></td><td></td><td style="text-align:center">'+tg+'</td><td style="text-align:center">'+tf+'</td><td style="text-align:center">'+(tg+tf)+'</td><td style="text-align:center">'+tx+'</td>'+(m!=='rentree'?'<td></td><td></td>':'')+'<td></td></tr></tbody></table></div></div><p class="text-xs text-muted">Seules les parties « classe » transmises ou validées sont reprises dans le rapport de l\'école.</p>';
+    return h;
+  }
+  window.rrCm=function(v){ ui.cModel=v; paintBody(); };
+  window.rrConsolAll=function(m){ var u=U(), niv=niveauOfEcole(u.ecole); if(!u.ecole){ toast('Votre compte n\'est rattaché à aucune école.','error'); return; }
+    var r=findRec('ecole',m,niv,u.ecole); if(!r){ r=newRec('ecole',m,niv,u.ecole,''); recs().push(r); }
+    var n=consolidate(r); histo(r,'Consolidation',n+' partie(s) « classe »'); persist(); ui.tab='mes'; formPage(r); window.scrollTo(0,0);
+    toast(n?(n+' partie(s) « classe » consolidée(s) dans le rapport de l\'école. Complétez puis transmettez.'):'Aucune partie « classe » transmise pour le moment',n?'success':'info'); };
   function modelesHtml(){
     var h='<div class="card" style="padding:14px;margin-top:12px"><p class="text-sm" style="margin:0">Les modèles ci-dessous reprennent les rapports de la rentrée et des trimestres, <b>avec l\'entête et le pied de page de l\'IEPP en cours</b> ('+esc(String(state.activeIepp||''))+'). Consultez, imprimez, téléchargez au format Word (modifiable) ou partagez le lien de saisie en ligne : toute personne qui l\'ouvre accède, après connexion, au modèle à renseigner.</p></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:12px">';
     modelsFor().forEach(function(niv){ ['rentree','t1','t2','t3'].forEach(function(m){ var M=MODELS[m+'_'+niv];
@@ -36614,6 +36635,7 @@ function userRestoreFromTrash(trashId){
     if(m==='w'){ downloadFile('﻿'+html+'</body></html>','base_'+ui.bModel+'_'+ui.bNiv+'.doc','application/msword;charset=utf-8'); toast('Document Word téléchargé','success'); return; }
     var w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-up.','error'); return; } w.document.write(html+'<script>window.onload=function(){window.print();}<\/script></body></html>'); w.document.close();
   };
+  window.rrSaisieEcole=function(n){ ui.saisieEcole=n; paintBody(); };
   window.rrTab=function(t){ ui.tab=t; ui.open=null; renderPage(); };
   window.rrF=function(k,v){ ui[k]=v; paintBody(); };
   window.rrQ=function(v){ ui.fQ=v; clearTimeout(window.__rrT); window.__rrT=setTimeout(function(){ paintBody(); var i=document.querySelector('#rr-body input[type=search]'); if(i){ i.focus(); i.setSelectionRange(v.length,v.length); } },250); };
@@ -36625,11 +36647,11 @@ function userRestoreFromTrash(trashId){
     ui.open=r.id; ui.edit=edit;
     var bar='<div class="card" style="padding:10px 12px;margin-top:10px;position:sticky;top:0;z-index:5"><div class="toolbar" style="gap:6px;flex-wrap:wrap;margin:0"><button class="btn btn-ghost btn-sm" onclick="rrBack()">← Retour</button><strong style="margin:0 6px">'+esc(MLAB[r.model])+' — '+esc(M.nivLabel)+(r.kind==='classe'?' (classe '+esc(r.classe)+')':'')+'</strong>'+badge(r.statut)+'<span style="flex:1"></span>'
       +(edit?'<button class="btn btn-ghost btn-sm" onclick="rrPre()" title="Remplit les cases vides avec les données déjà enregistrées dans la plateforme">📥 Pré-remplir</button>':'')
-      +(edit&&r.kind==='ecole'&&ro==='directeur'?'<button class="btn btn-ghost btn-sm" onclick="rrCons()" title="Reprend les effectifs et résultats saisis par les enseignants">🔄 Consolider les classes</button>':'')
+      +(edit&&r.kind==='ecole'&&(ro==='directeur'||FICH.indexOf(ro)>=0)?'<button class="btn btn-ghost btn-sm" onclick="rrCons()" title="Reprend les effectifs et résultats saisis par les enseignants">🔄 Consolider les classes</button>':'')
       +'<button class="btn btn-ghost btn-sm" onclick="rrOut(\'p\')">🖨️ Imprimer</button><button class="btn btn-ghost btn-sm" onclick="rrOut(\'f\')">📄 PDF</button><button class="btn btn-ghost btn-sm" onclick="rrOut(\'w\')">📝 Word</button><button class="btn btn-ghost btn-sm" onclick="rrOut(\'x\')">📊 Excel</button>'
       +(edit?'<button class="btn btn-green" onclick="rrSave()">Enregistrer</button>':'')
       +(edit&&((ro==='instituteur'&&r.kind==='classe')||(ro==='directeur'&&r.kind==='ecole'))?'<button class="btn btn-orange" onclick="rrSubmit()">📤 Transmettre'+(ro==='instituteur'?' au directeur':' à l\'IEPP')+'</button>':'')
-      +((ro==='directeur'&&r.kind==='classe'&&r.statut!=='brouillon')||(FICH.indexOf(ro)>=0&&r.kind==='ecole'&&r.statut!=='brouillon')?'<button class="btn btn-ghost btn-sm" style="color:#15803D;border-color:#15803D" onclick="rrValidate()">✅ Valider</button><button class="btn btn-ghost btn-sm" style="color:#B91C1C;border-color:#B91C1C" onclick="rrReturn()">↩️ Retourner pour correction</button>':'')
+      +((ro==='directeur'&&r.kind==='classe'&&r.statut!=='brouillon')||(FICH.indexOf(ro)>=0&&r.kind==='ecole'&&(r.statut!=='brouillon'||r.username===U().username))?'<button class="btn btn-ghost btn-sm" style="color:#15803D;border-color:#15803D" onclick="rrValidate()">✅ Valider</button><button class="btn btn-ghost btn-sm" style="color:#B91C1C;border-color:#B91C1C" onclick="rrReturn()">↩️ Retourner pour correction</button>':'')
       +'</div></div>';
     var ctl=(r.ctl&&r.ctl.msg&&(r.statut==='a_corriger'||r.statut==='valide'))?'<div style="margin-top:8px;padding:8px 12px;border:2px solid #d00000;color:#d00000;border-radius:8px;font-family:\'Segoe Script\',\'Comic Sans MS\',cursive">✎ '+esc(r.ctl.msg)+' <small>— '+esc(r.ctl.by||'')+' ('+esc(r.ctl.date||'')+')</small></div>':'';
     var hist=(r.histo&&r.histo.length)?'<details style="margin-top:10px" class="card"><summary style="cursor:pointer;padding:8px 12px;font-size:12px">🕘 Historique ('+r.histo.length+')</summary><div style="padding:4px 12px 10px;font-size:12px">'+r.histo.slice().reverse().map(function(x){ return '<div>'+esc(new Date(x.d).toLocaleString('fr-FR'))+' — <b>'+esc(x.act)+'</b> par '+esc(x.by)+(x.msg?' : '+esc(x.msg):'')+'</div>'; }).join('')+'</div></details>':'';
@@ -36662,8 +36684,8 @@ function userRestoreFromTrash(trashId){
   window.rrBack=function(){ ui.open=null; renderPage(); };
   window.rrOpen=function(id){ var r=recById(id); if(!r||!visible(r)) return; ui.tab=ui.tab||'suivi'; formPage(r); window.scrollTo(0,0); };
   window.rrStart=function(model,niveau){
-    var u=U(), ro=role(), kind=ro==='directeur'?'ecole':'classe', ec=u.ecole||'';
-    if(!ec){ toast('Votre compte n\'est rattaché à aucune école.','error'); return; }
+    var u=U(), ro=role(), kind=(ro==='directeur'||FICH.indexOf(ro)>=0)?'ecole':'classe', ec=(FICH.indexOf(ro)>=0?ui.saisieEcole:u.ecole)||'';
+    if(!ec){ toast(FICH.indexOf(ro)>=0?'Choisissez d\'abord l\'école.':'Votre compte n\'est rattaché à aucune école.','error'); return; }
     if(kind==='classe'&&!u.classe){ toast('Votre compte n\'a pas de classe renseignée.','error'); return; }
     var r=findRec(kind,model,niveau,ec,u.classe); if(!r){ r=newRec(kind,model,niveau,ec,u.classe); recs().push(r); persist(); }
     formPage(r); window.scrollTo(0,0);
@@ -36854,7 +36876,7 @@ function userRestoreFromTrash(trashId){
       else if(mod.length){ logAction('Modification · '+L, mod.length+' éléments modifiés'); }
       if(k==='elevesFichier'||k==='personnel'){
         var seen={}, dup=[]; val.forEach(function(o){ var m=String(o.matricule||'').trim().toUpperCase(); if(!m) return; if(seen[m]) dup.push(m); seen[m]=1; });
-        if(dup.length&&add.length){ toast('⚠️ Matricule en double détecté ('+dup.slice(0,3).join(', ')+') — voir le menu Doublons','error'); logAction('Alerte doublon · '+L, dup.length+' matricule(s) en double : '+dup.slice(0,5).join(', ')); }
+        if(dup.length&&add.length){ toast('⚠️ Matricule en double détecté ('+dup.slice(0,3).join(', ')+') — voir le menu Traitement des doublons','error'); logAction('Alerte doublon · '+L, dup.length+' matricule(s) en double : '+dup.slice(0,5).join(', ')); }
       }
     }catch(e){ console.warn('[trace]',e); }
   }
@@ -37664,7 +37686,7 @@ function userRestoreFromTrash(trashId){
        +'<li><strong>Rapports de la rentrée et des 3 trimestres</strong> avec lien de saisie partageable et circuit automatique.</li>'
        +'<li><strong>Menu « Bulletins &amp; suivi pédagogique »</strong> fusionné avec les résultats des directeurs et des CPPP/CPI.</li>'
        +'<li><strong>Signature manuscrite</strong> à l\'écran (doigt, stylet ou souris) dans les documents à signer.</li>'
-       +'<li><strong>Doublons</strong> : détection, filtrage et suppression (élèves, enseignants, administratifs).</li>'
+       +'<li><strong>Traitement des doublons</strong> : détection, filtrage et suppression (élèves, enseignants, administratifs).</li>'
        +'<li><strong>Rapportage de chaque service</strong>, du journalier à l\'annuel.</li>'
        +'<li><strong>Espace Alphabétisation</strong> : écoles passerelles (CPU, CEU, CMU) et 3 bulletins.</li>'
        +'<li><strong>Cadre &amp; contrôles techniques</strong> : objectifs, rôles, garanties et journal de traçabilité.</li>'
@@ -37693,7 +37715,7 @@ function userRestoreFromTrash(trashId){
      { t:"17. Rapport général, rapports reçus et rapport de l'IEPP", icon:"📑", html:'<p>Le menu <strong>« Rapport général »</strong> regroupe : <strong>les rapports reçus</strong> (anciens rapports) et le <strong>rapport de l\'IEPP</strong> (rapport automatique), chacun limité à <strong>son périmètre</strong> : l\'IEPP voit sa circonscription, le directeur son école, l\'enseignant sa classe.</p><ul>'
        +'<li>Les rapports peuvent être <strong>rédigés</strong> (plan type, règles locales sans IA externe), imprimés ou téléchargés.</li><li>La mention « Fait à … » reprend automatiquement le nom de l\'IEPP ou de l\'école en cours.</li></ul>' },
 
-     { t:"18. Doublons : détecter, filtrer, supprimer", icon:"🧹", html:'<p>Menu <strong>« Doublons »</strong> : listes des <strong>élèves</strong>, <strong>enseignants</strong> et <strong>administratifs</strong>.</p><ul>'
+     { t:"18. Traitement des doublons : détecter, filtrer, supprimer", icon:"🧹", html:'<p>Menu <strong>« Traitement des doublons »</strong> : listes des <strong>élèves</strong>, <strong>enseignants</strong> et <strong>administratifs</strong>.</p><ul>'
        +'<li>Critères : <strong>matricule</strong>, <strong>nom et prénoms</strong>, <strong>date de naissance</strong>, noms des parents quand ils existent.</li>'
        +'<li>Onglets de filtrage par périmètre (école, secteur, toute l\'IEPP en cours) et niveau de certitude.</li>'
        +'<li>Gardez la fiche la plus complète puis supprimez les autres (confirmation et Corbeille). Export Excel et impression possibles.</li>'
@@ -37899,6 +37921,207 @@ function userRestoreFromTrash(trashId){
     }
     var c0=document.getElementById('content'); if(c0) new MutationObserver(function(){ deco(); }).observe(c0,{childList:true,subtree:true});
   }catch(e){ console.warn('[rapportage-auto]',e); }
+})();
+</script>
+
+<script id="module-comptes-garde">
+/* Garde-fou des comptes : sauvegarde locale permanente + récupération automatique des comptes disparus (additif) */
+(function(){
+  try{
+    var BK='iepp_usersBackup';
+    function rd(){ try{ var a=JSON.parse(localStorage.getItem(BK)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+    function wr(a){ try{ localStorage.setItem(BK,JSON.stringify(a)); }catch(e){} }
+    function dead(u){ try{ return typeof usersIsDead==='function' && usersIsDead(u.username,u._upd); }catch(e){ return false; } }
+    function snap(list){
+      if(!Array.isArray(list)||!list.length) return;
+      var m={}; rd().forEach(function(u){ if(u&&u.username) m[u.username]=u; });
+      list.forEach(function(u){ if(!u||!u.username||dead(u)) return; var o=m[u.username]; if(!o||(+u._upd||0)>=(+o._upd||0)) m[u.username]=JSON.parse(JSON.stringify(u)); });
+      wr(Object.keys(m).map(function(k){return m[k];}).filter(function(u){return !dead(u);}));
+    }
+    function forget(un){ wr(rd().filter(function(u){ return u.username!==un; })); }
+    window.comptesRecuperer=function(silent){
+      try{
+        if(!window.state||!state.user||!Array.isArray(state.users)) return 0;
+        snap(state.users);
+        var have={}; state.users.forEach(function(u){ if(u&&u.username) have[u.username]=1; });
+        var back=rd().filter(function(u){ return u&&u.username&&!have[u.username]&&!dead(u); });
+        if(!back.length) return 0;
+        back.forEach(function(u){ state.users.push(u); });
+        save('users',state.users);
+        try{ logAction('comptes-recuperes','Comptes récupérés : '+back.map(function(u){return u.username;}).join(', ')); }catch(e){}
+        if(!silent) toast(back.length+' compte(s) disparu(s) récupéré(s) ✅','success');
+        try{ if(document.getElementById('us-body')) renderUsersBody(); }catch(e){}
+        return back.length;
+      }catch(e){ console.warn('[comptes-garde]',e); return 0; }
+    };
+    var s0=window.save;
+    window.save=function(k,v){ var r=s0.apply(this,arguments); if(k==='users'){ try{ snap(Array.isArray(v)?v:state.users); }catch(e){} } return r; };
+    ['userDelete','caUserDelete'].forEach(function(fn){
+      var f=window[fn]; if(typeof f!=='function') return;
+      window[fn]=function(un){
+        var u0=(state.users||[]).filter(function(u){return u&&u.username===un;})[0]; u0=u0?JSON.parse(JSON.stringify(u0)):null;
+        var r=f.apply(this,arguments);
+        try{ if(!(state.users||[]).some(function(u){return u&&u.username===un;})){
+          forget(un);
+          /* suppression définitive de la place d'origine : marque de suppression + corbeille */
+          var d=usersDelNorm(load('usersDeleted',[])), i=d.findIndex(function(t){return String(t.u)===String(un);}), now=Date.now();
+          if(i>=0) d[i].at=now; else d.push({u:String(un),at:now}); save('usersDeleted',d);
+          if(u0 && !(state.corbeille||[]).some(function(t){return t&&t.type==='user'&&String(t.matchVal)===String(un);}) && typeof trashItemUser==='function') trashItemUser(u0);
+        } }catch(e){ console.warn(e); }
+        return r; };
+    });
+    var rn=window.renderUsers; if(typeof rn==='function') window.renderUsers=function(){ var r=rn.apply(this,arguments); setTimeout(function(){ window.comptesRecuperer(); },1200); return r; };
+    setInterval(function(){ window.comptesRecuperer(true); },5000);
+    setTimeout(function(){ window.comptesRecuperer(); },3000);
+  }catch(e){ console.warn('[comptes-garde]',e); }
+})();
+</script>
+
+<style id="iepp-vibrant">
+/* Couleurs vibrantes et animées (orange, blanc, vert, bleu, violet, jaune, rouge) — additif, purement visuel */
+:root{--v-or:#FF7A00;--v-gr:#00C853;--v-bl:#1E6BFF;--v-vi:#8B2EFF;--v-ye:#FFC400;--v-re:#FF2D4B;}
+@keyframes vbFlow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes vbPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,122,0,.45)}50%{box-shadow:0 0 0 8px rgba(139,46,255,0)}}
+@keyframes vbBuzz{0%,100%{transform:translate(0,0) rotate(0)}20%{transform:translate(-1px,1px) rotate(-3deg)}40%{transform:translate(1px,-1px) rotate(3deg)}60%{transform:translate(-1px,0) rotate(-2deg)}80%{transform:translate(1px,1px) rotate(2deg)}}
+@keyframes vbHue{from{filter:hue-rotate(0)}to{filter:hue-rotate(360deg)}}
+/* En-têtes de page */
+.hero{background:linear-gradient(120deg,#FF7A00,#FF2D4B,#8B2EFF,#1E6BFF,#00C853,#FF9F00,#FF7A00)!important;background-size:320% 320%!important;animation:vbFlow 16s ease infinite;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.35);transition:filter .25s ease,box-shadow .25s ease,transform .25s ease}
+.hero:hover{filter:saturate(1.45) brightness(1.08);animation-duration:4s;box-shadow:0 14px 38px rgba(139,46,255,.45),0 0 0 3px rgba(255,196,0,.55);transform:translateY(-2px)}
+.topbar{border-bottom:3px solid transparent!important;border-image:linear-gradient(90deg,#FF7A00,#FFC400,#00C853,#1E6BFF,#8B2EFF,#FF2D4B,#FF7A00) 1;background-clip:padding-box}
+.topbar h2{background:linear-gradient(90deg,#FF7A00,#FF2D4B,#8B2EFF,#1E6BFF);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:vbFlow 10s ease infinite}
+/* Cartes */
+.card{border-top:3px solid var(--v-or)!important;transition:box-shadow .2s ease,transform .2s ease,border-color .2s ease,filter .2s ease}
+.card:nth-child(6n+2){border-top-color:var(--v-gr)!important}.card:nth-child(6n+3){border-top-color:var(--v-bl)!important}.card:nth-child(6n+4){border-top-color:var(--v-vi)!important}.card:nth-child(6n+5){border-top-color:var(--v-ye)!important}.card:nth-child(6n+6){border-top-color:var(--v-re)!important}
+.card:hover{box-shadow:0 10px 30px rgba(30,107,255,.22),0 0 0 2px rgba(139,46,255,.25);filter:saturate(1.15)}
+.card-title{background:linear-gradient(90deg,#FF7A00,#8B2EFF);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+/* Tuiles de statistiques */
+.stat{transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}
+.stat::before{width:6px;background:linear-gradient(180deg,#FF7A00,#FF2D4B,#8B2EFF,#1E6BFF)!important;background-size:100% 300%!important;animation:vbFlow 6s ease infinite}
+.stat.s-orange::before{background:linear-gradient(180deg,#FFC400,#FF7A00,#FF2D4B)!important;background-size:100% 300%!important}
+.stat.s-green::before{background:linear-gradient(180deg,#B2FF59,#00C853,#00B8D4)!important;background-size:100% 300%!important}
+.stat.s-purple::before{background:linear-gradient(180deg,#E040FB,#8B2EFF,#1E6BFF)!important;background-size:100% 300%!important}
+.stat.s-pink::before{background:linear-gradient(180deg,#FF80AB,#FF2D4B,#8B2EFF)!important;background-size:100% 300%!important}
+.stat.s-yellow::before{background:linear-gradient(180deg,#FFF176,#FFC400,#FF7A00)!important;background-size:100% 300%!important}
+.stat:hover{transform:translateY(-4px) scale(1.03);box-shadow:0 14px 32px rgba(255,122,0,.32),0 0 0 2px rgba(255,196,0,.5);filter:saturate(1.35);animation:vbBuzz .35s ease 1}
+/* Boutons */
+.btn{position:relative;font-weight:700}
+.btn-primary{background:linear-gradient(120deg,#1E6BFF,#8B2EFF,#1E6BFF)!important;background-size:250% 100%!important;color:#fff!important;border-color:transparent!important;box-shadow:0 4px 14px rgba(30,107,255,.4)!important;animation:vbFlow 7s linear infinite}
+.btn-green,.btn-success{background:linear-gradient(120deg,#00C853,#00B8D4,#00C853)!important;background-size:250% 100%!important;color:#fff!important;border-color:transparent!important;box-shadow:0 4px 14px rgba(0,200,83,.42)!important;animation:vbFlow 7s linear infinite}
+.btn-danger,.btn-red{background:linear-gradient(120deg,#FF2D4B,#FF7A00,#FF2D4B)!important;background-size:250% 100%!important;color:#fff!important;border-color:transparent!important;box-shadow:0 4px 14px rgba(255,45,75,.4)!important;animation:vbFlow 7s linear infinite}
+.btn-orange,.btn-warning{background:linear-gradient(120deg,#FF7A00,#FFC400,#FF7A00)!important;background-size:250% 100%!important;color:#fff!important;border-color:transparent!important;box-shadow:0 4px 14px rgba(255,122,0,.42)!important;animation:vbFlow 7s linear infinite}
+.btn-ghost{border:1.5px solid #FFC4A0;background:#fff;transition:all .18s ease}
+.btn:hover{filter:saturate(1.5) brightness(1.1);transform:translateY(-2px) scale(1.04);animation-duration:1.6s;box-shadow:0 8px 24px rgba(139,46,255,.45),0 0 0 4px rgba(255,196,0,.45)!important}
+.btn-ghost:hover{background:linear-gradient(120deg,#FFF1E0,#E6FFF0,#E8F0FF,#F3E8FF);border-color:#8B2EFF;color:#4A0FB0}
+/* Menu latéral */
+.sb-link .sb-icon{transition:transform .2s ease,background .2s ease,filter .2s ease}
+.sb-link:nth-of-type(6n+1) .sb-icon{background:rgba(255,122,0,.2)}.sb-link:nth-of-type(6n+2) .sb-icon{background:rgba(0,200,83,.2)}.sb-link:nth-of-type(6n+3) .sb-icon{background:rgba(30,107,255,.2)}.sb-link:nth-of-type(6n+4) .sb-icon{background:rgba(139,46,255,.2)}.sb-link:nth-of-type(6n+5) .sb-icon{background:rgba(255,196,0,.28)}.sb-link:nth-of-type(6n+6) .sb-icon{background:rgba(255,45,75,.2)}
+.sb-link:hover{background:linear-gradient(90deg,rgba(255,122,0,.18),rgba(139,46,255,.14),rgba(30,107,255,.12))!important;color:#1A1B25;transform:translateX(5px)}
+.sb-link:hover .sb-icon{transform:scale(1.25) rotate(-8deg);filter:saturate(1.8);animation:vbBuzz .4s ease 1}
+.sb-link.active,.sb-link.active.accent-orange,.sb-link.active.accent-green{background:linear-gradient(120deg,#00C853,#1E6BFF,#8B2EFF,#00C853)!important;background-size:300% 100%!important;color:#fff!important;animation:vbFlow 8s linear infinite;box-shadow:0 6px 18px rgba(30,107,255,.4)!important}
+.sb-section-title{background:linear-gradient(90deg,#FF7A00,#FF2D4B);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:800}
+/* Onglets, badges, tableaux */
+.tab:hover{color:#FF7A00;background:rgba(255,122,0,.08)}
+.tab.active{color:#8B2EFF!important;border-bottom-color:#FF7A00!important;border-bottom-width:3px}
+.badge{filter:saturate(1.35);transition:transform .15s ease,filter .15s ease}.badge:hover{transform:scale(1.12);filter:saturate(1.8)}
+.badge-blue{background:#CFE0FF;color:#0B3FA8}.badge-green{background:#C6F7D8;color:#007A33}.badge-orange{background:#FFDDBA;color:#B34F00}.badge-red{background:#FFD0D6;color:#B3001F}.badge-yellow{background:#FFEFA8;color:#7A5A00}
+table.table thead th,.table-wrap table thead th{background:linear-gradient(90deg,#FFE9D1,#DDF8E7,#DDE9FF,#EEDFFF)!important;color:#2B1B5A}
+.table-wrap table tbody tr:hover,table.table tbody tr:hover{background:linear-gradient(90deg,rgba(255,122,0,.13),rgba(255,196,0,.10),rgba(30,107,255,.10))!important}
+.modal{border-top:4px solid #FF7A00;box-shadow:0 24px 60px rgba(139,46,255,.35)}
+input:focus,select:focus,textarea:focus{border-color:#1E6BFF!important;box-shadow:0 0 0 3px rgba(30,107,255,.25),0 0 14px rgba(139,46,255,.25)}
+/* Halo qui suit la souris */
+#vb-glow{position:fixed;left:0;top:0;width:260px;height:260px;margin:-130px 0 0 -130px;border-radius:50%;pointer-events:none;z-index:2147483000;opacity:0;transition:opacity .3s ease;background:conic-gradient(from 0deg,rgba(255,122,0,.35),rgba(255,196,0,.3),rgba(0,200,83,.3),rgba(30,107,255,.35),rgba(139,46,255,.35),rgba(255,45,75,.35),rgba(255,122,0,.35));-webkit-mask:radial-gradient(circle,#000 0,transparent 68%);mask:radial-gradient(circle,#000 0,transparent 68%);mix-blend-mode:multiply;animation:vbHue 6s linear infinite}
+#vb-glow.on{opacity:.55}
+@media (pointer:coarse){#vb-glow{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}#vb-glow{display:none}}
+@media print{#vb-glow{display:none!important}.hero,.btn,.stat::before,.topbar h2{animation:none!important}}
+</style>
+<script id="module-vibrant-glow">
+(function(){ try{
+  var g=document.createElement('div'); g.id='vb-glow'; document.body.appendChild(g); var t=null;
+  document.addEventListener('mousemove',function(e){ g.style.transform='translate('+e.clientX+'px,'+e.clientY+'px)'; g.classList.add('on'); clearTimeout(t); t=setTimeout(function(){ g.classList.remove('on'); },1800); },{passive:true});
+  document.addEventListener('mouseleave',function(){ g.classList.remove('on'); });
+}catch(e){ console.warn('[vibrant]',e); } })();
+</script>
+
+<style id="iepp-guest-css">
+body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .sb-section-title,body.iepp-guest #scope-box,body.iepp-guest .sb-section.is-service{display:none!important}
+#guest-pill{position:fixed;right:12px;bottom:12px;z-index:9000;background:linear-gradient(120deg,#FF7A00,#8B2EFF);color:#fff;padding:7px 14px;border-radius:20px;font:700 12px Arial,sans-serif;box-shadow:0 6px 18px rgba(139,46,255,.4)}
+#guest-ov{position:fixed;inset:0;z-index:2147483100;background:linear-gradient(135deg,#FFF1E0,#E6FFF0 40%,#E8F0FF 70%,#F3E8FF);overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:18px}
+#guest-ov .gcard{background:#fff;border-radius:18px;max-width:520px;width:100%;box-shadow:0 20px 50px rgba(30,107,255,.25);border-top:5px solid #FF7A00;overflow:hidden;margin-top:4vh}
+#guest-ov .ghead{padding:18px 20px;background:linear-gradient(120deg,#FF7A00,#FF2D4B,#8B2EFF);color:#fff}
+#guest-ov label{display:block;font:700 12px Arial,sans-serif;margin:12px 0 4px;color:#1A1B25}
+#guest-ov input,#guest-ov select{width:100%;padding:10px 11px;border:1.5px solid #cbd5e1;border-radius:9px;font:inherit;box-sizing:border-box;color:#0f172a;background:#fff}
+#guest-ov button.go{width:100%;margin-top:18px;padding:12px;border:0;border-radius:10px;background:linear-gradient(120deg,#00C853,#00B8D4);color:#fff;font:800 15px Arial,sans-serif;cursor:pointer}
+</style>
+<script id="module-lien-invite">
+/* Liens partageables : accès direct au formulaire SANS code d'accès, modules restreints (mode « saisie par lien ») — additif */
+(function(){
+  try{
+    var GK='iepp_guest', PK='iepp_guest_profile', RRK='iepp_rr_link', ALLOWED=['rapports-rentree'];
+    var CLS=['PS','MS','GS','CP1','CP2','CE1','CE2','CM1','CM2'];
+    function hp(n){ var m=new RegExp('[#&]'+n+'=([^&]*)').exec(String(location.hash||'')); try{ return m?decodeURIComponent(m[1]):''; }catch(e){ return m?m[1]:''; } }
+    function norm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''); }
+    function isGuest(){ return !!(window.state&&state.user&&state.user.guest); }
+    var MODELS_OK=function(k){ return /^(rentree|t1|t2|t3)_(primaire|prescolaire)$/.test(k||''); };
+    /* 1) le lien partagé embarque la circonscription */
+    var rs=window.rrShare;
+    if(typeof rs==='function') window.rrShare=function(key){
+      var r=rs.apply(this,arguments);
+      try{ var p=document.querySelector('.modal p.text-sm'); if(p) p.innerHTML=p.innerHTML.replace(/En l'ouvrant puis en se connectant à la plateforme/,"En l'ouvrant, <b>sans code d'accès</b>, chacun indique son nom, son école et sa classe puis");
+        var i=document.getElementById('rr-link'); if(i){ i.value=i.value.split('&')[0]+'&iepp='+encodeURIComponent(state.activeIepp||'')+'&dren='+encodeURIComponent((state.user&&state.user.drenaet)||''); } }catch(e){}
+      return r; };
+    /* 2) entrée en mode invité */
+    function enter(pr,key,iepp,dren){
+      var role=pr.fonction==='directeur'?'directeur':'instituteur';
+      var u={ username:'lien_'+norm(pr.nom)+'_'+norm(pr.ecole)+(role==='instituteur'?'_'+norm(pr.classe):''), name:pr.nom, role:role, ecole:pr.ecole, classe:role==='instituteur'?pr.classe:'', tel:pr.tel||'', contact:pr.tel||'', iepp:iepp, drenaet:dren, actif:true, guest:true, passwordHash:'' };
+      try{ sessionStorage.setItem(GK,JSON.stringify({u:u,key:key})); }catch(e){}
+      try{ sessionStorage.setItem(RRK,key+'|0'); }catch(e){}
+      document.body.classList.add('iepp-guest');
+      state.user=u; var o=document.getElementById('guest-ov'); if(o) o.remove();
+      startApp();
+      if(!document.getElementById('guest-pill')){ var b=document.createElement('div'); b.id='guest-pill'; b.textContent='🔗 Mode saisie par lien — accès limité à ce formulaire'; document.body.appendChild(b); }
+    }
+    function overlay(key,iepp,dren){
+      try{ if(iepp && typeof setActiveIepp==='function') setActiveIepp(iepp); }catch(e){}
+      var pr={}; try{ pr=JSON.parse(localStorage.getItem(PK)||'{}')||{}; }catch(e){}
+      var o=document.createElement('div'); o.id='guest-ov';
+      var esc=function(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
+      var names=(state.ecoles||[]).map(function(e){return e.nom;}).filter(Boolean);
+      o.innerHTML='<div class="gcard"><div class="ghead"><div style="font-size:12px;opacity:.9">République de Côte d\'Ivoire · MENAET</div><div style="font-size:19px;font-weight:800;margin-top:2px">📝 Renseigner le rapport</div><div style="font-size:12px;opacity:.95;margin-top:2px">'+esc(iepp||'')+' — accès direct, sans code</div></div>'
+        +'<div style="padding:6px 20px 20px"><label>Votre fonction</label><select id="g-fon"><option value="instituteur">Enseignant(e) / Adjoint(e)</option><option value="directeur">Directeur / Directrice d\'école</option></select>'
+        +'<label>Nom et prénoms</label><input id="g-nom" value="'+esc(pr.nom||'')+'" placeholder="Ex : KOUASSI Jean-Marc">'
+        +'<label>École</label><input id="g-eco" list="g-ecl" value="'+esc(pr.ecole||'')+'" placeholder="Nom de l\'école"><datalist id="g-ecl">'+names.map(function(n){return '<option value="'+esc(n)+'">';}).join('')+'</datalist>'
+        +'<div id="g-clw"><label>Classe tenue</label><select id="g-cl">'+CLS.map(function(c){return '<option'+(c===pr.classe?' selected':'')+'>'+c+'</option>';}).join('')+'</select></div>'
+        +'<label>Téléphone (facultatif)</label><input id="g-tel" value="'+esc(pr.tel||'')+'" placeholder="07 00 00 00 00">'
+        +'<div id="g-err" style="color:#dc2626;font:600 12px Arial;margin-top:8px"></div><button class="go" id="g-go">Ouvrir le formulaire ➜</button>'
+        +'<div style="font:11px Arial;color:#64748b;margin-top:10px;text-align:center">Vous n\'aurez accès qu\'à ce formulaire. Vous pourrez l\'enregistrer comme brouillon puis le transmettre.</div></div></div>';
+      document.body.appendChild(o);
+      var fon=o.querySelector('#g-fon'); fon.value=pr.fonction||'instituteur';
+      var sync=function(){ o.querySelector('#g-clw').style.display=fon.value==='instituteur'?'':'none'; }; fon.onchange=sync; sync();
+      o.querySelector('#g-go').onclick=function(){
+        var p={fonction:fon.value,nom:o.querySelector('#g-nom').value.trim(),ecole:o.querySelector('#g-eco').value.trim(),classe:o.querySelector('#g-cl').value,tel:o.querySelector('#g-tel').value.trim()};
+        if(!p.nom||!p.ecole){ o.querySelector('#g-err').textContent='Renseignez votre nom et votre école.'; return; }
+        try{ localStorage.setItem(PK,JSON.stringify(p)); }catch(e){}
+        enter(p,key,iepp||state.activeIepp||'IEPP TENGRELA',dren);
+      };
+    }
+    /* 3) détection au chargement */
+    function boot(){
+      if(state&&state.user) return;
+      var saved=null; try{ saved=JSON.parse(sessionStorage.getItem(GK)||'null'); }catch(e){}
+      var key=(String(location.hash||'').match(/rapport-rentree=([a-z0-9_]+)/)||[])[1];
+      if(key&&MODELS_OK(key)){ overlay(key,hp('iepp'),hp('dren')); return; }
+      if(saved&&saved.u){ document.body.classList.add('iepp-guest'); state.user=saved.u; try{ sessionStorage.setItem(RRK,(saved.key||'rentree_primaire')+'|0'); }catch(e){} startApp(); if(!document.getElementById('guest-pill')){ var b=document.createElement('div'); b.id='guest-pill'; b.textContent='🔗 Mode saisie par lien — accès limité à ce formulaire'; document.body.appendChild(b); } }
+    }
+    setTimeout(boot,1500);
+    /* 4) restriction stricte des modules */
+    var nav0=window.navigate;
+    window.navigate=function(mod){ if(isGuest()&&ALLOWED.indexOf(mod)<0){ mod='rapports-rentree'; arguments[0]=mod; } return nav0.apply(this,arguments); };
+    setInterval(function(){ if(isGuest()&&state.module&&ALLOWED.indexOf(state.module)<0) nav0('rapports-rentree');
+      if(isGuest()){ var sb=document.getElementById('sidebar'); if(sb) [].forEach.call(sb.children,function(c){ if(/Guide d'utilisation|ADMINISTRATION DE L/i.test(c.textContent||'')&&!c.querySelector('[data-module="rapports-rentree"]')) c.style.display='none'; }); var f=document.getElementById('abs-fab'); if(f) f.style.display='none'; } },700);
+    var lo=window.logout;
+    window.logout=function(){ try{ sessionStorage.removeItem(GK); }catch(e){} document.body.classList.remove('iepp-guest'); var p=document.getElementById('guest-pill'); if(p) p.remove(); return lo.apply(this,arguments); };
+  }catch(e){ console.warn('[lien-invite]',e); }
 })();
 </script>
 
