@@ -1827,7 +1827,7 @@ const KEY = 'iepp_';
    La DRENAET bascule entre ses IEPP ; le Superadmin entre toutes.
    ================================================================== */
 const GLOBAL_KEYS = new Set(['users','usersDeleted','customServices','current_user','drenaet','active_iepp','ieppRegistry','ieppRegistryDeleted','pnapasForm','courrierMsg','courrierMatrice','ieppStats']);
-const SCOPED_KEY_LIST = ['fichesPeda','rapportsAuto','rapportsRentree','ecoles','audit','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','carteRapports','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','secteurs','cpppBulletins','pointage','alphaCentres','alphaAuditeurs','alphaMatriceAction','alphaPasserelles','alphaBulletins','rapportsService','islamStructures','islamApprenants','islamMatriceAction','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted','economatRegDeleted','secretariatRegDeleted','cantineRegDeleted','smossRegDeleted','communicationRegDeleted','biblioRegDeleted','archivisteRegDeleted','svcPermDeleted','pnapasClasse','aserEleves','notesCompos','notesComposRem','notesComposDfa','absEleves','notesMat'];
+const SCOPED_KEY_LIST = ['fichesPeda','rapportsAuto','rapportsRentree','ecoles','audit','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','carteRapports','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','secteurs','cpppBulletins','pointage','alphaCentres','alphaAuditeurs','alphaMatriceAction','alphaPasserelles','alphaEcolesCom','alphaRapports','alphaBullDom','alphaEcoEleves','alphaPassEleves','alphaEcoMatrice','alphaPassMatrice','alphaBulletins','rapportsService','islamStructures','islamApprenants','islamMatriceAction','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted','economatRegDeleted','secretariatRegDeleted','cantineRegDeleted','smossRegDeleted','communicationRegDeleted','biblioRegDeleted','archivisteRegDeleted','svcPermDeleted','pnapasClasse','aserEleves','notesCompos','notesComposRem','notesComposDfa','absEleves','notesMat'];
 function scopeSlug(iepp){
   return 'c_' + String(iepp||'IEPP TENGRELA').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 }
@@ -2620,7 +2620,7 @@ const SCOPED_STATE = [
   ['cppp', defaultCPPP],
   ['cpppBulletins', defaultCpppBulletins],
   ['pointage', ()=>[]],
-  ['fichesPeda', ()=>[]], ['rapportsAuto', ()=>[]], ['rapportsRentree', ()=>[]], ['notesCompos', ()=>[]], ['notesComposRem', ()=>[]], ['notesComposDfa', ()=>[]], ['absEleves', ()=>[]], ['notesMat', ()=>[]], ['alphaPasserelles', ()=>[]], ['alphaBulletins', ()=>[]], ['rapportsService', ()=>[]],
+  ['fichesPeda', ()=>[]], ['rapportsAuto', ()=>[]], ['rapportsRentree', ()=>[]], ['notesCompos', ()=>[]], ['notesComposRem', ()=>[]], ['notesComposDfa', ()=>[]], ['absEleves', ()=>[]], ['notesMat', ()=>[]], ['alphaPasserelles', ()=>[]], ['alphaEcolesCom', ()=>[]], ['alphaRapports', ()=>[]], ['alphaBullDom', ()=>[]], ['alphaEcoEleves', ()=>[]], ['alphaPassEleves', ()=>[]], ['alphaEcoMatrice', ()=>[]], ['alphaPassMatrice', ()=>[]], ['alphaBulletins', ()=>[]], ['rapportsService', ()=>[]],
 ];
 function emptyLike(k) {
   if (['cogesReg','economatReg','secretariatReg','cantineReg','smossReg','communicationReg','biblioReg','archivisteReg','statSituationReg'].includes(k)) return {};
@@ -37109,7 +37109,7 @@ function userRestoreFromTrash(trashId){
   function printScript(saved,nom){
     var S=JSON.stringify({saved:saved,nom:nom}).replace(/</g,'\\u003c');
     var src='(function(){var CFG='+S+',sgPad='+sgPad.toString()+';'
-    +'var RE=/signature|visa\\b|lu et pris|[ée]margement/i,built=false,zc=0,ok=false,_p=window.print;'
+    +'var RE={test:function(t){return /signature|visa\\b|lu et pris|[ée]margement/i.test(t)||(t.length<=60&&/^\\s*(le|la|les|l.)\\s*(directeur|directrice|inspecteur|inspectrice|conseill|instituteur|institutrice|enseignant|chef|correspondant|secr[ée]taire|superviseur|dep\\b|caenf|cppp|cpi\\b|pr[ée]sident|responsable|animateur|demandeur|agent|parent|tuteur|comptable|gestionnaire|[ée]conome|facilitateur|drena|dren\\b|iepp)/i.test(t));}},built=false,zc=0,ok=false,_p=window.print;'
     +'var css=document.createElement("style");css.textContent=".sgz{margin:4px auto;text-align:center;min-height:46px}.sgz img{max-height:70px;max-width:190px;display:block;margin:0 auto}.sgn{min-height:14px;font-size:11px;outline:none}.sgb{margin-top:2px}@media screen{.sgn:empty:before{content:attr(data-ph);color:#94a3b8}.sgn{outline:1px dashed #cbd5e1}.sgb{border:1px solid #16a34a;background:#16a34a;color:#fff;border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer}.sgbar{position:sticky;top:0;z-index:9999;background:#fffbeb;border-bottom:2px solid #f59e0b;padding:10px 14px;font:13px Arial;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.sgbar button{border:none;border-radius:7px;padding:8px 14px;font-weight:700;cursor:pointer;color:#fff;background:#16a34a}.sgbar button.g{background:#64748b}}@media print{.sgb,.sgbar{display:none!important}.sgn{outline:none}}";'
     +'function lab(el){var t=(el.textContent||"").replace(/\\s+/g," ").trim();return t.length>0&&t.length<=140&&RE.test(t);}'
     +'function build(){if(built)return;built=true;document.head.appendChild(css);var all=[].slice.call(document.body.querySelectorAll("td,div,p,span,b,strong,i,small,label,h4,h5"));'
@@ -38155,6 +38155,693 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
 .btn:hover,.btn-primary:hover,.btn-green:hover,.btn-ghost:hover{transform:scale(1.03)!important}
 .btn[disabled],.btn:disabled{opacity:.45!important;cursor:not-allowed!important;filter:grayscale(.8)!important;transform:none!important;animation:none!important;box-shadow:none!important}
 </style>
+<script id="module-alpha-sousmenus">
+/* Espace Alphabétisation : sous-menus « Écoles communautaires », « Centres d'Alphabétisation », « Classes Passerelles » (modèle commun) — additif */
+(function(){
+  try{
+  var $=function(s){ return document.querySelector(s); };
+  var esc=function(s){ return (typeof escapeHtml==='function')?escapeHtml(String(s==null?'':s)):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
+  var U=function(){ return (window.state&&state.user)||{}; };
+  var EDIT_R=['alphabetisation','alpha','superadmin','inspecteur'];
+  var inp='width:100%;padding:7px 9px;border:1px solid #cbd5e1;border-radius:7px;font:inherit;color:#0f172a;-webkit-text-fill-color:#0f172a;background:#fff;box-sizing:border-box';
+  var NIV=['CPU','CEU','CMU'], LIB={CPU:'Cours préparatoire unique',CEU:'Cours élémentaire unique',CMU:'Cours moyen unique'};
+  var STAT=['Fonctionnel(le)','Non fonctionnel(le)','En projet','Fermé(e)'];
+  var CFG={
+    pass:{ mod:'alpha-pass', key:'alphaPasserelles', title:'Classes Passerelles', one:'classe passerelle', ico:'🎓', color:'linear-gradient(135deg,#7c3aed,#c026d3)', file:'classes_passerelles', chip:'classe', chipVals:NIV, chipLab:function(v){ return v+' — '+LIB[v]; },
+      sub:'CPU · CEU · CMU — création, suivi et fonctionnement',
+      syn:'<li><b>CPU</b> : Cours préparatoire unique — compétences fondamentales (début du primaire).</li><li><b>CEU</b> : Cours élémentaire unique — consolidation des acquis.</li><li><b>CMU</b> : Cours moyen unique — préparation à l\'intégration dans le circuit formel.</li>',
+      F:[['classe','Classe passerelle','s',NIV],['ecole','École de rattachement','t'],['localite','Localité','t'],['animateur','Animateur','t'],['contact','Contact animateur','t'],['dep','DEP','t'],['caenf','CAENF','t'],['demarrage','Date de démarrage','d'],['statut','Statut','s',STAT],['ef','Effectif Filles','n'],['eg','Effectif Garçons','n']],
+      cols:['classe','ecole','localite','animateur','contact','statut'], name:function(r){ return (r.classe||'')+' — '+(r.ecole||r.localite||''); }, req:'classe' },
+    cal:{ mod:'alpha-cal', key:'alphaCentres', title:'Centres d\'Alphabétisation', one:'centre d\'alphabétisation', ico:'🔤', color:'linear-gradient(135deg,#0f766e,#14b8a6)', file:'centres_alphabetisation', chip:'statut', chipVals:STAT,
+      sub:'Création, effectifs, encadreurs et suivi des centres',
+      syn:'<li>Les centres accueillent les <b>jeunes et adultes non scolarisés ou déscolarisés</b> pour l\'apprentissage de la lecture, de l\'écriture et du calcul.</li><li>Chaque centre est animé par un <b>encadreur</b> ; ses effectifs, son statut et ses visites de suivi sont consignés ici.</li>',
+      F:[['nom','Nom du centre','t'],['localite','Localité','t'],['encadreur','Encadreur / animateur','t'],['contact','Contact','t'],['public','Public cible','s',['Adultes','Jeunes déscolarisés','Femmes','Mixte']],['langue','Langue d\'enseignement','t'],['demarrage','Date de démarrage','d'],['statut','Statut','s',STAT],['ef','Effectif Femmes/Filles','n'],['eg','Effectif Hommes/Garçons','n'],['obs','Observations','t']],
+      cols:['nom','localite','encadreur','public','statut'], name:function(r){ return r.nom||''; }, req:'nom' },
+    eco:{ mod:'alpha-eco', key:'alphaEcolesCom', title:'Écoles communautaires', one:'école communautaire', ico:'🏘️', color:'linear-gradient(135deg,#ea580c,#f59e0b)', file:'ecoles_communautaires', chip:'statut', chipVals:STAT,
+      sub:'Création, effectifs, enseignants volontaires et suivi des écoles',
+      syn:'<li>Les <b>écoles communautaires</b> sont créées et soutenues par les populations (villages, associations, ONG) pour scolariser les enfants éloignés des écoles publiques.</li><li>Leur recensement permet de suivre les effectifs, les enseignants volontaires et les besoins, en vue de leur intégration progressive au système.</li>',
+      F:[['nom','Nom de l\'école','t'],['localite','Localité / village','t'],['promoteur','Promoteur / comité de gestion','t'],['contact','Contact','t'],['niveau','Niveau','s',['Préscolaire','Primaire','Préscolaire + Primaire']],['code','Code / n° d\'autorisation','t'],['ecole_rat','École publique de rattachement','t'],['demarrage','Date de création','d'],['statut','Statut','s',STAT],['ncl','Nombre de classes','n'],['nens','Enseignants volontaires','n'],['ef','Effectif Filles','n'],['eg','Effectif Garçons','n'],['obs','Observations / besoins','t']],
+      cols:['nom','localite','promoteur','niveau','statut'], name:function(r){ return r.nom||''; }, req:'nom' }
+  };
+  var st={ pass:{q:'',chip:''}, cal:{q:'',chip:''}, eco:{q:'',chip:''} }, cur=null;
+  function arr(k){ if(!Array.isArray(state[k])){ var v=null; try{ v=load(k,null); }catch(e){} state[k]=Array.isArray(v)?v:[]; } return state[k]; }
+  function sv(k){ save(k,state[k]); }
+  function canEdit(){ return EDIT_R.indexOf(U().role)>=0; }
+  function lab(c,k){ var f=c.F.filter(function(x){return x[0]===k;})[0]; return f?f[1]:k; }
+  function eff(r){ var f=parseInt(r.ef,10)||0, g=parseInt(r.eg,10)||0; return (f||g)?f+g:(parseInt(r.effectif,10)||0); }
+  function rows(c){ var q=st[c].q.toLowerCase(), C=CFG[c]; return arr(C.key).filter(function(r){ if(st[c].chip&&r[C.chip]!==st[c].chip) return false; return !q||JSON.stringify(r).toLowerCase().indexOf(q)>=0; }); }
+  function headBlk(){ return (window.bpApi&&bpApi.headHtml)?bpApi.headHtml():''; }
+  function fr(s){ var p=String(s||'').split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:(s||''); }
+
+  /* ---------- page ---------- */
+  function page(c){
+    var C=CFG[c], all=arr(C.key), R=rows(c), ce=canEdit(), S=st[c];
+    var tf=0,tg=0; all.forEach(function(r){ tf+=parseInt(r.ef,10)||0; tg+=parseInt(r.eg,10)||0; if(!r.ef&&!r.eg) tg+=parseInt(r.effectif,10)||0; });
+    var fonc=all.filter(function(r){ return /^Fonctionnel/.test(r.statut||''); }).length;
+    var hero='<div class="hero" style="background:'+C.color+'!important"><h3>'+C.ico+' '+esc(C.title)+'</h3><p>'+esc(C.sub)+'. Ajout, modification, suivi, impression et export (PDF, Word, Excel).</p></div>';
+    var cards='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0"><div class="card" style="padding:12px"><div class="text-xs text-muted">'+esc(C.title)+'</div><div style="font-size:26px;font-weight:800">'+all.length+'</div></div><div class="card" style="padding:12px"><div class="text-xs text-muted">Fonctionnel(le)s</div><div style="font-size:26px;font-weight:800;color:#15803d">'+fonc+'</div></div><div class="card" style="padding:12px"><div class="text-xs text-muted">Filles / Femmes</div><div style="font-size:26px;font-weight:800">'+tf+'</div></div><div class="card" style="padding:12px"><div class="text-xs text-muted">Garçons / Hommes</div><div style="font-size:26px;font-weight:800">'+tg+'</div></div><div class="card" style="padding:12px"><div class="text-xs text-muted">Effectif total</div><div style="font-size:26px;font-weight:800;color:#7c3aed">'+(tf+tg)+'</div></div></div>';
+    var syn='<div class="card" style="padding:14px;background:#faf5ff;border:1px solid #e9d5ff"><h4 style="margin:0 0 6px;color:#6d28d9">'+C.ico+' Synthèse — '+esc(C.title)+'</h4><ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.7">'+C.syn+'</ul></div>';
+    var chips='<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:12px 0 8px"><button class="btn '+(!S.chip?'btn-primary':'btn-ghost')+'" onclick="alsChip(\''+c+'\',\'\')">Tous</button>'+C.chipVals.map(function(v){ var n=all.filter(function(r){return r[C.chip]===v;}).length; return '<button class="btn '+(S.chip===v?'btn-primary':'btn-ghost')+'" onclick="alsChip(\''+c+'\',\''+esc(v).replace(/'/g,"\\'")+'\')">'+esc(C.chipLab?C.chipLab(v):v)+' ('+n+')</button>'; }).join('')
+      +'<input type="search" value="'+esc(S.q)+'" placeholder="🔍 Rechercher…" oninput="alsQ(\''+c+'\',this.value)" style="'+inp+';width:200px">'
+      +(ce?'<button class="btn btn-green" style="background:#16a34a;color:#fff" onclick="alsAdd(\''+c+'\')">➕ Ajouter</button>':'')
+      +'<button class="btn btn-ghost" onclick="alsOut(\''+c+'\',\'p\')">🖨️ Imprimer</button><button class="btn btn-ghost" onclick="alsOut(\''+c+'\',\'f\')">📄 PDF</button><button class="btn btn-ghost" onclick="alsOut(\''+c+'\',\'w\')">📝 Word</button><button class="btn btn-ghost" onclick="alsOut(\''+c+'\',\'x\')">📊 Excel</button></div>';
+    var th=C.cols.map(function(k){ return '<th style="text-align:left;padding:6px 8px">'+esc(lab(C,k))+'</th>'; }).join('')+'<th>F</th><th>G</th><th>Total</th><th>Suivis</th><th></th>';
+    var tb=R.length?R.map(function(r){ var f=parseInt(r.ef,10)||0, g=parseInt(r.eg,10)||(!r.ef?parseInt(r.effectif,10)||0:0);
+      return '<tr>'+C.cols.map(function(k,i){ return '<td>'+(i===0?'<b>'+esc(r[k]||'')+'</b>':esc(r[k]||''))+'</td>'; }).join('')+'<td>'+f+'</td><td>'+g+'</td><td><b>'+(f+g)+'</b></td><td>'+((r.suivis||[]).length)+'</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" title="Fiche" onclick="alsFiche(\''+c+'\',\''+r.id+'\')">👁</button>'+(ce?'<button class="btn btn-ghost btn-sm" title="Modifier" onclick="alsEdit(\''+c+'\',\''+r.id+'\')">✏️</button>':'')+'<button class="btn btn-ghost btn-sm" title="Suivi / visites" onclick="alsSuivi(\''+c+'\',\''+r.id+'\')">📋</button><button class="btn btn-ghost btn-sm" title="Imprimer la fiche" onclick="alsOutOne(\''+c+'\',\''+r.id+'\',\'p\')">🖨️</button>'+(ce?'<button class="btn btn-ghost btn-sm" title="Supprimer" style="color:#dc2626" onclick="alsDel(\''+c+'\',\''+r.id+'\')">🗑</button>':'')+'</td></tr>'; }).join(''):'<tr><td colspan="'+(C.cols.length+5)+'" style="padding:14px;text-align:center;color:#64748b">Aucun enregistrement. '+(ce?'Cliquez sur « Ajouter ».':'')+'</td></tr>';
+    return hero+cards+syn+'<div class="card" style="padding:14px;margin-top:12px"><div class="card-title">'+C.ico+' Liste — '+esc(C.title)+'</div>'+chips+'<div style="overflow:auto"><table class="table" style="width:100%;font-size:13px"><thead><tr>'+th+'</tr></thead><tbody>'+tb+'</tbody></table></div></div>';
+  }
+  function draw(c){ if(window.state&&(state.module===CFG[c].mod||(state.module==='alpha'&&window.__hubList===c))) setContent(page(c)); }
+  window.alsChip=function(c,v){ st[c].chip=(st[c].chip===v?'':v); draw(c); };
+  window.alsQ=function(c,v){ st[c].q=v; draw(c); var i=$('#content input[type=search]'); if(i){ i.focus(); i.setSelectionRange(v.length,v.length); } };
+
+  /* ---------- ajout / modification ---------- */
+  function form(c,rec){
+    var C=CFG[c], d=rec||{}, ecoles=(state.ecoles||[]).map(function(e){return e.nom;});
+    var body='<datalist id="als-ec">'+ecoles.map(function(e){return '<option value="'+esc(e)+'">';}).join('')+'</datalist><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px 12px;max-height:62vh;overflow:auto;padding-right:6px">'+C.F.map(function(f){ var k=f[0], v=d[k]==null?'':d[k]; if(k==='ef'&&d.ef==null&&d.effectif) v='';
+      var L='<label style="font-size:12px;font-weight:700">'+esc(f[1])+(k===C.req?' *':'')+'</label>';
+      if(f[2]==='s') return '<div>'+L+'<select id="alsf-'+k+'" style="'+inp+'"><option value=""></option>'+f[3].map(function(o){ return '<option value="'+esc(o)+'"'+(o===v?' selected':'')+'>'+esc(o)+(LIB[o]?' — '+LIB[o]:'')+'</option>'; }).join('')+'</select></div>';
+      return '<div>'+L+'<input id="alsf-'+k+'" type="'+(f[2]==='d'?'date':f[2]==='n'?'number':'text')+'" '+((k==='ecole'||k==='ecole_rat')?'list="als-ec" ':'')+'value="'+esc(v)+'" style="'+inp+'"></div>'; }).join('')+'</div>';
+    openModal((rec?'Modifier':'Ajouter')+' — '+C.one,body,'<button class="btn btn-ghost" onclick="closeModal()">Annuler</button> <button class="btn btn-green" style="background:#16a34a;color:#fff" onclick="alsSave(\''+c+'\',\''+(rec?rec.id:'')+'\')">💾 Enregistrer</button>');
+  }
+  window.alsAdd=function(c){ if(!canEdit()) return; form(c,null); };
+  window.alsEdit=function(c,id){ var r=arr(CFG[c].key).filter(function(x){return x.id===id;})[0]; if(r) form(c,r); };
+  window.alsSave=function(c,id){
+    var C=CFG[c], o={}; C.F.forEach(function(f){ var e=$('#alsf-'+f[0]); o[f[0]]=e?e.value.trim():''; });
+    if(!o[C.req]){ toast('Renseignez « '+lab(C,C.req)+' ».','error'); return; }
+    o.effectif=(parseInt(o.ef,10)||0)+(parseInt(o.eg,10)||0);
+    var L=arr(C.key), by=U().name||U().username||'';
+    if(id){ var i=L.findIndex(function(x){return x.id===id;}); if(i>=0) L[i]=Object.assign({},L[i],o,{_upd:Date.now()}); } else { o.id=(c==='cal'?'c':'als_')+Date.now().toString(36)+Math.random().toString(36).slice(2,5); o._upd=Date.now(); o.by=by; o.suivis=[]; L.push(o); }
+    sv(C.key); try{ logAction('alpha-'+c,(id?'Modification : ':'Création : ')+C.name(o)); }catch(e){}
+    closeModal(); toast(C.one.charAt(0).toUpperCase()+C.one.slice(1)+' enregistré(e) ✅','success'); draw(c); };
+  window.alsDel=function(c,id){ var C=CFG[c]; if(!canEdit()) return; if(!confirm('Supprimer cet enregistrement ? (récupérable dans la Corbeille)')) return; state[C.key]=arr(C.key).filter(function(x){return x.id!==id;}); sv(C.key); toast('Supprimé (Corbeille)','success'); draw(c); };
+
+  /* ---------- fiche & suivi ---------- */
+  function ficheHtml(c,r,word){
+    var C=CFG[c];
+    return '<html'+(word?' xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"':'')+'><head><meta charset="utf-8"><title>'+esc(C.title)+'</title><style>body{font-family:Arial;padding:16px;font-size:12px}h2{text-align:center}td,th{border:1px solid #888;padding:5px 7px;font-size:12px}table{border-collapse:collapse;width:100%}th{background:#e8eef7;text-align:left;width:34%}</style></head><body>'+headBlk()
+      +'<h2>FICHE — '+esc(C.one.toUpperCase())+'</h2><p style="text-align:center"><b>'+esc(C.name(r))+'</b></p><table>'+C.F.map(function(f){ var v=r[f[0]]; if(f[2]==='d') v=fr(v); return '<tr><th>'+esc(f[1])+'</th><td>'+esc(v||'')+'</td></tr>'; }).join('')+'<tr><th>Effectif total</th><td><b>'+eff(r)+'</b></td></tr></table>'
+      +'<h3>Suivi / visites ('+(r.suivis||[]).length+')</h3><table><tr><th style="width:90px">Date</th><th style="width:22%">Visiteur</th><th>Constats</th><th>Recommandations</th></tr>'+((r.suivis||[]).map(function(s){ return '<tr><td>'+esc(fr(s.date))+'</td><td>'+esc(s.par||'')+'</td><td>'+esc(s.constat||'')+'</td><td>'+esc(s.reco||'')+'</td></tr>'; }).join('')||'<tr><td colspan="4" style="height:30px"></td></tr>')+'</table>'
+      +'<p style="text-align:right;margin-top:14px">Fait à <b>'+esc((typeof lieuFait==='function'&&lieuFait())||'………………')+'</b>, le <b>'+esc(new Date().toLocaleDateString('fr-FR'))+'</b></p><table style="margin-top:6px"><tr><td style="height:80px;text-align:center;vertical-align:top;width:50%"><b>Le Conseiller Alphabétisation</b></td><td style="text-align:center;vertical-align:top"><b>Visa de l\'IEPP</b></td></tr></table>';
+  }
+  window.alsFiche=function(c,id){ var r=arr(CFG[c].key).filter(function(x){return x.id===id;})[0]; if(!r) return;
+    var C=CFG[c]; openModal(C.ico+' '+C.name(r),'<div style="max-height:65vh;overflow:auto"><table class="table" style="width:100%;font-size:13px">'+C.F.map(function(f){ var v=r[f[0]]; if(f[2]==='d') v=fr(v); return '<tr><th style="text-align:left;width:38%">'+esc(f[1])+'</th><td>'+esc(v||'—')+'</td></tr>'; }).join('')+'<tr><th style="text-align:left">Effectif total</th><td><b>'+eff(r)+'</b></td></tr></table></div>','<button class="btn btn-ghost" onclick="closeModal()">Fermer</button> <button class="btn btn-ghost" onclick="alsOutOne(\''+c+'\',\''+id+'\',\'p\')">🖨️ Imprimer</button><button class="btn btn-ghost" onclick="alsOutOne(\''+c+'\',\''+id+'\',\'f\')">📄 PDF</button><button class="btn btn-ghost" onclick="alsOutOne(\''+c+'\',\''+id+'\',\'w\')">📝 Word</button>'); };
+  window.alsOutOne=function(c,id,m){ var r=arr(CFG[c].key).filter(function(x){return x.id===id;})[0]; if(!r) return; var h=ficheHtml(c,r,m==='w'), n=CFG[c].file+'_'+String(CFG[c].name(r)).replace(/[^A-Za-z0-9]+/g,'_');
+    if(m==='w'){ downloadFile('﻿'+h+'</body></html>',n+'.doc','application/msword;charset=utf-8'); toast('Fiche Word téléchargée','success'); return; }
+    var w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-up.','error'); return; } w.document.write(h+'<script>window.onload=function(){window.print();}<\/script></body></html>'); w.document.close(); if(m==='f') toast('Choisissez « Enregistrer au format PDF ».','info'); };
+  window.alsSuivi=function(c,id){ var C=CFG[c], r=arr(C.key).filter(function(x){return x.id===id;})[0]; if(!r) return; var ce=canEdit()||EDIT_R.indexOf(U().role)>=0;
+    var list=(r.suivis||[]).map(function(s,i){ return '<div class="card" style="padding:8px 10px;margin:6px 0"><b>'+esc(fr(s.date))+'</b> — '+esc(s.par||'')+(ce?' <button class="btn btn-ghost btn-sm" style="float:right;color:#dc2626" onclick="alsSuiviDel(\''+c+'\',\''+id+'\','+i+')">🗑</button>':'')+'<div style="font-size:12px;margin-top:3px"><b>Constats :</b> '+esc(s.constat||'')+'</div><div style="font-size:12px"><b>Recommandations :</b> '+esc(s.reco||'')+'</div></div>'; }).join('')||'<p class="text-muted text-sm">Aucune visite de suivi enregistrée.</p>';
+    var f='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"><div><label style="font-size:12px;font-weight:700">Date</label><input id="als-sd" type="date" value="'+new Date().toISOString().slice(0,10)+'" style="'+inp+'"></div><div><label style="font-size:12px;font-weight:700">Visiteur</label><input id="als-sp" value="'+esc(U().name||'')+'" style="'+inp+'"></div></div><label style="font-size:12px;font-weight:700">Constats</label><textarea id="als-sc" rows="3" style="'+inp+'"></textarea><label style="font-size:12px;font-weight:700">Recommandations</label><textarea id="als-sr" rows="2" style="'+inp+'"></textarea>';
+    openModal('📋 Suivi — '+C.name(r),'<div style="max-height:62vh;overflow:auto">'+list+(ce?'<hr>'+f:'')+'</div>','<button class="btn btn-ghost" onclick="closeModal()">Fermer</button> '+(ce?'<button class="btn btn-green" style="background:#16a34a;color:#fff" onclick="alsSuiviAdd(\''+c+'\',\''+id+'\')">💾 Enregistrer la visite</button>':'')); };
+  window.alsSuiviAdd=function(c,id){ var C=CFG[c], r=arr(C.key).filter(function(x){return x.id===id;})[0]; if(!r) return; var s={date:$('#als-sd').value,par:$('#als-sp').value.trim(),constat:$('#als-sc').value.trim(),reco:$('#als-sr').value.trim()}; if(!s.constat&&!s.reco){ toast('Renseignez les constats ou les recommandations.','error'); return; }
+    (r.suivis=r.suivis||[]).push(s); r._upd=Date.now(); sv(C.key); toast('Visite enregistrée ✅','success'); draw(c); window.alsSuivi(c,id); };
+  window.alsSuiviDel=function(c,id,i){ var C=CFG[c], r=arr(C.key).filter(function(x){return x.id===id;})[0]; if(!r||!confirm('Supprimer cette visite ?')) return; r.suivis.splice(i,1); r._upd=Date.now(); sv(C.key); draw(c); window.alsSuivi(c,id); };
+
+  /* ---------- exports de la liste ---------- */
+  window.alsOut=function(c,m){ var C=CFG[c], R=rows(c); if(!R.length){ toast('Aucune donnée à exporter.','error'); return; }
+    var data=R.map(function(r){ var o={}; C.F.forEach(function(f){ o[f[1]]=f[2]==='d'?fr(r[f[0]]):(r[f[0]]==null?'':r[f[0]]); }); o['Total']=eff(r); o['Visites de suivi']=(r.suivis||[]).length; return o; });
+    if(m==='x'){ exportRowsToExcel(data,C.file,C.title.slice(0,30)); return; }
+    var heads=Object.keys(data[0]), html='<html'+(m==='w'?' xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"':'')+'><head><meta charset="utf-8"><title>'+esc(C.title)+'</title><style>body{font-family:Arial;padding:16px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #666;padding:4px 6px;font-size:10px}th{background:#e8eef7}</style></head><body>'+headBlk()+'<h2 style="text-align:center">'+esc(C.title.toUpperCase())+'</h2><table><tr>'+heads.map(function(h){ return '<th>'+esc(h)+'</th>'; }).join('')+'</tr>'+data.map(function(o){ return '<tr>'+heads.map(function(h){ return '<td>'+esc(o[h])+'</td>'; }).join('')+'</tr>'; }).join('')+'</table>';
+    if(m==='w'){ downloadFile('﻿'+html+'</body></html>',C.file+'.doc','application/msword;charset=utf-8'); toast('Word téléchargé','success'); return; }
+    var w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-up.','error'); return; } w.document.write(html+'<script>window.onload=function(){window.print();}<\/script></body></html>'); w.document.close(); if(m==='f') toast('Choisissez « Enregistrer au format PDF ».','info'); };
+
+  /* ---------- enregistrement des modules, accès, menu latéral ---------- */
+  Object.keys(CFG).forEach(function(c){ var C=CFG[c]; MODULES[C.mod]={ title:C.title, sub:C.sub, render:function(){ setContent(page(c)); } }; });
+  Object.keys(ACL).forEach(function(r){ var a=ACL[r]; if(!Array.isArray(a)) return; if(a.indexOf('alpha')>=0||r==='superadmin'||r==='inspecteur'){ Object.keys(CFG).forEach(function(c){ if(a.indexOf(CFG[c].mod)<0) a.push(CFG[c].mod); }); } });
+  try{ Object.assign(AUTO_TRASH_LABELS,{alphaEcolesCom:'Écoles communautaires',alphaCentres:'Centres d\'alphabétisation'}); }catch(e){}
+  function link(){
+    var nest=document.querySelector('.sb-nest-alpha'); if(!nest) return;
+    var isl=nest.querySelector('[data-module="islam"]'); if(!isl) return;
+    [['eco','🏘️'],['cal','🔤'],['pass','🎓']].forEach(function(p){ var C=CFG[p[0]]; if(nest.querySelector('[data-module="'+C.mod+'"]')) return;
+      var a=document.createElement('div'); a.className='sb-link'; a.setAttribute('data-module',C.mod); a.setAttribute('onclick',"navigate('"+C.mod+"')"); a.setAttribute('style','padding:7px 10px;font-size:12.5px;font-weight:500');
+      a.innerHTML='<span class="sb-icon" style="width:22px;height:22px;font-size:11px">'+p[1]+'</span><span>'+C.title+'</span>'; nest.insertBefore(a,isl); });
+    if(typeof applyACL==='function'&&state&&state.user) applyACL();
+  }
+  link(); setInterval(link,1500);
+  }catch(e){ console.warn('[alpha-sousmenus]',e); }
+})();
+</script>
+
+<script id="module-alpha-rapports">
+/* Espace Alphabétisation : rapports journalier → trimestriel + Bilan de fin d'année (BFA), pour Écoles communautaires, Centres d'Alphabétisation, Classes Passerelles. Saisie MANUELLE ou génération AUTOMATIQUE (modèle local simple, sans IA externe) + correction — additif */
+(function(){
+  try{
+  var $=function(s){ return document.querySelector(s); };
+  var esc=function(s){ return (typeof escapeHtml==='function')?escapeHtml(String(s==null?'':s)):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
+  var U=function(){ return (window.state&&state.user)||{}; };
+  var EDIT_R=['alphabetisation','alpha','superadmin','inspecteur'];
+  var KEY='alphaRapports';
+  var DOM={ 'alpha-eco':{d:'eco',key:'alphaEcolesCom',t:'Écoles communautaires',s:'école communautaire',p:'écoles communautaires',ico:'🏘️',col:'#ea580c'},
+            'alpha-cal':{d:'cal',key:'alphaCentres',t:"Centres d'Alphabétisation",s:"centre d'alphabétisation",p:"centres d'alphabétisation",ico:'🔤',col:'#0f766e'},
+            'alpha-pass':{d:'pass',key:'alphaPasserelles',t:'Classes Passerelles',s:'classe passerelle',p:'classes passerelles',ico:'🎓',col:'#7c3aed'},
+            'islam':{d:'islam',key:'islamStructures',t:"Structure Islamique d'Éducation (SIE)",s:'structure islamique',p:'structures islamiques',ico:'🕌',col:'#059669'},
+            'general':{d:'gen',key:null,t:'Rapport général du Conseiller Alphabétisation',s:'structure',p:'structures',ico:'📑',col:'#4c1d95'} };
+  var APP={'alpha-cal':'alphaAuditeurs','alpha-eco':'alphaEcoEleves','alpha-pass':'alphaPassEleves','islam':'islamApprenants'};
+  var GEN=['alpha-cal','alpha-eco','alpha-pass','islam'];
+  function ld(k){ try{ var v=load(k,null); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
+  function lst(dom){ if(dom==='general'){ var o=[]; GEN.forEach(function(d){ o=o.concat(arr(DOM[d].key)); }); return o; } return arr(DOM[dom].key); }
+  function nApp(dom){ if(dom==='general'){ var t=0; GEN.forEach(function(d){ t+=ld(APP[d]).length; }); return t; } return ld(APP[dom]).length; }
+  function nBul(dom,du,au){ var inR=function(x){ var d=String(x.date||x.du||'').slice(0,10); return !d||(d>=du&&d<=au); }; var n=0;
+    if(dom==='alpha-pass'||dom==='general') n+=ld('alphaBulletins').filter(inR).length;
+    n+=ld('alphaBullDom').filter(function(x){ return (dom==='general'||x.dom===dom)&&inR(x); }).length; return n; }
+  var DBY={eco:'alpha-eco',cal:'alpha-cal',pass:'alpha-pass'};
+  var MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var KN={jour:'Rapport journalier',semaine:'Rapport hebdomadaire',mois:'Rapport mensuel',trim:'Rapport trimestriel',bfa:"Bilan de Fin d'Année (BFA)"};
+  var INF={semaine:['jour'],mois:['semaine','jour'],trim:['mois'],bfa:['trim']};
+  var SEC=[['contexte','Introduction / contexte'],['activites','Activités réalisées'],['effectifs','Effectifs et fréquentation'],['constats','Constats et suivi'],['difficultes','Difficultés rencontrées'],['resultats','Résultats obtenus'],['perspectives','Perspectives et recommandations']];
+  var inp='width:100%;padding:7px 9px;border:1px solid #cbd5e1;border-radius:7px;font:inherit;color:#0f172a;-webkit-text-fill-color:#0f172a;background:#fff;box-sizing:border-box';
+  var iso=function(d){ return d.toISOString().slice(0,10); };
+  var fr=function(s){ var p=String(s||'').split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:(s||''); };
+  var undo=null, cur=null;
+  function canEdit(){ return EDIT_R.indexOf(U().role)>=0; }
+  function arr(k){ if(!Array.isArray(state[k])){ var v=null; try{ v=load(k,null); }catch(e){} state[k]=Array.isArray(v)?v:[]; } return state[k]; }
+  function sv(k){ save(k,state[k]); }
+  function yS(){ return parseInt(String(window.ANNEE_SCOLAIRE||'2026-2027').slice(0,4),10)||2026; }
+  function iepp(){ return (window.state&&(state.activeIepp||''))||''; }
+  function range(kind,val){
+    if(kind==='jour') return [val,val];
+    if(kind==='semaine'){ var d=new Date(val+'T00:00:00Z'), w=(d.getUTCDay()+6)%7; d.setUTCDate(d.getUTCDate()-w); var e=new Date(d); e.setUTCDate(e.getUTCDate()+6); return [iso(d),iso(e)]; }
+    if(kind==='mois'){ var y=parseInt(val.slice(0,4),10), m=parseInt(val.slice(5,7),10); return [val+'-01',iso(new Date(Date.UTC(y,m,0)))]; }
+    var Y=yS();
+    if(kind==='trim') return val==='T1'?[Y+'-09-01',Y+'-12-31']:val==='T2'?[(Y+1)+'-01-01',(Y+1)+'-03-31']:[(Y+1)+'-04-01',(Y+1)+'-06-30'];
+    return [Y+'-09-01',(Y+1)+'-08-31'];
+  }
+  function perLab(kind,val,du,au){
+    if(kind==='jour') return 'la journée du '+fr(du);
+    if(kind==='semaine') return 'la semaine du '+fr(du)+' au '+fr(au);
+    if(kind==='mois'){ var m=MOIS[parseInt(du.slice(5,7),10)-1]; return 'le mois '+(/^[aeiouéû]/.test(m)?"d'":'de ')+m+' '+du.slice(0,4); }
+    if(kind==='trim') return 'le '+(val==='T1'?'1er':val==='T2'?'2ème':'3ème')+' trimestre ('+fr(du)+' au '+fr(au)+')';
+    return "l'année scolaire "+yS()+'-'+(yS()+1);
+  }
+  function st(dom){
+    var L=lst(dom), o={n:L.length,fo:0,nf:0,pr:0,fe:0,f:0,g:0};
+    L.forEach(function(r){ var s=r.statut||''; if(/^Non/.test(s)) o.nf++; else if(/^Fonct/.test(s)) o.fo++; else if(/projet/i.test(s)) o.pr++; else if(/^Ferm/.test(s)) o.fe++;
+      var f=parseInt(r.ef,10)||0, g=parseInt(r.eg,10)||0; if(!f&&!g) g=parseInt(r.effectif,10)||0; o.f+=f; o.g+=g; });
+    return o;
+  }
+  function visits(dom,du,au){ var out=[]; lst(dom).forEach(function(r){ (r.suivis||[]).forEach(function(s){ var d=String(s.date||'').slice(0,10); if(d>=du&&d<=au) out.push({r:r,s:s}); }); }); return out; }
+  function nom(r){ return r.nom||r.ecole||r.localite||r.classe||'—'; }
+  /* ---------- génération automatique (modèle local) ---------- */
+  function gen(dom,kind,val){
+    var D=DOM[dom], rg=range(kind,val), du=rg[0], au=rg[1], S=st(dom), V=visits(dom,du,au), P=perLab(kind,val,du,au);
+    var news=lst(dom).filter(function(r){ var d=String(r.demarrage||'').slice(0,10); return d&&d>=du&&d<=au; });
+    var subs=arr(KEY).filter(function(x){ return x.dom===dom&&(INF[kind]||[]).indexOf(x.kind)>=0&&x.du>=du&&x.au<=au; }).sort(function(a,b){return a.du.localeCompare(b.du);});
+    var tot=S.f+S.g, o={};
+    o.contexte='Le présent rapport rend compte des activités menées dans le domaine « '+D.t+' » pour '+P+(iepp()?', dans la circonscription '+iepp():'')+'. Il s\'appuie sur les données enregistrées sur la plateforme.';
+    var act=[];
+    act.push(S.n?'Le domaine compte '+S.n+' '+(S.n>1?D.p:D.s)+' enregistré(e)s.':'Aucun(e) '+D.s+' n\'est encore enregistré(e) sur la plateforme.');
+    if(news.length) act.push(news.length+' nouveau(x)/nouvelle(s) '+D.s+' démarré(e)(s) sur la période : '+news.map(nom).join(', ')+'.');
+    act.push(V.length?V.length+' visite(s) de suivi effectuée(s) sur la période.':'Aucune visite de suivi n\'a été enregistrée sur la période.');
+    var nb=nBul(dom,du,au); act.push(nb?nb+' bulletin(s) de suivi enregistré(s) dans le tiroir.':'Aucun bulletin de suivi enregistré dans le tiroir sur la période.');
+    if(dom==='general'){ GEN.forEach(function(d){ var rr=arr(KEY).filter(function(x){ return x.dom===d&&x.du>=du&&x.au<=au; }).length; act.push('• '+DOM[d].t+' : '+arr(DOM[d].key).length+' structure(s), '+nApp(d)+' apprenant(s), '+rr+' rapport(s) sur la période.'); }); }
+    if(subs.length) act.push('Ce rapport consolide '+subs.length+' rapport(s) de période inférieure : '+subs.map(function(x){ return KN[x.kind].toLowerCase()+' du '+fr(x.du)+(x.au!==x.du?' au '+fr(x.au):''); }).join(' ; ')+'.');
+    o.activites=act.join('\n');
+    o.effectifs='Apprenants enregistrés : '+nApp(dom)+'.\nSituation des structures : '+S.fo+' fonctionnelle(s), '+S.nf+' non fonctionnelle(s), '+S.pr+' en projet, '+S.fe+' fermée(s).\nEffectif total : '+tot+' (filles/femmes : '+S.f+', garçons/hommes : '+S.g+')'+(S.n?' soit une moyenne de '+Math.round(tot/S.n)+' par structure.':'.');
+    o.constats=V.length?V.slice(0,15).map(function(x){ return '• '+fr(String(x.s.date).slice(0,10))+' — '+nom(x.r)+(x.s.par?' (visiteur : '+x.s.par+')':'')+' : '+(x.s.constat||'RAS')+(x.s.reco?' → Recommandation : '+x.s.reco:''); }).join('\n'):'Pas de constat de visite enregistré sur la période.';
+    var diff=[]; if(S.nf) diff.push(S.nf+' structure(s) non fonctionnelle(s) : '+lst(dom).filter(function(r){return /^Non/.test(r.statut||'');}).map(nom).slice(0,8).join(', ')+'.'); if(S.fe) diff.push(S.fe+' structure(s) fermée(s).'); if(S.n&&!V.length) diff.push('Absence de suivi de proximité sur la période.');
+    o.difficultes=diff.length?diff.join('\n'):'Aucune difficulté majeure signalée par les données de la période.';
+    var rate=S.n?Math.round(S.fo*100/S.n):0;
+    o.resultats='Taux de fonctionnement : '+rate+' % ('+S.fo+'/'+S.n+'). '+(tot?'L\'effectif touché est de '+tot+' apprenant(s).':'')+(V.length?' '+V.length+' visite(s) réalisée(s).':'');
+    var pe=[]; if(S.nf) pe.push('Remettre en fonctionnement les structures non fonctionnelles.'); if(!V.length||V.length<S.n) pe.push('Renforcer le suivi de proximité (visites régulières des structures).'); if(S.pr) pe.push('Accompagner l\'ouverture des '+S.pr+' structure(s) en projet.'); pe.push('Poursuivre la collecte et la mise à jour des effectifs sur la plateforme.');
+    if(kind==='bfa') pe.push('Dresser le bilan de l\'année et planifier la rentrée suivante.');
+    o.perspectives=pe.map(function(x){return '• '+x;}).join('\n');
+    return o;
+  }
+  /* ---------- correction (typographie / orthographe courante) ---------- */
+  var FIX=[[/\becole(s?)\b/gi,function(m,s){return 'école'+s;}],[/\balphabetisation\b/gi,'alphabétisation'],[/\bcommunautaire(s?)\b/g,'communautaire$1'],[/\bdifficulte(s?)\b/gi,'difficulté$1'],[/\bresultat(s?)\b/gi,'résultat$1'],[/\bperspective\b/gi,'perspective'],[/\beleve(s?)\b/gi,'élève$1'],[/\bactivite(s?)\b/gi,'activité$1'],[/\bapprenant\(e\)s\b/gi,'apprenant(e)s'],[/\bsuivit\b/gi,'suivi'],[/\bprobleme(s?)\b/gi,'problème$1'],[/\bpresence\b/gi,'présence'],[/\bpedagogique(s?)\b/gi,'pédagogique$1'],[/\bformation(s?)\b/g,'formation$1'],[/\bdeja\b/gi,'déjà'],[/\bapres\b/gi,'après'],[/\bpres\b/gi,'près']];
+  function corr(t){
+    t=String(t||'').replace(/[ \t]+/g,' ').replace(/ *\n */g,'\n').replace(/\n{3,}/g,'\n\n').replace(/\s+([,.])/g,'$1').replace(/([,;:!?])(?=[^\s\d,;:!?)\n])/g,'$1 ').replace(/ ?([;:!?])/g,' $1').replace(/\.{4,}/g,'...').replace(/,{2,}/g,',');
+    FIX.forEach(function(f){ t=t.replace(f[0],function(m){ var r=typeof f[1]==='function'?f[1].apply(null,arguments):m.replace(f[0],f[1]); return m[0]===m[0].toUpperCase()&&m[0]!==m[0].toLowerCase()?r.charAt(0).toUpperCase()+r.slice(1):r; }); });
+    t=t.replace(/(^|[.!?]\s+|\n[•\-]?\s*)([a-zéèêàç])/g,function(m,a,b){ return a+b.toUpperCase(); });
+    return t.trim();
+  }
+  /* ---------- liste + éditeur ---------- */
+  function box(dom){
+    var D=DOM[dom], L=arr(KEY).filter(function(x){return x.dom===dom;}).sort(function(a,b){return String(b.du).localeCompare(String(a.du))||(b._upd||0)-(a._upd||0);}), ce=canEdit();
+    var h='<div id="alr-box" class="card" style="padding:14px;margin-top:12px;border-top:4px solid '+D.col+'"><div class="card-title">📑 Rapports — '+esc(D.t)+'</div>'
+      +'<p class="text-xs text-muted" style="margin:0 0 8px">Rapport journalier, hebdomadaire, mensuel, trimestriel et Bilan de Fin d\'Année (BFA). Saisie manuelle ou génération automatique (modèle simple local, sans IA externe) avec correction.</p>'
+      +(ce?'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'+Object.keys(KN).map(function(k){ return '<button class="btn btn-ghost" onclick="alrNew(\''+dom+'\',\''+k+'\')">➕ '+esc(KN[k])+'</button>'; }).join('')+'</div>':'');
+    h+=L.length?'<div style="overflow:auto"><table class="table" style="width:100%;font-size:13px"><thead><tr><th style="text-align:left">Type</th><th style="text-align:left">Période</th><th>Mode</th><th>Auteur</th><th></th></tr></thead><tbody>'+L.map(function(x){
+      return '<tr><td><b>'+esc(KN[x.kind]||x.kind)+(x.kind==='trim'?' '+esc(x.val):'')+'</b></td><td>'+esc(fr(x.du))+(x.au!==x.du?' → '+esc(fr(x.au)):'')+'</td><td>'+(x.mode==='auto'?'🤖 Auto':'✍️ Manuel')+'</td><td>'+esc(x.by||'')+'</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" title="Ouvrir" onclick="alrOpen(\''+x.id+'\')">'+(ce?'✏️':'👁')+'</button><button class="btn btn-ghost btn-sm" title="Imprimer" onclick="alrOut(\''+x.id+'\',\'p\')">🖨️</button><button class="btn btn-ghost btn-sm" title="PDF" onclick="alrOut(\''+x.id+'\',\'f\')">📄</button><button class="btn btn-ghost btn-sm" title="Word" onclick="alrOut(\''+x.id+'\',\'w\')">📝</button>'+(ce?'<button class="btn btn-ghost btn-sm" title="Supprimer" onclick="alrDel(\''+x.id+'\')">🗑️</button>':'')+'</td></tr>'; }).join('')+'</tbody></table></div>':'<div class="text-muted" style="font-size:13px">Aucun rapport enregistré.</div>';
+    return h+'</div>';
+  }
+  function inject(){
+    if(!window.state||!state.user) return; var dom=state.module; var host=document.getElementById('hub-rap');
+    if(host){ dom=host.getAttribute('data-dom'); if(!DOM[dom]) return; var sg=arr(KEY).filter(function(x){return x.dom===dom;}).map(function(x){return x.id+(x._upd||0);}).join(',')+'|'+canEdit()+'|'+dom;
+      if(host.getAttribute('data-sig')===sg&&host.firstChild) return; host.setAttribute('data-sig',sg); host.innerHTML=box(dom); return; }
+    if(!DOM[dom]) return;
+    var c=document.getElementById('content'); if(!c) return; var old=document.getElementById('alr-box');
+    var sig=arr(KEY).filter(function(x){return x.dom===dom;}).map(function(x){return x.id+(x._upd||0);}).join(',')+'|'+canEdit();
+    if(old&&old.getAttribute('data-sig')===sig&&old.getAttribute('data-dom')===dom) return;
+    if(old) old.remove();
+    var t=document.createElement('div'); t.innerHTML=box(dom); var b=t.firstChild; b.setAttribute('data-sig',sig); b.setAttribute('data-dom',dom);
+    var hero=c.querySelector('.hero'); if(hero&&hero.nextSibling) hero.parentNode.insertBefore(b,hero.nextSibling); else c.appendChild(b);
+  }
+  window.alrInject=inject;
+  setInterval(function(){ try{ inject(); }catch(e){} },700);
+  function periodInput(kind,val){
+    var d=new Date().toISOString().slice(0,10);
+    if(kind==='jour'||kind==='semaine') return '<input type="date" id="alr-val" value="'+esc(val||d)+'" style="'+inp+'">';
+    if(kind==='mois') return '<input type="month" id="alr-val" value="'+esc(val||d.slice(0,7))+'" style="'+inp+'">';
+    if(kind==='trim') return '<select id="alr-val" style="'+inp+'">'+[['T1','1er trimestre (sept. – déc.)'],['T2','2ème trimestre (janv. – mars)'],['T3','3ème trimestre (avr. – juin)']].map(function(p){ return '<option value="'+p[0]+'"'+((val||'T1')===p[0]?' selected':'')+'>'+p[1]+'</option>'; }).join('')+'</select>';
+    return '<input type="text" id="alr-val" value="'+yS()+'-'+(yS()+1)+'" readonly style="'+inp+';background:#f1f5f9">';
+  }
+  function editor(rec){
+    var D=DOM[rec.dom], ce=canEdit(), ro=ce?'':' readonly';
+    var body='<div style="max-height:68vh;overflow:auto"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px"><div><label class="text-xs">Type</label><input type="text" readonly value="'+esc(KN[rec.kind])+'" style="'+inp+';background:#f1f5f9"></div><div><label class="text-xs">Période</label>'+periodInput(rec.kind,rec.val)+'</div></div>'
+      +(ce?'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><button class="btn btn-primary" onclick="alrGen()">🤖 Générer automatiquement</button><button class="btn btn-ghost" onclick="alrCorr()">✨ Corriger le texte</button><button class="btn btn-ghost" onclick="alrUndo()">↩️ Annuler la correction</button></div>':'')
+      +SEC.map(function(s){ return '<div style="margin-bottom:8px"><label class="text-xs"><b>'+esc(s[1])+'</b></label><textarea id="alr-s-'+s[0]+'" rows="3"'+ro+' style="'+inp+';resize:vertical">'+esc((rec.sec||{})[s[0]]||'')+'</textarea></div>'; }).join('')
+      +'</div>';
+    var foot='<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>'+(ce?' <button class="btn btn-green" style="background:#16a34a;color:#fff" onclick="alrSave()">💾 Enregistrer</button>':'');
+    cur=rec; undo=null; openModal(D.ico+' '+KN[rec.kind]+' — '+D.t,body,foot);
+  }
+  function readSec(){ var o={}; SEC.forEach(function(s){ var e=$('#alr-s-'+s[0]); o[s[0]]=e?e.value:''; }); return o; }
+  window.alrNew=function(dom,kind){ if(!canEdit()) return; editor({id:'',dom:dom,kind:kind,val:'',sec:{},mode:'manuel'}); };
+  window.alrOpen=function(id){ var r=arr(KEY).filter(function(x){return x.id===id;})[0]; if(r) editor(JSON.parse(JSON.stringify(r))); };
+  window.alrGen=function(){ if(!cur) return; var v=$('#alr-val').value; if(!v){ toast('Choisissez la période.','error'); return; }
+    var has=SEC.some(function(s){ var e=$('#alr-s-'+s[0]); return e&&e.value.trim(); }); if(has&&!confirm('Remplacer le texte actuel par le rapport généré ?')) return;
+    undo=readSec(); var g=gen(cur.dom,cur.kind,v); SEC.forEach(function(s){ var e=$('#alr-s-'+s[0]); if(e) e.value=g[s[0]]||''; }); cur.mode='auto'; toast('Rapport généré — relisez, corrigez et complétez avant d\'enregistrer.','success'); };
+  window.alrCorr=function(){ undo=readSec(); SEC.forEach(function(s){ var e=$('#alr-s-'+s[0]); if(e) e.value=corr(e.value); }); toast('Texte corrigé ✅','success'); };
+  window.alrUndo=function(){ if(!undo){ toast('Rien à annuler.','error'); return; } SEC.forEach(function(s){ var e=$('#alr-s-'+s[0]); if(e) e.value=undo[s[0]]||''; }); undo=null; };
+  window.alrSave=function(){ if(!cur||!canEdit()) return; var v=$('#alr-val').value; if(!v){ toast('Choisissez la période.','error'); return; }
+    var rg=range(cur.kind,v), L=arr(KEY), sec=readSec(), by=U().name||U().username||'';
+    if(!SEC.some(function(s){return (sec[s[0]]||'').trim();})){ toast('Le rapport est vide.','error'); return; }
+    if(cur.id){ var i=L.findIndex(function(x){return x.id===cur.id;}); if(i>=0) L[i]=Object.assign({},L[i],{val:v,du:rg[0],au:rg[1],sec:sec,mode:cur.mode,_upd:Date.now()}); }
+    else L.push({id:'alr_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),dom:cur.dom,kind:cur.kind,val:v,du:rg[0],au:rg[1],sec:sec,mode:cur.mode,by:by,iepp:iepp(),_upd:Date.now()});
+    sv(KEY); try{ logAction('alpha-rapport',(cur.id?'Modification : ':'Création : ')+KN[cur.kind]+' — '+DOM[cur.dom].t); }catch(e){} closeModal(); toast('Rapport enregistré ✅','success'); inject(); };
+  window.alrDel=function(id){ if(!canEdit()) return; if(!confirm('Supprimer ce rapport ? (récupérable dans la Corbeille)')) return; state[KEY]=arr(KEY).filter(function(x){return x.id!==id;}); sv(KEY); toast('Supprimé (Corbeille)','success'); inject(); };
+  function html(r,word){
+    var D=DOM[r.dom], head=(window.bpApi&&bpApi.headHtml)?bpApi.headHtml():'';
+    var css='<style>body{font-family:Arial,sans-serif;font-size:12.5px;margin:18px;color:#0f172a}h1{text-align:center;font-size:17px;margin:12px 0 2px;text-transform:uppercase}h2{font-size:13.5px;margin:12px 0 3px;color:#1e3a8a;border-bottom:1px solid #cbd5e1}p{white-space:pre-wrap;margin:3px 0}.sub{text-align:center;color:#475569;margin-bottom:8px}</style>';
+    return '<!doctype html><html><head><meta charset="utf-8"><title>'+esc(KN[r.kind])+'</title>'+css+'</head><body>'+head+'<h1>'+esc(KN[r.kind])+(r.kind==='trim'?' '+esc(r.val):'')+'</h1><div class="sub">'+esc(D.t)+' — '+esc(perLab(r.kind,r.val,r.du,r.au))+'</div>'
+      +SEC.map(function(s){ return (r.sec&&r.sec[s[0]])?'<h2>'+esc(s[1])+'</h2><p>'+esc(r.sec[s[0]])+'</p>':''; }).join('')
+      +'<p style="text-align:right;margin-top:16px">Fait à <b>'+esc((typeof lieuFait==='function'&&lieuFait())||'………………')+'</b>, le <b>'+esc(new Date().toLocaleDateString('fr-FR'))+'</b></p><table style="width:100%;margin-top:6px"><tr><td style="height:80px;text-align:center;vertical-align:top;width:50%"><b>Le Conseiller Alphabétisation</b></td><td style="text-align:center;vertical-align:top"><b>Visa de l\'IEPP</b></td></tr></table>';
+  }
+  window.alrOut=function(id,m){ var r=arr(KEY).filter(function(x){return x.id===id;})[0]; if(!r) return; var h=html(r), n=('rapport_'+r.dom+'_'+r.kind+'_'+r.du).replace(/[^A-Za-z0-9_]+/g,'_');
+    if(m==='w'){ downloadFile('﻿'+h+'</body></html>',n+'.doc','application/msword;charset=utf-8'); toast('Word téléchargé','success'); return; }
+    var w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-up.','error'); return; } w.document.write(h+'<script>window.onload=function(){window.print();}<\/script></body></html>'); w.document.close(); if(m==='f') toast('Choisissez « Enregistrer au format PDF ».','success'); };
+  try{ Object.assign(AUTO_TRASH_LABELS,{alphaRapports:'Rapports Alphabétisation'}); }catch(e){}
+  }catch(e){ console.warn('[alpha-rapports]',e); }
+})();
+</script>
+
+<script id="module-alpha-onglets-domaines">
+/* Espace Alphabétisation : onglets des 3 domaines (Écoles communautaires, Centres d'Alphabétisation, Classes Passerelles) dans la barre d'onglets, et barre de navigation sur leurs pages — additif */
+(function(){
+  try{
+  var D=[['alpha-eco','🏘️','Écoles communautaires'],['alpha-cal','🔤',"Centres d'Alphabétisation"],['alpha-pass','🎓','Classes Passerelles (suivi & rapports)']];
+  function mk(d,active){ var t=document.createElement('div'); t.className='tab alx-dom'+(active?' active':''); t.setAttribute('data-mod',d[0]); t.textContent=d[1]+' '+d[2]; t.onclick=function(){ navigate(d[0]); }; return t; }
+  function tick(){
+    if(!window.state||!state.user) return; var c=document.getElementById('content'); if(!c) return;
+    if(state.module==='alpha'){
+      var tabs=c.querySelector('.tabs'); if(!tabs||tabs.querySelector('.alx-dom')) return;
+      D.forEach(function(d){ tabs.appendChild(mk(d,false)); });
+    } else if(/^alpha-(eco|cal|pass)$/.test(state.module||'')){
+      if(c.querySelector('#alx-domnav')) return;
+      var bar=document.createElement('div'); bar.id='alx-domnav'; bar.className='tabs'; bar.style.cssText='margin:10px 0;flex-wrap:wrap';
+      var back=document.createElement('div'); back.className='tab'; back.textContent='⬅ Espace Alphabétisation'; back.onclick=function(){ navigate('alpha'); }; bar.appendChild(back);
+      D.forEach(function(d){ bar.appendChild(mk(d,d[0]===state.module)); });
+      var hero=c.querySelector('.hero'); if(hero&&hero.parentNode) hero.parentNode.insertBefore(bar,hero.nextSibling); else c.insertBefore(bar,c.firstChild);
+    }
+  }
+  setInterval(function(){ try{ tick(); }catch(e){} },500);
+  }catch(e){ console.warn('[alpha-onglets-domaines]',e); }
+})();
+</script>
+
+<script id="module-alpha-hub">
+/* Espace Conseiller Alphabétisation : menu à deux niveaux (Centres d'alphabétisation, Écoles communautaires, Classes Passerelles, Structure Islamique d'Éducation → Liste, Apprenants, Bulletins, Matrice d'action, Rapports) + Tiroir des bulletins des 4 domaines + Rapport général — additif, réutilise les modules existants */
+(function(){
+  try{
+  var $=function(s){ return document.querySelector(s); };
+  var esc=function(s){ return (typeof escapeHtml==='function')?escapeHtml(String(s==null?'':s)):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
+  var U=function(){ return (window.state&&state.user)||{}; };
+  var EDIT_R=['alphabetisation','alpha','superadmin','inspecteur'];
+  function canEdit(){ return EDIT_R.indexOf(U().role)>=0; }
+  function ld(k){ try{ var v=load(k,null); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
+  function arr(k){ if(!Array.isArray(state[k])) state[k]=ld(k); return state[k]; }
+  function sv(k){ save(k,state[k]); }
+  var SHARED=['alphaCentres','alphaEcolesCom','alphaPasserelles','alphaRapports','alphaBullDom','alphaBulletins','alphaAuditeurs','islamStructures','islamApprenants','alphaEcoEleves','alphaPassEleves'];
+  function refresh(){ SHARED.forEach(function(k){ state[k]=ld(k); }); }
+  var inp='width:100%;padding:7px 9px;border:1px solid #cbd5e1;border-radius:7px;font:inherit;color:#0f172a;-webkit-text-fill-color:#0f172a;background:#fff;box-sizing:border-box';
+  var fr=function(s){ var p=String(s||'').split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:(s||''); };
+
+  /* ---------- données des domaines ---------- */
+  var DM={
+    cal:{t:"Centres d'alphabétisation",ico:'🔤',col:'#0f766e',rap:'alpha-cal',str:'alphaCentres',app:'alphaAuditeurs',appL:'Auditeurs (apprenants)',bulL:'Bulletins suivi alpha',list:'Centres'},
+    eco:{t:'Écoles communautaires',ico:'🏘️',col:'#ea580c',rap:'alpha-eco',str:'alphaEcolesCom',app:'alphaEcoEleves',appL:'Élèves (apprenants)',bulL:'Bulletins',list:'Écoles'},
+    pass:{t:'Classes Passerelles',ico:'🎓',col:'#7c3aed',rap:'alpha-pass',str:'alphaPasserelles',app:'alphaPassEleves',appL:'Élèves (apprenants)',bulL:'Bulletins passerelles',list:'Classes'},
+    islam:{t:"Structure Islamique d'Éducation",ico:'🕌',col:'#059669',rap:'islam',str:'islamStructures',app:'islamApprenants',appL:'Élèves (apprenants)',bulL:'Bulletins SIE',list:'Structures'}
+  };
+  var DORD=['cal','eco','pass','islam'];
+  var hub={dom:'cal',sub:'liste'}, busy=false, origRender=null;
+  var SUBS=['liste','app','bul','mat','rap'];
+
+  /* ---------- engines pour les nouvelles listes (Élèves + Matrice) ---------- */
+  var MC=[{k:'num',label:'N°'},{k:'action',label:'Actions / Activités'},{k:'objectif',label:'Objectifs'},{k:'periode',label:'Période'},{k:'indicateur',label:'Indicateurs de réalisation'},{k:'responsable',label:'Responsables'},{k:'observation',label:'Observations'}];
+  function seed(rows){ return rows.map(function(r,i){ return {num:String(i+1),action:r[0],objectif:r[1],periode:r[2],indicateur:r[3],responsable:r[4]||'Conseiller',observation:''}; }); }
+  var ECO_M=seed([
+    ['Recenser les écoles communautaires de la circonscription','Disposer d\'une base de données fiable','Début d\'année','Nombre d\'écoles recensées'],
+    ['Évaluer les besoins (salles, tables-bancs, manuels, enseignants)','Identifier les priorités d\'appui','Octobre','Fiches de diagnostic renseignées'],
+    ['Suivre les effectifs et les présences','Réduire les abandons et améliorer l\'assiduité','Mensuel','Taux de présence et d\'abandon'],
+    ['Appuyer et encadrer les enseignants volontaires','Améliorer la qualité des enseignements','Mensuel','Nombre d\'enseignants encadrés'],
+    ['Effectuer des visites de suivi sur le terrain','Vérifier le fonctionnement des écoles','Mensuel / Trimestriel','Nombre de visites et bulletins remplis'],
+    ['Sensibiliser les communautés et les COGES','Renforcer l\'implication communautaire','Toute l\'année','Nombre de séances de sensibilisation'],
+    ['Organiser les évaluations des acquis','Mesurer les progrès des élèves','Trimestriel','Résultats des évaluations'],
+    ['Accompagner la régularisation / l\'intégration au circuit formel','Faciliter l\'officialisation des écoles','Selon calendrier','Nombre d\'écoles accompagnées'],
+    ['Collecter et consolider les données statistiques','Disposer de données fiables','Mensuel','Rapports consolidés'],
+    ['Produire les rapports périodiques et le bilan de fin d\'année (BFA)','Rendre compte des résultats','Trimestriel / Annuel','Rapports produits et transmis']]);
+  var PASS_M=seed([
+    ['Identifier les enfants non scolarisés et déscolarisés (9–14 ans)','Constituer les cohortes de la passerelle','Début d\'année','Nombre d\'enfants identifiés'],
+    ['Ouvrir les classes passerelles (CPU, CEU, CMU)','Assurer le démarrage effectif des enseignements','Début d\'année','Nombre de classes ouvertes / prévues'],
+    ['Recruter et former les animateurs','Garantir la qualité de l\'encadrement','Début d\'année','Nombre d\'animateurs formés'],
+    ['Doter les classes en manuels et fournitures','Assurer de bonnes conditions d\'apprentissage','Octobre','Taux de dotation'],
+    ['Suivre la présence et l\'assiduité des apprenants','Prévenir les abandons','Mensuel','Taux de présence / d\'abandon'],
+    ['Effectuer les visites de suivi (superviseur, DEP, CAENF)','Appuyer les animateurs','Mensuel','Bulletins de visite remplis'],
+    ['Évaluer les acquis (évaluations bimensuelles)','Mesurer les progrès','Bimensuel / Trimestriel','Résultats des évaluations'],
+    ['Préparer l\'intégration des apprenants dans le circuit formel','Faciliter le passage vers l\'école formelle','Fin d\'année','Nombre d\'apprenants intégrés'],
+    ['Remplir la matrice DESPS et transmettre les données','Disposer de données fiables','Mensuel','Matrice transmise'],
+    ['Produire les rapports périodiques et le bilan de fin d\'année (BFA)','Rendre compte des résultats','Trimestriel / Annuel','Rapports produits et transmis']]);
+  function mkEngine(ns,title,ico,hero,eleKey,eleLab,matKey,seedRows,axes){
+    if(!window.IEPPConseil) return;
+    window.IEPPConseil.define({ ns:ns, title:title, short:title, desc:title+' — élèves (apprenants), matrice d\'action & rapports.', icon:ico, hero:hero,
+      entities:[{ key:'eleves', icon:'🧑‍🎓', label:eleLab, dataKey:eleKey, cols:[{k:'nom',label:'Nom & prénoms'},{k:'sexe',label:'Sexe',type:'select',options:['M','F']},{k:'age',label:'Âge'},{k:'niveau',label:'Niveau / classe'},{k:'structure',label:'Structure (école / classe)'}] }],
+      matrix:{ label:"Matrice d'action", dataKey:matKey, cols:MC, seed:seedRows }, axes:axes });
+  }
+  mkEngine('HUBECO','Écoles communautaires','🏘️','linear-gradient(135deg,#ea580c,#f59e0b)','alphaEcoEleves','Élèves (apprenants)','alphaEcoMatrice',ECO_M,['Recensement et suivi des écoles','Appui aux enseignants volontaires','Suivi des effectifs et des acquis','Mobilisation communautaire','Collecte des données et rapportage']);
+  mkEngine('HUBPASS','Classes Passerelles','🎓','linear-gradient(135deg,#7c3aed,#c026d3)','alphaPassEleves','Élèves (apprenants)','alphaPassMatrice',PASS_M,['Ouverture et fonctionnement des classes','Encadrement des animateurs','Suivi des apprenants et prévention des abandons','Évaluation et intégration au circuit formel','Collecte des données et rapportage']);
+
+  /* ---------- bulletins de suivi (cal / eco / islam) ---------- */
+  var OPN=['Oui','Partiellement','Non'];
+  var BUL={
+    cal:{title:"Bulletin de suivi — Centre d'alphabétisation", pers:'Facilitateur / Encadreur', grid:[
+      ['A. Fonctionnement du centre',['Centre ouvert à la date prévue','Facilitateur présent et ponctuel','Respect du calendrier et des horaires','Effectif conforme aux prévisions']],
+      ['B. Conditions d\'apprentissage',['Local adapté et sécurisé','Éclairage / mobilier suffisants','Manuels et supports disponibles','Matériel d\'écriture disponible']],
+      ['C. Suivi pédagogique',['Programme / progression respecté(e)','Méthodes adaptées aux adultes et jeunes','Participation active des auditeurs','Évaluations régulières réalisées']],
+      ['D. Suivi administratif',['Registre de présence à jour','Cahier journal / fiches de préparation','Liste des auditeurs à jour','Rapport mensuel transmis']]]},
+    eco:{title:'Bulletin de suivi — École communautaire', pers:'Enseignant volontaire / Responsable', grid:[
+      ['A. Fonctionnement de l\'école',['École ouverte régulièrement','Enseignant(s) présent(s) et ponctuel(s)','Respect de l\'emploi du temps','Effectif conforme aux prévisions']],
+      ['B. Cadre et matériel',['Salles de classe adaptées et sécurisées','Tables-bancs suffisants','Manuels et fournitures disponibles','Point d\'eau / latrines disponibles']],
+      ['C. Suivi pédagogique',['Préparations pédagogiques disponibles','Progression respectée','Participation active des élèves','Évaluations régulières réalisées']],
+      ['D. Suivi administratif et communautaire',['Registre d\'appel à jour','Cahier de visites renseigné','COGES / communauté impliquée','Rapport transmis à l\'IEPP']]]},
+    islam:{title:"Bulletin de suivi — Structure Islamique d'Éducation (SIE)", pers:'Responsable / Formateur', grid:[
+      ['A. Fonctionnement de la structure',['Structure ouverte régulièrement','Formateur(s) présent(s) et ponctuel(s)','Activités d\'alphabétisation organisées','Effectif conforme aux prévisions']],
+      ['B. Conditions d\'apprentissage',['Local adapté','Mobilier / nattes suffisants','Manuels et supports disponibles','Matériel pédagogique disponible']],
+      ['C. Suivi pédagogique',['Programme harmonisé aux objectifs de l\'alphabétisation','Méthodes adaptées aux apprenants','Participation active des apprenants','Évaluations (pré-test, intermédiaires, post-test)']],
+      ['D. Suivi administratif',['Registre des apprenants à jour','Registre de présence renseigné','Rapport périodique transmis','Partenariat avec les responsables de la structure']]]}
+  };
+  var APPR=['Satisfaisant','Acceptable','À améliorer','Insuffisant'];
+  var BST={enregistre:['Enregistré','#dbeafe','#1d4ed8'],envoye:['Envoyé à l\'IEPP','#dcfce7','#15803d'],archive:['Archivé','#e2e8f0','#475569']};
+  var curB=null;
+  function bulForm(rec,edit){
+    var B=BUL[rec.dom], d=rec.data||{}, ro=edit?'':' disabled', rd=edit?'':' readonly';
+    var names=ld(DM[rec.dom].str).map(function(r){ return r.nom||r.ecole||r.localite||''; }).filter(Boolean);
+    var f=function(k,l,t,ph){ return '<div><label class="text-xs">'+esc(l)+'</label><input data-k="'+k+'" type="'+(t||'text')+'" value="'+esc(d[k]||'')+'"'+rd+(k==='structure'?' list="hb-dl"':'')+' style="'+inp+'"></div>'; };
+    var h=(window.bpApi&&bpApi.headHtml)?bpApi.headHtml():'';
+    h+='<h3 style="text-align:center;margin:8px 0">'+esc(B.title.toUpperCase())+'</h3><datalist id="hb-dl">'+names.map(function(n){return '<option value="'+esc(n)+'">';}).join('')+'</datalist>';
+    h+='<h4 style="margin:10px 0 4px;color:#1e3a8a">I. INFORMATIONS GÉNÉRALES</h4><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px">'
+      +f('drena','DRENA')+f('iepp','IEPP')+f('structure',DM[rec.dom].list.replace(/s$/,'')+' / structure suivie(e)')+f('localite','Localité')+f('resp',B.pers)+f('contact','Contact')+f('date','Date de la visite','date')+f('visiteur','Visiteur (nom et fonction)')
+      +f('ei_f','Effectif inscrit — Filles/Femmes','number')+f('ei_g','Effectif inscrit — Garçons/Hommes','number')+f('ep_f','Effectif présent — Filles/Femmes','number')+f('ep_g','Effectif présent — Garçons/Hommes','number')+'</div>';
+    h+='<h4 style="margin:12px 0 4px;color:#1e3a8a">II. GRILLE DE CONTRÔLE</h4><table class="table" style="width:100%;font-size:12.5px"><thead><tr><th style="text-align:left">Critère</th>'+OPN.map(function(o){return '<th style="width:90px">'+o+'</th>';}).join('')+'</tr></thead><tbody>';
+    B.grid.forEach(function(sec,si){ h+='<tr><td colspan="4" style="background:#eef2ff;font-weight:700">'+esc(sec[0])+'</td></tr>'; sec[1].forEach(function(it,ii){ var k='g'+si+'_'+ii; h+='<tr><td>'+esc(it)+'</td>'+OPN.map(function(o){ return '<td style="text-align:center"><input type="radio" name="'+k+'" data-g="'+k+'" value="'+o+'"'+(d[k]===o?' checked':'')+ro+'></td>'; }).join('')+'</tr>'; }); });
+    h+='</tbody></table>';
+    h+='<h4 style="margin:12px 0 4px;color:#1e3a8a">III. INDICATEURS ET POINTS D\'ALERTE</h4><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px">'+f('abs','Nombre d\'absents','number')+f('aband','Nombre d\'abandons','number')+'</div>';
+    [['causes','Principales causes des absences / abandons'],['diff','Principales difficultés constatées'],['besoins','Besoins urgents'],['mesures','Mesures correctives / recommandations']].forEach(function(t){ h+='<div style="margin-top:6px"><label class="text-xs"><b>'+t[1]+'</b></label><textarea data-k="'+t[0]+'" rows="2"'+rd+' style="'+inp+';resize:vertical">'+esc(d[t[0]]||'')+'</textarea></div>'; });
+    h+='<div style="margin-top:8px"><label class="text-xs"><b>Appréciation globale</b></label><div style="display:flex;gap:14px;flex-wrap:wrap">'+APPR.map(function(a){ return '<label style="font-size:13px"><input type="radio" name="appr" data-g="appr" value="'+a+'"'+(d.appr===a?' checked':'')+ro+'> '+a+'</label>'; }).join('')+'</div></div>';
+    h+='<table style="width:100%;margin-top:14px"><tr><td style="height:60px;text-align:center;vertical-align:top;width:50%"><b>Signature du visiteur / Conseiller Alphabétisation</b></td><td style="text-align:center;vertical-align:top"><b>Visa de l\'IEPP</b></td></tr></table>';
+    return h;
+  }
+  function collectB(){ var root=$('#hb-form'); var d={}; if(!root) return d; [].forEach.call(root.querySelectorAll('[data-k]'),function(e){ d[e.getAttribute('data-k')]=e.value; }); [].forEach.call(root.querySelectorAll('input[type=radio]:checked'),function(e){ d[e.getAttribute('data-g')]=e.value; }); return d; }
+  function openB(rec){
+    var edit=(canEdit()||rec.username===U().username)&&rec.statut!=='archive'; curB=rec;
+    var foot='<button class="btn btn-ghost" onclick="closeModal()">Fermer</button> <button class="btn btn-ghost" onclick="hbOutCur(\'p\')">🖨️ Imprimer</button><button class="btn btn-ghost" onclick="hbOutCur(\'f\')">📄 PDF</button><button class="btn btn-ghost" onclick="hbOutCur(\'w\')">📝 Word</button> '+(edit?'<button class="btn btn-green" style="background:#16a34a;color:#fff" onclick="hbSave()">💾 Enregistrer</button>':'<span class="text-xs text-muted">Consultation seule</span>');
+    openModal(DM[rec.dom].ico+' '+BUL[rec.dom].title,'<div id="hb-form" style="max-height:68vh;overflow:auto;padding-right:6px">'+bulForm(rec,edit)+'</div>',foot); var m=$('.modal'); if(m) m.style.maxWidth='1000px';
+  }
+  window.hbNew=function(dom){ if(!canEdit()||!BUL[dom]) return; var u=U(); var today=new Date().toISOString().slice(0,10);
+    openB({id:null,dom:dom,type:'suivi',data:{iepp:String(state.activeIepp||''),date:today,visiteur:(u.name||u.username||'')},by:u.name||u.username||'',username:u.username||'',role:u.role,statut:'enregistre'}); };
+  window.hbOpen=function(id){ var r=ld('alphaBullDom').filter(function(x){return x.id===id;})[0]; if(r) openB(JSON.parse(JSON.stringify(r))); };
+  window.hbSave=function(){ if(!curB) return; var d=collectB(); var L=arr('alphaBullDom'); var title=(d.structure||'—')+' — '+fr(d.date);
+    var rec=Object.assign({},curB,{data:d,titre:title,date:d.date||new Date().toISOString().slice(0,10),_upd:Date.now()});
+    if(rec.id){ var i=L.findIndex(function(x){return x.id===rec.id;}); if(i>=0) L[i]=rec; else L.push(rec); } else { rec.id='bd_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); L.push(rec); }
+    sv('alphaBullDom'); try{ logAction('alpha-bulletin','Enregistrement : '+BUL[rec.dom].title); }catch(e){} toast('Bulletin enregistré dans le tiroir ✅','success'); closeModal(); curB=null; draw(); };
+  function bulHtml(rec){
+    var B=BUL[rec.dom], d=rec.data||{}, h=(window.bpApi&&bpApi.headHtml)?bpApi.headHtml():'';
+    var css='<style>body{font-family:Arial,sans-serif;font-size:12px;margin:16px;color:#0f172a}h1{text-align:center;font-size:16px;text-transform:uppercase}h2{font-size:13px;color:#1e3a8a;border-bottom:1px solid #cbd5e1;margin:10px 0 4px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #888;padding:3px 6px}p{white-space:pre-wrap;margin:2px 0 6px}</style>';
+    var info=[['DRENA',d.drena],['IEPP',d.iepp],['Structure',d.structure],['Localité',d.localite],[B.pers,d.resp],['Contact',d.contact],['Date de la visite',fr(d.date)],['Visiteur',d.visiteur],['Inscrits (F/G)',(d.ei_f||0)+' / '+(d.ei_g||0)],['Présents (F/G)',(d.ep_f||0)+' / '+(d.ep_g||0)],['Absents',d.abs],['Abandons',d.aband]];
+    var o='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(B.title)+'</title>'+css+'</head><body>'+h+'<h1>'+esc(B.title)+'</h1><h2>I. Informations générales</h2><table>'+info.map(function(x){ return '<tr><th style="text-align:left;width:32%;background:#f1f5f9">'+esc(x[0])+'</th><td>'+esc(x[1]==null?'':x[1])+'</td></tr>'; }).join('')+'</table><h2>II. Grille de contrôle</h2><table>';
+    B.grid.forEach(function(sec,si){ o+='<tr><td colspan="2" style="background:#eef2ff"><b>'+esc(sec[0])+'</b></td></tr>'; sec[1].forEach(function(it,ii){ o+='<tr><td>'+esc(it)+'</td><td style="width:110px;text-align:center">'+esc(d['g'+si+'_'+ii]||'—')+'</td></tr>'; }); });
+    o+='</table><h2>III. Points d\'alerte</h2>'+[['causes','Causes des absences / abandons'],['diff','Difficultés constatées'],['besoins','Besoins urgents'],['mesures','Mesures correctives / recommandations']].map(function(t){ return '<b>'+t[1]+'</b><p>'+esc(d[t[0]]||'')+'</p>'; }).join('')+'<p><b>Appréciation globale :</b> '+esc(d.appr||'—')+'</p>';
+    o+='<p style="text-align:right;margin-top:12px">Fait à <b>'+esc((typeof lieuFait==='function'&&lieuFait())||'………………')+'</b>, le <b>'+esc(new Date().toLocaleDateString('fr-FR'))+'</b></p><table style="margin-top:6px"><tr><td style="height:70px;text-align:center;vertical-align:top;width:50%"><b>Signature du visiteur / Conseiller Alphabétisation</b></td><td style="text-align:center;vertical-align:top"><b>Visa de l\'IEPP</b></td></tr></table>';
+    return o;
+  }
+  function outRec(rec,m){ if(!rec) return; var h=bulHtml(rec), n=('bulletin_'+rec.dom+'_'+(rec.date||'')).replace(/[^A-Za-z0-9_]+/g,'_');
+    if(m==='w'){ downloadFile('﻿'+h+'</body></html>',n+'.doc','application/msword;charset=utf-8'); toast('Word téléchargé','success'); return; }
+    var w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-up.','error'); return; } w.document.write(h+'<script>window.onload=function(){window.print();}<\/script></body></html>'); w.document.close(); if(m==='f') toast('Choisissez « Enregistrer au format PDF ».','success'); }
+  window.hbOutCur=function(m){ if(!curB) return; var d=collectB(); outRec(Object.assign({},curB,{data:d}),m); };
+  window.hbOut=function(id,m){ outRec(ld('alphaBullDom').filter(function(x){return x.id===id;})[0],m); };
+  window.hbSend=function(id){ var L=arr('alphaBullDom'), r=L.filter(function(x){return x.id===id;})[0]; if(!r) return; if(!confirm('Envoyer ce bulletin à l\'Inspecteur ?')) return; r.statut='envoye'; r.envoyeLe=new Date().toISOString().slice(0,10); r._upd=Date.now(); sv('alphaBullDom'); try{ logAction('alpha-bulletin','Envoi à l\'Inspecteur : '+BUL[r.dom].title); }catch(e){} toast('Bulletin envoyé ✅','success'); draw(); };
+  window.hbArch=function(id){ var L=arr('alphaBullDom'), r=L.filter(function(x){return x.id===id;})[0]; if(!r) return; r.statut='archive'; r._upd=Date.now(); sv('alphaBullDom'); toast('Bulletin archivé ✅','success'); draw(); };
+  window.hbDel=function(id){ if(!confirm('Supprimer ce bulletin ? (récupérable dans la Corbeille)')) return; state.alphaBullDom=arr('alphaBullDom').filter(function(x){return x.id!==id;}); sv('alphaBullDom'); toast('Bulletin supprimé','success'); draw(); };
+
+  /* ---------- tiroir unifié des 4 domaines ---------- */
+  var tF={dom:'',st:'',q:''};
+  var PT={sup:'Bulletin du superviseur',dep:'Bulletin de visite du DEP',caenf:'Bulletin de visite du CAENF'};
+  function tiroirRows(){
+    var o=[];
+    ld('alphaBulletins').forEach(function(r){ o.push({src:'pass',dom:'pass',id:r.id,type:PT[r.type]||r.type,titre:r.titre||'',date:r.date||'',by:r.by||'',statut:r.statut||'enregistre',username:r.username}); });
+    ld('alphaBullDom').forEach(function(r){ o.push({src:'dom',dom:r.dom,id:r.id,type:(BUL[r.dom]||{}).title||'Bulletin',titre:r.titre||'',date:r.date||'',by:r.by||'',statut:r.statut||'enregistre',username:r.username}); });
+    var q=tF.q.toLowerCase();
+    return o.filter(function(r){ return (!tF.dom||r.dom===tF.dom)&&(!tF.st||r.statut===tF.st)&&(!q||(r.type+' '+r.titre+' '+r.by).toLowerCase().indexOf(q)>=0); }).sort(function(a,b){ return String(b.date).localeCompare(String(a.date)); });
+  }
+  function rowHtml(r){
+    var ce=canEdit(), me=ce||r.username===U().username, s=BST[r.statut]||BST.enregistre, dm=DM[r.dom]||{ico:'',t:r.dom}, p=r.src==='pass';
+    var op=p?'alxOpen':'hbOpen', ou=p?'alxOutId':'hbOut', se=p?'alxSend':'hbSend', ar=p?'alxArch':'hbArch', de=p?'alxDel':'hbDel', ed=me&&r.statut!=='archive';
+    return '<tr><td>'+dm.ico+' '+esc(dm.t)+'</td><td><b>'+esc(r.type)+'</b></td><td>'+esc(r.titre||'—')+'</td><td>'+esc(fr(r.date))+'</td><td>'+esc(r.by)+'</td><td><span style="background:'+s[1]+';color:'+s[2]+';border-radius:10px;padding:1px 9px;font-size:11px;font-weight:700">'+s[0]+'</span></td><td style="white-space:nowrap">'
+      +'<button class="btn btn-ghost btn-sm" title="'+(ed?'Modifier':'Voir')+'" onclick="'+op+'(\''+r.id+'\')">'+(ed?'✏️':'👁')+'</button>'
+      +'<button class="btn btn-ghost btn-sm" title="Imprimer" onclick="'+ou+'(\''+r.id+'\',\'p\')">🖨️</button><button class="btn btn-ghost btn-sm" title="PDF" onclick="'+ou+'(\''+r.id+'\',\'f\')">📄</button><button class="btn btn-ghost btn-sm" title="Word" onclick="'+ou+'(\''+r.id+'\',\'w\')">📝</button>'
+      +(me&&r.statut==='enregistre'?'<button class="btn btn-ghost btn-sm" title="Envoyer à l\'Inspecteur" onclick="'+se+'(\''+r.id+'\')">✉️</button>':'')
+      +(ed?'<button class="btn btn-ghost btn-sm" title="Archiver" onclick="'+ar+'(\''+r.id+'\')">📦</button>':'')
+      +(me?'<button class="btn btn-ghost btn-sm" style="color:#dc2626" title="Supprimer" onclick="'+de+'(\''+r.id+'\')">🗑</button>':'')+'</td></tr>';
+  }
+  function tiroirPage(){
+    var rows=tiroirRows();
+    return '<div id="hub-tiroir" class="card" style="padding:14px"><div class="card-title">🗄️ Tiroir des bulletins — 4 domaines</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><input type="search" value="'+esc(tF.q)+'" placeholder="🔍 Rechercher…" oninput="hubTQ(this.value)" style="'+inp+';width:220px"><select onchange="hubTF(\'dom\',this.value)" style="'+inp+';width:auto"><option value="">Tous les domaines</option>'+DORD.map(function(d){ return '<option value="'+d+'"'+(tF.dom===d?' selected':'')+'>'+DM[d].ico+' '+esc(DM[d].t)+'</option>'; }).join('')+'</select><select onchange="hubTF(\'st\',this.value)" style="'+inp+';width:auto"><option value="">Tous statuts</option>'+Object.keys(BST).map(function(s){ return '<option value="'+s+'"'+(tF.st===s?' selected':'')+'>'+BST[s][0]+'</option>'; }).join('')+'</select></div>'
+      +'<div style="overflow:auto"><table class="table" style="width:100%;font-size:13px"><thead><tr><th style="text-align:left">Domaine</th><th style="text-align:left">Bulletin</th><th style="text-align:left">Structure / date</th><th>Date</th><th>Auteur</th><th>Statut</th><th></th></tr></thead><tbody>'+(rows.length?rows.map(rowHtml).join(''):'<tr><td colspan="7" style="padding:14px;text-align:center;color:#64748b">Le tiroir est vide.</td></tr>')+'</tbody></table></div></div>';
+  }
+  window.hubTQ=function(v){ tF.q=v; draw(); var i=$('#hub-tiroir input[type=search]'); if(i){ i.focus(); i.setSelectionRange(v.length,v.length); } };
+  window.hubTF=function(k,v){ tF[k]=v; draw(); };
+
+  /* ---------- rapport général : synthèse ---------- */
+  function generalPage(){
+    var tot={s:0,a:0,b:0,r:0}, rows=DORD.map(function(d){ var D=DM[d], s=ld(D.str), a=ld(D.app), fo=s.filter(function(r){return /^Fonct/.test(r.statut||'');}).length;
+      var b=ld('alphaBullDom').filter(function(x){return x.dom===d;}).length+(d==='pass'?ld('alphaBulletins').length:0), rp=ld('alphaRapports').filter(function(x){return x.dom===D.rap;}).length;
+      tot.s+=s.length; tot.a+=a.length; tot.b+=b; tot.r+=rp;
+      return '<tr><td>'+D.ico+' <b>'+esc(D.t)+'</b></td><td>'+s.length+'</td><td>'+fo+'</td><td>'+a.length+'</td><td>'+b+'</td><td>'+rp+'</td></tr>'; }).join('');
+    return '<div class="card" style="padding:14px"><div class="card-title">📑 Rapport général du Conseiller Alphabétisation</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:8px 0"><div class="card" style="padding:12px"><div class="text-xs text-muted">Structures (4 domaines)</div><div style="font-size:26px;font-weight:800">'+tot.s+'</div></div><div class="card" style="padding:12px"><div class="text-xs text-muted">Apprenants</div><div style="font-size:26px;font-weight:800">'+tot.a+'</div></div><div class="card" style="padding:12px"><div class="text-xs text-muted">Bulletins</div><div style="font-size:26px;font-weight:800">'+tot.b+'</div></div><div class="card" style="padding:12px"><div class="text-xs text-muted">Rapports des domaines</div><div style="font-size:26px;font-weight:800">'+tot.r+'</div></div></div>'
+      +'<div style="overflow:auto"><table class="table" style="width:100%;font-size:13px"><thead><tr><th style="text-align:left">Domaine</th><th>Structures</th><th>Fonctionnelles</th><th>Apprenants</th><th>Bulletins</th><th>Rapports</th></tr></thead><tbody>'+rows+'</tbody></table></div></div><div id="hub-rap" data-dom="general"></div>';
+  }
+  /* ---------- sous-page « Bulletins » (cal / eco / islam) ---------- */
+  function bulPage(dom){
+    var D=DM[dom], ce=canEdit(), L=ld('alphaBullDom').filter(function(x){return x.dom===dom;}).sort(function(a,b){return String(b.date).localeCompare(String(a.date));}).slice(0,15);
+    return '<div class="card" style="padding:14px"><div class="card-title">📝 '+esc(D.bulL)+'</div><p class="text-sm" style="color:#64748b;margin:0 0 10px">Remplissez le bulletin de suivi, enregistrez-le dans le tiroir, puis modifiez, imprimez (PDF/Word), envoyez à l\'Inspecteur ou archivez.</p>'
+      +'<div class="card" style="padding:14px;border:1px solid #e2e8f0;max-width:340px"><div style="font-size:26px">'+D.ico+'</div><div style="font-weight:700;margin:4px 0 8px">'+esc(BUL[dom].title)+'</div><button class="btn btn-green" style="background:#16a34a;color:#fff" '+(ce?'':'disabled ')+'onclick="hbNew(\''+dom+'\')">📂 Ouvrir / remplir</button></div>'
+      +'<h4 style="margin:14px 0 6px">Derniers bulletins</h4><div style="overflow:auto"><table class="table" style="width:100%;font-size:13px"><tbody>'+(L.length?L.map(function(r){ return rowHtml({src:'dom',dom:dom,id:r.id,type:BUL[dom].title,titre:r.titre,date:r.date,by:r.by,statut:r.statut||'enregistre',username:r.username}); }).join(''):'<tr><td style="padding:10px;color:#64748b">Aucun bulletin enregistré.</td></tr>')+'</tbody></table></div></div>';
+  }
+
+  /* ---------- navigation à deux niveaux ---------- */
+  function navHtml(){
+    var top=DORD.map(function(d){ return [d,DM[d].ico+' '+DM[d].t]; }).concat([['tiroir','🗄️ Tiroir'],['general','📑 Rapport général']]);
+    var h='<div id="hub-nav"><div class="hub-tabs">'+top.map(function(t){ return '<div class="tab'+(hub.dom===t[0]?' active':'')+'" onclick="hubGo(\''+t[0]+'\',\''+(DM[t[0]]?(hub.sub||'liste'):'')+'\')">'+esc(t[1])+'</div>'; }).join('')+'</div>';
+    if(DM[hub.dom]){ var D=DM[hub.dom], subs=[['liste','📋 '+D.list],['app','🧑‍🎓 '+D.appL],['bul','📝 '+D.bulL],['mat',"🗂️ Matrice d'action"],['rap','📄 Rapports']];
+      h+='<div class="hub-subs" style="border-left:4px solid '+D.col+'">'+subs.map(function(s){ return '<div class="hub-sub'+(hub.sub===s[0]?' active':'')+'" onclick="hubGo(\''+hub.dom+'\',\''+s[0]+'\')">'+esc(s[1])+'</div>'; }).join('')+'</div>'; }
+    return h+'</div>';
+  }
+  function heroHtml(){
+    var t,d,c='linear-gradient(135deg,#7C3AED 0%,#4C1D95 100%)';
+    if(DM[hub.dom]){ t=DM[hub.dom].ico+' '+DM[hub.dom].t; d='Création, apprenants, bulletins, matrice d\'action et rapports (manuel ou IA simple)'; } else if(hub.dom==='tiroir'){ t='🗄️ Tiroir des bulletins'; d='Bulletins des 4 domaines'; } else { t='📑 Rapport général'; d='Synthèse et rapports consolidés du Conseiller Alphabétisation'; }
+    return '<div class="hero" style="background:'+c+'"><h3>'+t+'</h3><p>'+d+'</p></div>';
+  }
+  /* reprend le contenu produit par un module existant et le range sous la navigation */
+  function wrapCurrent(){
+    var c=document.getElementById('content'); if(!c) return;
+    busy=true;
+    try{
+      var keep=[].filter.call(c.children,function(n){ var cl=n.classList; return !(cl&&(cl.contains('hero')||cl.contains('tabs')))&&n.id!=='hub-nav'&&n.id!=='alx-domnav'&&n.id!=='hub-body-wrap'; });
+      var body=document.createElement('div'); body.id='hub-body-wrap'; body.style.marginTop='12px'; keep.forEach(function(n){ body.appendChild(n); });
+      c.innerHTML=heroHtml()+navHtml(); c.appendChild(body);
+    }finally{ setTimeout(function(){ busy=false; },30); }
+  }
+  function setBody(html){ setContent(html); }
+  function runSub(){
+    refresh(); window.__hubList=null;
+    var d=hub.dom, s=hub.sub;
+    if(d==='tiroir'){ setBody(tiroirPage()); return; }
+    if(d==='general'){ setBody(generalPage()); if(window.alrInject) alrInject(); return; }
+    var D=DM[d];
+    if(s==='liste'){
+      if(d==='islam'){ if(window.ISLAM) ISLAM.go('structures'); else MODULES.islam.render(); }
+      else { window.__hubList=d; var mm=MODULES['alpha-'+d]; if(mm) mm.render(); }
+    } else if(s==='app'){
+      if(d==='cal'&&window.ALPHA) ALPHA.go('auditeurs'); else if(d==='eco'&&window.HUBECO) HUBECO.go('eleves'); else if(d==='pass'&&window.HUBPASS) HUBPASS.go('eleves'); else if(d==='islam'&&window.ISLAM) ISLAM.go('apprenants');
+    } else if(s==='mat'){
+      if(d==='cal'&&window.ALPHA) ALPHA.go('matrice'); else if(d==='eco'&&window.HUBECO) HUBECO.go('matrice'); else if(d==='pass'&&window.HUBPASS) HUBPASS.go('matrice'); else if(d==='islam'&&window.ISLAM) ISLAM.go('matrice');
+    } else if(s==='bul'){
+      if(d==='pass'){ if(origRender) origRender.call(MODULES.alpha); var t=$('.alx-tab[data-x="bul"]'); if(t) t.click(); }
+      else setBody(bulPage(d));
+    } else if(s==='rap'){
+      setBody('<div id="hub-rap" data-dom="'+D.rap+'"></div>'); if(window.alrInject) alrInject();
+    }
+  }
+  function draw(){ if(!window.state||state.module!=='alpha') return; runSub(); wrapCurrent(); }
+  window.hubGo=function(dom,sub){ hub.dom=dom; hub.sub=DM[dom]?(SUBS.indexOf(sub)>=0?sub:'liste'):''; busy=true; try{ runSub(); }catch(e){ console.warn('[hub]',e); } wrapCurrent(); try{ sessionStorage.setItem('hubState',JSON.stringify(hub)); }catch(e){} };
+
+  /* ---------- branchement sur le module « alpha » ---------- */
+  var m=MODULES.alpha; origRender=m&&m.render;
+  var MAP={'alpha-cal':'cal','alpha-eco':'eco','alpha-pass':'pass'};
+  var nav0=window.navigate;
+  window.navigate=function(mod){
+    var a=arguments;
+    if(MAP[mod]){ hub={dom:MAP[mod],sub:'liste'}; a=[].slice.call(arguments); a[0]='alpha'; state.__hubFresh=true; }
+    else if(mod==='alpha'&&state.module!=='alpha'){ hub={dom:'cal',sub:'liste'}; }
+    return nav0.apply(this,a);
+  };
+  if(m){ m.render=function(){ if(!window.state||state.module!=='alpha'){ return origRender&&origRender.apply(this,arguments); } hubGoRender(); }; }
+  function hubGoRender(){ busy=true; try{ runSub(); }catch(e){ console.warn('[hub]',e); } wrapCurrent(); }
+  /* tout re-rendu d'un module sous-jacent (ajout, suppression, etc.) est réintégré sous la navigation */
+  function onMut(){
+    if(busy||!window.state||!state.user||state.module!=='alpha') return;
+    var c=document.getElementById('content'); if(!c||c.querySelector('#hub-nav')) return;
+    if(/Tiroir des bulletins/.test(c.textContent||'')&&!c.querySelector('#hub-tiroir')){ hub.dom='tiroir'; hub.sub=''; busy=true; setBody(tiroirPage()); wrapCurrent(); return; }
+    wrapCurrent();
+  }
+  var obs=null, obsEl=null;
+  setInterval(function(){ try{ var c=document.getElementById('content'); if(c&&c!==obsEl){ if(obs) obs.disconnect(); obs=new MutationObserver(function(){ try{ onMut(); }catch(e){} }); obs.observe(c,{childList:true}); obsEl=c; } onMut(); }catch(e){} },500);
+  try{ Object.assign(AUTO_TRASH_LABELS,{alphaBullDom:'Bulletins de suivi (Alphabétisation)',alphaEcoEleves:'Élèves — écoles communautaires',alphaPassEleves:'Élèves — classes passerelles',alphaEcoMatrice:'Matrice — écoles communautaires',alphaPassMatrice:'Matrice — classes passerelles'}); }catch(e){}
+  var st=document.createElement('style'); st.id='iepp-hub-css'; st.textContent='.hub-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;margin-bottom:0}.hub-subs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px;padding:6px 10px;background:rgba(124,58,237,.05);border-radius:0 10px 10px 0}.hub-sub{padding:6px 12px;border-radius:999px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border:1px solid transparent;white-space:nowrap}.hub-sub:hover{background:rgba(255,122,0,.1);color:#FF7A00}.hub-sub.active{background:#7c3aed;color:#fff}'; document.head.appendChild(st);
+  }catch(e){ console.warn('[alpha-hub]',e); }
+})();
+</script>
+
+<script id="module-signatures-etendu">
+/* Signatures manuscrites : extension du moteur existant — signature mémorisée par document (reste à la réimpression), bouton Effacer, aperçus affichés sur la page (modales / pages), exports Word. Zone non signée = reste vide à l'impression (aucun symbole imprimé) — additif */
+(function(){
+  try{
+  var STORE='iepp_docsig_v1', MAXN=250;
+  function rd(){ try{ return JSON.parse(localStorage.getItem(STORE)||'{}')||{}; }catch(e){ return {}; } }
+  function wr(o){ try{ var ks=Object.keys(o); if(ks.length>MAXN){ ks.sort(function(a,b){ return (o[a].t||0)-(o[b].t||0); }); ks.slice(0,ks.length-MAXN).forEach(function(k){ delete o[k]; }); } localStorage.setItem(STORE,JSON.stringify(o)); }catch(e){} }
+  window.__sgStore=function(k,img,nm){ var o=rd(); if(!img&&!nm){ delete o[k]; } else { o[k]={img:img||'',name:nm||'',t:Date.now()}; } wr(o); };
+  window.__sgLoad=function(k){ return rd()[k]||null; };
+  window.__sgDel=function(k){ var o=rd(); delete o[k]; wr(o); };
+  window.__sgAll=function(prefix){ var o=rd(), r={}; Object.keys(o).forEach(function(k){ if(k.indexOf(prefix)===0) r[k]=o[k]; }); return r; };
+
+  var SGT=function(t){ return /signature|visa\b|lu et pris|[ée]margement|(^|[>\n])\s*(le|la|les|l.)\s*(directeur|directrice|inspecteur|inspectrice|conseill|instituteur|institutrice|enseignant|chef|correspondant|secr[ée]taire|superviseur|dep\b|caenf|cppp|cpi\b|pr[ée]sident|responsable|animateur|demandeur|agent|parent|tuteur|comptable|gestionnaire|[ée]conome|facilitateur|drena|dren\b|iepp)/i.test(t); };
+  /* ---- fonctions autonomes (réutilisées telles quelles dans les fenêtres d'impression) ---- */
+  function sgKey(node){
+    var c=node.cloneNode(true);
+    [].forEach.call(c.querySelectorAll('script,style,button,input,select,textarea,.sgz,.sgz2,.sgbar,[data-nosg],.sgn-native'),function(e){ if(e.parentNode) e.parentNode.removeChild(e); });
+    var t=(c.textContent||'').toLowerCase().replace(/\d{1,2}\s*[\/.\-]\s*\d{1,2}\s*[\/.\-]\s*\d{2,4}/g,' ').replace(/\d{4}\s*-\s*\d{1,2}\s*-\s*\d{1,2}/g,' ').replace(/[^a-z0-9à-ÿ]+/g,' ').trim().slice(0,9000);
+    var h=5381,i; for(i=0;i<t.length;i++){ h=((h<<5)+h+t.charCodeAt(i))|0; }
+    return 'd'+(h>>>0).toString(36)+'_'+t.length;
+  }
+  function sgLeaves(root){
+    var RE=/signature|visa\b|lu et pris|[ée]margement/i, RR=/^\s*(le|la|les|l.)\s*(directeur|directrice|inspecteur|inspectrice|conseill|instituteur|institutrice|enseignant|chef|correspondant|secr[ée]taire|superviseur|dep\b|caenf|cppp|cpi\b|pr[ée]sident|responsable|animateur|demandeur|agent|parent|tuteur|comptable|gestionnaire|[ée]conome|facilitateur|drena|dren\b|iepp)/i;
+    function lab(el){ var t=(el.textContent||'').replace(/\s+/g,' ').trim(); return t.length>0&&t.length<=140&&(RE.test(t)||(t.length<=60&&RR.test(t))); }
+    var all=[].slice.call(root.querySelectorAll('td,div,p,span,b,strong,i,small,label,h4,h5'));
+    var leaves=all.filter(function(el){ if(el.closest('thead,th,.sgz,.sgz2,.sgbar,[data-nosg],.no-print,button'))return false; if(!lab(el))return false; var kids=[].slice.call(el.querySelectorAll('*')); if(kids.some(lab))return false; var blk=el.closest('td,div,p')||el; if(blk.querySelector('img[alt=Signature],.sgn-native'))return false; if(/^(le |la )?(date|lieu)/i.test(el.textContent.trim()))return false; return true; });
+    var seen=[], out=[]; leaves.forEach(function(el){ var blk=el.closest('td,div,p')||el.parentNode; if(seen.indexOf(blk)>=0&&blk.tagName!=='TD')return; seen.push(blk); out.push(el); });
+    return out;
+  }
+  function labOf(el){ return (el.textContent||'').replace(/\s+/g,' ').trim().slice(0,50); }
+
+  /* ---- 1) fenêtres d'impression : mémorisation + effacement des signatures posées ---- */
+  function popupAddon(){
+    return '<script>(function(){var KEYFN='+sgKey.toString()+',prev=window.print,key=null,done=false;'
+    +'var st=document.createElement("style");st.textContent=".sgx{margin:3px 0 0 4px;border:1px solid #cbd5e1;background:#fff;border-radius:6px;padding:3px 8px;font-size:12px;cursor:pointer;color:#475569}@media print{.sgx,.sgb,.sgbar{display:none!important}.sgn{outline:none!important}}";document.head.appendChild(st);'
+    +'function op(){try{return window.opener;}catch(e){return null;}}'
+    +'function setup(){if(done)return;var zs=[].slice.call(document.querySelectorAll(".sgz")).filter(function(z){return z.querySelector(".sgb")&&z.querySelector(".sgn");});if(!zs.length)return;done=true;'
+    +'zs.forEach(function(z,i){var im=z.querySelector("img"),nm=z.querySelector(".sgn"),b=z.querySelector(".sgb"),pe=z.previousElementSibling,lb=((pe&&pe.textContent)||"").replace(/\\s+/g," ").trim().slice(0,50),zk=key+"#"+i+"#"+lb;'
+    +'var o=op();try{var s=o&&o.__sgLoad&&o.__sgLoad(zk);if(s){if(s.img){im.src=s.img;im.style.display="block";b.textContent="\\u21ba Refaire";}if(s.name)nm.textContent=s.name;}}catch(e){}'
+    +'var x=document.createElement("button");x.type="button";x.className="sgx";x.textContent="\\u2715 Effacer";z.appendChild(x);'
+    +'function save(){var has=im.getAttribute("src")&&im.style.display!=="none",n=(nm.textContent||"").trim();try{var o2=op();if(o2&&o2.__sgStore)o2.__sgStore(zk,has?im.src:"",n);}catch(e){}}'
+    +'x.onclick=function(){im.removeAttribute("src");im.style.display="none";nm.textContent="";b.textContent="\\u270d\\ufe0f Signer";save();};'
+    +'new MutationObserver(save).observe(z,{subtree:true,attributes:true,attributeFilter:["src","style"],childList:true,characterData:true});});}'
+    +'window.print=function(){if(!key){try{key=KEYFN(document.body);}catch(e){key="x";}}var r=prev.apply(this,arguments);try{setup();}catch(e){}return r;};'
+    +'})();<\/script>';
+  }
+  if(!window.__sgOpen2){
+    window.__sgOpen2=true; var _open=window.open;
+    window.open=function(){
+      var w=_open.apply(this,arguments);
+      try{
+        if(w&&w.document&&typeof w.document.write==='function'&&!w.__sgW2){
+          w.__sgW2=true; var _w=w.document.write.bind(w.document), first=true;
+          w.document.write=function(html){
+            try{ if(first&&typeof html==='string'&&/<html|<body|<table|<div|<h[1-4]/i.test(html)&&!/data-nosg-doc/.test(html)){ first=false; html=popupAddon()+html; } }catch(e){}
+            return _w(html);
+          };
+        }
+      }catch(e){}
+      return w;
+    };
+  }
+
+  /* ---- 2) aperçus et pages imprimés depuis l'application (modales, pages) ---- */
+  var css=document.createElement('style'); css.id='iepp-sg2-css';
+  css.textContent='.sgz2{margin:4px auto;text-align:center;min-height:46px}.sgz2 img{max-height:70px;max-width:190px;display:block;margin:0 auto}.sgz2 .sgn{min-height:14px;font-size:11px;outline:none}@media screen{.sgz2 .sgn:empty:before{content:attr(data-ph);color:#94a3b8}.sgz2 .sgn{outline:1px dashed #cbd5e1}.sgz2 button{border:1px solid #16a34a;background:#16a34a;color:#fff;border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer;margin:2px}.sgz2 button.sgx{background:#fff;color:#475569;border-color:#cbd5e1}.sgbar{position:sticky;top:0;z-index:50;background:#fffbeb;border-bottom:2px solid #f59e0b;padding:10px 14px;font:13px Arial;display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:#0f172a}.sgbar button{border:none;border-radius:7px;padding:8px 14px;font-weight:700;cursor:pointer;color:#fff;background:#16a34a}.sgbar button.g{background:#64748b}}@media print{.sgz2 button,.sgbar{display:none!important}.sgz2 .sgn{outline:none}}';
+  document.head.appendChild(css);
+  var op0=window.print.bind(window);
+  function printRoot(){ var bd=document.getElementById('modal-backdrop'); if(bd&&bd.classList.contains('show')){ return document.getElementById('modal-body'); } return document.getElementById('content'); }
+  function uname(){ return (window.state&&state.user&&(state.user.name||state.user.username))||''; }
+  function buildMain(root){
+    var key=sgKey(root), leaves=sgLeaves(root); if(!leaves.length) return 0;
+    leaves.forEach(function(el,i){
+      var zk=key+'#'+i+'#'+labOf(el), z=document.createElement('div'); z.className='sgz2';
+      z.innerHTML='<img alt="" style="display:none"><div class="sgn" contenteditable="true" data-ph="Nom et prénoms"></div><button type="button" class="sgb">✍️ Signer</button><button type="button" class="sgx">✕ Effacer</button>';
+      el.parentNode.insertBefore(z,el.nextSibling);
+      var im=z.querySelector('img'), nm=z.querySelector('.sgn'), b=z.querySelector('.sgb'), x=z.querySelector('.sgx');
+      function save(){ var has=im.getAttribute('src')&&im.style.display!=='none'; window.__sgStore(zk,has?im.src:'',(nm.textContent||'').trim()); }
+      var s=window.__sgLoad(zk); if(s){ if(s.img){ im.src=s.img; im.style.display='block'; b.textContent='↺ Refaire'; } if(s.name) nm.textContent=s.name; }
+      function go(){ if(typeof ieppSignPad!=='function') return; ieppSignPad({nom:(nm.textContent||'').trim()||uname(),onDone:function(img,n){ im.src=img; im.style.display='block'; if(n) nm.textContent=n; b.textContent='↺ Refaire'; save(); }}); }
+      b.onclick=go; im.onclick=go;
+      x.onclick=function(){ im.removeAttribute('src'); im.style.display='none'; nm.textContent=''; b.textContent='✍️ Signer'; save(); };
+      nm.addEventListener('input',save);
+      try{ new MutationObserver(save).observe(z,{subtree:true,attributes:true,attributeFilter:['src','style'],childList:true,characterData:true}); }catch(e){}
+    });
+    return leaves.length;
+  }
+  window.print=function(){
+    try{
+      var root=printRoot();
+      if(root&&!root.querySelector('.sgbar')&&SGT(root.textContent||'')){
+        var n=buildMain(root);
+        if(n){ var bar=document.createElement('div'); bar.className='sgbar'; bar.innerHTML='<span>✍️ <b>Signature manuscrite possible</b> : cliquez sur « Signer » dans les zones prévues (écran, doigt ou souris), complétez le nom, puis imprimez. Une zone non signée reste vide à l\'impression.</span><button type="button" class="p">🖨️ Imprimer</button><button type="button" class="g">Imprimer sans signer</button>';
+          root.insertBefore(bar,root.firstChild); bar.querySelector('.p').onclick=function(){ op0(); }; bar.querySelector('.g').onclick=function(){ op0(); }; return; }
+      }
+    }catch(e){ console.warn('[sg2]',e); }
+    return op0.apply(window,arguments);
+  };
+
+  /* ---- 3) exports Word : reprend les signatures déjà posées sur le même document ---- */
+  var dl0=window.downloadFile;
+  if(typeof dl0==='function'){
+    window.downloadFile=function(content,name,mime){
+      try{
+        if(typeof content==='string'&&/\.(doc|html?)$/i.test(String(name||''))&&SGT(content)){
+          var d=new DOMParser().parseFromString(content,'text/html'), key=sgKey(d.body), all=window.__sgAll(key+'#');
+          if(Object.keys(all).length){ var n=0;
+            sgLeaves(d.body).forEach(function(el,i){ var s=all[key+'#'+i+'#'+labOf(el)]; if(!s||(!s.img&&!s.name)) return;
+              var z=d.createElement('div'); z.setAttribute('style','text-align:center;margin:4px 0'); if(s.img){ var im=d.createElement('img'); im.setAttribute('src',s.img); im.setAttribute('alt','Signature'); im.setAttribute('style','max-height:70px;max-width:190px'); z.appendChild(im); } if(s.name){ var t=d.createElement('div'); t.setAttribute('style','font-size:11px'); t.textContent=s.name; z.appendChild(t); }
+              el.parentNode.insertBefore(z,el.nextSibling); n++; });
+            if(n){ var lead=(content.match(/^\s*(﻿)?\s*(<!doctype[^>]*>)?/i)||[''])[0]; content=lead+d.documentElement.outerHTML; }
+          }
+        }
+      }catch(e){ console.warn('[sg2 word]',e); }
+      return dl0.call(this,content,name,mime);
+    };
+  }
+  }catch(e){ console.warn('[signatures-etendu]',e); }
+})();
+</script>
+
 <script id="module-persistance-corbeille">
 /* ============================================================================
    PERSISTANCE LOCALE + CORBEILLE (ajout, n'altère rien)
@@ -38326,7 +39013,7 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
   var closing=false, loggingOut=false;
 
   /* 1) clés lues une seule fois au démarrage et jamais rechargées après une synchro/changement d'IEPP */
-  var EXTRA=['pnapasClasse','aserEleves','effRentreeMater','effRentreePrim','effRentreeMeta','secteurs','alphaCentres','alphaAuditeurs','alphaMatriceAction','alphaPasserelles','alphaBulletins','rapportsService','islamStructures','islamApprenants','islamMatriceAction'];
+  var EXTRA=['pnapasClasse','aserEleves','effRentreeMater','effRentreePrim','effRentreeMeta','secteurs','alphaCentres','alphaAuditeurs','alphaMatriceAction','alphaPasserelles','alphaEcolesCom','alphaRapports','alphaBullDom','alphaEcoEleves','alphaPassEleves','alphaEcoMatrice','alphaPassMatrice','alphaBulletins','rapportsService','islamStructures','islamApprenants','islamMatriceAction'];
   var ARR_DEFAULT_EMPTY=['pnapasClasse','aserEleves'];
   if(typeof window.reloadScopedState==='function' && !window.__extraReloadWrapped){
     var _r=window.reloadScopedState;
