@@ -37172,7 +37172,7 @@ function userRestoreFromTrash(trashId){
   /* ---------- Documents imprimés : zones signables avant impression ---------- */
   function printScript(saved,nom){
     var S=JSON.stringify({saved:saved,nom:nom}).replace(/</g,'\\u003c');
-    var src='(function(){var CFG='+S+',sgPad='+sgPad.toString()+';'
+    var src='(function(){var sgCenterZ='+window.__sgCenterZ.toString()+';('+window.__sgCenterBoot.toString().replace('function sgCenterBoot','function')+')();var CFG='+S+',sgPad='+sgPad.toString()+';'
     +'var RE={test:function(t){return /signature|visa\\b|lu et pris|[ée]margement/i.test(t)||(t.length<=60&&/^\\s*(le|la|les|l.)\\s*(directeur|directrice|inspecteur|inspectrice|conseill|instituteur|institutrice|enseignant|chef|correspondant|secr[ée]taire|superviseur|dep\\b|caenf|cppp|cpi\\b|pr[ée]sident|responsable|animateur|demandeur|agent|parent|tuteur|comptable|gestionnaire|[ée]conome|facilitateur|drena|dren\\b|iepp)/i.test(t));}},built=false,zc=0,ok=false,_p=window.print;'
     +'var css=document.createElement("style");css.textContent=".sgz{margin:4px auto;text-align:center;min-height:46px}.sgz img{max-height:70px;max-width:190px;display:block;margin:0 auto}.sgn{min-height:14px;font-size:11px;outline:none}.sgb{margin-top:2px}@media screen{.sgn:empty:before{content:attr(data-ph);color:#94a3b8}.sgn{outline:1px dashed #cbd5e1}.sgb{border:1px solid #16a34a;background:#16a34a;color:#fff;border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer}.sgbar{position:sticky;top:0;z-index:9999;background:#fffbeb;border-bottom:2px solid #f59e0b;padding:10px 14px;font:13px Arial;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.sgbar button{border:none;border-radius:7px;padding:8px 14px;font-weight:700;cursor:pointer;color:#fff;background:#16a34a}.sgbar button.g{background:#64748b}}@media print{.sgb,.sgbar{display:none!important}.sgn{outline:none}}";'
     +'function lab(el){var t=(el.textContent||"").replace(/\\s+/g," ").trim();return t.length>0&&t.length<=140&&RE.test(t);}'
@@ -38802,6 +38802,26 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
 
   var SGT=function(t){ return /signature|visa\b|lu et pris|[ée]margement|(^|[>\n])\s*(le|la|les|l.)\s*(directeur|directrice|inspecteur|inspectrice|conseill|instituteur|institutrice|enseignant|chef|correspondant|secr[ée]taire|superviseur|dep\b|caenf|cppp|cpi\b|pr[ée]sident|responsable|animateur|demandeur|agent|parent|tuteur|comptable|gestionnaire|[ée]conome|facilitateur|drena|dren\b|iepp)/i.test(t); };
   /* ---- fonctions autonomes (réutilisées telles quelles dans les fenêtres d'impression) ---- */
+  /* Centrage : la zone « Signer » se place au milieu de l'espace réservé entre le titre et le nom */
+  function sgCenterZ(z){
+    try{
+      if(!z||z.getAttribute('data-c'))return; z.setAttribute('data-c','1');
+      var sp=z.nextElementSibling; if(!sp||/\bsgz2?\b/.test(sp.className||''))return;
+      if((sp.textContent||'').replace(/\s+/g,'')||sp.querySelector('img'))return;
+      var nx=sp.nextElementSibling; if(!nx||!(nx.textContent||'').replace(/\s+/g,''))return;
+      var h=Math.max(sp.offsetHeight||0,96);
+      sp.style.position='relative'; sp.style.minHeight=h+'px'; sp.style.height=h+'px';
+      z.style.cssText+=';position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);margin:0;min-height:0;text-align:center';
+      var n=z.querySelector('.sgn'); if(n) n.style.display='none';
+      sp.appendChild(z);
+    }catch(e){}
+  }
+  function sgCenterBoot(){
+    var f=function(){ [].forEach.call(document.querySelectorAll('.sgz,.sgz2'),sgCenterZ); };
+    try{ new MutationObserver(f).observe(document.documentElement,{childList:true,subtree:true}); }catch(e){}
+    f();
+  }
+  window.__sgCenterZ=sgCenterZ; window.__sgCenterBoot=sgCenterBoot;
   function sgKey(node){
     var c=node.cloneNode(true);
     [].forEach.call(c.querySelectorAll('script,style,button,input,select,textarea,.sgz,.sgz2,.sgbar,[data-nosg],.sgn-native'),function(e){ if(e.parentNode) e.parentNode.removeChild(e); });
@@ -38821,7 +38841,7 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
 
   /* ---- 1) fenêtres d'impression : mémorisation + effacement des signatures posées ---- */
   function popupAddon(){
-    return '<script>(function(){var KEYFN='+sgKey.toString()+',prev=window.print,key=null,done=false;'
+    return '<script>(function(){var sgCenterZ='+sgCenterZ.toString()+';('+sgCenterBoot.toString().replace('function sgCenterBoot','function')+')();var KEYFN='+sgKey.toString()+',prev=window.print,key=null,done=false;'
     +'var st=document.createElement("style");st.textContent=".sgx{margin:3px 0 0 4px;border:1px solid #cbd5e1;background:#fff;border-radius:6px;padding:3px 8px;font-size:12px;cursor:pointer;color:#475569}@media print{.sgx,.sgb,.sgbar{display:none!important}.sgn{outline:none!important}}";document.head.appendChild(st);'
     +'function op(){try{return window.opener;}catch(e){return null;}}'
     +'function setup(){if(done)return;var zs=[].slice.call(document.querySelectorAll(".sgz")).filter(function(z){return z.querySelector(".sgb")&&z.querySelector(".sgn");});if(!zs.length)return;done=true;'
@@ -38863,7 +38883,7 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
     leaves.forEach(function(el,i){
       var zk=key+'#'+i+'#'+labOf(el), z=document.createElement('div'); z.className='sgz2';
       z.innerHTML='<img alt="" style="display:none"><div class="sgn" contenteditable="true" data-ph="Nom et prénoms"></div><button type="button" class="sgb">✍️ Signer</button><button type="button" class="sgx">✕ Effacer</button>';
-      el.parentNode.insertBefore(z,el.nextSibling);
+      el.parentNode.insertBefore(z,el.nextSibling); sgCenterZ(z);
       var im=z.querySelector('img'), nm=z.querySelector('.sgn'), b=z.querySelector('.sgb'), x=z.querySelector('.sgx');
       function save(){ var has=im.getAttribute('src')&&im.style.display!=='none'; window.__sgStore(zk,has?im.src:'',(nm.textContent||'').trim()); }
       var s=window.__sgLoad(zk); if(s){ if(s.img){ im.src=s.img; im.style.display='block'; b.textContent='↺ Refaire'; } if(s.name) nm.textContent=s.name; }
@@ -39308,6 +39328,801 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
 })();
 </script>
 
+<script id="module-annuaire-iepp">
+/* ===== Annuaire IEPP : tout compte / enseignant / élève de l'IEPP apparaît partout où il est nécessaire + détection des doublons (ajout) ===== */
+(function(){
+  if(window.__annInit) return; window.__annInit=true;
+  var SKIP={superadmin:1,drenaet:1,parent:1,eleve:1};
+  var FMAP={instituteur:'Instituteur adjoint (IA)',directeur:'Directeur d’école',cpi:'Conseiller pédagogique du préscolaire et primaire (CPPP)',inspecteur:'IEPP/Chef de circonscription (CC)',correspondant:'Correspondant Fichier',corresp_stat:'Chargé des statistiques',agent:'Agent de bureau',secretaire:'Secrétaire',courrier:'Chargé du courrier arrivée/départ',rh:'Chargé des ressources humaines',examens:'Chargé des examens et concours',carte_scolaire:'Chargé de la carte scolaire',smoss:'Chargé SMOSS',cantine:'Conseiller cantine',viescolaire:'Conseiller vie scolaire',coges:'Conseiller COGES',alphabetisation:'Conseiller Alphabétisation',alpha:'Conseiller Alphabétisation'};
+  function S(){ return window.state; }
+  function nn(s){ return String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9 ]+/g,' ').split(/\s+/).filter(Boolean).sort().join(' '); }
+  function mn(s){ return String(s==null?'':s).replace(/\s+/g,'').toUpperCase(); }
+  function iepp(){ var st=S(); return (st&&(st.activeIepp||(st.user&&st.user.iepp)))||''; }
+  function same(a,b){ return String(a||'').trim().toUpperCase()===String(b||'').trim().toUpperCase(); }
+  function ign(){ try{ return JSON.parse(localStorage.getItem(storeKey('annIgnore'))||'[]')||[]; }catch(e){ return []; } }
+  function setIgn(a){ try{ localStorage.setItem(storeKey('annIgnore'),JSON.stringify(a)); }catch(e){} }
+
+  /* 1) Comptes de l'IEPP -> Personnel (RH, absences, visites, rapports…) */
+  function syncPersonnel(){
+    var st=S(); if(!st||!st.user||!Array.isArray(st.users)) return 0;
+    if(!Array.isArray(st.personnel)) st.personnel=[];
+    var ip=iepp(); if(!ip||ip==='TOUTES') return 0;
+    var ig=ign(), changed=0;
+    st.personnel.forEach(function(p){ if(p){ if(p.matricule==null){p.matricule='';changed++;} if(p.fonction==null){p.fonction='';changed++;} if(p.nom==null){p.nom='';changed++;} } });
+    st.users.forEach(function(u){
+      if(!u||!u.username||SKIP[u.role]||!same(u.iepp,ip)||u.actif===false) return;
+      var nm=(u.name||u.username), key=nn(nm), id='pu_'+u.username;
+      if(ig.indexOf(u.username)>=0) return;
+      var p=st.personnel.find(function(x){ return x&&(x.userRef===u.username||x.id===id); });
+      if(!p) p=st.personnel.find(function(x){ return x&&!x.userRef&&nn(x.nom)===key; });
+      if(p){
+        var ch=false;
+        if(!p.userRef){ p.userRef=u.username; ch=true; }
+        if(!p.ecole&&u.ecole){ p.ecole=u.ecole; ch=true; }
+        if(!p.classe&&u.classe){ p.classe=u.classe; ch=true; }
+        if(!p.tel&&(u.tel||u.contact)){ p.tel=u.tel||u.contact; ch=true; }
+        if(ch){ p._upd=Date.now(); changed++; }
+        return;
+      }
+      st.personnel.push({id:id,userRef:u.username,matricule:'',nom:nm,sexe:'',fonction:FMAP[u.role]||((window.ROLES&&ROLES[u.role]&&ROLES[u.role].short)||'Agent'),grade:'',ecole:u.ecole||'',anciennete:0,classe:u.classe||'',tel:u.tel||u.contact||'',_upd:Date.now()});
+      changed++;
+    });
+    if(changed){ try{ save('personnel',st.personnel); }catch(e){} try{ if(document.getElementById('rh-body')&&typeof renderRHBody==='function') renderRHBody(); }catch(e){} }
+    return changed;
+  }
+  /* 1 bis) Enseignants des secteurs de l'IEPP -> Personnel RH */
+  function syncSecteurs(){
+    var st=S(); if(!st||!st.user) return 0;
+    var secs; try{ secs=load('secteurs',[])||[]; }catch(e){ return 0; }
+    if(!Array.isArray(secs)||!secs.length) return 0;
+    if(!Array.isArray(st.personnel)) st.personnel=[];
+    var ig=ign(), changed=0;
+    secs.forEach(function(sc){
+      (sc&&sc.enseignants||[]).forEach(function(e){
+        if(!e||!e.id||!String(e.nom||'').trim()||ig.indexOf('S:'+e.id)>=0) return;
+        var key=nn(e.nom), mat=mn(e.matricule);
+        var p=st.personnel.find(function(x){ return x&&x.secRef===e.id; })
+           || (mat&&st.personnel.find(function(x){ return x&&mn(x.matricule)===mat; }))
+           || st.personnel.find(function(x){ return x&&!x.secRef&&nn(x.nom)===key; });
+        var anc=parseInt(e.anciennete,10)||0;
+        if(p){
+          var ch=false;
+          if(!p.secRef){ p.secRef=e.id; ch=true; }
+          if(!mn(p.matricule)&&mat){ p.matricule=String(e.matricule).trim(); ch=true; }
+          if(!p.ecole&&e.ecole){ p.ecole=e.ecole; ch=true; }
+          if(!p.tel&&e.contact){ p.tel=e.contact; ch=true; }
+          if(!p.anciennete&&anc){ p.anciennete=anc; ch=true; }
+          if(ch){ p._upd=Date.now(); changed++; }
+          return;
+        }
+        st.personnel.push({id:'ps_'+e.id,secRef:e.id,secteur:sc.nom||'',matricule:String(e.matricule||'').trim(),nom:String(e.nom).trim(),sexe:'',fonction:'Instituteur adjoint (IA)',grade:'',ecole:e.ecole||'',anciennete:anc,classe:'',tel:e.contact||'',_upd:Date.now()});
+        changed++;
+      });
+    });
+    if(changed){ try{ save('personnel',st.personnel); }catch(e){} try{ if(document.getElementById('rh-body')&&typeof renderRHBody==='function') renderRHBody(); }catch(e){} }
+    return changed;
+  }
+  window.annSyncSecteurs=syncSecteurs;
+
+  /* 1 ter) Écoles de l'IEPP : toute école connue de la plateforme rejoint la liste des écoles et les registres (effectifs, recrutement) */
+  function ekey(x){ return String(x==null?'':x).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,''); }
+  function isMat(n){ return /^(maternelle|pr[ée]scolaire|jardin|creche|crèche)/i.test(String(n||'').trim()); }
+  function syncEcoles(){
+    var st=S(); if(!st||!st.user) return 0;
+    var ip=iepp(); if(!ip||ip==='TOUTES') return 0;
+    if(!Array.isArray(st.ecoles)) st.ecoles=[];
+    var ig=ign(), changed=0, found={};
+    function add(nom,info){ nom=String(nom==null?'':nom).replace(/\s+/g,' ').trim(); if(nom.length<3||/^(—|-|toutes?|aucune?)$/i.test(nom)) return; var k=ekey(nom); if(!k) return; var f=found[k]; if(!f) found[k]=f={nom:nom,info:{}}; Object.keys(info||{}).forEach(function(i){ if(info[i]&&!f.info[i]) f.info[i]=info[i]; }); }
+    st.users.forEach(function(u){ if(u&&same(u.iepp,ip)&&!SKIP[u.role]&&u.ecole){ add(u.ecole, u.role==='directeur'?{directeur:u.name}:{}); } });
+    (st.personnel||[]).forEach(function(p){ if(p&&p.ecole) add(p.ecole); });
+    var nbEl={}; (st.elevesFichier||[]).forEach(function(e){ if(e&&e.ecole){ add(e.ecole); var k=ekey(e.ecole); nbEl[k]=(nbEl[k]||0)+1; } });
+    try{ (load('secteurs',[])||[]).forEach(function(t){ (t.ecoles||[]).forEach(function(n){ add(n); }); (t.enseignants||[]).forEach(function(e){ if(e&&e.ecole) add(e.ecole); }); }); }catch(e){}
+    (st.effPrimaire||[]).forEach(function(r){ if(r&&r.nom) add(r.nom); });
+    (st.effPrescolaire||[]).forEach(function(r){ if(r&&r.nom) add(r.nom); });
+    (st.recrutementCP1||[]).forEach(function(r){ if(r&&r.ecole) add(r.ecole); });
+    (st.recrutementMater||[]).forEach(function(r){ if(r&&r.ecole) add(r.ecole); });
+    (st.effectifs||[]).forEach(function(r){ if(r&&r.ecole) add(r.ecole); });
+    (st.carteScolaire||[]).forEach(function(c){ if(c&&c.denomination&&/^(prescolaire|primaire)$/i.test(c.niveau||'')){ add(c.denomination,{commune:c.localite,statut:c.statut,effectif:parseInt(c.effectif,10)||0,classes:parseInt(c.classes,10)||0}); } });
+    var have={}; st.ecoles.forEach(function(e){ if(e&&e.nom) have[ekey(e.nom)]=e; });
+    Object.keys(found).forEach(function(k){
+      var f=found[k], ex=have[k];
+      if(ig.indexOf('E:'+k)>=0) return;
+      if(ex){
+        var ch=false;
+        if(!ex.directeur&&f.info.directeur){ ex.directeur=f.info.directeur; ch=true; }
+        if(!ex.commune&&f.info.commune){ ex.commune=f.info.commune; ch=true; }
+        if(ch){ ex._upd=Date.now(); changed++; }
+        return;
+      }
+      var eff=nbEl[k]||f.info.effectif||0;
+      st.ecoles.push({id:'ec_'+k.toLowerCase().slice(0,24),nom:f.nom,code:'',commune:f.info.commune||'',directeur:f.info.directeur||'',effectif:eff,classes:f.info.classes||0,statut:f.info.statut||'Public',_auto:true,_upd:Date.now()});
+      changed++;
+    });
+    if(changed){ try{ save('ecoles',st.ecoles); }catch(e){} }
+    /* registres : une ligne vide (à compléter) pour chaque école absente */
+    var ch2={};
+    function reg(key,idPre,mkRow,pred){
+      if(!Array.isArray(st[key])) return; var names={}; st[key].forEach(function(r){ var n=r&&(r.nom||r.ecole); if(n) names[ekey(n)]=1; });
+      st.ecoles.forEach(function(e){ if(!e||!e.nom) return; var k=ekey(e.nom); if(names[k]||ig.indexOf('E:'+k)>=0||!pred(e.nom)) return; st[key].push(mkRow('ea_'+k.toLowerCase().slice(0,22),e.nom)); names[k]=1; ch2[key]=1; });
+    }
+    function z(keys){ var o={}; keys.forEach(function(k){ o[k]=0; }); return o; }
+    var NP=['cp1G','cp1F','cp2G','cp2F','ce1G','ce1F','ce2G','ce2F','cm1G','cm1F','cm2G','cm2F'], MP=['psG','psF','msG','msF','gsG','gsF'];
+    reg('effPrimaire','efr',function(id,n){ return Object.assign({id:id,nom:n},z(NP)); },function(n){ return !isMat(n); });
+    reg('effPrescolaire','efp',function(id,n){ return Object.assign({id:id,nom:n},z(MP)); },isMat);
+    reg('recrutementCP1','r',function(id,n){ return {id:id,ecole:n,prG:0,prF:0,recG:0,recF:0,refG:0,refF:0,redG:0,redF:0}; },function(n){ return !isMat(n); });
+    reg('recrutementMater','rm',function(id,n){ return Object.assign({id:id,ecole:n,refG:0,refF:0},z(MP)); },isMat);
+    Object.keys(ch2).forEach(function(k){ try{ save(k,st[k]); changed++; }catch(e){} });
+    if(changed){ try{ if(document.getElementById('fec-body')&&typeof renderFichierEcolesBody==='function') renderFichierEcolesBody(); }catch(e){} }
+    return changed;
+  }
+  window.annSyncEcoles=syncEcoles;
+  window.annSyncPersonnel=function(){ return syncPersonnel()+syncSecteurs(); };
+
+  /* 2) Détection des doublons (personnel, élèves, comptes) */
+  var DUP={}, SEEN=null;
+  function findDup(){
+    var st=S(), out={}; if(!st) return out;
+    function grp(list,keyFn,label,fmt){
+      var m={}; (list||[]).forEach(function(x){ if(!x) return; var ks=keyFn(x); (ks||[]).forEach(function(k){ if(k) (m[k]=m[k]||[]).push(x); }); });
+      Object.keys(m).forEach(function(k){ var a=m[k]; if(a.length<2) return; a.forEach(function(x){ var o=a.filter(function(y){return y!==x;})[0]; if(!out[x.id]) out[x.id]={type:label,why:k.split('|')[0]==='M'?'même matricule':'même identité',other:fmt(o)}; }); });
+    }
+    grp(st.personnel,function(p){ var r=[]; if(mn(p.matricule)) r.push('M|'+mn(p.matricule)); if(nn(p.nom).split(' ').length>=2) r.push('N|'+nn(p.nom)); return r; },'personnel',function(o){ return (o.nom||'')+(o.ecole?' ('+o.ecole+')':''); });
+    grp(st.elevesFichier,function(e){ var r=[]; var m=mn(e.matricule); if(m&&/^(\d{8}[A-Z]|[A-Z]\d{8})$/.test(m)) r.push('M|'+m); var n=nn((e.nom||'')+' '+(e.prenoms||'')); if(n&&e.dateN) r.push('N|'+n+'|'+e.dateN); return r; },'élève',function(o){ return (o.nom||'')+' '+(o.prenoms||'')+(o.ecole?' ('+o.ecole+')':''); });
+    grp(st.ecoles,function(e){ var r=[]; var k=ekey(e.nom); if(k) r.push('N|'+k); var c=mn(e.code); if(c) r.push('M|'+c); return r; },'école',function(o){ return (o.nom||'')+(o.code?' ['+o.code+']':''); });
+    return out;
+  }
+  function recompute(notify){
+    var d=findDup(), st=S();
+    if(SEEN){ Object.keys(d).forEach(function(id){ if(!SEEN[id]&&notify&&typeof toast==='function'){ var rec=(st.personnel||[]).concat(st.elevesFichier||[]).find(function(x){return x&&x.id===id;}); toast('⚠️ Doublon détecté ('+d[id].type+') : '+((rec&&(rec.nom+' '+(rec.prenoms||'')))||'')+' — '+d[id].why+' avec '+d[id].other,'error'); } }); }
+    SEEN=d; DUP=d; return d;
+  }
+  window.annDoublons=function(){ return recompute(false); };
+
+  /* badge « Doublon » dans toutes les listes (RH, fichier élèves, classes…) */
+  var css=document.createElement('style'); css.textContent='.ann-dup{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:#FEE2E2;color:#B91C1C;font-size:10.5px;font-weight:700;white-space:nowrap;cursor:help}.ann-usr{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:#DBEAFE;color:#1D4ED8;font-size:10.5px;font-weight:700;white-space:nowrap}'; document.head.appendChild(css);
+  var tmr=null;
+  function paint(){
+    tmr=null; var ids=Object.keys(DUP); var st=S(); if(!st) return;
+    var usr={}; (st.personnel||[]).forEach(function(p){ if(p&&p.userRef) usr[p.id]=1; });
+    var uids=Object.keys(usr);
+    if(!ids.length&&!uids.length) return;
+    [].forEach.call(document.querySelectorAll('tbody tr'),function(tr){
+      if(tr.getAttribute('data-annd')===String(ids.length)+'/'+uids.length) return;
+      tr.setAttribute('data-annd',String(ids.length)+'/'+uids.length);
+      [].forEach.call(tr.querySelectorAll('.ann-dup,.ann-usr'),function(b){ b.remove(); });
+      var h=tr.innerHTML, cell=tr.querySelector('td.fw-7')||tr.querySelectorAll('td')[1]||tr.querySelector('td'); if(!cell) return;
+      for(var i=0;i<ids.length;i++){ if(h.indexOf("'"+ids[i]+"'")>=0){ var s=document.createElement('span'); s.className='ann-dup'; var d=DUP[ids[i]]; s.textContent='⚠ Doublon'; s.title='Doublon ('+d.why+') avec : '+d.other; cell.appendChild(s); break; } }
+      for(var j=0;j<uids.length;j++){ if(h.indexOf("'"+uids[j]+"'")>=0){ var s2=document.createElement('span'); s2.className='ann-usr'; s2.textContent='👤 Compte'; s2.title='Agent lié à un compte d\'accès de la plateforme'; cell.appendChild(s2); break; } }
+    });
+  }
+  function sched(){ if(!tmr) tmr=setTimeout(paint,180); }
+  try{ new MutationObserver(sched).observe(document.body,{childList:true,subtree:true}); }catch(e){}
+
+  /* 3) Suivi : synchronisation + doublons (comptes, enseignants, élèves) */
+  var sig='', tick=0;
+  function signature(){ var st=S(); if(!st) return ''; var u=st.users||[], p=st.personnel||[], e=st.elevesFichier||[]; var mu=0; u.forEach(function(x){ if(x&&x._upd>mu) mu=x._upd; }); var sc=0; sc+=(st.ecoles||[]).length*1000+((st.carteScolaire||[]).length)+((st.effPrimaire||[]).length)*7+((st.effPrescolaire||[]).length)*13; try{ (load('secteurs',[])||[]).forEach(function(t){ sc+=((t&&t.enseignants)||[]).length; }); }catch(x){} return [iepp(),u.length,mu,p.length,e.length,(e[0]||{}).id,(e[e.length-1]||{}).id,sc].join('/'); }
+  function run(){
+    try{
+      var st=S(); if(!st||!st.user) return; tick++;
+      var s=signature();
+      if(s!==sig||tick%8===0){ sig=s; syncPersonnel(); syncSecteurs(); syncEcoles(); recompute(SEEN!==null); sched(); }
+    }catch(e){ console.warn('[annuaire]',e); }
+  }
+  setInterval(run,2000);
+
+  /* 4) Compte créé : alerte immédiate si l'identité existe déjà dans l'IEPP */
+  if(typeof window.userSave==='function'){
+    var _us=window.userSave;
+    window.userSave=async function(username){
+      var nmEl=document.getElementById('u-name'), nm=nmEl?nmEl.value.trim():'';
+      var dupMsg='';
+      try{ if(!username&&nm){ var k=nn(nm), st=S(); var ex=(st.users||[]).find(function(u){ return u&&nn(u.name)===k; }); if(ex) dupMsg='un compte « '+ex.username+' » existe déjà au nom de '+ex.name; else { var pp=(st.personnel||[]).find(function(p){ return p&&nn(p.nom)===k; }); if(pp) dupMsg='un agent « '+pp.nom+' » est déjà enregistré dans le personnel'; } } }catch(e){}
+      var r=await _us.apply(this,arguments);
+      try{ if(dupMsg&&typeof toast==='function') toast('⚠️ Doublon possible : '+dupMsg+'.','error'); setTimeout(run,300); }catch(e){}
+      return r;
+    };
+  }
+  if(typeof window.ecoleDelete==='function'){
+    var _ed=window.ecoleDelete;
+    window.ecoleDelete=function(id){
+      var st=S(), e=st&&(st.ecoles||[]).find(function(x){return x&&x.id===id;});
+      var r=_ed.apply(this,arguments);
+      try{ if(e&&!(st.ecoles||[]).some(function(x){return x&&x.id===id;})){ var a=ign(), k='E:'+ekey(e.nom); if(a.indexOf(k)<0){ a.push(k); setIgn(a); } } }catch(x){}
+      return r;
+    };
+  }
+  /* 5) Suppression d'un agent lié à un compte : ne pas le recréer automatiquement */
+  if(typeof window.rhDelete==='function'){
+    var _rd=window.rhDelete;
+    window.rhDelete=function(id){
+      var st=S(), p=st&&(st.personnel||[]).find(function(x){return x&&x.id===id;}), ref=p&&p.userRef, sref=p&&p.secRef;
+      var r=_rd.apply(this,arguments);
+      try{ if(ref&&!(st.personnel||[]).some(function(x){return x&&x.id===id;})){ var a=ign(); if(a.indexOf(ref)<0){ a.push(ref); setIgn(a); } }
+        if(sref&&!(st.personnel||[]).some(function(x){return x&&x.id===id;})){ var a2=ign(); if(a2.indexOf('S:'+sref)<0){ a2.push('S:'+sref); setIgn(a2); } } }catch(e){}
+      return r;
+    };
+  }
+})();
+</script>
+<script id="module-carte-identite-scolaire">
+/* Carte d'identité scolaire 2026-2027 — nouveau format (en-tête officiel, photo, matricule, QR, école) — additif : remplace seulement l'affichage de la carte */
+(function(){
+  try{
+  var css=document.createElement('style');
+  css.textContent='.cis{position:relative;width:430px;max-width:100%;border-radius:12px;overflow:hidden;border:1px solid #cbd5e1;box-shadow:0 4px 14px rgba(15,23,42,.15);font-family:Arial,Helvetica,sans-serif;color:#111;background:linear-gradient(100deg,#ffe3c2 0%,#fff 38%,#fff 62%,#d8f0dc 100%);-webkit-print-color-adjust:exact;print-color-adjust:exact;text-align:left}'
+  +'.cis-top{display:flex;align-items:center;gap:8px;padding:8px 10px 4px;background:linear-gradient(90deg,#f77f00 0 6px,transparent 6px)}'
+  +'.cis-emb{width:38px;height:38px;border-radius:50%;flex:none;background:conic-gradient(#f77f00 0 33%,#fff 0 66%,#009e60 0);border:2px solid #fff;box-shadow:0 0 0 1px #94a3b8}'
+  +'.cis-txt{flex:1;text-align:center;line-height:1.15}.cis-txt b{display:block;font-size:10.5px;letter-spacing:.02em}.cis-txt i{display:block;font-size:8.5px;color:#475569}.cis-txt em{display:block;font-size:8.5px;font-style:normal;font-weight:700;color:#1e3a8a;margin-top:1px}'
+  +'.cis-tit{text-align:center;font-weight:800;font-size:15px;letter-spacing:.03em;margin:2px 0 0;font-family:Georgia,serif}'
+  +'.cis-an{text-align:center;font-size:10.5px;font-weight:700;color:#c2410c}'
+  +'.cis-mat{text-align:center;font-size:13px;font-weight:800;margin:2px 0 4px}.cis-mat span{font-weight:600;font-size:10.5px;color:#334155;margin-right:4px}'
+  +'.cis-body{display:grid;grid-template-columns:104px 1fr 74px;gap:8px;padding:0 10px 8px;align-items:start}'
+  +'.cis-ph{position:relative;width:104px;height:128px;border-radius:6px;overflow:hidden;border:1px solid #94a3b8;background:#e2e8f0}'
+  +'.cis-ph img{width:100%;height:100%;object-fit:cover;display:block}'
+  +'.cis-ph .cis-ini{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:#fff;background:linear-gradient(135deg,#1e3a8a,#3b82f6)}'
+  +'.cis-ph button{position:absolute;left:3px;right:3px;bottom:3px;font-size:10px;padding:2px 4px;border:1px solid #cbd5e1;border-radius:5px;background:rgba(255,255,255,.92);cursor:pointer}'
+  +'.cis-f{line-height:1.1}.cis-f .v{font-size:13px;font-weight:800;text-transform:uppercase;word-break:break-word}.cis-f .l{font-size:8.5px;color:#475569;margin-bottom:3px}'
+  +'.cis-r{display:flex;gap:10px}.cis-r>div{flex:1}'
+  +'.cis-qr{width:74px;height:74px;background:#fff;border:1px solid #cbd5e1;padding:2px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-size:8px;color:#64748b;text-align:center}.cis-qr svg,.cis-qr img{width:100%;height:100%;display:block}'
+  +'.cis-ft{background:linear-gradient(90deg,#f77f00,#fff 4%,#fff 96%,#009e60);padding:4px 10px;font-size:10.5px;font-weight:800;letter-spacing:.02em;border-top:1px solid #cbd5e1;text-transform:uppercase;display:flex;justify-content:space-between;gap:8px;align-items:center}'
+  +'.cis-ft button{font-size:10px;padding:2px 7px;border:1px solid #f77f00;background:#f77f00;color:#fff;border-radius:5px;cursor:pointer}'
+  +'@media print{.cis{box-shadow:none;page-break-inside:avoid}.cis-ph button,.cis-ft button{display:none!important}}';
+  document.head.appendChild(css);
+  var E=function(s){ return (typeof escapeHtml==='function')?escapeHtml(String(s==null?'':s)):String(s==null?'':s); };
+  function fmtMat(m){ m=String(m||'').replace(/\s+/g,'').toUpperCase(); var x=/^(\d{2})(\d{3})(\d{3})([A-Z])$/.exec(m); return x?x[1]+' '+x[2]+' '+x[3]+' '+x[4]:m; }
+  function dmy(d){ if(!d) return '—'; var p=String(d).slice(0,10).split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:d; }
+  function ecoleInfo(n){ try{ var k=String(n||'').trim().toUpperCase(); return (state.ecoles||[]).find(function(e){ return String(e.nom||'').trim().toUpperCase()===k; })||{}; }catch(e){ return {}; } }
+  function annee(){ return String(window.ANNEE_SCOLAIRE||'2026-2027'); }
+  var QRL=null;
+  function loadQr(cb){
+    if(window.qrcode) return cb(true);
+    if(QRL){ QRL.push(cb); return; } QRL=[cb];
+    var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+    s.onload=function(){ var q=QRL; QRL=null; q.forEach(function(f){ f(true); }); }; s.onerror=function(){ var q=QRL; QRL=null; q.forEach(function(f){ f(false); }); };
+    document.head.appendChild(s);
+  }
+  function paintQr(){
+    var els=[].slice.call(document.querySelectorAll('.cis-qr[data-q]:not([data-ok])')); if(!els.length) return;
+    loadQr(function(ok){ if(!ok) return; els.forEach(function(el){ try{ var q=qrcode(0,'M'); q.addData(el.getAttribute('data-q')); q.make(); el.innerHTML=q.createSvgTag({cellSize:3,margin:0,scalable:true}); el.setAttribute('data-ok','1'); }catch(e){} }); });
+  }
+  setInterval(paintQr,800);
+  window.carteEleveHTML=function(e){
+    e=e||{}; var ec=ecoleInfo(e.ecole), ini=((e.prenoms||'?')[0]||'?')+((e.nom||'?')[0]||'?');
+    var photo=e.photo?'<img src="'+E(e.photo)+'" alt="photo">':'<div class="cis-ini">'+E(ini.toUpperCase())+'</div>';
+    var qr=[String(e.matricule||'').replace(/\s+/g,''),(e.nom||'')+' '+(e.prenoms||''),e.ecole||'',annee()].join('|');
+    var code=ec.code?E(ec.code)+' : ':'';
+    return '<div class="carte-scolaire cis" data-eleve="'+E(e.id)+'" style="max-width:100%;border-radius:12px;padding:0;background:none">'
+      +'<div class="cis-top"><div class="cis-emb"></div><div class="cis-txt"><b>RÉPUBLIQUE DE CÔTE D\'IVOIRE</b><i>Union – Discipline – Travail</i><em>Ministère de l\'Éducation Nationale et de l\'Alphabétisation</em></div></div>'
+      +'<div class="cis-tit">CARTE D\'IDENTITÉ SCOLAIRE</div>'
+      +'<div class="cis-an">ANNÉE SCOLAIRE : '+E(annee())+'</div>'
+      +'<div class="cis-mat"><span>Matricule :</span>'+(E(fmtMat(e.matricule))||'—')+'</div>'
+      +'<div class="cis-body"><div class="cis-ph">'+photo+'<button type="button" onclick="cartePhoto(\''+E(e.id)+'\')">📷 Photo</button></div>'
+      +'<div class="cis-f"><div class="v">'+E(e.nom||'')+'</div><div class="l">Nom</div>'
+      +'<div class="v" style="font-size:12.5px">'+E(e.prenoms||'')+'</div><div class="l">Prénom(s)</div>'
+      +'<div class="cis-r"><div><div class="v" style="font-size:12px">'+dmy(e.dateN)+'</div><div class="l">Date Naiss.</div></div><div><div class="v">'+E(e.sexe||'')+'</div><div class="l">Sexe</div></div></div>'
+      +'<div class="v" style="font-size:12px">'+E(e.lieuN||'—')+'</div><div class="l">Lieu Naiss.</div>'
+      +'<div class="v" style="font-size:12px">'+E(e.niveau||'')+'</div><div class="l">Classe</div></div>'
+      +'<div class="cis-qr" data-q="'+E(qr)+'">QR</div></div>'
+      +'<div class="cis-ft"><span>'+code+E(e.ecole||'')+'</span><button type="button" onclick="carteEleveOpen(\''+E(e.id)+'\')">🖨️ Imprimer</button></div>'
+      +'</div>';
+  };
+  }catch(err){ console.warn('[carte-identite]',err); }
+})();
+</script>
+<script id="module-alpha-superviseur-trimestriel">
+/* Rapport trimestriel du superviseur (DCSPA) — Alphabétisation & ENF : saisie assistée (conseiller), consolidation IEPP puis DRENAET — additif */
+(function(){ try{
+/* ================= MODÈLE : Document de synthèse pour le rapportage trimestriel du superviseur (DCSPA) ================= */
+var cSum=function(cks){ return function(g,rk){ var s=0; cks.forEach(function(c){ s+=g(rk,c); }); return s; }; };
+var rSum=function(rks){ return function(g,ck){ var s=0; rks.forEach(function(r){ s+=g(r,ck); }); return s; }; };
+var R2=function(arr){ return arr.map(function(x,i){ return typeof x==='string'?{k:'r'+i,l:x}:x; }); };
+var C2=function(arr){ return arr.map(function(x,i){ return typeof x==='string'?{k:'c'+i,l:x}:x; }); };
+var H=function(x){ return {t:'h',x:x}; }, SH=function(x){ return {t:'sh',x:x}; }, P=function(x){ return {t:'p',x:x}; };
+var F=function(f,cols){ return {t:'f',f:f,cols:cols||2}; };
+var TX=function(k,l,r){ return {t:'ta',k:k,l:l,r:r||2}; };
+var MX=function(id,title,rows,cols,o){ o=o||{}; return Object.assign({t:'mx',id:id,title:title,rows:R2(rows),cols:C2(cols)},o); };
+var KV=function(id,title,items,o){ return Object.assign({t:'kv',id:id,title:title,items:items.map(function(x,i){ return typeof x==='string'?{k:'i'+i,l:x}:x; })},o||{}); };
+var DYN=function(id,title,cols){ return {t:'dyn',id:id,title:title,cols:cols}; };
+
+var TY3=['Alphabétisation classique','Alphabétisation par le numérique','Alphabétisation fonctionnelle'];
+var TAL=[['m15','Moins de 15 ans'],['a15','15-24 ans'],['a25','25 ans - 49 ans'],['a50','50 ans et plus']];
+var NIV=[['n1','Niveau 1'],['n2','Niveau 2'],['pa','Post Alpha']];
+function ageMx(id,title,note){
+  var rows=[]; TAL.forEach(function(t,i){ NIV.forEach(function(n,j){ rows.push({k:t[0]+'_'+n[0],l:n[1],g:j===0?t[1]:null,gn:j===0?4:0}); });
+    rows.push({k:t[0]+'_t',l:'Total '+(i+1),cls:'sub',calc:rSum(NIV.map(function(n){return t[0]+'_'+n[0];}))}); });
+  NIV.forEach(function(n,j){ rows.push({k:'z_'+n[0],l:n[1],g:j===0?'Total':null,gn:j===0?4:0,cls:'tot',calc:rSum(TAL.map(function(t){return t[0]+'_'+n[0];}))}); });
+  rows.push({k:'z_t',l:'Total Général',cls:'tot',calc:rSum(NIV.map(function(n){return 'z_'+n[0];}))});
+  var cols=[], groups=[];
+  TY3.forEach(function(ty,i){ cols.push({k:'t'+i+'H',l:'H'},{k:'t'+i+'F',l:'F'},{k:'t'+i+'T',l:'T',calc:cSum(['t'+i+'H','t'+i+'F'])}); groups.push({l:ty,span:3}); });
+  cols.push({k:'tH',l:'H',calc:cSum(['t0H','t1H','t2H'])},{k:'tF',l:'F',calc:cSum(['t0F','t1F','t2F'])},{k:'tT',l:'T',calc:cSum(['tH','tF'])}); groups.push({l:'Total',span:3});
+  cols.push({k:'iH',l:'H'},{k:'iF',l:'F'},{k:'iT',l:'T',calc:cSum(['iH','iF'])}); groups.push({l:'Ivoiriens',span:3});
+  cols.push({k:'nH',l:'H'},{k:'nF',l:'F'},{k:'nT',l:'T',calc:cSum(['nH','nF'])}); groups.push({l:'Non Ivoiriens',span:3});
+  return {t:'mx',id:id,title:title,note:note,rows:rows,cols:cols,groups:groups,corner:'Tranche d’âge / niveau',pair:{tot:'tT',a:'iT',b:'nT',lab:'Total'},compact:true};
+}
+var LV6=['CP1','CP2','CE1','CE2','CM1','CM2'];
+function enfMx(id,title,note){
+  var rows=[]; LV6.forEach(function(lv){ rows.push({k:lv+'_G',l:'Garçons',g:lv,gn:3},{k:lv+'_F',l:'Filles'},{k:lv+'_T',l:'Total',cls:'sub',calc:(function(a,b){ return function(g,ck){ return g(a,ck)+g(b,ck); }; })(lv+'_G',lv+'_F')}); });
+  rows.push({k:'z_G',l:'Garçons',g:'Total par tranche d’âge',gn:3,cls:'tot',calc:rSum(LV6.map(function(l){return l+'_G';}))},{k:'z_F',l:'Filles',cls:'tot',calc:rSum(LV6.map(function(l){return l+'_F';}))},{k:'z_T',l:'Total Général',cls:'tot',calc:rSum(LV6.map(function(l){return l+'_T';}))});
+  return {t:'mx',id:id,title:title,note:note,rows:rows,cols:[{k:'a1',l:'Moins de 6 ans'},{k:'a2',l:'6 à 8 ans'},{k:'a3',l:'9 à 11 ans'},{k:'a4',l:'12 à 16 ans'},{k:'S',l:'Total par sexe',calc:cSum(['a1','a2','a3','a4'])},{k:'I',l:'Ivoirien'},{k:'N',l:'Non ivoirien'}],corner:'Niveau',pair:{tot:'S',a:'I',b:'N',lab:'Total par sexe'}};
+}
+var AGP=[['p1','9 ans – 10 ans'],['p2','11 ans – 12 ans'],['p3','13 ans – 14 ans']];
+function cpMx(id,title,note){
+  var cols=[],groups=[]; AGP.forEach(function(a){ cols.push({k:a[0]+'G',l:'G'},{k:a[0]+'F',l:'F'},{k:a[0]+'T',l:'T',calc:cSum([a[0]+'G',a[0]+'F'])}); groups.push({l:a[1],span:3}); });
+  cols.push({k:'tG',l:'G',calc:cSum(['p1G','p2G','p3G'])},{k:'tF',l:'F',calc:cSum(['p1F','p2F','p3F'])},{k:'tT',l:'T',calc:cSum(['tG','tF'])}); groups.push({l:'Total par CP',span:3});
+  cols.push({k:'iG',l:'G'},{k:'iF',l:'F'},{k:'iT',l:'T',calc:cSum(['iG','iF'])}); groups.push({l:'Ivoiriens',span:3});
+  cols.push({k:'nG',l:'G'},{k:'nF',l:'F'},{k:'nT',l:'T',calc:cSum(['nG','nF'])}); groups.push({l:'Non Ivoiriens',span:3});
+  var rows=[{k:'CPU',l:'CPU'},{k:'CEU',l:'CEU'},{k:'CMU',l:'CMU'},{k:'z',l:'Total par tranche d’âge',cls:'tot',calc:rSum(['CPU','CEU','CMU'])}];
+  return {t:'mx',id:id,title:title,note:note,rows:rows,cols:cols,groups:groups,corner:'Niveau',pair:{tot:'tT',a:'iT',b:'nT',lab:'Total'},compact:true};
+}
+var NIT=[['ni','Non intégrable'],['li','Loin de l’intégration'],['pi','Proche de l’intégration']];
+function sieMx(id,title,note){
+  var rows=[]; NIT.forEach(function(n){ rows.push({k:n[0]+'_G',l:'Garçons',g:n[1],gn:3},{k:n[0]+'_F',l:'Filles'},{k:n[0]+'_T',l:'Total',cls:'sub',calc:(function(a,b){ return function(g,ck){ return g(a,ck)+g(b,ck); }; })(n[0]+'_G',n[0]+'_F')}); });
+  rows.push({k:'z_G',l:'Garçons',g:'Total',gn:3,cls:'tot',calc:rSum(NIT.map(function(n){return n[0]+'_G';}))},{k:'z_F',l:'Filles',cls:'tot',calc:rSum(NIT.map(function(n){return n[0]+'_F';}))},{k:'z_T',l:'Total',cls:'tot',calc:rSum(NIT.map(function(n){return n[0]+'_T';}))});
+  return {t:'mx',id:id,title:title,note:note,rows:rows,cols:[{k:'c0',l:'Confessionnel'},{k:'c1',l:'Franco Arabe'},{k:'c2',l:'Madrassa'},{k:'c3',l:'Coranique'},{k:'S',l:'Total',calc:cSum(['c0','c1','c2','c3'])},{k:'I',l:'Ivoiriens'},{k:'N',l:'Non Ivoiriens'}],corner:'Niveau d’intégration',pair:{tot:'S',a:'I',b:'N',lab:'Total'}};
+}
+function promoMx(id,title,note){
+  var cols=LV6.map(function(l){ return {k:l,l:l}; }); cols.push({k:'S',l:'Total par niveau',calc:cSum(LV6)});
+  return {t:'mx',id:id,title:title,note:note,rows:[{k:'G',l:'Garçons'},{k:'F',l:'Filles'},{k:'T',l:'Total',cls:'sub',calc:function(g,ck){ return g('G',ck)+g('F',ck); }},{k:'I',l:'Ivoiriens'},{k:'N',l:'Non Ivoiriens'}],cols:cols,corner:'',pairRow:{tot:'T',a:'I',b:'N'}};
+}
+var ENC4=['Alphabétisation','CEC','SIE','CP'];
+function enc4(id,title,rows,o){ return MX(id,title,rows,ENC4.map(function(l,i){ return {k:'c'+i,l:l}; }),Object.assign({corner:''},o||{})); }
+function enf5(id,title,rows,o){ var cols=ENC4.map(function(l,i){ return {k:'c'+i,l:l}; }); cols.push({k:'e',l:'Total ENF',calc:cSum(['c1','c2','c3'])}); return MX(id,title,rows,cols,Object.assign({corner:''},o||{})); }
+function totRows(rows,lab){ var ks=rows.map(function(r,i){ return typeof r==='string'?'r'+i:r.k; }); return rows.concat([{k:'z',l:lab||'Total',cls:'tot',calc:rSum(ks)}]); }
+var DIFF=function(id,title,items){ return MX(id,title,items.concat([{k:'autre',l:'Autres (préciser)',edl:true}]),ENC4.map(function(l,i){ return {k:'c'+i,l:l}; }),{corner:''}); };
+
+var MODEL=[
+ {s:'p1',title:'PREMIÈRE PARTIE : Informations générales',blocks:[
+   F([['region','Région'],['drenaet','DRENAET'],['annee','Campagne / Année scolaire'],['iepp','IEPP (circonscription)'],['nom','Nom et prénom(s)','t','req'],['sexe','Sexe','s',['','M','F']],['exp','Nombre d’années d’expérience au poste','n'],['contact','Contact(s)','t','req'],['email','Email']],2)]},
+ {s:'p2a',title:'DEUXIÈME PARTIE (A) : Dispositifs institutionnels',blocks:[
+   F([['aut','Nombre de centres disposant d’une autorisation d’ouverture ou de références d’accord / convention','n'],['autHors','… dont autorisation délivrée par une structure autre que le MENA','n'],['sansAut','Nombre de centres ne disposant pas d’une autorisation ou de références d’accord / convention','n']],1),
+   F([['hors','Structures hors MENA concernées (noms)']],1)]},
+ {s:'p2b',title:'DEUXIÈME PARTIE (B) : Ressources humaines',blocks:[
+   MX('rh','Nombre de personnes impliquées dans la formation et l’encadrement par catégorie',totRows([{k:'sup',l:'Superviseurs',lvl:'R'},{k:'coo',l:'Coordonnateurs.trices',lvl:'R'},{k:'cons',l:'Conseillers.ères',lvl:'R'},'Alphabétiseurs.ses (Alphabétisation)','Animateurs.trices - Moniteurs.trices (CEC)','Animateurs.trices - Moniteurs.trices (CP)','Enseignants.es (Structure Islamique d’Éducation)']),[{k:'H',l:'Hommes'},{k:'F',l:'Femmes'},{k:'T',l:'Total',calc:cSum(['H','F'])}],{corner:'Personnes impliquées'}),
+   enf5('enc','Nombre de centres par type d’encadreur',[{k:'ca',l:'Conseillers en Alphabétisation'},{k:'cp',l:'CPPP'},{k:'au',l:'Autres'}],{note:'Alphabétisation | Éducation non formelle (CEC, SIE, CP)'}),
+   enf5('per','Périodicité des visites (nombre de centres)',[{k:'m',l:'Mensuelle'},{k:'b',l:'Bimensuelle'},{k:'t',l:'Trimestrielle'},{k:'a',l:'Autres'}]),
+   (function(){ var cols=[{k:'a',l:'Inférieur au niveau 3e'},{k:'b',l:'Niveau 3e'},{k:'c',l:'Supérieur au niveau 3e'},{k:'d',l:'CEPE'},{k:'e',l:'BEPC'},{k:'f',l:'BAC'},{k:'g',l:'BAC+'}]; var G=[['al','Alphabétisation'],['cec','CEC'],['cp','CP'],['sie','SIE']]; var rows=[]; G.forEach(function(x,i){ rows.push({k:x[0]+'_H',l:'Hommes',g:x[1],gn:3},{k:x[0]+'_F',l:'Femmes'},{k:x[0]+'_T',l:'Total '+(i+1),cls:'sub',calc:(function(a,b){ return function(g,ck){ return g(a,ck)+g(b,ck); }; })(x[0]+'_H',x[0]+'_F')}); });
+     rows.push({k:'z_H',l:'Hommes',g:'Total',gn:3,cls:'tot',calc:rSum(G.map(function(x){return x[0]+'_H';}))},{k:'z_F',l:'Femmes',cls:'tot',calc:rSum(G.map(function(x){return x[0]+'_F';}))},{k:'z_T',l:'Total',cls:'tot',calc:rSum(G.map(function(x){return x[0]+'_T';}))});
+     return {t:'mx',id:'niv',title:'Niveau d’étude et diplômes des Alphabétiseurs.ses / Animateurs.trices / Enseignants.es',rows:rows,cols:cols,groups:[{l:'Niveau d’étude',span:3},{l:'Diplôme',span:4}],corner:''}; })(),
+   enf5('form','Effectif ayant suivi une formation certifiée',[{k:'H',l:'Hommes'},{k:'F',l:'Femmes'},{k:'T',l:'Total général',cls:'tot',calc:function(g,ck){ return g('H',ck)+g('F',ck); }}]),
+   enf5('deb','Effectif des alphabétiseurs / animateurs / enseignants en début de campagne / année scolaire',[{k:'H',l:'Hommes'},{k:'F',l:'Femmes'},{k:'T',l:'Total général',cls:'tot',calc:function(g,ck){ return g('H',ck)+g('F',ck); }}]),
+   enf5('fin','Effectif des alphabétiseurs / animateurs / enseignants en fin de trimestre ou année scolaire / campagne',[{k:'H',l:'Hommes'},{k:'F',l:'Femmes'},{k:'T',l:'Total général',cls:'tot',calc:function(g,ck){ return g('H',ck)+g('F',ck); }}]),
+   TX('abandonRaisons','Si abandon, indiquez les raisons',2)]},
+ {s:'p2c',title:'DEUXIÈME PARTIE (C) : Ressources financières',blocks:[
+   MX('fi','Dépenses par source de financement (en FCFA)',totRows([{k:'mat',l:'Matériel (manuels et équipements)'},{k:'for',l:'Formation des formateurs'},{k:'int',l:'Intéressement des alphabétiseurs / animateurs / moniteurs'},{k:'fac',l:'Factures et autres charges fixes'},{k:'sup',l:'Prise en charge de la supervision'},{k:'a1',l:'Autre 1 (préciser)',edl:true},{k:'a2',l:'Autre 2 (préciser)',edl:true},{k:'a3',l:'Autre 3 (préciser)',edl:true}]),[{k:'fp',l:'Fonds propres'},{k:'et',l:'État'},{k:'on',l:'ONG'},{k:'ma',l:'Mairie'},{k:'au',l:'Autre'}],{corner:'Dépenses'})]},
+ {s:'p2d',title:'DEUXIÈME PARTIE (D) : Infrastructures et équipements',blocks:[
+   (function(){ var cols=ENC4.map(function(l,i){ return {k:'c'+i,l:l}; }); cols.push({k:'e',l:'Total ENF',calc:cSum(['c1','c2','c3'])},{k:'T',l:'Total',calc:cSum(['c0','e'])}); return MX('prom','Nombre de centres d’alphabétisation et de classes ENF par type de promoteur',[{k:'mena',l:'Etat — MENA',g:'État',gn:3},{k:'am',l:'Autres Ministères'},{k:'ins',l:'Institutions'},{k:'pri',l:'Institutions privées'},{k:'par',l:'Particulier'},{k:'ong',l:'ONG'}],cols,{corner:'Promoteurs'}); })(),
+   enf5('zone','Nombre de centres par zone d’implantation',[{k:'r',l:'Zone rurale'},{k:'u',l:'Zone urbaine'},{k:'z',l:'Total',cls:'tot',calc:function(g,ck){ return g('r',ck)+g('u',ck); }}],{id0:1}),
+   KV('cadre','Nombre de centres d’alphabétisation selon le cadre de la formation',['École publique','École privée','Centre pénitentiaire','Lieu de culte','Marché','Gare routière','Autre'],{total:true}),
+   (function(){ var cols=ENC4.map(function(l,i){ return {k:'c'+i,l:l}; }); cols.push({k:'e',l:'Total ENF',calc:cSum(['c1','c2','c3'])},{k:'T',l:'Total',calc:cSum(['c0','e'])}); return MX('elec','Centres bénéficiant d’électricité ou non',[{k:'o',l:'Électrifiés'},{k:'n',l:'Non électrifiés'}],cols,{corner:''}); })(),
+   (function(){ var cols=ENC4.map(function(l,i){ return {k:'c'+i,l:l}; }); cols.push({k:'e',l:'Total ENF',calc:cSum(['c1','c2','c3'])},{k:'T',l:'Total',calc:cSum(['c0','e'])}); return MX('eau','Centres ayant accès à l’eau potable',[{k:'o',l:'Point d’eau potable'},{k:'n',l:'Pas de point d’eau potable'}],cols,{corner:''}); })()]},
+ {s:'p2e',title:'DEUXIÈME PARTIE (E) : Programme, matériels pédagogiques et supports didactiques',blocks:[
+   (function(o){ return MX('h48','Nombre de centres par niveau selon la durée (en heures) du programme',[{k:'n1',l:'Niveau 1'},{k:'n2',l:'Niveau 2'},{k:'pa',l:'Post - Alpha'}],[{k:'a',l:'48 heures'},{k:'b',l:'49 à 72 h'},{k:'c',l:'73 à 96 h'},{k:'d',l:'97 à 120 h'},{k:'e',l:'121 à 144 h'},{k:'f',l:'Plus de 144 h'}],{corner:''}); })(),
+   MX('hsem','Nombre de centres par niveau selon la durée (en heures) par semaine',[{k:'n1',l:'Niveau 1'},{k:'n2',l:'Niveau 2'},{k:'pa',l:'Post - Alpha'}],[{k:'a',l:'2 heures'},{k:'b',l:'3 heures'},{k:'c',l:'4 heures'},{k:'d',l:'5 heures'},{k:'e',l:'6 heures'},{k:'f',l:'Plus de 6 heures'}],{corner:''}),
+   KV('mat','Nombre de centres d’alphabétisation selon le matériel pédagogique utilisé',['Syllabaire DMDA','Calculaire DMDA','Thème éducatif DMDA','Planche d’alphabétisation','Manuel d’alpha fonctionnel','Manuel de lecture de l’école formelle','Manuel de mathématiques de l’école formelle',{k:'a1',l:'Autre 1 (préciser)',edl:true},{k:'a2',l:'Autre 2 (préciser)',edl:true},{k:'a3',l:'Autre 3 (préciser)',edl:true}],{capAlpha:true}),
+   KV('prov','Nombre de centres selon la provenance du contenu du programme',['Programme national MENA','Autre ministère','Initiative privée',{k:'a1',l:'Autre 1 (préciser)',edl:true},{k:'a2',l:'Autre 2 (préciser)',edl:true}],{capAlpha:true}),
+   KV('num','Nombre de centres selon les supports utilisés pour l’alphabétisation par le numérique',['Tablette','Ordinateur','Smartphone','Autre']),
+   KV('canal','Nombre de centres selon le canal utilisé pour l’alphabétisation numérique',['Plateforme en ligne','Logiciel spécifique',{k:'a1',l:'Autre 1 (préciser)',edl:true},{k:'a2',l:'Autre 2 (préciser)',edl:true}]),
+   KV('doc','Nombre de centres selon les documents de suivi',['Cahier journal physique','Cahier journal numérique','Registre d’appel physique','Registre d’appel numérique','Cahier de visite et de conseil physique','Cahier de visite et de conseil numérique'],{capAlpha:true})]},
+ {s:'p2f',title:'DEUXIÈME PARTIE (F) : Partenariat',blocks:[
+   MX('part','Partenaires et nature de l’appui (nombre)',totRows(['Collectivités décentralisées','Entreprises privées','ONG','Association','Mutuelle de développement','Institutions publiques','Faitières et Chambres Consulaires','Ambassades et Consulats','Organisations internationales','Personnes physiques (préciser fonction)',{k:'au',l:'Autres (préciser)',edl:true}]),[{k:'fi',l:'Financier'},{k:'ma',l:'Matériel'},{k:'eq',l:'Équipement pédagogique'},{k:'te',l:'Technique (formation, expertise)'}],{corner:'Partenaires'})]},
+ {s:'p3a',title:'TROISIÈME PARTIE (A) : Calendrier et activités',blocks:[
+   DYN('actR','Synthèse des activités programmées et réalisées',[['act','Activité programmée'],['tache','Tâche'],['res','Résultat attendu'],['t1','1er trim.','c'],['t2','2ème trim.','c'],['t3','3ème trim.','c'],['resp','Responsable'],['ind','Indicateur'],['part','Partenaires de mise en œuvre'],['per','Période d’exécution'],['taux','Taux d’exécution (%)','n'],['obt','Résultats obtenus'],['dif','Difficultés rencontrées'],['sol','Solutions envisagées']]),
+   DYN('actN','Synthèse des activités programmées et non réalisées',[['act','Activité programmée'],['res','Résultat attendu'],['t1','1er trim.','c'],['t2','2ème trim.','c'],['t3','3ème trim.','c'],['resp','Responsable'],['ind','Indicateur'],['part','Partenaires'],['mot','Motifs ou raisons'],['sol','Solutions envisagées']]),
+   DYN('actH','Synthèse des activités menées non programmées',[['act','Activité'],['tache','Tâche'],['res','Résultats obtenus'],['per','Période d’exécution'],['resp','Responsable'],['ind','Indicateur'],['part','Partenaires'],['taux','Taux d’exécution (%)','n'],['dif','Difficultés rencontrées'],['sol','Solutions envisagées']])]},
+ {s:'p3b',title:'TROISIÈME PARTIE (B) : Langue d’apprentissage et secteurs d’activités',blocks:[
+   KV('lang','Nombre de centres par langue d’apprentissage',['Français',{k:'n1',l:'Langue nationale 1 (préciser)',edl:true},{k:'n2',l:'Langue nationale 2 (préciser)',edl:true},{k:'n3',l:'Langue nationale 3 (préciser)',edl:true},{k:'a1',l:'Autre langue 1 (préciser)',edl:true},{k:'a2',l:'Autre langue 2 (préciser)',edl:true}],{capAlpha:true}),
+   MX('sect','Nombre d’apprenants par secteur d’activités professionnelles selon le type d’alphabétisation',totRows(['Agriculture','Artisanat','Commerce','Industrie','Transport','Élevage',{k:'a1',l:'Autre 1 (préciser)',edl:true},{k:'a2',l:'Autre 2 (préciser)',edl:true},{k:'a3',l:'Autre 3 (préciser)',edl:true}]),TY3.map(function(l,i){ return {k:'c'+i,l:l}; }).concat([{k:'T',l:'Total',calc:cSum(['c0','c1','c2'])}]),{corner:'Activités'})]},
+ {s:'p3c',title:'TROISIÈME PARTIE (C) : Informations et données sur l’alphabétisation',blocks:[
+   MX('zalpha','Nombre de centres par zone selon le type d’alphabétisation',[{k:'r',l:'Rurale'},{k:'u',l:'Urbaine'},{k:'z',l:'Total par type',cls:'tot',calc:function(g,ck){ return g('r',ck)+g('u',ck); }}],TY3.map(function(l,i){ return {k:'c'+i,l:l}; }).concat([{k:'T',l:'Total zone',calc:cSum(['c0','c1','c2'])}]),{corner:'Zones'}),
+   KV('regime','Nombre de centres d’alphabétisation selon le régime du centre',['Hommes','Femmes','Mixtes'],{total:true,capAlpha:true}),
+   ageMx('adeb','Effectif des apprenants en début de campagne par tranche d’âge et niveau selon le type d’alphabétisation et par sexe'),
+   ageMx('afin','Effectif de fin de trimestre ou de campagne par tranche d’âge et niveau selon le type d’alphabétisation et par sexe'),
+   ageMx('aabd','Effectif des abandons par tranche d’âge et niveau selon le type d’alphabétisation et par sexe'),
+   ageMx('apas','Effectif de passage au niveau supérieur par tranche d’âge et niveau selon le type d’alphabétisation et par sexe','À renseigner à la fin de la campagne')]},
+ {s:'p3d',title:'TROISIÈME PARTIE (D) : Éducation non formelle — Centres d’Éducation Communautaire (CEC)',blocks:[
+   MX('zenf','Nombre de centres par zone selon le type d’éducation non formelle',[{k:'r',l:'Rurale'},{k:'u',l:'Urbaine'},{k:'z',l:'Total par type',cls:'tot',calc:function(g,ck){ return g('r',ck)+g('u',ck); }}],[{k:'cec',l:'CEC'},{k:'sie',l:'SIE'},{k:'cp',l:'Classes Passerelles'},{k:'T',l:'Total',calc:cSum(['cec','sie','cp'])}],{corner:'Zones'}),
+   enfMx('cdeb','CEC — Effectif en début d’année scolaire par tranche d’âge selon le niveau et le sexe'),
+   enfMx('cfin','CEC — Effectif en fin de trimestre / année scolaire par tranche d’âge selon le niveau et le sexe'),
+   enfMx('cabd','CEC — Effectif des abandons par tranche d’âge selon le niveau et le sexe'),
+   enfMx('cpro','CEC — Effectif des élèves promus par tranche d’âge selon le niveau et le sexe','À renseigner à la fin de l’année scolaire'),
+   MX('cepe','CEC — Effectif des élèves ayant obtenu le CEPE par sexe',[{k:'G',l:'Garçons'},{k:'F',l:'Filles'},{k:'T',l:'Total',cls:'tot',calc:function(g,ck){ return g('G',ck)+g('F',ck); }}],[{k:'cand',l:'Candidats'},{k:'adm',l:'Admis'},{k:'S',l:'Total par sexe'},{k:'I',l:'Ivoirien'},{k:'N',l:'Non ivoirien'}],{corner:'',note:'À renseigner en fin d’année scolaire'})]},
+ {s:'p3e',title:'TROISIÈME PARTIE (E) : Éducation non formelle — Classes Passerelles (CP)',blocks:[
+   cpMx('pdeb','CP — Effectif des élèves en début d’année scolaire par niveau selon la tranche d’âge et par sexe'),
+   cpMx('pfin','CP — Effectif des élèves en fin de trimestre / d’année scolaire par niveau selon la tranche d’âge et par sexe'),
+   cpMx('pabd','CP — Effectif des abandons par niveau selon la tranche d’âge et par sexe'),
+   cpMx('ptst','CP — Effectif des admis au test d’intégration par niveau selon la tranche d’âge et par sexe','À renseigner en fin d’année scolaire'),
+   cpMx('pint','CP — Effectif des élèves intégrés dans le système d’éducation formel par niveau selon la tranche d’âge et par sexe','À renseigner en fin d’année scolaire')]},
+ {s:'p3f',title:'TROISIÈME PARTIE (F) : Éducation non formelle — Structures Islamiques d’Éducation (SIE)',blocks:[
+   sieMx('sdeb','SIE — Effectif des élèves en début d’année scolaire par niveau d’intégration selon le type de SIE et par sexe'),
+   sieMx('sfin','SIE — Effectif des élèves en fin de trimestre / d’année scolaire par niveau d’intégration selon le type de SIE et par sexe'),
+   sieMx('sabd','SIE — Nombre d’abandons par niveau d’intégration selon le type de SIE et par sexe'),
+   promoMx('pr0','Effectif des promus — École confessionnelle','À renseigner en fin d’année scolaire'),
+   promoMx('pr1','Effectif des promus — École franco-arabe'),
+   promoMx('pr2','Effectif des promus — Madrassa'),
+   promoMx('pr3','Effectif des promus — École coranique'),
+   (function(){ var cols=LV6.map(function(l){ return {k:l,l:l}; }); cols.push({k:'S',l:'Total par niveau',calc:cSum(LV6)}); var sm=function(g,rk,ck){ return g(rk,ck); }; return MX('prT','Total des promus par sexe selon le niveau et par nationalité issus des SIE (consolidé des 4 types)',[{k:'G',l:'Garçons'},{k:'F',l:'Filles'},{k:'T',l:'Total',cls:'sub',calc:function(g,ck){ return g('G',ck)+g('F',ck); }},{k:'I',l:'Ivoiriens'},{k:'N',l:'Non Ivoiriens'}],cols,{corner:'',pairRow:{tot:'T',a:'I',b:'N'},xsum:['pr0','pr1','pr2','pr3']}); })(),
+   MX('sint','Nombre de structures intégrées dans le système formel selon le type de SIE',[{k:'n',l:'Nombre'}],[{k:'c0',l:'École confessionnelle'},{k:'c1',l:'École franco-arabe'},{k:'c2',l:'Madrassa'},{k:'c3',l:'École coranique'},{k:'T',l:'Total',calc:cSum(['c0','c1','c2','c3'])}],{corner:'',note:'À renseigner en fin d’année scolaire'}),
+   MX('srev','Nombre d’élèves ivoiriens ou non reversés dans le système formel par sexe selon le type de SIE',[{k:'G',l:'Garçons'},{k:'F',l:'Filles'},{k:'T',l:'Total',cls:'sub',calc:function(g,ck){ return g('G',ck)+g('F',ck); }},{k:'I',l:'Ivoiriens'},{k:'N',l:'Non Ivoiriens'}],[{k:'c0',l:'Confessionnel'},{k:'c1',l:'Franco Arabe'},{k:'c2',l:'Madrassa'},{k:'c3',l:'Coranique'},{k:'S',l:'Total',calc:cSum(['c0','c1','c2','c3'])}],{corner:'',pairRow:{tot:'T',a:'I',b:'N'},note:'À renseigner en fin d’année scolaire'})]},
+ {s:'p4',title:'QUATRIÈME PARTIE : Principaux acquis, difficultés et enseignements',blocks:[
+   (function(){ var CP=[['lec','Amélioration des compétences en lecture'],['ecr','Amélioration des compétences en écriture'],['cal','Amélioration des compétences en calcul'],['vie','Compétences de vie courante'],['tic','Compétences en TIC']]; var rows=[]; CP.forEach(function(c){ rows.push({k:c[0]+'_H',l:'Hommes',g:c[1],gn:3},{k:c[0]+'_F',l:'Femmes'},{k:c[0]+'_T',l:'Total',cls:'sub',calc:(function(a,b){ return function(g,ck){ return g(a,ck)+g(b,ck); }; })(c[0]+'_H',c[0]+'_F')}); });
+     rows.push({k:'z_H',l:'Hommes',g:'Total',gn:3,cls:'tot',calc:rSum(CP.map(function(c){return c[0]+'_H';}))},{k:'z_F',l:'Femmes',cls:'tot',calc:rSum(CP.map(function(c){return c[0]+'_F';}))},{k:'z_T',l:'Total',cls:'tot',calc:rSum(CP.map(function(c){return c[0]+'_T';}))});
+     return MX('acq','1. Effectif des apprenants ayant acquis des compétences selon les types d’alphabétisation',rows,TY3.map(function(l,i){ return {k:'c'+i,l:l}; }).concat([{k:'T',l:'Total',calc:cSum(['c0','c1','c2'])}]),{corner:'Compétences acquises'}); })(),
+   DIFF('dif1','2. Difficultés rencontrées dans la mise en œuvre des programmes (nombre de centres concernés)',['Manque de ressources humaines qualifiées','Financement insuffisant ou inexistant','Difficultés d’accès aux zones rurales','Manque d’infrastructures','Non-participation de la communauté à un plan de pérennisation','Absence d’un comité de gestion','Non adhésion de la communauté','Difficultés d’éclairage des centres','Difficultés d’accès aux manuels','Rareté des visites','Les pesanteurs culturelles']),
+   DIFF('dif2','3. Impact négatif de ces difficultés sur les programmes',['Enseignement au rabais','Accès limité aux populations cibles','Faible engagement des participants','Insuffisance d’évaluation','Résultats insuffisants','Niveau des alphabétiseurs','Arrêt de l’activité']),
+   MX('str','4. Aspects à améliorer pour la prochaine campagne / année scolaire (nombre de centres)',['Renforcement des textes règlementaires, faire des propositions','Respect des délais de formation','Accroissement de la ressource humaine','Meilleure coordination entre acteurs','Diversification des programmes selon les cibles','Développement des partenariats','Engagement communautaire','Formation continue des alphabétiseurs / animateurs','Suivi et évaluation réguliers','Visites pédagogiques régulières','Évaluation des acquis des apprentissages','Renforcement de la sensibilisation',{k:'a1',l:'Autre 1 (préciser)',edl:true},{k:'a2',l:'Autre 2 (préciser)',edl:true},{k:'a3',l:'Autre 3 (préciser)',edl:true}],ENC4.map(function(l,i){ return {k:'c'+i,l:l}; }),{corner:''}),
+   TX('conclusion','Observations et recommandations générales',4)]}
+];
+/* ================= MOTEUR : lecture des données, calculs, contrôles ================= */
+var SPEC={}; MODEL.forEach(function(sec){ sec.blocks.forEach(function(b){ if(b.id) SPEC[b.id]=b; }); });
+var num=function(v){ var n=parseFloat(String(v==null?'':v).replace(',','.').replace(/\s/g,'')); return isFinite(n)?n:0; };
+var fmt=function(n){ return n===0?'0':(Math.round(n*100)/100).toString().replace('.',','); };
+function mkGetter(d){
+  var memo={};
+  function g(id,rk,ck){
+    var key=id+'|'+rk+'|'+ck; if(memo.hasOwnProperty(key)) return memo[key];
+    var sp=SPEC[id], row=null, col=null, i;
+    for(i=0;i<sp.rows.length;i++){ if(sp.rows[i].k===rk){ row=sp.rows[i]; break; } }
+    for(i=0;i<sp.cols.length;i++){ if(sp.cols[i].k===ck){ col=sp.cols[i]; break; } }
+    var gg=function(r,c){ return g(id,r,c); }, v;
+    if(!row||!col) v=0;
+    else if(row.calc) v=row.calc(gg,ck);
+    else if(col.calc) v=col.calc(gg,rk);
+    else if(sp.xsum){ v=0; sp.xsum.forEach(function(o){ v+=g(o,rk,ck); }); }
+    else v=num(d[id+'|'+rk+'|'+ck]);
+    memo[key]=v; return v;
+  }
+  return g;
+}
+function isCalc(sp,row,col){ return !!(row.calc||col.calc||sp.xsum); }
+function kvVal(d,sp){ var g=0; sp.items.forEach(function(it){ g+=num(d[sp.id+'|'+it.k]); }); return g; }
+/* liste des cellules saisies (numériques) et champs texte — sert à la consolidation */
+function inputKeys(){
+  var nums=[], txt=[];
+  MODEL.forEach(function(sec){ sec.blocks.forEach(function(b){
+    if(b.t==='mx'){ b.rows.forEach(function(r){ b.cols.forEach(function(c){ if(!isCalc(b,r,c)) nums.push(b.id+'|'+r.k+'|'+c.k); }); if(r.edl) txt.push(b.id+'|'+r.k+'|l'); }); }
+    else if(b.t==='kv'){ b.items.forEach(function(it){ nums.push(b.id+'|'+it.k); if(it.edl) txt.push(b.id+'|'+it.k+'|l'); }); }
+    else if(b.t==='f'){ b.f.forEach(function(f){ if(f[2]==='n') nums.push(f[0]); else txt.push(f[0]); }); }
+    else if(b.t==='ta'){ txt.push(b.k); }
+  }); });
+  return {nums:nums,txt:txt};
+}
+var IK=inputKeys();
+var KEYSET_N={}; IK.nums.forEach(function(k){ KEYSET_N[k]=1; });
+
+/* ---------- contrôles d'intégrité ---------- */
+function platformCounts(){
+  function L(k){ try{ var v=load(k,[]); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
+  var A=L('alphaAuditeurs'), o={alpha:L('alphaCentres').length,cec:L('alphaEcolesCom').length,cp:L('alphaPasserelles').length,sie:L('islamStructures').length,aud:A.length,audH:0,audF:0};
+  A.forEach(function(a){ if(/^f/i.test(a.sexe||'')) o.audF++; else if(/^[mh]/i.test(a.sexe||'')) o.audH++; });
+  return o;
+}
+function check(d,lvl,rec){
+  var g=mkGetter(d), E=[], W=[];
+  var add=function(arr,sec,msg){ arr.push({sec:sec,msg:msg}); };
+  function gv(id,r,c){ return g(id,r,c); }
+  /* identité */
+  if(!String(d.nom||'').trim()) add(E,'p1','Renseignez le nom et prénom(s) du responsable (1re partie).');
+  if(!String(d.contact||'').trim()) add(E,'p1','Renseignez le(s) contact(s) du responsable (1re partie).');
+  /* cohérences arithmétiques : Total = Ivoiriens + Non Ivoiriens */
+  MODEL.forEach(function(sec){ sec.blocks.forEach(function(b){
+    if(b.t!=='mx') return; var n=0;
+    if(b.pair){ b.rows.forEach(function(r){ var T=gv(b.id,r.k,b.pair.tot), a=gv(b.id,r.k,b.pair.a), c=gv(b.id,r.k,b.pair.b); if((a+c)>0&&Math.abs(T-(a+c))>0.001&&n<3){ n++; add(E,sec.s,'« '+b.title.slice(0,70)+'… » — ligne « '+(r.g?r.g+' / ':'')+r.l+' » : '+b.pair.lab+' ('+fmt(T)+') ≠ Ivoiriens + Non ivoiriens ('+fmt(a+c)+').'); } }); }
+    if(b.pairRow){ b.cols.forEach(function(c){ var T=gv(b.id,b.pairRow.tot,c.k), a=gv(b.id,b.pairRow.a,c.k), z=gv(b.id,b.pairRow.b,c.k); if((a+z)>0&&Math.abs(T-(a+z))>0.001&&n<3){ n++; add(E,sec.s,'« '+b.title.slice(0,70)+'… » — colonne « '+c.l+' » : Total ('+fmt(T)+') ≠ Ivoiriens + Non ivoiriens ('+fmt(a+z)+').'); } }); }
+  }); });
+  /* effectifs : abandons ≤ début ; fin ≤ début + marge (avertissement) */
+  [['adeb','afin','aabd','alphabétisation','tT'],['cdeb','cfin','cabd','CEC','S'],['pdeb','pfin','pabd','classes passerelles','tT'],['sdeb','sfin','sabd','SIE','S']].forEach(function(t){
+    var lastRow=SPEC[t[0]].rows[SPEC[t[0]].rows.length-1].k, deb=gv(t[0],lastRow,t[4]), fin=gv(t[1],lastRow,t[4]), ab=gv(t[2],lastRow,t[4]);
+    if(ab>deb) add(E,'p3','Effectifs '+t[3]+' : les abandons ('+fmt(ab)+') dépassent l’effectif de début ('+fmt(deb)+').');
+    if(fin>deb&&deb>0) add(W,'p3','Effectifs '+t[3]+' : l’effectif de fin ('+fmt(fin)+') est supérieur à celui du début ('+fmt(deb)+') — vérifiez les nouvelles inscriptions.');
+    if(deb>0&&fin>0&&Math.abs((deb-ab)-fin)>deb*0.2) add(W,'p3','Effectifs '+t[3]+' : début − abandons ('+fmt(deb-ab)+') est éloigné de l’effectif de fin ('+fmt(fin)+').');
+  });
+  /* centres : zones, plateforme, autorisations */
+  var zT={al:gv('zone','z','c0'),cec:gv('zone','z','c1'),sie:gv('zone','z','c2'),cp:gv('zone','z','c3')};
+  var zA=[gv('zalpha','z','T')];
+  if(Math.abs(zA[0]-zT.al)>0.001&&(zA[0]+zT.al)>0) add(E,'p3c','Nombre de centres d’alphabétisation : « Infrastructures — zone » ('+fmt(zT.al)+') ≠ « Informations sur l’alphabétisation — zone » ('+fmt(zA[0])+').');
+  var zE=gv('zenf','z','T'), zE2=zT.cec+zT.sie+zT.cp; if(Math.abs(zE-zE2)>0.001&&(zE+zE2)>0) add(E,'p3d','Nombre de centres ENF : tableau « zone ENF » ('+fmt(zE)+') ≠ tableau « zone d’implantation » ('+fmt(zE2)+').');
+  var aut=num(d.aut)+num(d.sansAut), totC=zT.al+zT.cec+zT.sie+zT.cp;
+  if(aut>0&&totC>0&&Math.abs(aut-totC)>0.001) add(W,'p2a','Dispositifs : centres avec autorisation + sans autorisation ('+fmt(aut)+') ≠ nombre total de centres ('+fmt(totC)+').');
+  if(num(d.autHors)>num(d.aut)) add(E,'p2a','« Autorisation délivrée hors MENA » ('+fmt(num(d.autHors))+') dépasse le nombre de centres autorisés ('+fmt(num(d.aut))+').');
+  ['prom|c0|al','prom|c1|cec','prom|c2|sie','prom|c3|cp'].forEach(function(x){ var p=x.split('|'), s=0; SPEC.prom.rows.forEach(function(r){ s+=gv('prom',r.k,p[1]); }); var z=zT[p[2]]; if(s>0&&z>0&&Math.abs(s-z)>0.001) add(W,'p2d','Promoteurs ('+p[2].toUpperCase()+') : total '+fmt(s)+' ≠ nombre de centres '+fmt(z)+'.'); });
+  [['elec','Électricité'],['eau','Eau potable']].forEach(function(t){ ['c0','c1','c2','c3'].forEach(function(c,i){ var s=gv(t[0],'o',c)+gv(t[0],'n',c), z=[zT.al,zT.cec,zT.sie,zT.cp][i]; if(s>0&&z>0&&Math.abs(s-z)>0.001) add(W,'p2d',t[1]+' ('+ENC4[i]+') : '+fmt(s)+' centre(s) renseigné(s) pour '+fmt(z)+' centre(s) au total.'); }); });
+  var cad=kvVal(d,SPEC.cadre); if(cad>0&&zT.al>0&&Math.abs(cad-zT.al)>0.001) add(W,'p2d','Cadre de la formation : total '+fmt(cad)+' ≠ nombre de centres d’alphabétisation '+fmt(zT.al)+'.');
+  ['mat','prov','doc','lang'].forEach(function(id){ SPEC[id].items.forEach(function(it){ var v=num(d[id+'|'+it.k]); if(zT.al>0&&v>zT.al) add(E,'p2e','« '+(d[id+'|'+it.k+'|l']||it.l)+' » ('+fmt(v)+') dépasse le nombre de centres d’alphabétisation ('+fmt(zT.al)+').'); }); });
+  var rg=kvVal(d,SPEC.regime); if(rg>0&&zT.al>0&&Math.abs(rg-zT.al)>0.001) add(W,'p3c','Régime des centres : total '+fmt(rg)+' ≠ nombre de centres d’alphabétisation '+fmt(zT.al)+'.');
+  /* RH : effectif début/fin vs RH */
+  [['alpha','Alphabétisation','r3','c0'],['cec','CEC','r4','c1']].forEach(function(t){});
+  var rhAl=gv('rh','r3','T'), debAl=gv('deb','T','c0'); if(rhAl>0&&debAl>0&&Math.abs(rhAl-debAl)>0.001) add(W,'p2b','Alphabétiseurs : effectif du tableau « Ressources humaines » ('+fmt(rhAl)+') ≠ effectif en début de campagne ('+fmt(debAl)+').');
+  var fm=gv('form','T','c0'); if(fm>debAl&&debAl>0) add(E,'p2b','Alphabétiseurs formés ('+fmt(fm)+') supérieurs à l’effectif en début de campagne ('+fmt(debAl)+').');
+  /* plateforme */
+  var pc=platformCounts();
+  [['alpha',zT.al,'centres d’alphabétisation'],['cec',zT.cec,'écoles communautaires (CEC)'],['sie',zT.sie,'structures islamiques (SIE)'],['cp',zT.cp,'classes passerelles']].forEach(function(t){ if(pc[t[0]]>0&&t[1]>0&&pc[t[0]]!==t[1]) add(W,'p2d','Plateforme : '+pc[t[0]]+' '+t[2]+' enregistré(s) sur la plateforme contre '+fmt(t[1])+' déclaré(s) dans le rapport.'); });
+  var aT=gv('adeb','z_t','tT'); if(pc.aud>0&&aT>0&&aT!==pc.aud) add(W,'p3c','Plateforme : '+pc.aud+' auditeur(s) enregistré(s) contre '+fmt(aT)+' apprenants en début de campagne dans le rapport.');
+  return {errors:E,warns:W};
+}
+/* ================= RENDU DES TABLEAUX ================= */
+var $=function(s,r){ return (r||document).querySelector(s); };
+var esc=function(s){ return (typeof escapeHtml==='function')?escapeHtml(String(s==null?'':s)):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
+var U=function(){ return (window.state&&state.user)||{}; };
+var inpS='width:100%;min-width:54px;padding:4px 5px;border:1px solid #cbd5e1;border-radius:5px;font:inherit;font-size:12px;box-sizing:border-box;color:#0f172a;-webkit-text-fill-color:#0f172a;background:#fff;text-align:center';
+function dynRows(d,id){ try{ var a=JSON.parse(d['dyn|'+id]||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function tableHtml(sp,d,mode,lv){
+  var g=mkGetter(d), ed=(mode==='edit'), h='';
+  var rows=sp.rows.filter(function(r){ return !(r.lvl==='R'&&lv==='cons'); });
+  var hasG=rows.some(function(r){ return r.g!=null; });
+  h+='<div class="asx-t" id="asx-'+sp.id+'"><div class="asx-tt">'+esc(sp.title)+(sp.note?' <span class="asx-n">('+esc(sp.note)+')</span>':'')+'</div><div style="overflow:auto"><table data-noenh="1" class="asx-tb'+(sp.compact?' cmp':'')+'"><thead>';
+  if(sp.groups){ h+='<tr><th rowspan="2" colspan="'+(hasG?2:1)+'" class="asx-cn">'+esc(sp.corner||'')+'</th>'+sp.groups.map(function(x){ return '<th colspan="'+x.span+'">'+esc(x.l)+'</th>'; }).join('')+'</tr><tr>'+sp.cols.map(function(c){ return '<th>'+esc(c.l)+'</th>'; }).join('')+'</tr>'; }
+  else h+='<tr><th colspan="'+(hasG?2:1)+'" class="asx-cn">'+esc(sp.corner||'')+'</th>'+sp.cols.map(function(c){ return '<th>'+esc(c.l)+'</th>'; }).join('')+'</tr>';
+  h+='</thead><tbody>';
+  rows.forEach(function(r){
+    h+='<tr class="'+(r.cls||'')+'">';
+    if(hasG){ if(r.g!=null&&r.gn) h+='<th rowspan="'+r.gn+'" class="asx-g">'+esc(r.g)+'</th>'; else if(r.g!=null) h+='<th class="asx-g">'+esc(r.g)+'</th>'; }
+    var lab=r.edl?(ed?'<input data-k="'+sp.id+'|'+r.k+'|l" value="'+esc(d[sp.id+'|'+r.k+'|l']||'')+'" placeholder="'+esc(r.l)+'" style="'+inpS+';text-align:left">':esc(d[sp.id+'|'+r.k+'|l']||r.l)):esc(r.l);
+    h+='<th class="asx-rl">'+lab+'</th>';
+    sp.cols.forEach(function(c){
+      var key=sp.id+'|'+r.k+'|'+c.k;
+      if(isCalc(sp,r,c)) h+='<td class="c" data-calc="'+key+'">'+fmt(g(sp.id,r.k,c.k))+'</td>';
+      else if(ed) h+='<td><input inputmode="decimal" data-k="'+key+'" value="'+esc(d[key]==null?'':d[key])+'" style="'+inpS+'"></td>';
+      else h+='<td class="c">'+esc(d[key]==null?'':d[key])+'</td>';
+    });
+    h+='</tr>';
+  });
+  return h+'</tbody></table></div></div>';
+}
+function kvHtml(sp,d,mode){
+  var ed=(mode==='edit'), h='<div class="asx-t" id="asx-'+sp.id+'"><div class="asx-tt">'+esc(sp.title)+'</div><div style="overflow:auto"><table data-noenh="1" class="asx-tb"><tbody>';
+  sp.items.forEach(function(it){ var key=sp.id+'|'+it.k, lab=it.edl?(ed?'<input data-k="'+key+'|l" value="'+esc(d[key+'|l']||'')+'" placeholder="'+esc(it.l)+'" style="'+inpS+';text-align:left">':esc(d[key+'|l']||it.l)):esc(it.l);
+    h+='<tr><th class="asx-rl" style="text-align:left">'+lab+'</th><td style="width:120px">'+(ed?'<input inputmode="decimal" data-k="'+key+'" value="'+esc(d[key]==null?'':d[key])+'" style="'+inpS+'">':esc(d[key]==null?'':d[key]))+'</td></tr>'; });
+  if(sp.total) h+='<tr class="tot"><th class="asx-rl" style="text-align:left">Total</th><td class="c" data-kvt="'+sp.id+'">'+fmt(kvVal(d,sp))+'</td></tr>';
+  return h+'</tbody></table></div></div>';
+}
+function dynHtml(sp,d,mode){
+  var ed=(mode==='edit'), rows=dynRows(d,sp.id); if(ed&&!rows.length) rows=[{}];
+  var h='<div class="asx-t" id="asx-'+sp.id+'" data-dyn="'+sp.id+'"><div class="asx-tt">'+esc(sp.title)+'</div><div style="overflow:auto"><table data-noenh="1" class="asx-tb"><thead><tr>'+sp.cols.map(function(c){ return '<th>'+esc(c[1])+'</th>'; }).join('')+(ed?'<th></th>':'')+'</tr></thead><tbody>';
+  rows.forEach(function(r){ h+='<tr data-dr="1">'+sp.cols.map(function(c){ var v=r[c[0]]||''; if(c[2]==='c') return '<td class="c">'+(ed?'<input type="checkbox" data-dc="'+c[0]+'" '+(v?'checked':'')+'>':(v?'X':''))+'</td>';
+      return '<td>'+(ed?'<textarea rows="2" data-dc="'+c[0]+'" style="'+inpS+';text-align:left;min-width:'+(c[2]==='n'?'60':'110')+'px;resize:vertical">'+esc(v)+'</textarea>':esc(v))+'</td>'; }).join('')+(ed?'<td><button type="button" class="btn btn-ghost btn-sm" onclick="asxDynDel(this)" title="Supprimer la ligne">✕</button></td>':'')+'</tr>'; });
+  h+='</tbody></table></div>'+(ed?'<button type="button" class="btn btn-ghost btn-sm" onclick="asxDynAdd(\''+sp.id+'\')">➕ Ajouter une ligne</button>':'')+'</div>';
+  return h;
+}
+function fieldsHtml(b,d,mode,lv){
+  var ed=(mode==='edit'); var h='<div style="display:grid;grid-template-columns:repeat('+(b.cols||2)+',1fr);gap:8px 12px">';
+  b.f.forEach(function(f){ var k=f[0],t=f[1],ty=f[2]||'t',req=f[3]==='req', v=d[k]==null?'':d[k], lab=t; if(lv==='cons'&&k==='nom') lab='Nom et prénom(s) du conseiller'; if(lv==='cons'&&k==='exp') lab='Nombre d’années d’expérience au poste de conseiller';
+    h+='<div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:2px">'+esc(lab)+(req?' <span style="color:#dc2626">*</span>':'')+'</label>';
+    if(!ed) h+='<div style="border-bottom:1px dotted #94a3b8;min-height:18px">'+esc(v)+'</div>';
+    else if(ty==='s') h+='<select data-k="'+k+'" style="'+inpS+';text-align:left">'+f[3].map(function(o){ return '<option value="'+esc(o)+'"'+(o===v?' selected':'')+'>'+esc(o||'—')+'</option>'; }).join('')+'</select>';
+    else h+='<input data-k="'+k+'" '+(ty==='n'?'inputmode="decimal" ':'')+'value="'+esc(v)+'" style="'+inpS+';text-align:left">';
+    h+='</div>'; });
+  return h+'</div>';
+}
+function taHtml(b,d,mode){ var v=d[b.k]||''; return '<div class="asx-t"><div class="asx-tt">'+esc(b.l)+'</div>'+(mode==='edit'?'<textarea data-k="'+b.k+'" rows="'+b.r+'" style="'+inpS+';text-align:left;resize:vertical">'+esc(v)+'</textarea>':'<div style="white-space:pre-wrap;border:1px solid #cbd5e1;padding:5px;min-height:24px">'+esc(v)+'</div>')+'</div>'; }
+function blockHtml(b,d,mode,lv){
+  if(b.t==='mx') return tableHtml(b,d,mode,lv); if(b.t==='kv') return kvHtml(b,d,mode); if(b.t==='dyn') return dynHtml(b,d,mode);
+  if(b.t==='f') return fieldsHtml(b,d,mode,lv); if(b.t==='ta') return taHtml(b,d,mode); return '';
+}
+function sectionsHtml(d,mode,lv,openAll){
+  return MODEL.map(function(sec,i){ var body=sec.blocks.map(function(b){ return blockHtml(b,d,mode,lv); }).join('');
+    if(mode==='edit') return '<details class="asx-sec" id="asxs-'+sec.s+'" '+((i===0||openAll)?'open':'')+'><summary>'+esc(sec.title)+'</summary><div class="asx-sb">'+body+'</div></details>';
+    return '<h2>'+esc(sec.title)+'</h2>'+body; }).join('');
+}
+/* ================= DONNÉES, NIVEAUX, CONSOLIDATION, INTERFACE ================= */
+var KEY='alphaSupRapports', PUB='alphaSupPub';
+try{ if(typeof GLOBAL_KEYS!=='undefined'&&!GLOBAL_KEYS.has(PUB)) GLOBAL_KEYS.add(PUB); if(typeof SCOPED_KEY_LIST!=='undefined'&&SCOPED_KEY_LIST.indexOf(KEY)<0) SCOPED_KEY_LIST.push(KEY); }catch(e){}
+try{ Object.assign(AUTO_TRASH_LABELS,{alphaSupRapports:'Rapports trimestriels du superviseur (DCSPA)'}); }catch(e){}
+var TRL={T1:'1er trimestre',T2:'2ème trimestre',T3:'3ème trimestre'}, TRN={T1:1,T2:2,T3:3};
+var ST={brouillon:['Brouillon','#b45309','#fef3c7'],transmis:['Transmis','#1d4ed8','#dbeafe'],consolide:['Consolidé','#7c3aed','#ede9fe'],publie:['Transmis à la DRENAET','#15803d','#dcfce7']};
+function ld(k){ try{ var v=load(k,[]); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
+function sv(k,a){ try{ save(k,a); }catch(e){} }
+function annee(){ return String(window.ANNEE_SCOLAIRE||'2026-2027'); }
+function role(){ return U().role||''; }
+function isCons(){ return role()==='alphabetisation'||role()==='alpha'; }
+function isInsp(){ return role()==='inspecteur'||role()==='superadmin'; }
+function isReg(){ return role()==='drenaet'||role()==='superadmin'; }
+function ieppName(){ return (window.state&&(state.activeIepp||U().iepp))||''; }
+function drenaetName(){ var u=U(); if(u.drenaet) return u.drenaet; try{ var k=String(ieppName()).toUpperCase(); var r=(state.drenaet||[]).find(function(x){ return String(x.iepp||'').toUpperCase()===k; }); if(r) return r.drenaet||''; }catch(e){} return ''; }
+function slug(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''); }
+var ui={tab:'',rec:null,lv:'cons',ro:false,dirty:false,src:'scoped'};
+function recId(kind,trim){ return kind==='cons'?'asc_'+slug(U().username)+'_'+annee()+'_'+trim : kind==='iepp'?'asi_'+slug(ieppName())+'_'+annee()+'_'+trim : 'asr_'+slug(drenaetName()||'region')+'_'+annee()+'_'+trim; }
+function getRec(id,src){ return (src==='pub'?ld(PUB):ld(KEY)).find(function(x){ return x&&x.id===id; })||null; }
+function putRec(rec,src){ var k=src==='pub'?PUB:KEY, a=ld(k), i=a.findIndex(function(x){ return x&&x.id===rec.id; }); rec._upd=Date.now(); if(i>=0) a[i]=rec; else a.push(rec); sv(k,a); }
+function baseData(lv){
+  var u=U(); var d={annee:annee(),region:'',drenaet:drenaetName(),iepp:lv==='reg'?'':ieppName().replace(/^IEPP\s+/i,'')};
+  try{ var r=(state.drenaet||[]).find(function(x){ return x.drenaet===d.drenaet; }); if(r&&r.region) d.region=r.region; }catch(e){}
+  d.nom=lv==='reg'?(u.name||''):(u.name||''); d.contact=u.tel||u.contact||''; d.email=u.email||'';
+  return d;
+}
+function dynIds(){ var o=[]; MODEL.forEach(function(s){ s.blocks.forEach(function(b){ if(b.t==='dyn') o.push(b.id); }); }); return o; }
+var NOCONS={nom:1,sexe:1,exp:1,contact:1,email:1,region:1,drenaet:1,annee:1,iepp:1};
+function consolidate(list,keep,prev){
+  var out={}; prev=prev||{};
+  IK.nums.forEach(function(k){ if(keep&&keep(k)){ if(prev[k]!=null&&prev[k]!=='') out[k]=prev[k]; return; } var s=0,any=false; list.forEach(function(d){ if(d[k]!=null&&d[k]!==''){ s+=num(d[k]); any=true; } }); if(any) out[k]=String(Math.round(s*100)/100); });
+  IK.txt.forEach(function(k){ if(NOCONS[k]) return; var seen=[]; list.forEach(function(d){ var v=String(d[k]||'').trim(); if(v&&seen.indexOf(v)<0) seen.push(v); }); if(seen.length) out[k]=seen.join(' ; '); });
+  dynIds().forEach(function(id){ var rows=[]; list.forEach(function(d){ rows=rows.concat(dynRows(d,id)); }); if(rows.length) out['dyn|'+id]=JSON.stringify(rows); });
+  return out;
+}
+/* ---------- collecte / calculs en direct ---------- */
+function collect(){
+  var d={}; [].forEach.call(document.querySelectorAll('#asx-form [data-k]'),function(e){ var v=String(e.value==null?'':e.value); if(v!=='') d[e.getAttribute('data-k')]=v; });
+  [].forEach.call(document.querySelectorAll('#asx-form [data-dyn]'),function(c){ var id=c.getAttribute('data-dyn'), rows=[];
+    [].forEach.call(c.querySelectorAll('tr[data-dr]'),function(tr){ var o={},any=false; [].forEach.call(tr.querySelectorAll('[data-dc]'),function(e){ var k=e.getAttribute('data-dc'), v=(e.type==='checkbox')?(e.checked?'X':''):String(e.value||''); if(v){ o[k]=v; any=true; } }); if(any) rows.push(o); });
+    if(rows.length) d['dyn|'+id]=JSON.stringify(rows); });
+  return d;
+}
+function recalc(){
+  var d=collect(), g=mkGetter(d);
+  [].forEach.call(document.querySelectorAll('#asx-form [data-calc]'),function(td){ var p=td.getAttribute('data-calc').split('|'); td.textContent=fmt(g(p[0],p[1],p[2])); });
+  [].forEach.call(document.querySelectorAll('#asx-form [data-kvt]'),function(td){ td.textContent=fmt(kvVal(d,SPEC[td.getAttribute('data-kvt')])); });
+  paintCheck(d);
+}
+var tmr=null; function sched(){ ui.dirty=true; clearTimeout(tmr); tmr=setTimeout(recalc,160); }
+function paintCheck(d){
+  var box=$('#asx-ctl'); if(!box) return; var r=check(d||collect(),ui.lv,ui.rec);
+  var li=function(x,c){ return '<li style="margin:2px 0;cursor:pointer;color:'+c+'" onclick="asxGo(\''+x.sec+'\')">'+esc(x.msg)+'</li>'; };
+  box.innerHTML='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><b>🔎 Assistant de contrôle</b><span class="badge" style="background:'+(r.errors.length?'#fee2e2':'#dcfce7')+';color:'+(r.errors.length?'#b91c1c':'#15803d')+'">'+r.errors.length+' incohérence(s) à corriger</span><span class="badge" style="background:#fef3c7;color:#b45309">'+r.warns.length+' alerte(s) à vérifier</span></div>'
+    +((r.errors.length||r.warns.length)?'<ul style="margin:6px 0 0 18px;padding:0;font-size:12px;max-height:150px;overflow:auto">'+r.errors.slice(0,15).map(function(x){ return li(x,'#b91c1c'); }).join('')+r.warns.slice(0,15).map(function(x){ return li(x,'#b45309'); }).join('')+'</ul>':'<div style="font-size:12px;color:#15803d;margin-top:4px">✔ Les totaux, les sous-totaux et les recoupements entre tableaux sont cohérents.</div>');
+  ui.last=r; return r;
+}
+window.asxGo=function(s){ var e=document.getElementById('asxs-'+s); if(e){ e.open=true; e.scrollIntoView({behavior:'smooth',block:'start'}); } };
+window.asxDynAdd=function(id){ var c=document.querySelector('#asx-form [data-dyn="'+id+'"] tbody'); if(!c) return; var sp=SPEC[id], tr=document.createElement('tr'); tr.setAttribute('data-dr','1');
+  tr.innerHTML=sp.cols.map(function(col){ return col[2]==='c'?'<td class="c"><input type="checkbox" data-dc="'+col[0]+'"></td>':'<td><textarea rows="2" data-dc="'+col[0]+'" style="'+inpS+';text-align:left;min-width:'+(col[2]==='n'?'60':'110')+'px;resize:vertical"></textarea></td>'; }).join('')+'<td><button type="button" class="btn btn-ghost btn-sm" onclick="asxDynDel(this)">✕</button></td>'; c.appendChild(tr); ui.dirty=true; };
+window.asxDynDel=function(b){ var tr=b.closest('tr'); if(tr) tr.remove(); sched(); };
+
+/* ---------- éditeur ---------- */
+var css=document.createElement('style'); css.textContent='.asx-sec{border:1px solid #cbd5e1;border-radius:10px;margin:10px 0;background:#fff}.asx-sec>summary{cursor:pointer;padding:10px 14px;font-weight:800;color:#312e81;background:#eef2ff;border-radius:10px}.asx-sb{padding:10px 14px}.asx-t{margin:12px 0}.asx-tt{font-weight:700;font-size:13px;margin-bottom:4px;color:#0f172a}.asx-n{font-weight:400;color:#64748b;font-size:11px}.asx-tb{border-collapse:collapse;width:100%;font-size:12px}.asx-tb th,.asx-tb td{border:1px solid #cbd5e1;padding:3px 5px;vertical-align:middle}.asx-tb thead th{background:#e0e7ff;text-align:center;font-weight:700}.asx-tb .asx-rl{text-align:left;font-weight:600;background:#f8fafc;min-width:150px}.asx-tb .asx-g{background:#f1f5f9;font-weight:700;text-align:left}.asx-tb td.c{text-align:center;background:#f8fafc;font-variant-numeric:tabular-nums;font-weight:600}.asx-tb tr.sub td.c,.asx-tb tr.sub th{background:#eef2ff}.asx-tb tr.tot td.c,.asx-tb tr.tot th{background:#dbeafe;font-weight:800}.asx-bar{position:sticky;top:0;z-index:30;background:#fff;border-bottom:2px solid #6366f1;padding:8px 4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}.asx-card{border:1px solid #cbd5e1;border-radius:10px;padding:12px;margin:10px 0;background:#fff}';
+document.head.appendChild(css);
+function badge(s){ var x=ST[s]||ST.brouillon; return '<span class="badge" style="background:'+x[2]+';color:'+x[1]+'">'+x[0]+'</span>'; }
+function titleOf(rec){ return (rec.kind==='reg'?'Consolidation régionale — ':rec.kind==='iepp'?'Consolidation IEPP — ':'Rapport du conseiller — ')+TRL[rec.trim]+' '+rec.annee; }
+function editor(rec,lv,ro,src){
+  ui.rec=rec; ui.lv=lv; ui.ro=!!ro; ui.src=src||'scoped'; ui.dirty=false;
+  var d=rec.d||{}, mode=ro?'view':'edit', sg=function(k,l,m){ return '<td style="text-align:center;vertical-align:top;width:50%"><b>'+l+'</b>'+(window.sgZone?sgZone(k,d,m):'')+'</td>'; };
+  var sigL=lv==='reg'?'Le Coordonnateur régional':lv==='iepp'?'L’Inspecteur de l’IEPP':'Le Conseiller en Alphabétisation', sigR=lv==='reg'?'Le Directeur Régional (DRENAET)':lv==='iepp'?'Le Superviseur':'Visa de l’IEPP';
+  var h='<div class="asx-bar"><button class="btn btn-ghost" onclick="asxBack()">← Retour</button><b style="flex:1;min-width:220px">📋 '+esc(titleOf(rec))+'</b> '+badge(rec.statut)
+    +(ro?'':'<button class="btn btn-ghost" onclick="asxPrefill()" title="Reprend vos informations et les données enregistrées sur la plateforme">✨ Pré-remplir</button>')
+    +'<button class="btn btn-ghost" onclick="asxOut(\'p\')">🖨️ Imprimer / PDF</button><button class="btn btn-ghost" onclick="asxOut(\'w\')">📄 Word</button>'
+    +(ro?'':'<button class="btn btn-green" style="background:#16a34a;color:#fff" onclick="asxSave()">💾 Enregistrer</button><button class="btn btn-primary" onclick="asxSubmit()">'+(lv==='cons'?'📤 Transmettre à l’IEPP':lv==='iepp'?'📤 Transmettre à la DRENAET':'✅ Valider la consolidation')+'</button>')+'</div>'
+    +'<div class="asx-card" style="border-left:4px solid #6366f1"><div style="font-size:12px;color:#475569">'+(lv==='cons'?'Remplissez uniquement les parties qui concernent vos structures (centres, apprenants, encadreurs, activités). Les totaux, sous-totaux et recoupements sont calculés automatiquement ; les cases grisées ne se saisissent pas.':lv==='iepp'?'Ce document consolide automatiquement les rapports transmis par les conseillers de l’IEPP. Vous pouvez corriger ou compléter avant transmission à la DRENAET.':'Ce document consolide automatiquement les rapports transmis par les IEPP de la région. Vous pouvez corriger ou compléter avant validation.')+'</div></div>'
+    +'<div id="asx-ctl" class="asx-card"></div>'
+    +'<div id="asx-form">'+sectionsHtml(d,mode,lv)
+    +'<div class="asx-card"><table style="width:100%"><tr>'+sg('sig1',sigL,ro?'view':'edit')+sg('sig2',sigR,ro?'view':'edit')+'</tr></table></div></div>';
+  setContent(h);
+  var f=$('#asx-form'); if(f){ f.addEventListener('input',sched); f.addEventListener('change',sched); }
+  paintCheck(d);
+}
+function persist(){ var rec=ui.rec; if(!rec||ui.ro) return null; rec.d=collect(); rec.by=U().name||U().username||''; putRec(rec,ui.src); ui.dirty=false; return rec; }
+window.asxSave=function(){ var r=persist(); if(!r) return; try{ logAction('alpha-sup','Enregistrement : '+titleOf(r)); }catch(e){} toast('Rapport enregistré ✅','success'); };
+window.asxBack=function(){ if(ui.dirty&&!ui.ro&&!confirm('Quitter sans enregistrer les dernières modifications ?')) return; ui.rec=null; home(); };
+setInterval(function(){ try{ if(ui.rec&&!ui.ro&&ui.dirty&&document.getElementById('asx-form')){ persist(); } }catch(e){} },25000);
+window.asxPrefill=function(){
+  if(!ui.rec||ui.ro) return; var u=U(), b=baseData(ui.lv), n=0;
+  ['region','drenaet','annee','iepp','nom','contact','email'].forEach(function(k){ var e=$('#asx-form [data-k="'+k+'"]'); if(e&&!String(e.value||'').trim()&&b[k]){ e.value=b[k]; n++; } });
+  if(ui.lv==='cons'){
+    var A=ld('alphaAuditeurs'); if(A.length){
+      var done=TAL.some(function(t){ return NIV.some(function(x){ var e=$('#asx-form [data-k="adeb|'+t[0]+'_'+x[0]+'|t0H"]'); return e&&e.value; }); });
+      if(!done&&confirm(A.length+' auditeur(s) sont enregistrés sur la plateforme.\nLes répartir par âge et par sexe dans « Alphabétisation classique — Niveau 1 » (début de campagne) ?\nVous devrez corriger la répartition par niveau.')){
+        var cnt={}; A.forEach(function(a){ var ag=parseInt(a.age,10); var t=!isFinite(ag)?'a25':ag<15?'m15':ag<25?'a15':ag<50?'a25':'a50'; var s=/^f/i.test(a.sexe||'')?'F':'H'; var k=t+'_n1|t0'+s; cnt[k]=(cnt[k]||0)+1; });
+        Object.keys(cnt).forEach(function(k){ var e=$('#asx-form [data-k="adeb|'+k+'"]'); if(e&&!e.value){ e.value=cnt[k]; n++; } });
+      }
+    }
+  }
+  recalc(); toast(n?(n+' champ(s) pré-rempli(s) — relisez et corrigez.'):'Rien à pré-remplir.','success');
+};
+window.asxSubmit=function(){
+  if(!ui.rec||ui.ro) return; var rec=persist(); var r=check(rec.d,ui.lv,rec);
+  if(r.errors.length){ paintCheck(rec.d); toast(r.errors.length+' incohérence(s) à corriger avant la transmission.','error'); var c=$('#asx-ctl'); if(c) c.scrollIntoView({behavior:'smooth'}); return; }
+  if(r.warns.length&&!confirm(r.warns.length+' alerte(s) restent à vérifier.\nTransmettre quand même ?')) return;
+  if(ui.lv==='cons'){ rec.statut='transmis'; rec.tAt=Date.now(); putRec(rec,'scoped'); toast('Rapport transmis à l’IEPP ✅','success'); }
+  else if(ui.lv==='iepp'){ rec.statut='publie'; rec.tAt=Date.now(); putRec(rec,'scoped'); publish(rec); toast('Consolidation transmise à la DRENAET ✅','success'); }
+  else { rec.statut='publie'; rec.tAt=Date.now(); putRec(rec,'pub'); toast('Consolidation régionale validée ✅','success'); }
+  try{ logAction('alpha-sup','Transmission : '+titleOf(rec)); }catch(e){}
+  ui.rec=null; home();
+};
+function publish(rec){
+  var a=ld(PUB), id='pub_'+slug(ieppName())+'_'+rec.annee+'_'+rec.trim, i=a.findIndex(function(x){ return x&&x.id===id; });
+  var p={id:id,kind:'iepp',iepp:ieppName(),drenaet:drenaetName(),annee:rec.annee,trim:rec.trim,d:rec.d,nb:rec.nbSrc||0,by:U().name||'',at:Date.now(),_upd:Date.now()};
+  if(i>=0) a[i]=p; else a.push(p); sv(PUB,a);
+}
+/* ---------- accueil par profil ---------- */
+function tabsFor(){ var t=[]; if(isCons()||role()==='superadmin') t.push(['mine','✍️ Mes rapports']); if(isInsp()) t.push(['cons','📥 Rapports des conseillers'],['iepp','🏛️ Consolidation IEPP']); if(isReg()) t.push(['reg','🌍 Consolidation régionale'],['recus','📬 IEPP reçues']); return t; }
+function home(){
+  var tabs=tabsFor(); if(!tabs.length){ setContent('<div class="card" style="padding:30px;text-align:center">Accès réservé aux conseillers en alphabétisation, à l’IEPP et à la DRENAET.</div>'); return; }
+  if(!tabs.some(function(t){ return t[0]===ui.tab; })) ui.tab=tabs[0][0];
+  var h='<div class="hero" style="background:linear-gradient(135deg,#4c1d95,#7c3aed)"><h3>📋 Rapport trimestriel du <em>superviseur</em> — Alphabétisation &amp; ENF</h3><p>Document de synthèse DCSPA · Année scolaire '+esc(annee())+' · Saisie assistée, consolidation IEPP puis DRENAET.</p></div>'
+    +'<div class="tabs">'+tabs.map(function(t){ return '<div class="tab'+(t[0]===ui.tab?' active':'')+'" onclick="asxTab(\''+t[0]+'\')">'+t[1]+'</div>'; }).join('')+'</div><div id="asx-home">'+homeBody()+'</div>';
+  setContent(h);
+}
+window.asxTab=function(t){ ui.tab=t; home(); };
+function recsCons(){ return ld(KEY).filter(function(x){ return x&&x.kind==='cons'&&x.annee===annee(); }); }
+function homeBody(){
+  var A=annee(), u=U(), h='';
+  if(ui.tab==='mine'){
+    h+='<div class="asx-card"><b>Mes rapports trimestriels</b><div style="font-size:12px;color:#64748b;margin:2px 0 8px">Un rapport par trimestre. Une fois transmis, il est consolidé par l’IEPP.</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px">';
+    ['T1','T2','T3'].forEach(function(t){ var r=getRec(recId('cons',t),'scoped'); h+='<div class="asx-card" style="margin:0"><b>'+TRL[t]+'</b><div style="margin:6px 0">'+(r?badge(r.statut):'<span class="badge" style="background:#f1f5f9;color:#64748b">Non commencé</span>')+'</div>'
+      +(r?'<button class="btn btn-primary btn-sm" onclick="asxOpen(\''+r.id+'\',\'cons\',\'scoped\')">'+(r.statut==='transmis'?'👁 Consulter':'✏️ Continuer')+'</button>':'<button class="btn btn-primary btn-sm" onclick="asxNew(\'cons\',\''+t+'\')">➕ Commencer</button>')+'</div>'; });
+    return h+'</div></div>';
+  }
+  if(ui.tab==='cons'){
+    var L=recsCons().sort(function(a,b){ return a.trim.localeCompare(b.trim)||String(a.by).localeCompare(String(b.by)); });
+    h+='<div class="asx-card"><b>Rapports des conseillers de l’IEPP — '+esc(A)+'</b>'+(L.length?'<div style="overflow:auto"><table class="table" style="width:100%;font-size:13px;margin-top:6px"><thead><tr><th style="text-align:left">Conseiller</th><th>Trimestre</th><th>Statut</th><th>Mise à jour</th><th></th></tr></thead><tbody>'+L.map(function(r){ return '<tr><td>'+esc(r.by||r.author)+'</td><td style="text-align:center">'+TRL[r.trim]+'</td><td style="text-align:center">'+badge(r.statut)+'</td><td style="text-align:center">'+esc(new Date(r._upd||0).toLocaleDateString('fr-FR'))+'</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="asxOpen(\''+r.id+'\',\'cons\',\'scoped\',1)">👁 Voir</button>'+(r.statut==='transmis'?' <button class="btn btn-ghost btn-sm" onclick="asxReturn(\''+r.id+'\')" title="Rendre le rapport modifiable par le conseiller">↩️ Renvoyer pour correction</button>':'')+'</td></tr>'; }).join('')+'</tbody></table></div>':'<p class="text-muted" style="margin-top:6px">Aucun rapport de conseiller pour le moment.</p>')+'</div>';
+    return h;
+  }
+  if(ui.tab==='iepp'){
+    h+='<div class="asx-card"><b>Consolidation de l’IEPP '+esc(ieppName().replace(/^IEPP\s+/i,''))+'</b><div style="font-size:12px;color:#64748b;margin:2px 0 8px">Additionne les rapports transmis par les conseillers, puis transmettez à la DRENAET.</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px">';
+    ['T1','T2','T3'].forEach(function(t){ var n=recsCons().filter(function(r){ return r.trim===t&&(r.statut==='transmis'||r.statut==='consolide'); }).length, r=getRec(recId('iepp',t),'scoped');
+      h+='<div class="asx-card" style="margin:0"><b>'+TRL[t]+'</b><div style="margin:6px 0;font-size:12px">'+n+' rapport(s) de conseiller transmis<br>'+(r?badge(r.statut):'<span class="badge" style="background:#f1f5f9;color:#64748b">Non consolidé</span>')+'</div>'
+        +'<button class="btn btn-primary btn-sm" onclick="asxConsolIepp(\''+t+'\')">🧮 '+(r?'Re-consolider':'Consolider')+'</button>'+(r?' <button class="btn btn-ghost btn-sm" onclick="asxOpen(\''+r.id+'\',\'iepp\',\'scoped\')">✏️ Ouvrir</button>':'')+'</div>'; });
+    return h+'</div></div>';
+  }
+  if(ui.tab==='reg'){
+    var reg=drenaetName(); if(role()==='superadmin') reg=reg||'(toutes régions)';
+    h+='<div class="asx-card"><b>Consolidation régionale — DRENAET '+esc(reg)+'</b><div style="font-size:12px;color:#64748b;margin:2px 0 8px">Additionne les consolidations transmises par les IEPP de la région.</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px">';
+    ['T1','T2','T3'].forEach(function(t){ var n=pubsFor(t).length, r=getRec(recId('reg',t),'pub');
+      h+='<div class="asx-card" style="margin:0"><b>'+TRL[t]+'</b><div style="margin:6px 0;font-size:12px">'+n+' IEPP ont transmis<br>'+(r?badge(r.statut):'<span class="badge" style="background:#f1f5f9;color:#64748b">Non consolidé</span>')+'</div>'
+        +'<button class="btn btn-primary btn-sm" onclick="asxConsolReg(\''+t+'\')">🧮 '+(r?'Re-consolider':'Consolider')+'</button>'+(r?' <button class="btn btn-ghost btn-sm" onclick="asxOpen(\''+r.id+'\',\'reg\',\'pub\')">✏️ Ouvrir</button>':'')+'</div>'; });
+    return h+'</div></div>';
+  }
+  if(ui.tab==='recus'){
+    var P=ld(PUB).filter(function(p){ return p&&p.kind==='iepp'&&p.annee===A&&(role()==='superadmin'||String(p.drenaet||'')===String(drenaetName()||'')); }).sort(function(a,b){ return a.trim.localeCompare(b.trim)||String(a.iepp).localeCompare(String(b.iepp)); });
+    return '<div class="asx-card"><b>IEPP ayant transmis leur consolidation — '+esc(A)+'</b>'+(P.length?'<table class="table" style="width:100%;font-size:13px;margin-top:6px"><thead><tr><th style="text-align:left">IEPP</th><th>Trimestre</th><th>Rapports de conseillers</th><th>Transmis le</th><th></th></tr></thead><tbody>'+P.map(function(p){ return '<tr><td>'+esc(p.iepp)+'</td><td style="text-align:center">'+TRL[p.trim]+'</td><td style="text-align:center">'+(p.nb||0)+'</td><td style="text-align:center">'+esc(new Date(p.at||0).toLocaleDateString('fr-FR'))+'</td><td><button class="btn btn-ghost btn-sm" onclick="asxOpen(\''+p.id+'\',\'iepp\',\'pub\',1)">👁 Voir</button></td></tr>'; }).join('')+'</tbody></table>':'<p class="text-muted" style="margin-top:6px">Aucune IEPP n’a encore transmis sa consolidation.</p>')+'</div>';
+  }
+  return h;
+}
+function pubsFor(t){ return ld(PUB).filter(function(p){ return p&&p.kind==='iepp'&&p.annee===annee()&&p.trim===t&&(role()==='superadmin'||String(p.drenaet||'')===String(drenaetName()||'')); }); }
+window.asxNew=function(kind,t){ var d=baseData('cons'); var rec={id:recId('cons',t),kind:'cons',trim:t,annee:annee(),author:U().username,by:U().name||U().username,iepp:ieppName(),drenaet:drenaetName(),statut:'brouillon',d:d};
+  putRec(rec,'scoped'); editor(rec,'cons',false,'scoped'); };
+window.asxOpen=function(id,lv,src,ro){ var r=getRec(id,src); if(!r){ toast('Rapport introuvable.','error'); return; }
+  var readonly=!!ro||(lv==='cons'&&r.statut==='transmis'&&isCons())||(lv==='iepp'&&src==='pub'); editor(JSON.parse(JSON.stringify(r)),lv,readonly,src); };
+window.asxReturn=function(id){ var r=getRec(id,'scoped'); if(!r) return; if(!confirm('Renvoyer ce rapport au conseiller pour correction ?')) return; r.statut='brouillon'; putRec(r,'scoped'); toast('Rapport renvoyé au conseiller.','success'); home(); };
+window.asxConsolIepp=function(t){
+  var src=recsCons().filter(function(r){ return r.trim===t&&(r.statut==='transmis'||r.statut==='consolide'); });
+  if(!src.length){ toast('Aucun rapport de conseiller transmis pour le '+TRL[t]+'.','error'); return; }
+  var id=recId('iepp',t), old=getRec(id,'scoped'); if(old&&old.statut==='publie'&&!confirm('Cette consolidation a déjà été transmise à la DRENAET. La recalculer écrasera vos corrections. Continuer ?')) return;
+  var keepR=function(k){ return /^rh\|(sup|coo|cons)\|/.test(k); };
+  var d=consolidate(src.map(function(r){ return r.d||{}; }),keepR,old&&old.d); var b=baseData('iepp'); Object.keys(b).forEach(function(k){ if(!d[k]) d[k]=(old&&old.d&&old.d[k])||b[k]; });
+  var names=src.map(function(r){ return r.by||r.author; }); d.hors=d.hors||''; 
+  var rec={id:id,kind:'iepp',trim:t,annee:annee(),iepp:ieppName(),drenaet:drenaetName(),statut:'consolide',d:d,nbSrc:src.length,srcNames:names,by:U().name||''};
+  if(old&&old.d){ ['sig1','sig1n','sig2','sig2n','conclusion'].forEach(function(k){ if(old.d[k]&&!d[k]) d[k]=old.d[k]; }); }
+  putRec(rec,'scoped'); src.forEach(function(r){ if(r.statut==='transmis'){ r.statut='consolide'; putRec(r,'scoped'); } });
+  toast(src.length+' rapport(s) consolidé(s) ✅ — relisez puis transmettez à la DRENAET.','success'); editor(rec,'iepp',false,'scoped');
+};
+window.asxConsolReg=function(t){
+  var src=pubsFor(t); if(!src.length){ toast('Aucune IEPP n’a transmis sa consolidation pour le '+TRL[t]+'.','error'); return; }
+  var id=recId('reg',t), old=getRec(id,'pub'); if(old&&old.statut==='publie'&&!confirm('Cette consolidation régionale a déjà été validée. La recalculer écrasera vos corrections. Continuer ?')) return;
+  var keepR=function(k){ return /^rh\|(sup|coo)\|/.test(k); };
+  var d=consolidate(src.map(function(r){ return r.d||{}; }),keepR,old&&old.d); var b=baseData('reg'); Object.keys(b).forEach(function(k){ if(!d[k]) d[k]=(old&&old.d&&old.d[k])||b[k]; });
+  d.iepp=src.map(function(p){ return String(p.iepp||'').replace(/^IEPP\s+/i,''); }).join(', ');
+  if(old&&old.d){ ['sig1','sig1n','sig2','sig2n','conclusion'].forEach(function(k){ if(old.d[k]&&!d[k]) d[k]=old.d[k]; }); }
+  var rec={id:id,kind:'reg',trim:t,annee:annee(),drenaet:drenaetName(),statut:'consolide',d:d,nbSrc:src.length,by:U().name||''};
+  putRec(rec,'pub'); toast(src.length+' IEPP consolidée(s) ✅','success'); editor(rec,'reg',false,'pub');
+};
+/* ---------- impression / Word ---------- */
+function outHtml(rec,lv){
+  var d=rec.d||{}, pre=lv==='reg'?('DRENAET : '+esc(rec.drenaet||drenaetName())):(esc(activeIeppLabel())+(rec.drenaet?' — DRENAET '+esc(rec.drenaet):''));
+  var css2='<style>body{font-family:Arial,sans-serif;font-size:10.5px;margin:14px;color:#000}h1{text-align:center;font-size:14px;margin:10px 0 2px}h2{font-size:12px;background:#e0e7ff;padding:4px 6px;margin:14px 0 4px}.asx-t{margin:8px 0;page-break-inside:avoid}.asx-tt{font-weight:700;margin:3px 0}.asx-n{font-weight:400;color:#475569}table{border-collapse:collapse;width:100%}th,td{border:1px solid #444;padding:2px 4px;font-size:9.5px}th{background:#eee}td.c{text-align:center}tr.sub td,tr.sub th{background:#f3f4f6}tr.tot td,tr.tot th{background:#e5e7eb;font-weight:700}.hd td{border:none;font-size:10px;text-align:center;vertical-align:top}.ft{margin-top:14px;border-top:1px solid #000;text-align:center;font-size:9px;padding-top:4px}</style>';
+  var head='<table class="hd"><tr><td style="width:50%"><b>MINISTÈRE DE L’ÉDUCATION NATIONALE<br>ET DE L’ALPHABÉTISATION</b></td><td style="width:50%"><b>RÉPUBLIQUE DE CÔTE D’IVOIRE</b><br>Union – Discipline – Travail</td></tr><tr><td colspan="2" style="padding-top:6px"><b>DIRECTION DE LA COORDINATION ET DU SUIVI DES PROGRAMMES D’ALPHABÉTISATION (DCSPA)</b></td></tr></table>';
+  var sig='<table style="margin-top:14px;border:none"><tr><td style="border:none;text-align:center;width:50%;height:90px;vertical-align:top"><b>'+(lv==='reg'?'Le Coordonnateur régional':lv==='iepp'?'L’Inspecteur de l’IEPP':'Le Conseiller en Alphabétisation')+'</b>'+(window.sgZone?sgZone('sig1',d,'view'):'')+'</td><td style="border:none;text-align:center;vertical-align:top"><b>'+(lv==='reg'?'Le Directeur Régional (DRENAET)':lv==='iepp'?'Le Superviseur':'Visa de l’IEPP')+'</b>'+(window.sgZone?sgZone('sig2',d,'view'):'')+'</td></tr></table>';
+  return '<!doctype html><html><head><meta charset="utf-8"><title>Rapport trimestriel du superviseur</title>'+css2+'</head><body>'+head+'<h1>DOCUMENT DE SYNTHÈSE POUR LE RAPPORTAGE TRIMESTRIEL DU SUPERVISEUR</h1><div style="text-align:center;font-weight:700">TRIMESTRE : '+TRN[rec.trim]+' — Année scolaire '+esc(rec.annee)+'</div>'+sectionsHtml(d,'print',lv)+sig+'<div class="ft">'+pre+' — Ministère de l’Éducation Nationale et de l’Alphabétisation</div>';
+}
+window.asxOut=function(m){ var rec=ui.rec; if(!rec) return; if(!ui.ro) rec.d=collect(); var h=outHtml(rec,ui.lv), n='rapport_trimestriel_superviseur_'+rec.kind+'_'+rec.trim+'_'+rec.annee;
+  if(m==='w'){ downloadFile('﻿'+h+'</body></html>',n+'.doc','application/msword;charset=utf-8'); toast('Word téléchargé','success'); return; }
+  var w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-up.','error'); return; } w.document.write(h+'<script>window.onload=function(){window.print();}<\/script></body></html>'); w.document.close(); };
+/* ---------- intégration ---------- */
+try{
+  MODULES['alpha-sup']={title:'Rapport trimestriel du superviseur',sub:'Alphabétisation & ENF — saisie assistée et consolidation',render:home};
+  ['alphabetisation','alpha','inspecteur','drenaet','superadmin'].forEach(function(r){ if(ACL[r]&&ACL[r].indexOf('alpha-sup')<0) ACL[r].push('alpha-sup'); });
+  var tryLink=function(){
+    if(document.querySelector('.sb-link[data-module="alpha-sup"]')) return;
+    var anchor=document.querySelector('.sb-link[data-module="alpha"]')||document.querySelector('.sb-link[data-module="dashboard"]'); if(!anchor) return;
+    var a=document.createElement('div'); a.className='sb-link'; a.setAttribute('data-module','alpha-sup'); a.setAttribute('onclick',"navigate('alpha-sup')");
+    a.innerHTML='<span class="sb-icon">📋</span><span>Rapport trimestriel superviseur</span>'; anchor.parentNode.insertBefore(a,anchor.nextSibling);
+    if(typeof applyACL==='function'&&state&&state.user) applyACL();
+  };
+  tryLink(); setInterval(tryLink,1500);
+  /* raccourci dans l'espace du conseiller */
+  setInterval(function(){ try{ if(!window.state||!state.user||state.module!=='alpha') return; var c=document.getElementById('content'); if(!c||document.getElementById('asx-ban')||!MODULES['alpha-sup']) return; if(!(isCons()||isInsp())) return;
+    var b=document.createElement('div'); b.id='asx-ban'; b.className='asx-card'; b.style.cssText='border-left:4px solid #7c3aed;display:flex;gap:10px;align-items:center;flex-wrap:wrap'; b.innerHTML='<b>📋 Rapport trimestriel du superviseur (DCSPA)</b><span style="flex:1;font-size:12px;color:#475569">Saisie assistée, contrôles automatiques et consolidation.</span><button class="btn btn-primary btn-sm" onclick="navigate(\'alpha-sup\')">Ouvrir</button>';
+    var hero=c.querySelector('.hero'); if(hero&&hero.nextSibling) hero.parentNode.insertBefore(b,hero.nextSibling); else c.insertBefore(b,c.firstChild); }catch(e){} },1200);
+}catch(e){ console.warn('[alpha-sup]',e); }
+window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate:consolidate,IK:IK,collect:collect,ui:ui,home:home,getRec:getRec,putRec:putRec,recId:recId};
+}catch(e){ console.warn("[alpha-sup]",e); } })();
+</script>
 <script id="module-persistance-corbeille">
 /* ============================================================================
    PERSISTANCE LOCALE + CORBEILLE (ajout, n'altère rien)
