@@ -40123,6 +40123,185 @@ try{
 window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate:consolidate,IK:IK,collect:collect,ui:ui,home:home,getRec:getRec,putRec:putRec,recId:recId};
 }catch(e){ console.warn("[alpha-sup]",e); } })();
 </script>
+<script id="module-remise-a-zero">
+/* Remise à zéro des tableaux : ligne / colonne / tableau entier (en-têtes et 1re colonne conservés) */
+(function(){
+  if(window.__razInit) return; window.__razInit=true;
+  var css=document.createElement('style');
+  css.textContent='.raz-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 6px;font-size:12px}.raz-bar .raz-l{font-weight:700;color:#475569}.raz-bar button{padding:4px 9px;border:1px solid #CBD5E1;border-radius:8px;background:#fff;cursor:pointer;font-size:12px}.raz-bar button:hover{background:#F1F5F9}.raz-bar button.on{background:#FEF3C7;border-color:#F59E0B}.raz-bar .raz-tip{color:#B45309;font-weight:600}.raz-pick-col thead th,.raz-pick-col th[data-raz-h]{cursor:pointer;outline:2px dashed #F59E0B;outline-offset:-2px}.raz-pick-row tbody tr>*:first-child{cursor:pointer;outline:2px dashed #F59E0B;outline-offset:-2px}@media print{.raz-bar{display:none!important}}';
+  document.head.appendChild(css);
+
+  function cells(tr){ return [].slice.call(tr.children).filter(function(c){return /^(TD|TH)$/.test(c.tagName);}); }
+  function starts(tr){ var s=0,o=[]; cells(tr).forEach(function(c){ o.push({c:c,s:s,e:s+(c.colSpan||1)-1}); s+=(c.colSpan||1); }); return o; }
+  function isHeaderRow(tr){ var cs=cells(tr); return !!cs.length && cs.every(function(c){return c.tagName==='TH';}); }
+  function fields(c){
+    return [].slice.call(c.querySelectorAll('input,textarea,select,[contenteditable="true"]')).filter(function(f){
+      if(f.disabled||f.readOnly) return false;
+      if(f.hasAttribute('data-calc')||f.hasAttribute('data-noraz')) return false;
+      if(f.tagName==='INPUT' && /^(checkbox|radio|button|submit|file|hidden|search|password|color|range)$/i.test(f.type)) return false;
+      return true;
+    });
+  }
+  function isNum(f){
+    if(f.type==='number') return true;
+    var m=(f.getAttribute('inputmode')||'').toLowerCase(); if(m==='numeric'||m==='decimal') return true;
+    var v=(f.value||'').toString().trim(); return v!=='' && /^-?[\d\s.,]+\s*%?$/.test(v);
+  }
+  function fire(f){ ['input','change'].forEach(function(n){ try{ f.dispatchEvent(new Event(n,{bubbles:true})); }catch(e){} }); }
+  function apply(fs,undo){
+    var n=0;
+    fs.forEach(function(f){
+      if(f.isContentEditable && f.tagName!=='INPUT' && f.tagName!=='TEXTAREA'){ var o=f.textContent; if(!o.trim()) return; undo.push([f,o,'t']); f.textContent=/^-?[\d\s.,]+%?$/.test(o.trim())?'0':''; fire(f); n++; return; }
+      var old=f.value; 
+      if(f.tagName==='SELECT'){ var has=[].slice.call(f.options).some(function(o){return o.value==='';}); if(!has||old==='') return; undo.push([f,old,'v']); f.value=''; fire(f); n++; return; }
+      var nv=isNum(f)?'0':''; if(old===nv||(old===''&&nv==='')) return;
+      undo.push([f,old,'v']); f.value=nv; fire(f); n++;
+    });
+    return n;
+  }
+  function bodyRows(t){ return [].slice.call(t.querySelectorAll('tbody tr')).filter(function(r){return !isHeaderRow(r) && !r.querySelector('td.table-empty');}); }
+  function rowFields(tr){ var cs=cells(tr), out=[]; cs.forEach(function(c,i){ if(i===0) return; out=out.concat(fields(c)); }); return out; }
+  function colFields(t,col){
+    var out=[]; bodyRows(t).forEach(function(r){ starts(r).forEach(function(x){ if(x.s===0) return; if(x.s<=col&&x.e>=col) out=out.concat(fields(x.c)); }); }); return out;
+  }
+  function eligible(t){
+    if(t.hasAttribute('data-noraz')||t.closest('.dx-bar,.no-print,.raz-bar')) return false;
+    var b=t.querySelector('tbody'); if(!b) return false;
+    var cnt=0; bodyRows(t).forEach(function(r){ cells(r).forEach(function(c,i){ if(i>0 && fields(c).length) cnt++; }); });
+    return cnt>0;
+  }
+  function build(t){
+    if(t.__raz) { return; }
+    if(!eligible(t)) return;
+    t.__raz=1;
+    var host=t.closest('.table-wrap')||t, bar=document.createElement('div'); bar.className='raz-bar no-print';
+    bar.innerHTML='<span class="raz-l">🧹 Remise à zéro :</span><button type="button" data-m="row">↔ Une ligne</button><button type="button" data-m="col">↕ Une colonne</button><button type="button" data-m="all">▦ Tout le tableau</button><button type="button" data-m="undo" style="display:none">↩ Annuler</button><span class="raz-tip"></span>';
+    host.parentNode.insertBefore(bar,host);
+    var mode='',undo=[],tip=bar.querySelector('.raz-tip'),ub=bar.querySelector('[data-m=undo]');
+    function setMode(m){ mode=m; t.classList.toggle('raz-pick-row',m==='row'); t.classList.toggle('raz-pick-col',m==='col');
+      [].slice.call(bar.querySelectorAll('button')).forEach(function(b){ b.classList.toggle('on',b.getAttribute('data-m')===m); });
+      tip.textContent=m==='row'?'Cliquez sur le titre (1re cellule) de la ligne à vider — Échap pour quitter':m==='col'?'Cliquez sur l\'en-tête de la colonne à vider — Échap pour quitter':''; }
+    function done(fs,label){
+      var u=[]; var n=apply(fs,u);
+      if(!n){ toast&&toast('Rien à remettre à zéro ('+label+')','info'); setMode(''); return; }
+      undo=u; ub.style.display=''; setMode('');
+      toast&&toast('🧹 '+n+' cellule(s) remise(s) à zéro ('+label+'). Cliquez sur « Enregistrer » pour valider.','success');
+    }
+    bar.addEventListener('click',function(ev){
+      var b=ev.target.closest&&ev.target.closest('button'); if(!b) return; var m=b.getAttribute('data-m');
+      if(m==='row'||m==='col'){ setMode(mode===m?'':m); return; }
+      if(m==='undo'){ undo.forEach(function(x){ if(x[2]==='t') x[0].textContent=x[1]; else x[0].value=x[1]; fire(x[0]); }); undo=[]; ub.style.display='none'; toast&&toast('Valeurs rétablies','info'); return; }
+      if(m==='all'){
+        var fs=[]; bodyRows(t).forEach(function(r){ fs=fs.concat(rowFields(r)); });
+        if(!fs.length) return;
+        if(confirm('Mettre à zéro tout le tableau ?\n(chiffres → 0, textes → vides ; en-têtes et 1re colonne conservés)')) done(fs,'tableau entier');
+      }
+    });
+    t.addEventListener('click',function(ev){
+      if(!mode) return;
+      var c=ev.target.closest('td,th'); if(!c||!t.contains(c)) return;
+      var tr=c.parentNode;
+      if(mode==='row'){
+        if(isHeaderRow(tr)||c!==cells(tr)[0]) return;
+        ev.preventDefault(); ev.stopPropagation();
+        if(confirm('Mettre cette ligne à zéro ?\n« '+(c.innerText||'').trim().slice(0,60)+' »')) done(rowFields(tr),'ligne'); else setMode('');
+      } else if(mode==='col'){
+        if(!(c.tagName==='TH'&&tr.closest('thead')) && !(c.tagName==='TH'&&isHeaderRow(tr))) return;
+        var st=starts(tr).filter(function(x){return x.c===c;})[0]; if(!st) return;
+        if(st.s===0){ toast&&toast('La 1re colonne (titres) est conservée','info'); return; }
+        ev.preventDefault(); ev.stopPropagation();
+        if(confirm('Mettre cette colonne à zéro ?\n« '+(c.innerText||'').trim().slice(0,60)+' »')) done(colFields(t,st.s),'colonne'); else setMode('');
+      }
+    },true);
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&mode) setMode(''); });
+  }
+  function scan(){ try{ if(!window.state||!state.user) return; [].slice.call(document.querySelectorAll('#content table, #modal-backdrop table')).forEach(function(t){ if(!t.__raz) build(t); }); }catch(e){} }
+  var tm=null;
+  function obs(){ var c=document.body; new MutationObserver(function(){ clearTimeout(tm); tm=setTimeout(scan,300); }).observe(c,{childList:true,subtree:true}); }
+  obs(); setInterval(scan,3000);
+})();
+</script>
+
+<script id="module-matricule-compte">
+/* Matricule / identifiant Codipost sur les comptes utilisateurs + demande de mise à jour à l'ouverture du compte */
+(function(){
+  if(window.__matCptInit) return; window.__matCptInit=true;
+  var HINT='Matricule « 123456X » (6 chiffres + 1 lettre) — ou identifiant Codipost pour élèves-maîtres stagiaires, bénévoles, enseignant(e)s du privé (champ libre).';
+  function S(){ return window.state||null; }
+  function norm(v){ v=String(v||'').trim().replace(/\s+/g,''); return /^\d{6}[A-Za-z]$/.test(v)?v.toUpperCase():v; }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function dupOf(m,uname){ var st=S(); if(!m||!st||!Array.isArray(st.users)) return null; var k=m.toUpperCase(); return st.users.find(function(x){ return x&&x.username!==uname&&String(x.matricule||'').toUpperCase()===k; })||null; }
+  function syncPers(){
+    try{ var st=S(); if(!st||!Array.isArray(st.users)||!Array.isArray(st.personnel)) return;
+      var ch=0; st.users.forEach(function(u){ if(!u||!u.matricule) return;
+        var p=st.personnel.find(function(x){ return x&&(x.userRef===u.username||x.id==='pu_'+u.username); });
+        if(p && String(p.matricule||'').trim()!==u.matricule && !String(p.matricule||'').trim()){ p.matricule=u.matricule; p._upd=Date.now(); ch++; } });
+      if(ch){ save('personnel',st.personnel); try{ if(document.getElementById('rh-body')&&typeof renderRHBody==='function') renderRHBody(); }catch(e){} }
+    }catch(e){}
+  }
+  /* 1) Champ dans le formulaire de compte */
+  if(typeof window.userForm==='function' && !window.userForm.__mat){
+    var oF=window.userForm;
+    window.userForm=function(username,preset){
+      var r=oF.apply(this,arguments);
+      try{
+        var nm=document.getElementById('u-name'); if(!nm||document.getElementById('u-matricule')) return r;
+        var st=S(), ex=username&&st.users.find(function(x){return x.username===username;});
+        var f=document.createElement('div'); f.className='field';
+        f.innerHTML='<label>Matricule / Identifiant Codipost</label><input id="u-matricule" value="'+esc(ex&&ex.matricule||'')+'" placeholder="ex : 123456X" maxlength="30" style="text-transform:uppercase"><div class="text-xs text-muted" style="margin-top:3px">'+HINT+'</div>';
+        nm.closest('.field').insertAdjacentElement('afterend',f);
+      }catch(e){}
+      return r;
+    };
+    window.userForm.__mat=1;
+  }
+  /* 2) Enregistrement */
+  if(typeof window.userSave==='function' && !window.userSave.__mat){
+    var oS=window.userSave;
+    window.userSave=async function(username){
+      var mi=document.getElementById('u-matricule'), un=document.getElementById('u-user');
+      var m=mi?norm(mi.value):null, uname=un?un.value.trim():username;
+      if(m){ var d=dupOf(m,username||uname); if(d){ toast('⚠️ Ce matricule/identifiant est déjà utilisé par « '+(d.name||d.username)+' ».','error'); return; } }
+      var r=await oS.apply(this,arguments);
+      try{
+        if(m!==null){ var st=S(), u=st.users.find(function(x){return x&&x.username===uname;});
+          if(u && (u.matricule||'')!==m){ u.matricule=m; u._upd=Date.now(); save('users',st.users); }
+          if(u&&st.user&&st.user.username===u.username) st.user.matricule=m; }
+        syncPers();
+      }catch(e){}
+      return r;
+    };
+    window.userSave.__mat=1;
+  }
+  /* 3) Demande à l'ouverture du compte tant que le matricule n'est pas renseigné */
+  var asked={};
+  function ask(){
+    try{
+      var st=S(); if(!st||!st.user||!st.user.username) return;
+      var me=st.user, u=(st.users||[]).find(function(x){return x&&x.username===me.username;});
+      if(!u||u.matricule||me.matricule||me.role==='superadmin') return;
+      if(asked[me.username]||document.getElementById('mat-ask')||document.getElementById('sec-pwd-force')) return;
+      var bd=document.getElementById('modal-backdrop'); if(bd && (bd.classList.contains('open')||bd.classList.contains('show')||(bd.style.display&&bd.style.display!=='none'&&bd.offsetParent))) return;
+      if(!document.getElementById('content')||!document.getElementById('content').offsetParent) return;
+      asked[me.username]=1;
+      var o=document.createElement('div'); o.id='mat-ask'; o.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px';
+      o.innerHTML='<div style="background:#fff;border-radius:14px;max-width:460px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.35)"><h3 style="margin:0 0 6px">🪪 Mise à jour de votre compte</h3><p style="margin:0 0 10px;font-size:13px;color:#475569">Bonjour <b>'+esc(me.name||me.username)+'</b>, merci de renseigner votre matricule ou identifiant. Cette demande ne reviendra plus une fois renseigné.</p><label style="font-weight:700;font-size:13px">Matricule / Identifiant Codipost</label><input id="mat-ask-v" placeholder="ex : 123456X" maxlength="30" style="width:100%;padding:9px;border:1px solid #CBD5E1;border-radius:8px;margin-top:4px;text-transform:uppercase"><div style="font-size:11.5px;color:#64748B;margin-top:4px">'+HINT+'</div><div id="mat-ask-e" style="color:#B91C1C;font-size:12px;margin-top:6px"></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="btn btn-ghost" id="mat-ask-l">Plus tard</button><button class="btn btn-primary" id="mat-ask-s">Enregistrer</button></div></div>';
+      document.body.appendChild(o);
+      o.querySelector('#mat-ask-l').onclick=function(){ o.remove(); };
+      o.querySelector('#mat-ask-s').onclick=function(){
+        var v=norm(o.querySelector('#mat-ask-v').value), e=o.querySelector('#mat-ask-e');
+        if(v.length<3){ e.textContent='Saisissez votre matricule ou identifiant.'; return; }
+        var d=dupOf(v,me.username); if(d){ e.textContent='Déjà utilisé par « '+(d.name||d.username)+' ». Vérifiez votre saisie.'; return; }
+        u.matricule=v; u._upd=Date.now(); me.matricule=v;
+        try{ save('users',st.users); }catch(x){}
+        syncPers(); o.remove(); toast('✅ Matricule enregistré. Merci !','success');
+      };
+    }catch(e){}
+  }
+  setInterval(ask,2000);
+})();
+</script>
+
 <script id="module-persistance-corbeille">
 /* ============================================================================
    PERSISTANCE LOCALE + CORBEILLE (ajout, n'altère rien)
