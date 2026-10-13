@@ -39405,6 +39405,8 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
   }
   window.annSyncSecteurs=syncSecteurs;
 
+  try{ ['annIgnReg','recrutementCP1Deleted','recrutementMaterDeleted','effPrimaireDeleted','effPrescolaireDeleted'].forEach(function(k){ if(typeof SCOPED_KEY_LIST!=='undefined'&&SCOPED_KEY_LIST.indexOf(k)<0) SCOPED_KEY_LIST.push(k); });
+    if(typeof RECORD_MERGE!=='undefined'){ ['recrutementCP1','recrutementMater','effPrimaire','effPrescolaire'].forEach(function(k){ if(!RECORD_MERGE[k]) RECORD_MERGE[k]={tomb:k+'Deleted'}; }); } }catch(e){}
   /* 1 ter) Écoles de l'IEPP : toute école connue de la plateforme rejoint la liste des écoles et les registres (effectifs, recrutement) */
   function ekey(x){ return String(x==null?'':x).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,''); }
   function isMat(n){ return /^(maternelle|pr[ée]scolaire|jardin|creche|crèche)/i.test(String(n||'').trim()); }
@@ -39444,8 +39446,16 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
     var ch2={};
     function reg(key,idPre,mkRow,pred){
       if(!Array.isArray(st[key])) return; var names={}; st[key].forEach(function(r){ var n=r&&(r.nom||r.ecole); if(n) names[ekey(n)]=1; });
-      st.ecoles.forEach(function(e){ if(!e||!e.nom) return; var k=ekey(e.nom); if(names[k]||ig.indexOf('E:'+k)>=0||!pred(e.nom)) return; st[key].push(mkRow('ea_'+k.toLowerCase().slice(0,22),e.nom)); names[k]=1; ch2[key]=1; });
+      /* lignes supprimées par l'utilisateur : on ne les recrée plus (liste d'exclusion synchronisée) */
+      var RI=ld2('annIgnReg'), skey='annSnap_'+key, snap=null; try{ snap=JSON.parse(localStorage.getItem(storeKey(skey))||'null'); }catch(e){}
+      var riCh=false;
+      if(snap&&Array.isArray(snap)){ snap.forEach(function(k){ if(!names[k]&&!RI.some(function(x){return x.id===key+'|'+k;})){ RI.push({id:key+'|'+k,k:k,reg:key,_upd:Date.now()}); riCh=true; } }); }
+      var back=RI.filter(function(x){ return x.reg===key&&names[x.k]; }); if(back.length){ RI=RI.filter(function(x){ return back.indexOf(x)<0; }); riCh=true; }
+      if(riCh){ try{ save('annIgnReg',RI); }catch(e){} }
+      st.ecoles.forEach(function(e){ if(!e||!e.nom) return; var k=ekey(e.nom); if(names[k]||ig.indexOf('E:'+k)>=0||!pred(e.nom)) return; if(RI.some(function(x){return x.id===key+'|'+k;})) return; st[key].push(mkRow('ea_'+k.toLowerCase().slice(0,22),e.nom)); names[k]=1; ch2[key]=1; });
+      try{ localStorage.setItem(storeKey(skey),JSON.stringify(Object.keys(names))); }catch(e){}
     }
+    function ld2(k){ try{ var v=load(k,[]); return Array.isArray(v)?v.slice():[]; }catch(e){ return []; } }
     function z(keys){ var o={}; keys.forEach(function(k){ o[k]=0; }); return o; }
     var NP=['cp1G','cp1F','cp2G','cp2F','ce1G','ce1F','ce2G','ce2F','cm1G','cm1F','cm2G','cm2F'], MP=['psG','psF','msG','msF','gsG','gsF'];
     reg('effPrimaire','efr',function(id,n){ return Object.assign({id:id,nom:n},z(NP)); },function(n){ return !isMat(n); });
@@ -39553,6 +39563,7 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
   css.textContent='.cis{position:relative;width:430px;max-width:100%;border-radius:12px;overflow:hidden;border:1px solid #cbd5e1;box-shadow:0 4px 14px rgba(15,23,42,.15);font-family:Arial,Helvetica,sans-serif;color:#111;background:linear-gradient(100deg,#ffe3c2 0%,#fff 38%,#fff 62%,#d8f0dc 100%);-webkit-print-color-adjust:exact;print-color-adjust:exact;text-align:left}'
   +'.cis-top{display:flex;align-items:center;gap:8px;padding:8px 10px 4px;background:linear-gradient(90deg,#f77f00 0 6px,transparent 6px)}'
   +'.cis-emb{width:38px;height:38px;border-radius:50%;flex:none;background:conic-gradient(#f77f00 0 33%,#fff 0 66%,#009e60 0);border:2px solid #fff;box-shadow:0 0 0 1px #94a3b8}'
+  +'.cis-txt small{display:block;font-size:6.6px;line-height:1.2;color:#334155;margin-top:2px}.cis-txt em{font-size:7.4px!important}'
   +'.cis-lg{width:64px;flex:none;text-align:center;line-height:1.05}.cis-lg img{max-width:56px;max-height:40px;object-fit:contain;display:block;margin:0 auto}.cis-lg span{display:block;font-size:6.5px;font-weight:800;color:#1e3a8a;margin-top:2px;text-transform:uppercase}.cis-lg .nol{border:1px dashed #94a3b8;border-radius:4px;font-size:6px;color:#94a3b8;padding:9px 2px}.cis-arm{width:64px;flex:none;text-align:center}.cis-arm img{max-width:64px;max-height:44px;object-fit:contain;display:block;margin:0 auto}'
   +'.cis-txt{flex:1;text-align:center;line-height:1.15}.cis-txt b{display:block;font-size:10.5px;letter-spacing:.02em}.cis-txt i{display:block;font-size:8.5px;color:#475569}.cis-txt em{display:block;font-size:8.5px;font-style:normal;font-weight:700;color:#1e3a8a;margin-top:1px}'
   +'.cis-tit{text-align:center;font-weight:800;font-size:15px;letter-spacing:.03em;margin:2px 0 0;font-family:Georgia,serif}'
@@ -39588,6 +39599,8 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
     loadQr(function(ok){ if(!ok) return; els.forEach(function(el){ try{ var q=qrcode(0,'M'); q.addData(el.getAttribute('data-q')); q.make(); el.innerHTML=q.createSvgTag({cellSize:3,margin:0,scalable:true}); el.setAttribute('data-ok','1'); }catch(e){} }); });
   }
   setInterval(paintQr,800);
+  function cisDren(){ var d=''; try{ var u=state.user||{}; d=u.drenaet||''; if(!d||d==='TOUTES'){ var ip=String(u.iepp||state.activeIepp||'').trim().toUpperCase(); var m=(state.users||[]).find(function(x){ return x&&x.drenaet&&String(x.iepp||'').trim().toUpperCase()===ip; }); d=m?m.drenaet:''; } }catch(e){}
+    d=String(d||'').replace(/^\s*(DRENAET|DREN)\s*[-:]?\s*/i,'').trim(); return d?'<b>'+E(d.toUpperCase())+'</b>':'<span style="letter-spacing:1px">..............</span>'; }
   function cisIepp(){ try{ return (typeof activeIeppLabel==='function')?activeIeppLabel():'IEPP'; }catch(e){ return 'IEPP'; } }
   function cisLogo(){ var l=''; try{ l=(typeof getIeppLogo==='function'?getIeppLogo():'')||''; }catch(e){}
     return '<div class="cis-lg">'+(l?'<img src="'+E(l)+'" alt="Logo IEPP">':'<div class="nol">LOGO<br>IEPP</div>')+'<span>'+E(cisIepp())+'</span></div>'; }
@@ -39599,7 +39612,7 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
     var qr=[String(e.matricule||'').replace(/\s+/g,''),(e.nom||'')+' '+(e.prenoms||''),e.ecole||'',annee()].join('|');
     var code=ec.code?E(ec.code)+' : ':'';
     return '<div class="carte-scolaire cis" data-eleve="'+E(e.id)+'" style="max-width:100%;border-radius:12px;padding:0;background:none">'
-      +'<div class="cis-top">'+cisLogo()+'<div class="cis-txt"><b>RÉPUBLIQUE DE CÔTE D\'IVOIRE</b><i>Union – Discipline – Travail</i><em>Ministère de l\'Éducation Nationale et de l\'Alphabétisation</em></div>'+cisArm()+'</div>'
+      +'<div class="cis-top">'+cisLogo()+'<div class="cis-txt"><b>RÉPUBLIQUE DE CÔTE D\'IVOIRE</b><i>Union – Discipline – Travail</i><em>Ministère de l\'Éducation Nationale, de l\'Alphabétisation et de l\'Enseignement Technique (MENAET)</em><small>Direction Régionale de l\'Éducation Nationale, de l\'Alphabétisation et de l\'Enseignement Technique (DRENAET) de '+cisDren()+'</small></div>'+cisArm()+'</div>'
       +'<div class="cis-tit">CARTE D\'IDENTITÉ SCOLAIRE</div>'
       +'<div class="cis-an">ANNÉE SCOLAIRE : '+E(annee())+'</div>'
       +'<div class="cis-mat"><span>Matricule :</span>'+(E(fmtMat(e.matricule))||'—')+'</div>'
@@ -40718,6 +40731,361 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
   /* synchronisation avant l'affichage de l'espace */
   if(typeof window.renderSecretariat==='function'){ var oR=window.renderSecretariat; window.renderSecretariat=function(){ syncAll(); return oR.apply(this,arguments); }; }
   if(typeof window.navigate==='function' && !window.navigate.__secx){ var oN=window.navigate; window.navigate=function(m){ if(m==='cantine'||m==='secretariat') syncAll(); return oN.apply(this,arguments); }; window.navigate.__secx=1; }
+})();
+</script>
+
+<script id="module-recrutement-situation-v2">
+/* ===== Recrutement & points · Situation statistique · État des effectifs (v2, additif) =====
+   - Recrutement CP1 / Préscolaire alimenté par la liste des élèves de l'IEPP (recrutés / redoublants / refusés)
+   - Profils instituteur (CP1→CM2) et directeur : périmètre = leur école ; compilation IEPP pour les autres rôles
+   - Situation statistique : formules de la fiche DESPS, calcul depuis la base de l'IEPP uniquement
+   - État des effectifs : colonne code AGCP / CS, écoles hors IEPP signalées, classes par école */
+(function(){
+  if(window.__recsit) return; window.__recsit={};
+  function nk(s){ return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim(); }
+  function U(){ return (typeof state!=='undefined'&&state.user)||{}; }
+  function perim(){ var r=U().role; return (r==='directeur'||r==='instituteur') ? (U().ecole||'\u0000') : null; }
+  function inPer(nom){ var p=perim(); return p===null || nk(nom)===nk(p); }
+  function today(){ return new Date().toISOString().slice(0,10); }
+  function n0(v){ var n=parseInt(String(v==null?'':v).replace(/[^0-9-]/g,''),10); return isNaN(n)?0:n; }
+  function isPres(nom){ return /pr[ée]scol|maternel/i.test(String(nom||'')); }
+  function fdate(d){ try{ return new Date(d).toLocaleDateString('fr-FR'); }catch(e){ return ''; } }
+  function esc(s){ return (typeof escapeHtml==='function')?escapeHtml(String(s==null?'':s)):String(s==null?'':s); }
+
+  /* ---- ACL : profils directeur et instituteur ---- */
+  try{ ['directeur','instituteur'].forEach(function(r){ if(!ACL[r]) return; ['stat-recrutement','stat-situation'].forEach(function(m){ if(ACL[r].indexOf(m)<0) ACL[r].push(m); }); }); }catch(e){}
+  try{ ['effClasses','annIgnReg'].forEach(function(k){ if(typeof SCOPED_KEY_LIST!=='undefined'&&SCOPED_KEY_LIST.indexOf(k)<0) SCOPED_KEY_LIST.push(k); }); }catch(e){}
+
+  /* ---- droits de saisie ---- */
+  var _rce=window.recCanEdit;
+  window.recCanEdit=function(){ var r=U().role; if(r==='directeur') return true; if(r==='instituteur') return (U().classe||'')==='CP1'; return _rce?_rce():false; };
+  var _sce=window.statSitCanEdit;
+  window.statSitCanEdit=function(){ var r=U().role; if(r==='directeur'||r==='instituteur') return false; return _sce?_sce():false; };
+
+  var _rfl=window.recFilteredList;
+  window.recFilteredList=function(scope){ var l=_rfl(scope); return perim()===null?l:l.filter(function(r){ return inPer(r.ecole); }); };
+
+  /* ---- calcul depuis la liste des élèves ---- */
+  function lvlMat(n){ n=String(n||'').toUpperCase().replace(/\s+/g,''); if(/^(PS|MPS)$/.test(n)) return 'ps'; if(/^(MS|MMS)$/.test(n)) return 'ms'; if(/^(GS|MGS)$/.test(n)) return 'gs'; return null; }
+  function recAutoCalc(scope, silent){
+    var key=scope==='cp1'?'recrutementCP1':'recrutementMater';
+    if(!Array.isArray(state[key])) state[key]=[];
+    var arr=state[key], els=state.elevesFichier||[], g={}, names={}, changed=0;
+    els.forEach(function(e){
+      if(!e||!e.ecole||!inPer(e.ecole)) return;
+      var lv = scope==='cp1' ? (String(e.niveau||'').toUpperCase().replace(/\s+/g,'')==='CP1'?'cp1':null) : lvlMat(e.niveau);
+      if(!lv) return;
+      var k=nk(e.ecole); names[k]=names[k]||e.ecole; var o=g[k]=g[k]||{};
+      var x=(e.sexe==='F'||e.sexe==='f')?'F':'G'; var st=e.insc||'recrute';
+      if(scope==='cp1'){ var f=st==='redoublant'?'red':(st==='refuse'?'ref':'rec'); o[f+x]=(o[f+x]||0)+1; }
+      else { if(st==='refuse') o['ref'+x]=(o['ref'+x]||0)+1; else o[lv+x]=(o[lv+x]||0)+1; }
+    });
+    Object.keys(g).forEach(function(k){
+      var row=arr.find(function(r){ return nk(r.ecole)===k; });
+      if(!row){ row={id:(scope==='cp1'?'r':'rm')+uid(),ecole:names[k]}; arr.push(row); }
+      var o=g[k], before=JSON.stringify(row);
+      if(scope==='cp1'){
+        ['G','F'].forEach(function(x){ row['rec'+x]=o['rec'+x]||0; row['ref'+x]=o['ref'+x]||0; row['red'+x]=o['red'+x]||0;
+          var need=row['rec'+x]+row['ref'+x]; row['pr'+x]=Math.max(n0(row['pr'+x]),need); });
+      } else {
+        ['ps','ms','gs'].forEach(function(l){ ['G','F'].forEach(function(x){ row[l+x]=o[l+x]||0; }); });
+        ['G','F'].forEach(function(x){ if(o['ref'+x]) row['ref'+x]=o['ref'+x]; });
+      }
+      if(JSON.stringify(row)!==before){ row.date=today(); changed++; }
+    });
+    if(changed){ try{ save(key,arr); }catch(e){} }
+    if(!silent) toast(changed? (changed+' école(s) mise(s) à jour depuis la liste des élèves ✓') : 'Rien à mettre à jour : aucun élève trouvé dans la liste','success');
+    return changed;
+  }
+  window.__recsit.recAutoCalc=recAutoCalc;
+
+  function setInsc(id,val,scope){
+    var e=(state.elevesFichier||[]).find(function(x){return x.id===id;}); if(!e) return;
+    e.insc=val; try{ save('elevesFichier',state.elevesFichier); }catch(er){}
+    recAutoCalc(scope,true);
+    (scope==='cp1'?renderRecCP1:renderRecMat)();
+    var s=document.getElementById('tab-rec-synthese'); if(s) s.innerHTML=renderRecrutementSynthese();
+    toast('Statut enregistré ✓','success');
+  }
+  window.__recsit.setInsc=setInsc;
+
+  function remonter(scope){
+    var key=scope==='cp1'?'recrutementCP1':'recrutementMater', ts=new Date().toISOString(), n=0;
+    (state[key]||[]).forEach(function(r){ if(inPer(r.ecole)){ r.remonte=ts; r.remontePar=U().name||''; n++; } });
+    if(n){ try{ save(key,state[key]); }catch(e){} }
+    (scope==='cp1'?renderRecCP1:renderRecMat)();
+    toast(n?'Point remonté au Correspondant fichier et au Correspondant statistique ✓':'Aucune ligne à remonter','success');
+  }
+  window.__recsit.remonter=remonter;
+
+  function decorate(scope){
+    var pane=document.getElementById('rec-'+scope+'-content'); if(!pane) return;
+    var tb=document.getElementById('rec-'+scope+'-table');
+    if(tb){
+      Array.prototype.forEach.call(tb.querySelectorAll('thead th'),function(th){ if(th.textContent.trim()==='Date') th.textContent='Date de mise à jour'; });
+      var list=window.recFilteredList(scope), rows=tb.querySelectorAll('tbody tr');
+      list.forEach(function(r,i){ var tr=rows[i]; if(!tr||!r.remonte) return; var td=tr.querySelector('td.fw-7'); if(td&&!td.querySelector('.rs-rem')) td.insertAdjacentHTML('beforeend','<div class="rs-rem text-xs" style="font-weight:600;color:var(--green-deep)">📤 remonté le '+fdate(r.remonte)+'</div>'); });
+    }
+    /* barre : calcul auto + remonter */
+    var bar=document.querySelector('#tab-rec-'+scope+' .toolbar');
+    if(bar && !bar.querySelector('.rs-auto')){
+      var h='<button class="btn btn-ghost rs-auto" onclick="__recsit.recAutoCalc(\''+scope+'\')" title="Recalcule présentés / recrutés / redoublants / refusés à partir de la liste des élèves">🔄 Calculer depuis la liste des élèves</button>';
+      if(perim()!==null) h+='<button class="btn btn-green rs-up" onclick="__recsit.remonter(\''+scope+'\')">📤 Remonter le point</button>';
+      bar.insertAdjacentHTML('beforeend',h);
+    }
+    /* liste des élèves (détail recrutés / redoublants / refusés) */
+    var old=document.getElementById('rs-list-'+scope); if(old) old.remove();
+    var els=(state.elevesFichier||[]).filter(function(e){ if(!e||!inPer(e.ecole)) return false; return scope==='cp1'? String(e.niveau||'').toUpperCase().replace(/\s+/g,'')==='CP1' : !!lvlMat(e.niveau); });
+    var can=window.recCanEdit();
+    var opts=scope==='cp1'?[['recrute','Recruté (nouvel inscrit)'],['redoublant','Redoublant'],['refuse','Refusé']]:[['recrute','Inscrit'],['refuse','Refusé']];
+    var html='<div class="card" id="rs-list-'+scope+'" style="margin-top:14px"><div class="card-header"><div><div class="card-title">'+(scope==='cp1'?'Liste des élèves du CP1':'Liste des élèves du préscolaire')+' — détail des inscriptions</div><div class="card-sub">Le statut de chaque élève alimente automatiquement le tableau ci-dessus ('+els.length+' élève(s))</div></div></div>'
+      +'<div class="table-wrap" style="border:none"><table><thead><tr><th>N°</th><th>Nom et prénoms</th><th>Sexe</th><th>École</th>'+(scope==='cp1'?'':'<th>Niveau</th>')+'<th>Statut</th></tr></thead><tbody>'
+      +(els.length? els.map(function(e,i){ var cur=e.insc||'recrute';
+          return '<tr><td>'+(i+1)+'</td><td class="fw-7">'+esc((e.nom||'')+' '+(e.prenoms||''))+'</td><td>'+esc(e.sexe||'')+'</td><td>'+esc(e.ecole||'')+'</td>'+(scope==='cp1'?'':'<td>'+esc(e.niveau||'')+'</td>')+'<td>'
+           +(can?'<select onchange="__recsit.setInsc(\''+e.id+'\',this.value,\''+scope+'\')" style="padding:6px 8px;border:1px solid var(--line);border-radius:8px">'+opts.map(function(o){return '<option value="'+o[0]+'"'+(cur===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>' : esc((opts.find(function(o){return o[0]===cur;})||opts[0])[1]))
+           +'</td></tr>'; }).join('')
+        : '<tr><td colspan="6" class="table-empty">Aucun élève de ce niveau dans la liste de l\'école. Les élèves sont ajoutés dans l\'espace Mon école / Ma classe ou par le Correspondant fichier.</td></tr>')
+      +'</tbody></table></div></div>';
+    pane.insertAdjacentHTML('beforeend',html);
+  }
+
+  var _rcp=window.renderRecCP1, _rma=window.renderRecMat;
+  window.renderRecCP1=function(){ try{ recAutoCalc('cp1',true); }catch(e){} _rcp(); try{ decorate('cp1'); }catch(e){ console.warn(e); } };
+  window.renderRecMat=function(){ try{ recAutoCalc('mat',true); }catch(e){} _rma(); try{ decorate('mat'); }catch(e){ console.warn(e); } };
+  var _rsr=window.renderStatRecrutement;
+  window.renderStatRecrutement=function(){ _rsr(); try{
+    if(U().role==='instituteur'){ Array.prototype.forEach.call(document.querySelectorAll('.tabs .tab'),function(t){ if(/Maternelle/.test(t.textContent)) t.style.display='none'; }); }
+    var hp=document.querySelector('.hero p'); if(hp&&perim()!==null) hp.innerHTML+=' <strong>Périmètre : '+esc(U().ecole||'')+'</strong> — vous renseignez le point de votre école puis vous le remontez.';
+  }catch(e){} };
+
+  /* ---- synthèse par école ---- */
+  window.renderRecrutementSynthese=function(){
+    var cp=(state.recrutementCP1||[]).filter(function(r){return inPer(r.ecole);}), ma=(state.recrutementMater||[]).filter(function(r){return inPer(r.ecole);});
+    function block(titre,couleur,rows){
+      var T={d:0,i:0,n:0};
+      var body=rows.map(function(r,k){ T.d+=r.d; T.i+=r.i; T.n+=r.n;
+        return '<tr><td style="padding:7px">'+(k+1)+'</td><td style="padding:7px" class="fw-7">'+esc(r.ecole)+'</td><td style="padding:7px;text-align:center;font-weight:700">'+r.d+'</td><td style="padding:7px;text-align:center;font-weight:700;color:var(--green-deep)">'+r.i+'</td><td style="padding:7px;text-align:center;font-weight:700;color:var(--danger)">'+r.n+'</td></tr>'; }).join('')
+        || '<tr><td colspan="5" class="table-empty">Aucune école</td></tr>';
+      return '<div style="margin-bottom:18px"><h4 style="font-family:\'Fraunces\',serif;color:'+couleur+';margin-bottom:8px">'+titre+'</h4><table style="width:100%;border-collapse:collapse"><thead><tr style="background:var(--blue-soft)"><th style="padding:8px">N°</th><th style="padding:8px;text-align:left">École</th><th style="padding:8px">Total demandes</th><th style="padding:8px">Total inscrits</th><th style="padding:8px">Refusés (non-inscrits)</th></tr></thead><tbody>'+body
+        +'<tr style="background:var(--bg);font-weight:800"><td colspan="2" style="padding:8px">TOTAL ('+rows.length+' école(s))</td><td style="padding:8px;text-align:center">'+T.d+'</td><td style="padding:8px;text-align:center">'+T.i+'</td><td style="padding:8px;text-align:center">'+T.n+'</td></tr></tbody></table></div>';
+    }
+    var a=cp.map(function(r){ var pr=n0(r.prG)+n0(r.prF), rec=n0(r.recG)+n0(r.recF), ref=n0(r.refG)+n0(r.refF); return {ecole:r.ecole,d:Math.max(pr,rec+ref),i:rec,n:ref}; });
+    var b=ma.map(function(r){ var ins=n0(r.psG)+n0(r.psF)+n0(r.msG)+n0(r.msF)+n0(r.gsG)+n0(r.gsF), ref=n0(r.refG)+n0(r.refF); return {ecole:r.ecole,d:ins+ref,i:ins,n:ref}; });
+    return '<div class="card mb-3"><div class="card-header"><div><div class="card-title">Synthèse des inscriptions au CP1 et au Préscolaire</div><div class="card-sub">Année scolaire 2026-2027 — '+esc(activeIeppLabel())+(perim()!==null?' — '+esc(U().ecole||''):'')+' · par école</div></div></div>'
+      +block('I — Points des recrutements au CP1','var(--blue-deep)',a)+block('II — Points des recrutements au Préscolaire','var(--orange-deep)',b)
+      +'<div style="text-align:right;margin-top:18px;font-style:italic;color:var(--ink-soft);font-size:13px">Fait à '+esc(lieuFait())+', le '+new Date().toLocaleDateString('fr-FR')+'</div></div>';
+  };
+
+  /* =================== SITUATION STATISTIQUE =================== */
+  function baseEcoles(){ return (state.ecoles||[]).filter(function(e){ return e&&e.nom&&inPer(e.nom); }); }
+  function statutOf(e){ if(/commun/i.test(String(e.statut||''))||/(^|\s)ec\s|communautaire/i.test(String(e.nom||''))) return 'COM'; if(/priv/i.test(String(e.statut||''))) return 'PRIVE'; return 'PUBLIC'; }
+  function fonct(e){ if(e.fonctionne===false) return false; return !/ferm|non\s*fonct|suspend|fusion/i.test(String(e.etat||e.situation||e.fonctionnement||'')); }
+  function effCl(nom){ var m=(state.effClasses||{})[nk(nom)]; return m? n0(m.u)+n0(m.j) : 0; }
+  function nbCl(e,ty){ var c=effCl(e.nom); if(c>0) return c; var d=n0(e.classes); if(ty==='pres') return (d>0&&d<=4)?d:3; return d>0?d:6; }
+  function zero(){ return {PUBLIC:{pres:0,prim:0},PRIVE:{pres:0,prim:0},COM:{pres:0,prim:0}}; }
+  var NIV=['cp1','cp2','ce1','ce2','cm1','cm2'];
+  function lvl0(){ return {ps:0,ms:0,gs:0,cp1:0,cp2:0,ce1:0,ce2:0,cm1:0,cm2:0}; }
+  function ssBuild(){
+    var A=zero(), F=zero(), C=zero(), CF=zero(), seen={}, ec=baseEcoles();
+    function add(st,ty,fo,ncl){ A[st][ty]++; C[st][ty]+=ncl; if(fo){ F[st][ty]++; CF[st][ty]+=ncl; } }
+    ec.forEach(function(e){ var st=statutOf(e), ty=isPres(e.nom)?'pres':'prim'; seen[nk(e.nom)]=st; add(st,ty,fonct(e),nbCl(e,ty)); });
+    var com=(perim()===null)?(Array.isArray(state.alphaEcolesCom)?state.alphaEcolesCom:(function(){ try{ return load('alphaEcolesCom',[]); }catch(e){ return []; } })()):[];
+    var comPup={G:0,F:0};
+    com.forEach(function(c){ if(!c||!c.nom||seen[nk(c.nom)]) return; seen[nk(c.nom)]='COM';
+      var niv=String(c.niveau||'Primaire'), ncl=n0(c.ncl);
+      if(/pr[ée]scolaire/i.test(niv)) add('COM','pres',true,ncl>0?ncl:3);
+      if(/primaire/i.test(niv)||!/pr[ée]scolaire/i.test(niv)) add('COM','prim',true,ncl>0?ncl:6);
+      comPup.G+=n0(c.eg); comPup.F+=n0(c.ef); });
+    /* effectifs : uniquement les écoles de l'IEPP */
+    var names=(state.ecoles||[]).map(function(e){return nk(e.nom);}); var haveBase=names.length>0;
+    function keep(nom){ return inPer(nom) && (!haveBase || names.indexOf(nk(nom))>=0); }
+    var G=lvl0(), Fm=lvl0(), g={ps:0,ms:0,gs:0,pub:0,priv:0,comm:0}, f={ps:0,ms:0,gs:0,pub:0,priv:0,comm:0};
+    var EFF={PUBLIC:{G:lvl0(),F:lvl0()},PRIVE:{G:lvl0(),F:lvl0()},COM:{G:lvl0(),F:lvl0()}};
+    var NC={PUBLIC:lvl0(),PRIVE:lvl0(),COM:lvl0()};
+    function stOf(nom){ var s=seen[nk(nom)]; return s||'PUBLIC'; }
+    (state.effPrescolaire||[]).forEach(function(r){ if(!keep(r.nom)) return; var st=stOf(r.nom);
+      ['ps','ms','gs'].forEach(function(l){ var a=n0(r[l+'G']), b=n0(r[l+'F']); g[l]+=a; f[l]+=b; EFF[st].G[l]+=a; EFF[st].F[l]+=b; if(a+b>0) NC[st][l]++; }); });
+    (state.effPrimaire||[]).forEach(function(r){ if(!keep(r.nom)) return; var st=stOf(r.nom), k=st==='PRIVE'?'priv':(st==='COM'?'comm':'pub');
+      NIV.forEach(function(l){ var a=n0(r[l+'G']), b=n0(r[l+'F']); g[k]+=a; f[k]+=b; EFF[st].G[l]+=a; EFF[st].F[l]+=b; if(a+b>0) NC[st][l]++; }); });
+    var inEff={}; (state.effPrimaire||[]).forEach(function(r){ inEff[nk(r.nom)]=1; });
+    if(perim()===null && (comPup.G||comPup.F)){ var comInEff=com.some(function(c){ return inEff[nk(c.nom)]; });
+      if(!comInEff){ g.comm+=comPup.G; f.comm+=comPup.F; EFF.COM.G.cp1+=comPup.G; EFF.COM.F.cp1+=comPup.F; } }
+    return {A:A,F:F,C:C,CF:CF,g:g,f:f,EFF:EFF,NC:NC};
+  }
+  window.__recsit.ssBuild=ssBuild;
+
+  function upsert(rows,match,data,extra){
+    var r=rows.find(match); if(!r){ r=Object.assign({id:'ss_'+uid()},extra||{}); rows.push(r); }
+    Object.assign(r,data); return r;
+  }
+  function ssWrite(){
+    var B=ssBuild();
+    var R=statSitGet('ecoles').slice();
+    function ec(lib,S,SS){ upsert(R,function(x){return x.libelle===lib;},{pubPres:S.PUBLIC.pres,pubPrim:S.PUBLIC.prim,privPres:S.PRIVE.pres,privPrim:S.PRIVE.prim},{libelle:lib}); }
+    ec('Écoles autorisées',B.A); ec('Écoles en fonctionnement',B.F);
+    upsert(R,function(x){return x.libelle==='Écoles communautaires';},{pubPres:B.A.COM.pres,pubPrim:B.A.COM.prim,privPres:0,privPrim:0},{libelle:'Écoles communautaires'});
+    statSitSave('ecoles',R);
+    var K=statSitGet('classes').slice();
+    function cl(lib,S){ upsert(K,function(x){return x.libelle===lib;},{pubPres:S.PUBLIC.pres,pubPrim:S.PUBLIC.prim,privPres:S.PRIVE.pres,privPrim:S.PRIVE.prim},{libelle:lib}); }
+    cl('Classes autorisées',B.C); cl('Classes en fonctionnement',B.CF);
+    upsert(K,function(x){return x.libelle==='Classes communautaires';},{pubPres:B.C.COM.pres,pubPrim:B.C.COM.prim,privPres:0,privPrim:0},{libelle:'Classes communautaires'});
+    statSitSave('classes',K);
+    var V=statSitGet('eleves').slice();
+    upsert(V,function(x){return x.libelle==='Garçons';},B.g,{libelle:'Garçons'});
+    upsert(V,function(x){return x.libelle==='Filles';},B.f,{libelle:'Filles'});
+    statSitSave('eleves',V);
+    var N=statSitGet('niveaux').slice(), LM={PUBLIC:'PUBLIC',PRIVE:'PRIVE',COM:'COM.'};
+    ['PUBLIC','PRIVE','COM'].forEach(function(S){ upsert(N,function(x){return x.libelle===LM[S];},B.NC[S],{libelle:LM[S]}); });
+    statSitSave('niveaux',N);
+    var E=statSitGet('effectifs').slice();
+    ['PUBLIC','PRIVE','COM'].forEach(function(S){ ['G','F'].forEach(function(X){ upsert(E,function(x){return x.libelle===LM[S]&&x.sexe===X;},B.EFF[S][X],{libelle:LM[S],sexe:X}); }); });
+    statSitSave('effectifs',E);
+  }
+  window.statSitAutoCalc=function(silent){
+    if(!statSitCanEdit()){ if(silent!==true) toast('Action réservée.','error'); return; }
+    ssWrite();
+    ['ecoles','classes','eleves','niveaux','effectifs'].forEach(function(k){ try{ statSitRender(k); }catch(e){} });
+    if(silent!==true) toast('Situation statistique calculée depuis la base de l\'IEPP ✓','success');
+  };
+  window.statSitSyncEffectifs=function(){ window.statSitAutoCalc(); };
+
+  /* périmètre école (directeur / instituteur) : tableaux calculés en lecture seule */
+  var _sg=window.statSitGet;
+  window.statSitGet=function(key){
+    if(perim()===null) return _sg(key);
+    var B=ssBuild(), L=[], id=0;
+    function row(o){ o.id='v'+(id++); L.push(o); }
+    if(key==='ecoles'){ row(Object.assign({libelle:'Écoles autorisées'},{pubPres:B.A.PUBLIC.pres,pubPrim:B.A.PUBLIC.prim,privPres:B.A.PRIVE.pres,privPrim:B.A.PRIVE.prim})); row(Object.assign({libelle:'Écoles en fonctionnement'},{pubPres:B.F.PUBLIC.pres,pubPrim:B.F.PUBLIC.prim,privPres:B.F.PRIVE.pres,privPrim:B.F.PRIVE.prim})); }
+    if(key==='classes'){ row({libelle:'Classes autorisées',pubPres:B.C.PUBLIC.pres,pubPrim:B.C.PUBLIC.prim,privPres:B.C.PRIVE.pres,privPrim:B.C.PRIVE.prim}); row({libelle:'Classes en fonctionnement',pubPres:B.CF.PUBLIC.pres,pubPrim:B.CF.PUBLIC.prim,privPres:B.CF.PRIVE.pres,privPrim:B.CF.PRIVE.prim}); }
+    if(key==='eleves'){ row(Object.assign({libelle:'Garçons'},B.g)); row(Object.assign({libelle:'Filles'},B.f)); }
+    if(key==='niveaux'){ [['PUBLIC','PUBLIC'],['PRIVE','PRIVE'],['COM','COM.']].forEach(function(p){ row(Object.assign({libelle:p[1]},B.NC[p[0]])); }); }
+    if(key==='effectifs'){ [['PUBLIC','PUBLIC'],['PRIVE','PRIVE'],['COM','COM.']].forEach(function(p){ ['G','F'].forEach(function(x){ row(Object.assign({libelle:p[1],sexe:x},B.EFF[p[0]][x])); }); }); }
+    return L;
+  };
+
+  /* III — État des effectifs par niveaux : lignes G / F / T + TOTAL + récapitulatif (formules de l'Excel) */
+  var _srl=window.statSitRenderLevels;
+  function sumObj(a,b){ var o={}; Object.keys(Object.assign({},a,b)).forEach(function(k){ if(k==='id'||k==='libelle'||k==='sexe') return; o[k]=n0(a&&a[k])+n0(b&&b[k]); }); return o; }
+  window.statSitRenderLevels=function(key){
+    if(key!=='effectifs') return _srl(key);
+    var wrap=document.getElementById('ss-wrap-effectifs'); if(!wrap) return;
+    var can=statSitCanEdit(), rows=statSitFiltered('effectifs'), cols=statSitLevelCols();
+    var grpHead=STATSIT_LEVELGROUPS.map(function(g){ return '<th colspan="'+(g.cols.length+1)+'" style="text-align:center;background:'+g.bg+'">'+g.grp+'</th>'; }).join('');
+    var subHead=STATSIT_LEVELGROUPS.map(function(g){ return g.cols.map(function(c){return '<th>'+c.l+'</th>';}).join('')+'<th class="fw-7">T</th>'; }).join('');
+    function cells(o,bold){ var t=statSitLevelTotaux(o); return STATSIT_LEVELGROUPS.map(function(g){ return g.cols.map(function(c){return '<td>'+n0(o[c.k])+'</td>';}).join('')+'<td class="fw-7" style="background:#FAFAF5">'+t[g.tot]+'</td>'; }).join('')+'<td class="fw-7" style="color:var(--blue-deep);background:#EEF4FB">'+t.TG+'</td>'; }
+    function act(r){ return can&&r? '<td class="actions-cell" style="white-space:nowrap"><button class="icon-btn" onclick="statSitForm(\'effectifs\',\''+r.id+'\')" title="Modifier">✏️</button><button class="icon-btn danger" onclick="statSitDelete(\'effectifs\',\''+r.id+'\')" title="Supprimer">🗑️</button></td>' : (can?'<td></td>':''); }
+    var body='', tot={G:{},F:{}}, byS={}, libs=[];
+    rows.forEach(function(r){ if(libs.indexOf(r.libelle)<0) libs.push(r.libelle); });
+    libs.forEach(function(lib){
+      var G=rows.find(function(r){return r.libelle===lib&&r.sexe==='G';}), F=rows.find(function(r){return r.libelle===lib&&r.sexe==='F';});
+      var o=rows.filter(function(r){return r.libelle===lib&&r.sexe!=='G'&&r.sexe!=='F';});
+      var g=G||{}, f=F||{}, t=sumObj(g,f); byS[lib]=t;
+      tot.G=sumObj(tot.G,g); tot.F=sumObj(tot.F,f);
+      body+='<tr><td rowspan="3" class="fw-7" style="vertical-align:middle">'+esc(lib)+'</td><td style="text-align:center;font-weight:700">G</td>'+cells(g)+act(G)+'</tr>'
+        +'<tr><td style="text-align:center;font-weight:700">F</td>'+cells(f)+act(F)+'</tr>'
+        +'<tr style="background:var(--bg);font-weight:800"><td style="text-align:center">T</td>'+cells(t)+(can?'<td></td>':'')+'</tr>';
+      o.forEach(function(r){ body+='<tr><td class="fw-7">'+esc(r.libelle)+'</td><td>'+esc(r.sexe||'')+'</td>'+cells(r)+act(r)+'</tr>'; });
+    });
+    var tt=sumObj(tot.G,tot.F);
+    if(libs.length) body+='<tr style="background:#EEF4FB;font-weight:800"><td rowspan="3" style="vertical-align:middle">TOTAL</td><td style="text-align:center">G</td>'+cells(tot.G)+(can?'<td></td>':'')+'</tr><tr style="background:#EEF4FB;font-weight:800"><td style="text-align:center">F</td>'+cells(tot.F)+(can?'<td></td>':'')+'</tr><tr style="background:#EEF4FB;font-weight:800"><td style="text-align:center">T</td>'+cells(tt)+(can?'<td></td>':'')+'</tr>';
+    else body='<tr><td colspan="'+(2+cols.length+STATSIT_LEVELGROUPS.length+1+(can?1:0))+'" class="table-empty">Aucune ligne — cliquez sur « 🧮 Calculer depuis la base » ou « ➕ Nouvelle action »</td></tr>';
+    function prim(t){ var s=statSitLevelTotaux(t||{}); return s.pcuT+s.pcjT+s.ppT; }
+    function pres(t){ var s=statSitLevelTotaux(t||{}); return s.puT+s.pjT; }
+    var mat=0, pu=0, pr=0, co=0; libs.forEach(function(l){ mat+=pres(byS[l]); });
+    pu=prim(byS['PUBLIC']); pr=prim(byS['PRIVE']); co=prim(byS['COM.']);
+    var recap=libs.length?'<div style="margin-top:10px;padding:10px 14px;background:var(--bg);border-radius:10px;font-weight:800;display:flex;gap:18px;flex-wrap:wrap"><span>EFFECTIF DE LA MATERNELLE = '+mat+'</span><span>EFFECTIF DU PRIMAIRE : PUBLIC = '+pu+'</span><span>PRIVÉ = '+pr+'</span><span>COM. = '+co+'</span><span style="color:var(--orange-deep)">TOTAL = '+(mat+pu+pr+co)+'</span></div>':'';
+    wrap.innerHTML='<table style="font-size:11.5px;min-width:1100px"><thead><tr><th rowspan="2" style="min-width:90px">Statut</th><th rowspan="2">Sexe</th>'+grpHead+'<th rowspan="2" style="background:#EEF4FB">TOTAL<br>GÉNÉRAL</th>'+(can?'<th rowspan="2" style="width:74px"></th>':'')+'</tr><tr>'+subHead+'</tr></thead><tbody>'+body+'</tbody></table>'+recap;
+  };
+
+  /* première ouverture : remplacer les chiffres d'exemple par ceux de la base de l'IEPP */
+  try{ if(typeof MODULES!=='undefined'){ MODULES['stat-recrutement'].render=function(){ return window.renderStatRecrutement(); }; MODULES['stat-situation'].render=function(){ return window.renderStatSituation(); }; } }catch(e){}
+  var _rss=window.renderStatSituation;
+  window.renderStatSituation=function(){
+    try{
+      if(perim()===null && statSitCanEdit()){
+        var fk=storeKey('ssAutoV2'); var done=null; try{ done=localStorage.getItem(fk); }catch(e){}
+        if(!done){
+          /* les chiffres d'exemple de l'Excel (cours jumelés / profils spécifiques) sont remis à zéro : à saisir par l'IEPP */
+          ['niveaux','effectifs'].forEach(function(k){ var rows=statSitGet(k).slice(), ch=false; rows.forEach(function(r){ if(/^(ssn\d|sse_)/.test(String(r.id))){ ['psms','msgs','jcp1','jcp2','jce1','jce2','jcm1','jcm2','pcp1','pcp2','pce1','pce2','pcm1','pcm2'].forEach(function(f){ if(r[f]) { r[f]=0; ch=true; } }); } }); if(ch) statSitSave(k,rows); });
+          ssWrite(); try{ localStorage.setItem(fk,'1'); }catch(e){} }
+      }
+    }catch(e){ console.warn('ssAuto',e); }
+    _rss();
+    try{
+      var hp=document.querySelector('.hero p');
+      if(hp){ hp.innerHTML+= perim()!==null ? ' <strong>Périmètre : '+esc(U().ecole||'')+'</strong> — tableaux calculés depuis les effectifs de votre école (lecture seule, ils remontent à la compilation de la circonscription).' : ' Les chiffres sont calculés depuis la <strong>base de l\'IEPP</strong> (écoles, effectifs, écoles communautaires de l\'Alphabétisation) ; une école primaire compte 6 classes sauf indication contraire de la direction.'; }
+    }catch(e){}
+  };
+
+  /* =================== ÉTAT DES EFFECTIFS =================== */
+  function codeOf(nom){ var e=(state.ecoles||[]).find(function(x){ return nk(x.nom)===nk(nom); }); if(!e) return null; return [e.codeAGCP,e.code].filter(Boolean).join(' / ')||'—'; }
+  function decorEff(tableId, listFn){
+    var t=document.getElementById(tableId); if(!t) return;
+    if(t.getAttribute('data-codecol')==='1'){ /* déjà fait sur ce rendu */ }
+    var hr=t.querySelector('thead tr'); if(!hr) return;
+    var ths=Array.prototype.slice.call(hr.children), idx=-1;
+    ths.forEach(function(th,i){ if(idx<0&&/^(École|Maternelle)/i.test(th.textContent.trim())) idx=i; });
+    if(idx<0) return;
+    if(!hr.querySelector('.eff-code-th')){ var th=document.createElement('th'); th.className='eff-code-th'; th.rowSpan=2; th.textContent='Code AGCP / CS'; th.style.whiteSpace='nowrap'; ths[idx].insertAdjacentElement('afterend',th); }
+    var out=0;
+    Array.prototype.forEach.call(t.querySelectorAll('tbody tr'),function(tr){
+      if(tr.querySelector('.eff-code-td')) return;
+      var cell=tr.querySelector('td.fw-7.text-sm, td.text-sm.fw-7, td.fw-7'); var cs=tr.querySelector('td[colspan]');
+      if(!cell||cell.hasAttribute('colspan')){ if(cs&&tr.querySelectorAll('td').length<=3){ cs.setAttribute('colspan',(parseInt(cs.getAttribute('colspan'),10)||1)+1); } else if(cs){ cs.setAttribute('colspan',(parseInt(cs.getAttribute('colspan'),10)||1)+1); } return; }
+      var nom=cell.textContent.replace(/⚠.*$/,'').trim(), code=codeOf(nom), td=document.createElement('td'); td.className='eff-code-td text-sm';
+      if(code===null){ td.innerHTML='<span style="color:var(--danger);font-weight:700">—</span>'; cell.insertAdjacentHTML('beforeend',' <span class="eff-out" style="color:var(--danger);font-size:11px;font-weight:700" title="Cette école n\'est pas dans la base de cette IEPP">⚠ hors IEPP</span>'); tr.style.background='#FEF2F2'; out++; }
+      else td.textContent=code;
+      cell.insertAdjacentElement('afterend',td);
+    });
+    var bn=t.closest('.tab-pane')||t.parentNode; var old=bn.querySelector('.eff-out-bar'); if(old) old.remove();
+    if(out && statCanEdit()){
+      var key=tableId==='efr-table'?'effPrimaire':'effPrescolaire';
+      var card=t.closest('.card'); if(card) card.insertAdjacentHTML('beforebegin','<div class="card eff-out-bar" style="border-left:4px solid var(--danger);padding:10px 14px;margin-bottom:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><div style="flex:1"><strong>'+out+' école(s) ne figurent pas dans la base de cette IEPP</strong><div class="text-xs text-muted">Elles sont ignorées dans la Situation statistique. Vous pouvez les retirer (récupérables dans la Corbeille).</div></div><button class="btn btn-ghost danger" onclick="__recsit.purgeOut(\''+key+'\')">🧹 Retirer les écoles hors IEPP</button></div>');
+    }
+  }
+  window.__recsit.purgeOut=function(key){
+    var base=(state.ecoles||[]).map(function(e){return nk(e.nom);});
+    var out=(state[key]||[]).filter(function(r){ return base.indexOf(nk(r.nom))<0; });
+    if(!out.length) return; if(!confirm('Retirer '+out.length+' école(s) hors IEPP ? (récupérables dans la Corbeille)')) return;
+    out.forEach(function(r){ try{ if(typeof trashReg==='function') trashReg(key,null,r,'État des effectifs'); }catch(e){} });
+    state[key]=state[key].filter(function(r){ return out.indexOf(r)<0; }); save(key,state[key]);
+    (key==='effPrimaire'?renderEffPrimaireBody:renderEffPrescolaireBody)();
+    toast(out.length+' école(s) retirée(s)','success');
+  };
+
+  /* classes par école (colonnes Unique / Jumelées / Spécifique / Total classe / Groupe pédagogique de l'Excel) */
+  function classesCard(kind){
+    var id='effcl-'+kind, host=document.getElementById(kind==='prim'?'efr-table':'efp-table'); if(!host) return;
+    var old=document.getElementById(id); if(old) old.remove();
+    var card=host.closest('.card'); if(!card) return;
+    var can=statCanEdit(); state.effClasses=state.effClasses||{};
+    var schools=(state.ecoles||[]).filter(function(e){ return e&&e.nom&&(kind==='prim'?!isPres(e.nom):isPres(e.nom)); });
+    var T={u:0,j:0,s:0,g:0};
+    var body=schools.map(function(e,i){ var m=state.effClasses[nk(e.nom)]||{}; var u=n0(m.u),j=n0(m.j),s=n0(m.s),g=n0(m.g); T.u+=u;T.j+=j;T.s+=s;T.g+=g;
+      function inp(f,v){ return can?'<input type="number" min="0" data-k="'+nk(e.nom)+'" data-f="'+f+'" value="'+v+'" style="width:64px;padding:4px 6px;border:1px solid var(--line);border-radius:6px" oninput="__recsit.clInput(this,\''+kind+'\')">':v; }
+      return '<tr data-k="'+nk(e.nom)+'"><td>'+(i+1)+'</td><td class="fw-7 text-sm">'+esc(e.nom)+'</td><td class="text-sm">'+esc([e.codeAGCP,e.code].filter(Boolean).join(' / ')||'—')+'</td><td>'+inp('u',u)+'</td><td>'+inp('j',j)+'</td><td>'+inp('s',s)+'</td><td class="fw-7 cl-tot">'+(u+j)+'</td><td>'+inp('g',g)+'</td></tr>'; }).join('')
+      || '<tr><td colspan="8" class="table-empty">Aucune école dans la base de l\'IEPP</td></tr>';
+    card.insertAdjacentHTML('afterend','<div class="card" id="'+id+'" style="margin-top:14px"><div class="card-header"><div><div class="card-title">Classes par école — '+(kind==='prim'?'primaire':'préscolaire')+'</div><div class="card-sub">Unique · Jumelées · Spécifique · Total classe (= Unique + Jumelées) · Groupe pédagogique — utilisé par la Situation statistique (nombre de classes)</div></div></div><div class="table-wrap" style="border:none"><table><thead><tr><th>N°</th><th>École</th><th>Code AGCP / CS</th><th>Unique</th><th>Jumelées</th><th>Spécifique</th><th>Total classe</th><th>Groupe pédagogique</th></tr></thead><tbody>'+body
+      +'<tr style="background:var(--bg);font-weight:800"><td colspan="3">TOTAL</td><td class="cl-tu">'+T.u+'</td><td class="cl-tj">'+T.j+'</td><td class="cl-ts">'+T.s+'</td><td class="cl-tt">'+(T.u+T.j)+'</td><td class="cl-tg">'+T.g+'</td></tr></tbody></table></div>'
+      +(can?'<div style="padding:10px 14px;text-align:right"><button class="btn btn-green" onclick="__recsit.clSave(\''+kind+'\')">Enregistrer</button></div>':'')+'</div>');
+  }
+  window.__recsit.clInput=function(el,kind){
+    var tr=el.closest('tr'); var v=function(f){ var i=tr.querySelector('input[data-f="'+f+'"]'); return n0(i&&i.value); };
+    tr.querySelector('.cl-tot').textContent=v('u')+v('j');
+    var c=document.getElementById('effcl-'+kind), T={u:0,j:0,s:0,g:0};
+    c.querySelectorAll('input[data-f]').forEach(function(i){ T[i.getAttribute('data-f')]+=n0(i.value); });
+    c.querySelector('.cl-tu').textContent=T.u; c.querySelector('.cl-tj').textContent=T.j; c.querySelector('.cl-ts').textContent=T.s; c.querySelector('.cl-tt').textContent=T.u+T.j; c.querySelector('.cl-tg').textContent=T.g;
+  };
+  window.__recsit.clSave=function(kind){
+    var c=document.getElementById('effcl-'+kind); state.effClasses=state.effClasses||{};
+    c.querySelectorAll('tbody tr[data-k]').forEach(function(tr){ var k=tr.getAttribute('data-k'), o={}; tr.querySelectorAll('input[data-f]').forEach(function(i){ o[i.getAttribute('data-f')]=n0(i.value); }); state.effClasses[k]=o; });
+    save('effClasses',state.effClasses); toast('Classes enregistrées ✓','success');
+  };
+
+  var _erp=window.renderEffPrimaireBody, _erm=window.renderEffPrescolaireBody;
+  window.renderEffPrimaireBody=function(){ _erp(); try{ decorEff('efr-table'); classesCard('prim'); }catch(e){ console.warn(e); } };
+  window.renderEffPrescolaireBody=function(){ _erm(); try{ decorEff('efp-table'); classesCard('pres'); }catch(e){ console.warn(e); } };
+  try{ if(!state.effClasses||typeof state.effClasses!=='object'||Array.isArray(state.effClasses)){ var v=load('effClasses',{}); state.effClasses=(v&&typeof v==='object'&&!Array.isArray(v))?v:{}; } }catch(e){ state.effClasses={}; }
 })();
 </script>
 
