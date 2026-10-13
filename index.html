@@ -39553,6 +39553,7 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
   css.textContent='.cis{position:relative;width:430px;max-width:100%;border-radius:12px;overflow:hidden;border:1px solid #cbd5e1;box-shadow:0 4px 14px rgba(15,23,42,.15);font-family:Arial,Helvetica,sans-serif;color:#111;background:linear-gradient(100deg,#ffe3c2 0%,#fff 38%,#fff 62%,#d8f0dc 100%);-webkit-print-color-adjust:exact;print-color-adjust:exact;text-align:left}'
   +'.cis-top{display:flex;align-items:center;gap:8px;padding:8px 10px 4px;background:linear-gradient(90deg,#f77f00 0 6px,transparent 6px)}'
   +'.cis-emb{width:38px;height:38px;border-radius:50%;flex:none;background:conic-gradient(#f77f00 0 33%,#fff 0 66%,#009e60 0);border:2px solid #fff;box-shadow:0 0 0 1px #94a3b8}'
+  +'.cis-lg{width:64px;flex:none;text-align:center;line-height:1.05}.cis-lg img{max-width:56px;max-height:40px;object-fit:contain;display:block;margin:0 auto}.cis-lg span{display:block;font-size:6.5px;font-weight:800;color:#1e3a8a;margin-top:2px;text-transform:uppercase}.cis-lg .nol{border:1px dashed #94a3b8;border-radius:4px;font-size:6px;color:#94a3b8;padding:9px 2px}.cis-arm{width:64px;flex:none;text-align:center}.cis-arm img{max-width:64px;max-height:44px;object-fit:contain;display:block;margin:0 auto}'
   +'.cis-txt{flex:1;text-align:center;line-height:1.15}.cis-txt b{display:block;font-size:10.5px;letter-spacing:.02em}.cis-txt i{display:block;font-size:8.5px;color:#475569}.cis-txt em{display:block;font-size:8.5px;font-style:normal;font-weight:700;color:#1e3a8a;margin-top:1px}'
   +'.cis-tit{text-align:center;font-weight:800;font-size:15px;letter-spacing:.03em;margin:2px 0 0;font-family:Georgia,serif}'
   +'.cis-an{text-align:center;font-size:10.5px;font-weight:700;color:#c2410c}'
@@ -39587,13 +39588,18 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
     loadQr(function(ok){ if(!ok) return; els.forEach(function(el){ try{ var q=qrcode(0,'M'); q.addData(el.getAttribute('data-q')); q.make(); el.innerHTML=q.createSvgTag({cellSize:3,margin:0,scalable:true}); el.setAttribute('data-ok','1'); }catch(e){} }); });
   }
   setInterval(paintQr,800);
+  function cisIepp(){ try{ return (typeof activeIeppLabel==='function')?activeIeppLabel():'IEPP'; }catch(e){ return 'IEPP'; } }
+  function cisLogo(){ var l=''; try{ l=(typeof getIeppLogo==='function'?getIeppLogo():'')||''; }catch(e){}
+    return '<div class="cis-lg">'+(l?'<img src="'+E(l)+'" alt="Logo IEPP">':'<div class="nol">LOGO<br>IEPP</div>')+'<span>'+E(cisIepp())+'</span></div>'; }
+  function cisArm(){ var a=''; try{ a=(typeof ARMOIRIE_MENAET_B64!=='undefined')?ARMOIRIE_MENAET_B64:''; }catch(e){}
+    return '<div class="cis-arm">'+(a?'<img src="'+a+'" alt="Armoiries">':'')+'</div>'; }
   window.carteEleveHTML=function(e){
     e=e||{}; var ec=ecoleInfo(e.ecole), ini=((e.prenoms||'?')[0]||'?')+((e.nom||'?')[0]||'?');
     var photo=e.photo?'<img src="'+E(e.photo)+'" alt="photo">':'<div class="cis-ini">'+E(ini.toUpperCase())+'</div>';
     var qr=[String(e.matricule||'').replace(/\s+/g,''),(e.nom||'')+' '+(e.prenoms||''),e.ecole||'',annee()].join('|');
     var code=ec.code?E(ec.code)+' : ':'';
     return '<div class="carte-scolaire cis" data-eleve="'+E(e.id)+'" style="max-width:100%;border-radius:12px;padding:0;background:none">'
-      +'<div class="cis-top"><div class="cis-emb"></div><div class="cis-txt"><b>RÉPUBLIQUE DE CÔTE D\'IVOIRE</b><i>Union – Discipline – Travail</i><em>Ministère de l\'Éducation Nationale et de l\'Alphabétisation</em></div></div>'
+      +'<div class="cis-top">'+cisLogo()+'<div class="cis-txt"><b>RÉPUBLIQUE DE CÔTE D\'IVOIRE</b><i>Union – Discipline – Travail</i><em>Ministère de l\'Éducation Nationale et de l\'Alphabétisation</em></div>'+cisArm()+'</div>'
       +'<div class="cis-tit">CARTE D\'IDENTITÉ SCOLAIRE</div>'
       +'<div class="cis-an">ANNÉE SCOLAIRE : '+E(annee())+'</div>'
       +'<div class="cis-mat"><span>Matricule :</span>'+(E(fmtMat(e.matricule))||'—')+'</div>'
@@ -40548,6 +40554,170 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
   }
   setInterval(bg,15000); setTimeout(bg,6000);
   window.__cxApi={find:find,bg:bg,pool:pool};
+})();
+</script>
+
+<script id="module-corrections-acces-espaces">
+/* Corrections d'accès : (1) Services d'appui visibles pour Secrétaire / Chargé de communication ; (2) COGES et Vie scolaire sans l'espace Alphabétisation */
+(function(){
+  function purge(){
+    try{ if(typeof ACL!=='object'||!ACL) return;
+      ['coges','viescolaire'].forEach(function(r){ if(Array.isArray(ACL[r])) ACL[r]=ACL[r].filter(function(m){ return !/^(alpha|islam)/.test(m); }); });
+      try{ window.ACL=ACL; }catch(e){}
+    }catch(e){}
+  }
+  purge();
+  function fixSections(){
+    try{
+      var sec=document.getElementById('sb-services-section');
+      if(sec){ var any=[].slice.call(sec.querySelectorAll('.sb-link[data-module]')).some(function(l){ return l.style.display!=='none'; }); if(any) sec.style.display=''; }
+      var um=document.getElementById('sb-umbrella-admin');
+      if(um){ var a2=false; document.querySelectorAll('.sb-section.is-service').forEach(function(s){ if(s.style.display==='none') return; s.querySelectorAll('.sb-link[data-module]').forEach(function(l){ if(l.style.display!=='none') a2=true; }); }); if(a2) um.style.display=''; }
+    }catch(e){}
+  }
+  if(typeof window.applyACL==='function' && !window.applyACL.__fx){
+    var o=window.applyACL;
+    window.applyACL=function(){ purge(); var r=o.apply(this,arguments); fixSections(); return r; };
+    window.applyACL.__fx=1;
+  }
+  if(typeof window.navigate==='function' && !window.navigate.__fx){
+    var n=window.navigate; window.navigate=function(){ purge(); return n.apply(this,arguments); }; window.navigate.__fx=1;
+  }
+})();
+</script>
+
+<script id="module-secretariat-croisement-base">
+/* Espace Secrétariat (et Cantine) : listes du personnel, des écoles et des élèves alimentées par la base de l'IEPP — additif */
+(function(){
+  if(window.__secxInit) return; window.__secxInit=true;
+  function S(){ return window.state||null; }
+  function nn(x){ return String(x||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9 ]/g,' ').replace(/\s+/g,' ').trim().toUpperCase(); }
+  function ip(){ var st=S(); var v=st&&(st.activeIepp||(st.user&&st.user.iepp)); return (v&&v!=='TOUTES')?String(v).trim().toUpperCase():''; }
+  var SKIPROLE={superadmin:1,drenaet:1,invite:1};
+  var FMAP={inspecteur:'Inspecteur',correspondant:'Correspondant fichier',corresp_stat:'Correspondant statistique',secretaire:'Secrétaire',communication:'Chargé de communication',courrier:'Agent courrier',archiviste:'Archiviste',econome:'Économe',viescolaire:'Conseiller vie scolaire',smoss:'Conseiller SMOSS',cantine:'Conseiller cantine',coges:'Conseiller COGES',alphabetisation:'Conseiller alphabétisation',cpi:'Conseiller pédagogique',directeur:'Directeur',instituteur:'Instituteur',rh:'Chargé RH'};
+  /* ---------- sources ---------- */
+  function people(){
+    var st=S(), out=[], seen={}, p=ip();
+    (st.personnel||[]).forEach(function(x){ if(!x||!x.nom) return; var k=nn(x.nom); if(seen[k]) return; seen[k]=1;
+      out.push({id:x.id,nom:x.nom,fonction:x.fonction||'',tel:x.tel||'',matricule:x.matricule||'',ecole:x.ecole||'',classe:x.classe||'',email:''}); });
+    (st.users||[]).forEach(function(u){ if(!u||!u.name||SKIPROLE[u.role]||u.actif===false) return; if(p&&String(u.iepp||'').trim().toUpperCase()!==p) return;
+      var k=nn(u.name), ex=out.filter(function(o){return nn(o.nom)===k;})[0];
+      if(ex){ ex.email=ex.email||u.email||''; ex.tel=ex.tel||u.tel||u.contact||''; ex.matricule=ex.matricule||u.matricule||''; return; }
+      seen[k]=1; out.push({id:'u_'+u.username,nom:u.name,fonction:FMAP[u.role]||(window.ROLES&&ROLES[u.role]&&ROLES[u.role].short)||'Agent',tel:u.tel||u.contact||'',matricule:u.matricule||'',ecole:u.ecole||'',classe:u.classe||'',email:u.email||''}); });
+    return out;
+  }
+  function isDir(x){ return /directeur|directrice/i.test(x.fonction||''); }
+  function nbEleves(ecole,classe){
+    var L=(S().elevesFichier||[]), e=nn(ecole), c=nn(classe);
+    return L.filter(function(x){ return nn(x.ecole)===e && (!c||nn(x.niveau)===c); }).length;
+  }
+  function mater(ec){
+    if(/maternelle|prescol|pr[eé]scol|(^| )EM( |$)/i.test(ec.nom||'')) return true;
+    return false;
+  }
+  function hasPre(ec){ var e=nn(ec.nom); return (S().elevesFichier||[]).some(function(x){ return nn(x.ecole)===e && /^(MPS|MMS|MGS|PS|MS|GS)$/i.test(String(x.niveau||'').trim()); }); }
+  function schools(){
+    var P=people(), out=[];
+    (S().ecoles||[]).forEach(function(ec){ if(!ec||!ec.nom) return;
+      var en=nn(ec.nom), d=P.filter(function(x){ return isDir(x)&&nn(x.ecole)===en; })[0];
+      var dn=(d&&d.nom)||ec.directeur||''; if(!d&&dn){ var k=nn(dn); d=P.filter(function(x){return nn(x.nom)===k;})[0]; }
+      var contact=(d&&d.tel)||ec.contactDirecteur||ec.contact||'';
+      var cl=d&&d.classe||''; var eff=cl?nbEleves(ec.nom,cl):0; if(!eff) eff=nbEleves(ec.nom,'')||Number(ec.effectif)||0;
+      out.push({id:ec.id||en,nom:ec.nom,localite:ec.commune||ec.localite||'',directeur:dn,contact:contact,effectif:eff,anc:d&&d.anciennete||'',mat:mater(ec),pre:hasPre(ec),dir:d||null});
+    });
+    return out;
+  }
+  /* ---------- fusion dans un registre ---------- */
+  function ensure(reg,path){ var st=S(); if(!st[reg]||typeof st[reg]!=='object') st[reg]={}; if(!Array.isArray(st[reg][path])) st[reg][path]=[]; return st[reg][path]; }
+  function upsert(reg,path,src,fixed,defaults,state){
+    var arr=ensure(reg,path), ign=ensure(reg,'__ign'), id='sx_'+src, ch=0;
+    if(ign.some(function(x){return x.id==='ign_'+id+'_'+path;})) return 0;
+    var r=arr.find(function(x){return x.id===id;});
+    if(!r){ r=Object.assign({id:id,_sx:1},defaults||{},fixed); arr.push(r); return 1; }
+    if(r._ed) return 0;
+    Object.keys(fixed).forEach(function(k){ if(String(r[k]==null?'':r[k])!==String(fixed[k]==null?'':fixed[k])){ r[k]=fixed[k]; ch=1; } });
+    if(ch) r._upd=Date.now();
+    return ch;
+  }
+  function prune(reg,path,validIds){ var arr=ensure(reg,path), n0=arr.length; var keep=arr.filter(function(r){ return !(r._sx&&!r._ed&&validIds.indexOf(r.id)<0); }); if(keep.length!==n0){ S()[reg][path]=keep; return 1; } return 0; }
+  var BUSY=false;
+  function syncAll(){
+    if(BUSY) return; BUSY=true;
+    try{
+      var st=S(); if(!st||!st.user||!st.secretariatReg) return;
+      var P=people(), SC=schools(), chg={};
+      var mark=function(reg,n){ if(n) chg[reg]=1; };
+      var ids=[];
+      P.forEach(function(p){ ids.push('sx_'+p.id); });
+      P.forEach(function(p){
+        mark('secretariatReg',upsert('secretariatReg','personnel/liste',p.id,{nom:p.nom,fonction:p.fonction,contact:p.tel},{statut:'En poste'}));
+        mark('secretariatReg',upsert('secretariatReg','personnel/dossiers',p.id,{nom:p.nom,matricule:p.matricule},{piece:'',statut:'Incomplet'}));
+        mark('secretariatReg',upsert('secretariatReg','personnel/affectations',p.id,{nom:p.nom,poste:(p.fonction||'')+(p.ecole?' — '+p.ecole:'')},{dateAffectation:'',statut:'Active'}));
+        mark('secretariatReg',upsert('secretariatReg','personnel/contacts',p.id,{nom:p.nom,type:p.fonction,contact:p.tel,email:p.email},{}));
+      });
+      ['personnel/liste','personnel/dossiers','personnel/affectations','personnel/contacts'].forEach(function(pt){ mark('secretariatReg',prune('secretariatReg',pt,ids)); });
+      var im=[],ipr=[],id2=[];
+      SC.forEach(function(s){
+        var base={nom:s.nom,localite:s.localite,directeur:s.directeur,contact:s.contact,effectif:s.effectif};
+        if(s.mat||s.pre){ im.push('sx_'+s.id); mark('secretariatReg',upsert('secretariatReg','ecoles/maternelles',s.id,base,{})); }
+        if(!s.mat){ ipr.push('sx_'+s.id); mark('secretariatReg',upsert('secretariatReg','ecoles/primaires',s.id,base,{})); }
+        if(s.directeur){ id2.push('sx_'+s.id); mark('secretariatReg',upsert('secretariatReg','ecoles/directeurs',s.id,{nom:s.directeur,ecole:s.nom,contact:s.contact},{anciennete:s.anc?String(s.anc)+' ans':''})); }
+      });
+      mark('secretariatReg',prune('secretariatReg','ecoles/maternelles',im)); mark('secretariatReg',prune('secretariatReg','ecoles/primaires',ipr)); mark('secretariatReg',prune('secretariatReg','ecoles/directeurs',id2));
+      /* Cantine : liste des écoles, effectifs, gestionnaires (directeurs) */
+      if(st.cantineReg){
+        var cl=[],ce=[],cg=[];
+        SC.forEach(function(s){
+          var tot=nbEleves(s.nom,''), g=(st.elevesFichier||[]).filter(function(x){return nn(x.ecole)===nn(s.nom)&&String(x.sexe||'').toUpperCase()==='M';}).length;
+          cl.push('sx_'+s.id); mark('cantineReg',upsert('cantineReg','ecoles/liste',s.id,{ecole:s.nom,localite:s.localite},{}));
+          ce.push('sx_'+s.id); mark('cantineReg',upsert('cantineReg','ecoles/effectifs',s.id,{ecole:s.nom,garcons:g,filles:tot-g,total:tot},{}));
+          if(s.directeur){ cg.push('sx_'+s.id); mark('cantineReg',upsert('cantineReg','ecoles/gestionnaires',s.id,{nom:s.directeur,ecole:s.nom,fonction:'Directeur',contact:s.contact},{})); }
+        });
+        mark('cantineReg',prune('cantineReg','ecoles/liste',cl)); mark('cantineReg',prune('cantineReg','ecoles/effectifs',ce)); mark('cantineReg',prune('cantineReg','ecoles/gestionnaires',cg));
+      }
+      Object.keys(chg).forEach(function(r){ try{ save(r,st[r]); }catch(e){} });
+    }catch(e){ console.warn('[secx]',e); }
+    finally{ BUSY=false; }
+  }
+  window.__secxSync=syncAll;
+  /* ---------- champs / listes ---------- */
+  var ELV=[{k:'matricule',l:'Matricule',t:'text'},{k:'nom',l:'Nom',t:'text'},{k:'prenoms',l:'Prénoms',t:'text'},{k:'sexe',l:'Sexe',t:'text'},{k:'classe',l:'Classe',t:'text'},{k:'ecole',l:'École',t:'text'},{k:'dateN',l:'Date de naissance',t:'text'}];
+  if(typeof window.secretariatLeafFields==='function'){
+    var oF=window.secretariatLeafFields;
+    window.secretariatLeafFields=function(path){
+      if(path==='ecoles/eleves') return ELV;
+      var f=oF.apply(this,arguments);
+      if((path==='ecoles/maternelles'||path==='ecoles/primaires')&&Array.isArray(f)){
+        f=f.map(function(x){ return x.k==='effectif'?Object.assign({},x,{l:'Effectif (classe du directeur)'}):x; });
+        if(!f.some(function(x){return x.k==='contact';})){ var i=f.findIndex(function(x){return x.k==='directeur';}); f.splice(i+1,0,{k:'contact',l:'Contact directeur',t:'text'}); }
+      }
+      return f;
+    };
+  }
+  if(typeof window.secretariatGet==='function'){
+    var oG=window.secretariatGet;
+    window.secretariatGet=function(path){
+      if(path==='ecoles/eleves'){ var L=(S().elevesFichier||[]); return L.map(function(e){ return {id:e.id,matricule:e.matricule||'',nom:e.nom||'',prenoms:e.prenoms||'',sexe:e.sexe||'',classe:e.niveau||'',ecole:e.ecole||'',dateN:e.dateN||''}; }); }
+      return oG.apply(this,arguments);
+    };
+  }
+  if(typeof window.secretariatCanManage==='function'){
+    var oC=window.secretariatCanManage;
+    window.secretariatCanManage=function(){ try{ if(secretariatArea==='ecoles'&&secretariatLeaf==='eleves') return false; }catch(e){} return oC.apply(this,arguments); };
+  }
+  try{ var ar=SECRETARIAT_TREE.find(function(a){return a.id==='ecoles';}); if(ar&&!ar.children.some(function(c){return c.id==='eleves';})) ar.children.push({id:'eleves',label:'Élèves',kind:'table'}); }catch(e){}
+  /* modifications : on marque la fiche comme éditée (plus de resynchronisation) ; suppression : on ne la recrée plus */
+  if(typeof window.secretariatSave==='function'){
+    var oS=window.secretariatSave;
+    window.secretariatSave=function(path,id){ var r=oS.apply(this,arguments); try{ if(id&&/^sx_/.test(id)){ var rec=(S().secretariatReg[path]||[]).find(function(x){return x.id===id;}); if(rec&&!rec._ed){ rec._ed=1; save('secretariatReg',S().secretariatReg); } } }catch(e){} return r; };
+  }
+  if(typeof window.secretariatDelete==='function'){
+    var oD=window.secretariatDelete;
+    window.secretariatDelete=function(path,id){ var r=oD.apply(this,arguments); try{ if(/^sx_/.test(id)&&!(S().secretariatReg[path]||[]).some(function(x){return x.id===id;})){ var ig=ensure('secretariatReg','__ign'); ig.push({id:'ign_'+id+'_'+path}); save('secretariatReg',S().secretariatReg); } }catch(e){} return r; };
+  }
+  /* synchronisation avant l'affichage de l'espace */
+  if(typeof window.renderSecretariat==='function'){ var oR=window.renderSecretariat; window.renderSecretariat=function(){ syncAll(); return oR.apply(this,arguments); }; }
+  if(typeof window.navigate==='function' && !window.navigate.__secx){ var oN=window.navigate; window.navigate=function(m){ if(m==='cantine'||m==='secretariat') syncAll(); return oN.apply(this,arguments); }; window.navigate.__secx=1; }
 })();
 </script>
 
