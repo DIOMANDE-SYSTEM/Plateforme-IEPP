@@ -40308,6 +40308,162 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
 })();
 </script>
 
+<script id="module-colonne-matricule-comptes">
+/* Colonne « Matricule / Identifiant Codipost » juste après le nom, dans les listes de comptes */
+(function(){
+  if(window.__matColInit) return; window.__matColInit=true;
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function patch(bodyId){
+    var tb=document.getElementById(bodyId); if(!tb) return;
+    var tbl=tb.closest('table'), tr=tbl&&tbl.querySelector('thead tr');
+    if(tr && !tr.querySelector('th[data-mat]')){ var th=document.createElement('th'); th.setAttribute('data-mat','1'); th.textContent='Matricule / ID Codipost'; var ths=tr.querySelectorAll('th'); if(ths[1]) ths[1].insertAdjacentElement('afterend',th); }
+    var users=(window.state&&state.users)||[];
+    [].slice.call(tb.querySelectorAll('tr')).forEach(function(r){
+      if(r.getAttribute('data-matdone')) return; r.setAttribute('data-matdone','1');
+      var e=r.querySelector('td.table-empty'); if(e){ e.colSpan=(e.colSpan||1)+1; return; }
+      var c=r.children; if(c.length<2) return;
+      var un=(c[0].textContent||'').trim(), u=users.find(function(x){return x&&x.username===un;});
+      var td=document.createElement('td'); td.className='text-sm'; td.style.whiteSpace='nowrap';
+      td.innerHTML=(u&&u.matricule)?'<span style="font-variant-numeric:tabular-nums;font-weight:600">'+esc(u.matricule)+'</span>':'<span class="text-muted text-xs">—</span>';
+      c[1].insertAdjacentElement('afterend',td);
+    });
+  }
+  function wrap(fn,id){ if(typeof window[fn]!=='function'||window[fn].__mc) return; var o=window[fn]; window[fn]=function(){ var r=o.apply(this,arguments); try{ patch(id); }catch(e){} return r; }; window[fn].__mc=1; }
+  wrap('renderUsersBody','us-body'); wrap('renderComptesBody','cc-body');
+  try{ patch('us-body'); patch('cc-body'); }catch(e){}
+})();
+</script>
+
+<script id="module-croisement-donnees-iepp">
+/* Croisement automatique des données (comptes, RH, secteurs/CPS, élèves) — limité à l'IEPP actif */
+(function(){
+  if(window.__cxInit) return; window.__cxInit=true;
+  function S(){ return window.state||null; }
+  function nn(x){ return String(x||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9 ]/g,' ').replace(/\s+/g,' ').trim().toUpperCase(); }
+  function toks(x){ return nn(x).split(' ').filter(Boolean); }
+  function mk(x){ return String(x||'').replace(/\s+/g,'').toUpperCase(); }
+  function ip(){ var st=S(); var v=st&&(st.activeIepp||(st.user&&st.user.iepp)); return (v&&v!=='TOUTES')?String(v).trim().toUpperCase():''; }
+  function isNIA(m){ return /^NIA-/i.test(String(m||'')); }
+  function sameName(a,b){ var A=toks(a),B=toks(b); if(!A.length||!B.length) return false; var sa=A.slice().sort().join(' '), sb=B.slice().sort().join(' '); if(sa===sb) return true;
+    var small=A.length<=B.length?A:B, big=A.length<=B.length?B:A; return small.length>=2 && small.every(function(t){return big.indexOf(t)>=0;}); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  /* sources de personnes de l'IEPP */
+  function pool(){
+    var st=S(), out=[], p=ip();
+    (st.personnel||[]).forEach(function(x){ if(x&&x.nom) out.push({src:'RH',ref:x,nom:x.nom,mat:x.matricule,sexe:x.sexe,tel:x.tel,ecole:x.ecole,classe:x.classe,anc:x.anciennete,fonction:x.fonction,grade:x.grade}); });
+    try{ (load('secteurs',[])||[]).forEach(function(sc){ (sc.enseignants||[]).forEach(function(e){ if(e&&e.nom) out.push({src:'Secteur '+(sc.nom||''),ref:e,nom:e.nom,mat:e.matricule,tel:e.contact,ecole:e.ecole,anc:e.anciennete}); }); }); }catch(e){}
+    if(p) (st.users||[]).forEach(function(u){ if(u&&u.name&&u.role!=='superadmin'&&String(u.iepp||'').trim().toUpperCase()===p) out.push({src:'Comptes',ref:u,nom:u.name,mat:u.matricule,tel:u.tel||u.contact,ecole:u.ecole,classe:u.classe}); });
+    return out;
+  }
+  function find(nom,mat,self){
+    var P=pool().filter(function(x){return x.ref!==self;}), m=mk(mat), hit=[];
+    if(m&&m.length>=4) hit=P.filter(function(x){return mk(x.mat)===m;});
+    if(!hit.length && nom && toks(nom).length>=2){
+      hit=P.filter(function(x){return sameName(nom,x.nom);});
+      var ms={}; hit.forEach(function(x){ if(mk(x.mat)) ms[mk(x.mat)]=1; });
+      if(Object.keys(ms).length>1) return {amb:true,hits:hit};
+    }
+    if(!hit.length) return null;
+    var r={hits:hit,src:{}}; ['nom','mat','sexe','tel','ecole','classe','anc','fonction','grade'].forEach(function(k){ for(var i=0;i<hit.length;i++){ var v=hit[i][k]; if(v!=null&&String(v).trim()&&String(v)!=='0'){ r[k]=v; r.src[hit[i].src]=1; break; } } });
+    return r;
+  }
+  /* remplissage d'un formulaire */
+  function put(id,v,force){ var el=document.getElementById(id); if(!el||v==null||String(v).trim()==='') return 0; if(el.readOnly||el.disabled) return 0;
+    if(el.tagName==='SELECT'){ var ok=[].slice.call(el.options).some(function(o){return (o.value||o.text)===String(v);}); if(!ok) return 0; if(!force && el.value && el.selectedIndex>0 && el.__cx!==1 && !el.hasAttribute('data-cxdef')) return 0; el.value=String(v); }
+    else { if(String(el.value||'').trim() && !(force&&!el.__cxu)) return 0; el.value=String(v); }
+    el.style.background='#ECFDF5'; el.dispatchEvent(new Event('input',{bubbles:true})); return 1; }
+  function note(near,txt,warn){
+    var el=document.getElementById(near); if(!el) return; var f=el.closest('.field')||el.parentNode; var n=f.querySelector('.cx-note');
+    if(!n){ n=document.createElement('div'); n.className='cx-note text-xs'; n.style.cssText='margin-top:3px;font-weight:600'; f.appendChild(n); }
+    n.style.color=warn?'#B45309':'#047857'; n.textContent=txt;
+  }
+  function srcTxt(r){ return Object.keys(r.src).join(', '); }
+  /* Compte utilisateur */
+  function doUser(){
+    var nm=document.getElementById('u-name'); if(!nm) return; var sel=document.getElementById('u-user'); var self=null;
+    var r=find(nm.value,(document.getElementById('u-matricule')||{}).value,null); if(!r) return;
+    if(r.amb){ note('u-name','⚠️ Plusieurs homonymes dans la base de l\'IEPP : renseignez le matricule pour les distinguer.',true); return; }
+    var n=0; n+=put('u-matricule',r.mat); n+=put('u-tel',r.tel); n+=put('u-ecole',r.ecole);
+    var cl=document.getElementById('u-classe'); if(r.classe&&cl&&!cl.value) n+=put('u-classe',r.classe);
+    if(n) note('u-name','✅ Déjà présent dans la base de l\'IEPP ('+srcTxt(r)+') : '+n+' donnée(s) reprise(s) automatiquement.');
+  }
+  /* RH */
+  function doRH(){
+    var nm=document.getElementById('rh-nom'); if(!nm) return;
+    var r=find(nm.value,(document.getElementById('rh-mat')||{}).value,null);
+    var cur=null; try{ var st=S(); cur=null; }catch(e){}
+    if(!r) return;
+    if(r.amb){ note('rh-nom','⚠️ Plusieurs homonymes dans la base de l\'IEPP : renseignez le matricule.',true); return; }
+    var n=0; n+=put('rh-mat',r.mat); n+=put('rh-tel',r.tel); n+=put('rh-classe',r.classe); n+=put('rh-fonction',r.fonction); n+=put('rh-anc',r.anc);
+    var sx=document.getElementById('rh-sexe'); if(r.sexe&&sx&&!sx.value) n+=put('rh-sexe',r.sexe);
+    if(r.ecole){ var ec=document.getElementById('rh-ecole'); if(ec && !ec.__cxs){ n+=put('rh-ecole',r.ecole,true); } }
+    if(n) note('rh-nom','✅ Déjà présent dans la base de l\'IEPP ('+srcTxt(r)+') : '+n+' donnée(s) reprise(s) automatiquement.');
+  }
+  /* Secteurs (CPS) : saisie en ligne */
+  function doSec(){
+    var nm=document.getElementById('ens-nom'); if(!nm) return;
+    var r=find(nm.value,(document.getElementById('ens-mat')||{}).value,null); if(!r) return;
+    if(r.amb){ note('ens-nom','⚠️ Plusieurs homonymes : renseignez le matricule.',true); return; }
+    var n=0; n+=put('ens-mat',r.mat); n+=put('ens-contact',r.tel); n+=put('ens-anc',r.anc);
+    var ec=document.getElementById('ens-ecole'); if(r.ecole&&ec&&!ec.value) n+=put('ens-ecole',r.ecole,true);
+    if(n) note('ens-nom','✅ Retrouvé dans la base de l\'IEPP ('+srcTxt(r)+') : '+n+' donnée(s) reprise(s).');
+  }
+  /* Élèves (fichier de l'IEPP) */
+  function findEleve(nom,pre,mat){
+    var L=(S().elevesFichier||[]), m=mk(mat), hit=null;
+    if(m&&!isNIA(m)) hit=L.filter(function(e){ return mk(e.matricule)===m; });
+    if((!hit||!hit.length) && nn(nom) && nn(pre)){ var A=toks(nom).concat(toks(pre)).sort().join(' ');
+      hit=L.filter(function(e){ return toks(e.nom).concat(toks(e.prenoms)).sort().join(' ')===A; }); }
+    return hit&&hit.length?hit:null;
+  }
+  function doEleve(p){
+    var g=function(s){ var e=document.getElementById(p+'-'+s); return e?e.value:''; };
+    var hit=findEleve(g('nom'),g('pre'),g('mat')); if(!hit) return;
+    var dn=g('dn'); if(dn&&hit.length>1){ var f=hit.filter(function(e){return e.dateN===dn;}); if(f.length) hit=f; }
+    if(hit.length>1){ note(p+'-nom','⚠️ '+hit.length+' élèves portent ce nom dans la base de l\'IEPP : précisez matricule ou date de naissance.',true); return; }
+    var e=hit[0], n=0;
+    if(!isNIA(e.matricule)) n+=put(p+'-mat',e.matricule);
+    n+=put(p+'-dn',e.dateN); n+=put(p+'-ln',e.lieuN); n+=put(p+'-pere',e.pere); n+=put(p+'-mere',e.mere); n+=put(p+'-tel',e.tel);
+    n+=put(p+'-sex',e.sexe,true); n+=put(p+'-ec',e.ecole,true); n+=put(p+'-niv',e.niveau,true); n+=put(p+'-ex',e.extrait,true);
+    note(p+'-nom','ℹ️ Cet élève existe déjà dans la base de l\'IEPP ('+(e.ecole||'')+' — '+(e.niveau||'')+') : '+n+' donnée(s) reprise(s). Vérifiez avant d\'enregistrer pour éviter un doublon.',true);
+  }
+  var T=null;
+  document.addEventListener('change',function(ev){
+    var id=ev.target&&ev.target.id; if(!id) return;
+    if(ev.target.tagName==='SELECT'&&/^(rh-ecole|el-ec|el-niv|sx-ec|sx-niv)$/.test(id)) ev.target.__cxs=1;
+    clearTimeout(T); T=setTimeout(function(){ try{
+      if(id==='u-name'||id==='u-matricule') doUser();
+      else if(id==='rh-nom'||id==='rh-mat') doRH();
+      else if(id==='ens-nom'||id==='ens-mat') doSec();
+      else if(/^el-(nom|pre|mat|dn)$/.test(id)) doEleve('el');
+      else if(/^sx-(nom|pre|mat|dn)$/.test(id)) doEleve('sx');
+    }catch(e){ console.warn('[cx]',e); } },150);
+  },true);
+  /* Synchronisation de fond (champs vides uniquement, même IEPP) */
+  function unique(P,nom,self){ var h=P.filter(function(x){return x.ref!==self&&sameName(nom,x.nom);}); if(!h.length) return null; var ms={}; h.forEach(function(x){ if(mk(x.mat)) ms[mk(x.mat)]=1; }); if(Object.keys(ms).length>1) return null; return h; }
+  function fillEmpty(tgt,map,hits){ var ch=0; Object.keys(map).forEach(function(k){ if(String(tgt[k]==null?'':tgt[k]).trim()&&String(tgt[k])!=='0') return; for(var i=0;i<hits.length;i++){ var v=hits[i][map[k]]; if(v!=null&&String(v).trim()&&String(v)!=='0'){ tgt[k]=v; ch=1; break; } } }); return ch; }
+  function bg(){
+    try{
+      var st=S(); if(!st||!st.user||!st.user.username||!ip()) return;
+      if(!(typeof canCreateUsers==='function'&&canCreateUsers())) return;
+      var P=pool(), cu=0,cp=0,cs=0, secs=null;
+      (st.users||[]).forEach(function(u){ if(!u||!u.name||u.role==='superadmin'||String(u.iepp||'').trim().toUpperCase()!==ip()) return;
+        var h=unique(P,u.name,u); if(!h) return; var hh=h.filter(function(x){return x.src!=='Comptes';}); if(!hh.length) return;
+        var t=Object.assign({},{tel:u.tel||u.contact||''},{});
+        var c=fillEmpty(u,{matricule:'mat',ecole:'ecole'},hh); if(!String(u.tel||u.contact||'').trim()){ for(var i=0;i<hh.length;i++){ if(hh[i].tel){ u.tel=hh[i].tel; u.contact=hh[i].tel; c=1; break; } } }
+        if(c){ u._upd=Date.now(); cu++; } });
+      (st.personnel||[]).forEach(function(p){ if(!p||!p.nom) return; var h=unique(P,p.nom,p); if(!h) return; var c=fillEmpty(p,{matricule:'mat',tel:'tel',ecole:'ecole',classe:'classe',anciennete:'anc'},h); if(c){ p._upd=Date.now(); cp++; } });
+      try{ secs=load('secteurs',[])||[]; secs.forEach(function(sc){ (sc.enseignants||[]).forEach(function(e){ if(!e||!e.nom) return; var h=unique(P,e.nom,e); if(!h) return; if(fillEmpty(e,{matricule:'mat',contact:'tel',ecole:'ecole',anciennete:'anc'},h)) cs++; }); }); }catch(e){}
+      if(cu) save('users',st.users); if(cp) save('personnel',st.personnel); if(cs&&secs) save('secteurs',secs);
+      if(cp){ try{ if(document.getElementById('rh-body')&&typeof renderRHBody==='function') renderRHBody(); }catch(e){} }
+      if(cu){ try{ if(document.getElementById('us-body')&&typeof renderUsersBody==='function') renderUsersBody(); }catch(e){} }
+    }catch(e){ console.warn('[cx bg]',e); }
+  }
+  setInterval(bg,15000); setTimeout(bg,6000);
+  window.__cxApi={find:find,bg:bg,pool:pool};
+})();
+</script>
+
 <script id="module-persistance-corbeille">
 /* ============================================================================
    PERSISTANCE LOCALE + CORBEILLE (ajout, n'altère rien)
