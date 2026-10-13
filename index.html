@@ -40280,6 +40280,12 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
       var st=S(); if(!st||!st.user||!st.user.username) return;
       var me=st.user, u=(st.users||[]).find(function(x){return x&&x.username===me.username;});
       if(!u||u.matricule||me.matricule||me.role==='superadmin') return;
+      /* matricule déjà connu ailleurs (anciens champs, fiche personnel RH, secteurs) -> on le reprend sans rien demander */
+      var known=u.mat||u.identifiant||u.codipost||u.Matricule||me.mat||'';
+      var nnm=function(x){ return String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().toUpperCase(); };
+      if(!known){ var p=(st.personnel||[]).find(function(x){ return x&&String(x.matricule||'').trim()&&(x.userRef===u.username||x.id==='pu_'+u.username||(u.name&&nnm(x.nom)===nnm(u.name))); }); if(p) known=p.matricule; }
+      if(!known){ try{ (load('secteurs',[])||[]).forEach(function(sc){ (sc.enseignants||[]).forEach(function(e){ if(!known&&e&&String(e.matricule||'').trim()&&u.name&&nnm(e.nom)===nnm(u.name)) known=e.matricule; }); }); }catch(x){} }
+      if(known){ known=norm(known); u.matricule=known; me.matricule=known; u._upd=Date.now(); try{ save('users',st.users); }catch(x){} return; }
       if(asked[me.username]||document.getElementById('mat-ask')||document.getElementById('sec-pwd-force')) return;
       var bd=document.getElementById('modal-backdrop'); if(bd && (bd.classList.contains('open')||bd.classList.contains('show')||(bd.style.display&&bd.style.display!=='none'&&bd.offsetParent))) return;
       if(!document.getElementById('content')||!document.getElementById('content').offsetParent) return;
