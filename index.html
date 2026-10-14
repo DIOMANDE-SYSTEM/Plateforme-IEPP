@@ -9669,7 +9669,7 @@ function rhPersonnelImport(ev) {
       const g=keys=>{const k=Object.keys(raw).find(h=>keys.some(x=>norm(h).includes(x)));return k?String(raw[k]).trim():'';};
       const nom=g(['nom','name']); if(!nom) return;
       state.personnel=state.personnel||[];
-      {const mt=g(['matricule','mat']).toUpperCase(); if(mt&&state.personnel.some(x=>String(x.matricule||'').toUpperCase()===mt)){ window.__impDup=(window.__impDup||0)+1; return; }}
+      {const mt=g(['matricule','mat']).toUpperCase(); if(mt&&!(window.matVide&&window.matVide(mt))&&state.personnel.some(x=>String(x.matricule||'').toUpperCase()===mt)){ window.__impDup=(window.__impDup||0)+1; return; }}
       state.personnel.push({id:'p'+uid(),matricule:g(['matricule','mat']),nom,sexe:(g(['sexe','genre'])||'').toUpperCase().slice(0,1),fonction:g(['fonction','poste','role'])||'Instituteur adjoint (IA)',grade:g(['grade'])||'',ecole:g(['ecole','school']),anciennete:parseInt(g(['anciennete']))||0,classe:g(['classe']),tel:g(['tel','telephone'])});
       added++;
     });
@@ -10940,6 +10940,10 @@ function rhForm(id) {
       <div class="field"><label>Classe (si enseignant)</label><input id="rh-classe" value="${escapeHtml(p.classe||'')}" placeholder="ex : CE1"></div>
       <div class="field"><label>Téléphone</label><input id="rh-tel" value="${escapeHtml(p.tel||'')}" placeholder="ex : 0700000000"></div>
     </div>
+    <div class="form-row">
+      <div class="field"><label>Date de naissance <span class="text-xs text-muted">(facultatif — aide à détecter les doublons)</span></label><input type="date" id="rh-dn" value="${escapeHtml(p.dateN||'')}"></div>
+      <div class="field"><label>Nom de la mère <span class="text-xs text-muted">(facultatif)</span></label><input id="rh-mere" value="${escapeHtml(p.mere||'')}"></div>
+    </div>
     <div class="field"><label>Ancienneté (années)</label><input type="number" id="rh-anc" value="${p.anciennete||0}"></div>
   `, `
     <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
@@ -10957,9 +10961,12 @@ function rhSave(id) {
     ecole: document.getElementById('rh-ecole').value,
     classe: (document.getElementById('rh-classe')?.value || '').trim(),
     tel: (document.getElementById('rh-tel')?.value || '').trim(),
+    dateN: (document.getElementById('rh-dn')?.value || ''),
+    mere: (document.getElementById('rh-mere')?.value || '').trim(),
     anciennete: parseInt(document.getElementById('rh-anc').value) || 0
   };
   if (!data.matricule || !data.nom) { toast('Matricule et nom obligatoires', 'error'); return; }
+  if (!id && !DupEngine.guard('personnel', data)) return;
   if (id) {
     const p = state.personnel.find(x=>x.id===id);
     if (!p) { toast('Personnel introuvable.', 'error'); return; }
@@ -21762,6 +21769,7 @@ function eleveForm(id) {
       <div class="field"><label>Téléphone parent</label><input id="el-tel" value="${escapeHtml(e.tel||'')}"></div>
       <div class="field"><label>Extrait de naissance</label><select id="el-ex"><option value="OUI" ${e.extrait==='OUI'?'selected':''}>OUI</option><option value="NON" ${e.extrait==='NON'?'selected':''}>NON</option></select></div>
     </div>
+    <div class="field"><label>N° de registre d'extrait de naissance <span class="text-xs text-muted">(facultatif — aide à détecter les doublons)</span></label><input id="el-nex" value="${escapeHtml(e.numExtrait||'')}"></div>
   `, `
     <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
     <button class="btn btn-green" onclick="eleveSave('${id||''}')">Enregistrer</button>
@@ -21781,7 +21789,8 @@ function eleveSave(id) {
     pere: document.getElementById('el-pere').value.trim(),
     mere: document.getElementById('el-mere').value.trim(),
     tel: document.getElementById('el-tel').value.trim(),
-    extrait: document.getElementById('el-ex').value
+    extrait: document.getElementById('el-ex').value,
+    numExtrait: ((document.getElementById('el-nex')||{}).value||'').trim()
   };
   if (!data.nom || !data.prenoms) { toast('Nom et prénoms obligatoires','error'); return; }
   data.matricule = matNorm(data.matricule);
@@ -21798,6 +21807,7 @@ function eleveSave(id) {
   } else {
     data.matricule = 'NIA-2026-'+String(state.elevesFichier.length+1).padStart(5,'0');
   }
+  if (!id && !DupEngine.guard('eleves', data)) return;
   if (id) {
     Object.assign(state.elevesFichier.find(x=>x.id===id), data);
     logAction('update-eleve', `Modification élève : ${data.nom} ${data.prenoms}`);
@@ -23858,6 +23868,7 @@ function sansExtSave(id){
     }
   } else if(id){ data.matricule=state.elevesFichier.find(x=>x.id===id).matricule; }
   else { data.matricule='NIA-2026-'+String(state.elevesFichier.length+1).padStart(5,'0'); }
+  if(!id && !DupEngine.guard('eleves',data)) return;
   if(id){
     Object.assign(state.elevesFichier.find(x=>x.id===id),data);
     if(typeof logAction==='function') logAction('update-eleve',`Modification : ${data.nom} ${data.prenoms}`);
@@ -26398,7 +26409,7 @@ function meExportEcole() {
 function matNorm(v){ return String(v==null?'':v).replace(/\s+/g,'').toUpperCase(); }
 function matKind(v){ v=matNorm(v); if(/^\d{8}[A-Z]$/.test(v)) return 'Matricule'; if(/^[A-Z]\d{8}$/.test(v)) return 'Identifiant'; return ''; }
 function matProvisoire(v){ v=matNorm(v); return !v || !matKind(v); }
-function matDoublon(v, exceptId){ v=matNorm(v); if(!v) return null; return (state.elevesFichier||[]).find(x=>x.id!==exceptId && matNorm(x.matricule)===v) || null; }
+function matDoublon(v, exceptId){ v=matNorm(v); if(!v||(window.matVide&&window.matVide(v))) return null; return (state.elevesFichier||[]).find(x=>x.id!==exceptId && matNorm(x.matricule)===v) || null; }
 function matHint(inp, exceptId){
   const h=document.getElementById(inp.id+'-hint'); if(!h) return; const v=matNorm(inp.value);
   if(!v){ h.style.color='#64748B'; h.textContent='Facultatif : laissé vide, un numéro provisoire est attribué. Ex : 27123458U (matricule) ou U12345678 (identifiant).'; return; }
@@ -26431,6 +26442,7 @@ function eleveAddForm(opts) {
       <div class="field"><label>Téléphone</label><input id="el-tel"></div>
     </div>
     <div class="field"><label>Extrait de naissance</label><select id="el-ext"><option>OUI</option><option selected>NON</option></select></div>
+    <div class="field"><label>N° de registre d'extrait de naissance <span class="text-xs text-muted">(facultatif)</span></label><input id="el-nex"></div>
   `, `
     <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
     <button class="btn btn-orange" onclick="eleveAddSave('${opts.callback||'renderMaClasse'}')">Enregistrer</button>
@@ -26448,7 +26460,8 @@ function eleveAddSave(cb) {
   }
   const e = { id:'e_'+uid(), matricule: matSaisi || `${scope}-2026-${String(serial).padStart(5,'0')}`,
     nom:g('nom').toUpperCase(), prenoms:g('pre'), sexe:g('sex'), dateN:g('dn'), lieuN:g('ln'),
-    niveau:g('niv'), ecole:g('ec'), pere:g('pere'), mere:g('mere'), tel:g('tel'), extrait:g('ext'), photo:'' };
+    niveau:g('niv'), ecole:g('ec'), pere:g('pere'), mere:g('mere'), tel:g('tel'), extrait:g('ext'), numExtrait:((document.getElementById('el-nex')||{}).value||'').trim(), photo:'' };
+  if (!DupEngine.guard('eleves', e)) return;
   state.elevesFichier = state.elevesFichier || [];
   state.elevesFichier.push(e);
   save('elevesFichier', state.elevesFichier);
@@ -33067,6 +33080,7 @@ function userRestoreFromTrash(trashId){
       +(canManage()?'<button class="btn btn-ghost" onclick="ncRemTransmettreTout()" title="Faire remonter les données reçues au niveau supérieur">⬆️ Tout remonter</button>'
         +'<button class="btn btn-ghost" onclick="ncRemImportPick()" title="Importer des corrections (ne crée aucune nouvelle ligne)">📥 Importer</button><input type="file" id="nc-rem-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="ncRemImport(event)">'
         +'<button class="btn btn-ghost" onclick="ncExportRem()">📤 Export détaillé</button><button class="btn btn-ghost" onclick="ncRemPrint()">🖨️ Imprimer</button>':'')
+      +'<button class="btn btn-ghost" onclick="dfaExport()" title="Toutes les DFA soumises de votre périmètre, au modèle officiel">🎓 Export DFA (modèle)</button>'
       +'<button class="btn btn-green" onclick="ncExportSuivi()">📊 Export Excel du suivi</button></div>'
       +'<div id="nc-sup"></div>');
     paintSupervision();
@@ -33296,7 +33310,7 @@ function userRestoreFromTrash(trashId){
     var banner = '<div class="card" style="padding:14px 16px;margin-bottom:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">'
       +'<div><div class="text-xs text-muted">Statut de la DFA</div><div style="margin-top:3px">'+(d&&d.soumis?dfaBadge(d):'<span class="badge badge-grey">Non soumise</span>')+'</div></div>'
       +'<div class="text-sm" style="flex:1;min-width:220px">'+dfaTimeline(d)+'</div>'
-      +(locked ? '' : '<button class="btn btn-orange" onclick="ncDfaSubmit()">📨 Soumettre au Directeur</button>')+'</div>';
+      +(locked ? '' : '<button class="btn btn-orange" onclick="ncDfaSubmit()">📨 Soumettre au Directeur</button>')+'<button class="btn btn-green" onclick="dfaExport()" title="Fichier au modèle DFA (annee, matricule, nom, prenoms, ecole, niveau, dfa)">📊 Export DFA (Excel)</button></div>';
     var rej = (d && d.statut==='rejete' && d.rejet) ? '<div class="card" style="padding:12px 16px;margin-bottom:12px;border-left:4px solid #DC2626;background:#FEF2F2"><strong>Rejetée par '+esc(d.rejet.par)+'</strong> le '+fmtDate(d.rejet.date)+(d.rejet.motif?' — « '+esc(d.rejet.motif)+' »':'')+'. Corrigez puis soumettez à nouveau.</div>' : '';
     return banner + rej
       +'<div class="card" style="padding:0"><div class="table-wrap" style="border:none;max-height:62vh;overflow:auto"><table><thead><tr><th>N°</th><th>Élève</th><th>Moy. annuelle /'+max+'</th><th>Mention</th><th>Proposition</th><th>Décision (DFA)</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'
@@ -33366,7 +33380,7 @@ function userRestoreFromTrash(trashId){
       +'<div class="card" style="padding:8px 14px"><span class="text-xs text-muted">Redoublants</span><div style="font-size:20px;font-weight:800;color:#B91C1C">'+nR+'</div></div></div>'
       +'<div class="card" style="padding:0"><div class="table-wrap" style="border:none;max-height:46vh;overflow:auto"><table><thead><tr><th>N°</th><th>Élève</th><th>Moy. /'+max+'</th><th>Mention</th><th>Décision</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'
       +(d.applied?'<p class="text-xs" style="margin-top:8px;color:#15803D">✔ '+d.applied.n+' élève(s) passé(s) en classe supérieure le '+fmtDate(d.applied.date)+'.</p>':'')
-      +'<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">'+act+'</div>');
+      +'<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">'+act+'<button class="btn btn-green" onclick="dfaExport(\''+String(ecole).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\',\''+classe+'\')">📊 Export DFA (Excel)</button></div>');
   };
   function dfaById(id){ return (state.notesComposDfa||[]).find(function(x){ return x.id===id; }); }
   window.ncDfaApprove = function(id){
@@ -34441,8 +34455,11 @@ function userRestoreFromTrash(trashId){
     if(!rows.length){ toast('Aucune donnée.','error'); return; }
     exportRowsToExcel(rows,'resultats_'+U().classe+'_'+(emEval==='A'?'annuel':'compo'+emEval),'Résultats');
   };
-  function printHtml(titre,inner,asDoc){
-    var html='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(titre)+'</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{border-collapse:collapse;width:100%;margin:10px 0}th,td{border:1px solid #888;padding:5px 8px;font-size:12px}th{background:#eee}h1,h2,h3{margin:6px 0}.bul{page-break-after:always;border:2px solid #0B6B5C;padding:18px;margin-bottom:12px}.c{text-align:center}</style></head><body>'+inner+(asDoc?'':'<script>window.onload=function(){window.print();}<\/script>')+'</body></html>';
+  function printHtml(titre,inner,asDoc,bulFit){
+    /* bulFit : bulletin de notes en paysage, police légèrement réduite, tenant sur une seule page */
+    var bulCss=bulFit?'@page{size:A4 landscape;margin:7mm}body{padding:0!important;font-size:10px}th,td{padding:2px 6px!important;font-size:10px!important}table{margin:4px 0!important}h2{font-size:15px}h3{font-size:12px}h4{font-size:11px;margin:5px 0 2px!important}p{font-size:10.5px;margin:4px 0}.bul{padding:8px 14px!important;margin:0!important;page-break-inside:avoid;break-inside:avoid}':'';
+    var bulJs=(bulFit&&!asDoc)?'<script>window.__fit=function(){var H=Math.floor((210-14)/25.4*96)-6;document.querySelectorAll(".bul").forEach(function(b){b.style.zoom=1;var h=b.scrollHeight,z=1;if(h>H){z=Math.max(.4,H/h);b.style.zoom=z;}});};window.addEventListener("beforeprint",window.__fit);<\/script>':'';
+    var html='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(titre)+'</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}table{border-collapse:collapse;width:100%;margin:10px 0}th,td{border:1px solid #888;padding:5px 8px;font-size:12px}th{background:#eee}h1,h2,h3{margin:6px 0}.bul{page-break-after:always;border:2px solid #0B6B5C;padding:18px;margin-bottom:12px}.c{text-align:center}'+bulCss+(bulFit&&asDoc?'@page Section1{size:297mm 210mm;mso-page-orientation:landscape;margin:7mm}div.Section1{page:Section1}':'')+'</style></head><body>'+(bulFit&&asDoc?'<div class="Section1">':'')+inner+(bulFit&&asDoc?'</div>':'')+bulJs+(asDoc?'':'<script>window.onload=function(){'+(bulFit?'if(window.__fit)window.__fit();':'')+'window.print();}<\/script>')+'</body></html>';
     if(asDoc){ var b=new Blob(['﻿'+html],{type:'application/msword'}), a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=titre.replace(/[^\w-]+/g,'_')+'.doc'; document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500); return; }
     var w=window.open('','_blank'); if(!w){ toast('Autorisez les fenêtres pop-up pour imprimer.','error'); return; } w.document.write(html); w.document.close();
   }
@@ -34560,7 +34577,7 @@ function userRestoreFromTrash(trashId){
       printHtml('DFA '+u.classe,inner); return;
     }
     var inner2=sel.map(function(e){return bulletinHtml(e,rk);}).join('');
-    printHtml('Bulletins '+u.classe,inner2,mode==='word');
+    printHtml('Bulletins '+u.classe,inner2,mode==='word',true);
   };
 
 
@@ -35081,7 +35098,7 @@ function userRestoreFromTrash(trashId){
       var errs=[], add=[], upd=[], seen={}, u=U(), ecs=(state.ecoles||[]).map(function(e){return norm(e.nom);});
       rows.forEach(function(raw,i){
         var ln=i+2, rec={}, any=false;
-        Object.keys(raw).forEach(function(h){ var f=map[norm(h.replace(/\*/g,''))]; if(f){ var v=String(raw[h]==null?'':raw[h]).trim(); if(v!==''){ rec[f.k]=f.t==='number'?(parseFloat(v)||0):v; any=true; } } });
+        Object.keys(raw).forEach(function(h){ var f=map[norm(h.replace(/\*/g,''))]; if(f){ var v=String(raw[h]==null?'':raw[h]).trim(); if(f.k==='matricule'&&window.matVide&&window.matVide(v)) v=''; if(v!==''){ rec[f.k]=f.t==='number'?(parseFloat(v)||0):v; any=true; } } });
         if(!any) return;
         if(rec.sexe) rec.sexe=String(rec.sexe).toUpperCase().charAt(0);
         if(rec.niveau) rec.niveau=String(rec.niveau).toUpperCase();
@@ -36079,6 +36096,112 @@ function userRestoreFromTrash(trashId){
 })();
 </script>
 
+<script id="module-dup-engine">
+/* Moteur de détection des doublons (élèves / enseignants / administratifs) — additif.
+   Contrôle principal : matricule ou identifiant officiel.
+   Contrôles complémentaires (intelligents) : nom + prénoms (ordre libre, accents, variantes, prénom manquant),
+   date de naissance, nom de la mère, N° de registre d'extrait, téléphone.
+   Le périmètre dépend uniquement de l'utilisateur connecté (école / classe / IEPP). */
+(function(){
+  'use strict';
+  function nrm(s){ return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim(); }
+  function toks(s){ return nrm(s).split(' ').filter(Boolean); }
+  function lev1(a,b){ if(a===b) return true; var la=a.length, lb=b.length; if(Math.abs(la-lb)>1) return false;
+    var i=0,j=0,d=0; while(i<la&&j<lb){ if(a.charAt(i)===b.charAt(j)){ i++; j++; continue; } if(++d>1) return false; if(la===lb){ i++; j++; } else if(la>lb) i++; else j++; }
+    d+=(la-i)+(lb-j); return d<=1; }
+  function ft(a,b){ return a===b || (a.length>=5&&b.length>=5&&lev1(a,b)); }          /* jeton identique ou variante d'1 lettre (mots ≥ 5 lettres) */
+  function subset(small,big){ return small.every(function(t){ return big.some(function(u){ return ft(t,u); }); }); }
+  function nameRel(a,b){                                                              /* 2 = identique · 1 = très proche · 0 = différent */
+    if(!a.length||!b.length) return 0; if(a.join(' ')===b.join(' ')) return 2;
+    var s=a.length<=b.length?a:b, g=a.length<=b.length?b:a;
+    if(s.length>=2&&subset(s,g)) return 1;
+    if(a.length===b.length&&a.every(function(t,i){ return ft(t,b[i]); })) return 1;
+    return 0; }
+  function motherEq(a,b){ if(a.join(' ')===b.join(' ')) return true; var s=a.length<=b.length?a:b, g=a.length<=b.length?b:a;
+    if(s.length>=2) return subset(s,g); return s[0].length>=5 && g.some(function(u){ return ft(s[0],u); }); }
+  function dob(s){ s=String(s==null?'':s).trim(); if(!s) return '';
+    var m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/); if(m) return m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
+    m=s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/); if(m) return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2);
+    var d=new Date(s); return isNaN(d)?'':d.toISOString().slice(0,10); }
+  /* Valeurs « vides » ou provisoires saisies à la place d'un matricule : jamais source de doublon */
+  var MAT_VIDES={ encours:1, inconnu:1, inconnue:1, inconnuee:1, neant:1, na:1, nc:1, nr:1, aucun:1, aucune:1, nonrenseigne:1, nonrenseignee:1, sans:1, sansmatricule:1, provisoire:1, attente:1, enattente:1 };
+  function matVide(v){ var k=String(v==null?'':v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,''); return !k || !!MAT_VIDES[k]; }
+  window.matVide=matVide;
+  function officialMat(v,kind){ if(matVide(v)) return ''; v=String(v==null?'':v).toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if(kind==='eleves') return /^(\d{8}[A-Z]|[A-Z]\d{8})$/.test(v)?v:'';
+    if(v.length<5||/^(NIA|TEMP|PROV|SANS)/.test(v)||/20\d\d\d{3,}$/.test(v)) return ''; return v; }
+  function prep(r,kind){
+    var t=toks((r.nom||'')+' '+(r.prenoms||'')).sort();
+    var x=String(r.numExtrait||r.registreExtrait||r.nRegistre||'').toUpperCase().replace(/[^A-Z0-9]/g,''); if(x.length<3||/^(.)\1*$/.test(x)) x='';
+    var tl=String(r.tel||r.telephone||'').replace(/\D/g,'').slice(-8); if(tl.length<8) tl='';
+    return { r:r, t:t, nk:t.join(' '), d:dob(r.dateN||r.dateNaissance||r.dateNais), m:toks(r.mere).sort(), x:x, tl:tl, mat:officialMat(r.matricule,kind) };
+  }
+  /* Comparaison de deux fiches → {lvl:2 certain | 1 probable | 0 homonyme, why:[…]} ou null */
+  function cmp(A,B,kind){
+    if(A.mat&&A.mat===B.mat) return { lvl:2, why:[(kind==='eleves'?'Matricule / identifiant':'Matricule')+' identique'] };
+    var nr=nameRel(A.t,B.t);
+    var dr=A.d&&B.d?(A.d===B.d?1:-1):0, mr=A.m.length&&B.m.length?(motherEq(A.m,B.m)?1:-1):0, xr=A.x&&B.x?(A.x===B.x?1:-1):0, tr=A.tl&&B.tl?(A.tl===B.tl?1:-1):0;
+    var matDiff=!!(A.mat&&B.mat&&A.mat!==B.mat);
+    if(nr===0){ if(xr===1&&dr===1) return { lvl:1, why:['Même N° de registre d\'extrait et même date de naissance'] }; return null; }
+    var nt=nr===2?'Nom et prénoms identiques':'Nom et prénoms très proches (variante ou prénom manquant)';
+    if(xr===1) return { lvl:2, why:[nt,'même N° de registre d\'extrait'] };
+    var w=[nt];
+    if(dr===1){ w.push('même date de naissance');
+      if(mr===1){ w.push('même nom de la mère'); if(tr===1) w.push('même téléphone'); return { lvl:2, why:w }; }
+      if(kind!=='eleves'){ if(tr===1) w.push('même téléphone'); return { lvl:(nr===2&&!matDiff)?2:1, why:matDiff?w.concat(['matricules différents']):w }; }
+      if(mr===-1) w.push('nom de la mère différent (à vérifier)'); else w.push('nom de la mère non renseigné');
+      if(tr===1) w.push('même téléphone'); return { lvl:1, why:w };
+    }
+    if(dr===-1){ if(nr===2&&mr===1){ return { lvl:1, why:[nt,'même nom de la mère','date de naissance différente (erreur de saisie possible)'] }; } return null; }
+    /* date de naissance absente d'un côté */
+    if(nr===2&&mr===1) return { lvl:1, why:[nt,'même nom de la mère','date de naissance manquante'] };
+    if(kind!=='eleves'&&nr===2&&tr===1) return { lvl:1, why:[nt,'même téléphone','date de naissance manquante'] };
+    if(nr===2&&mr!==-1&&xr!==-1&&tr!==-1) return { lvl:0, why:['Homonyme (même nom et prénoms)'] };
+    return null;
+  }
+  function pairsOf(items,out,seen){
+    function push(a,b){ var k=a.i<b.i?a.i+'|'+b.i:b.i+'|'+a.i; if(seen[k]) return; seen[k]=1; out.push([a,b]); }
+    if(items.length<=120){ for(var i=0;i<items.length;i++) for(var j=i+1;j<items.length;j++) push(items[i],items[j]); return; }
+    var inv={}; items.forEach(function(it){ it.t.forEach(function(t){ if(t.length>=4) (inv[t]=inv[t]||[]).push(it); }); });
+    Object.keys(inv).forEach(function(k){ var a=inv[k]; if(a.length>80) return; for(var i=0;i<a.length;i++) for(var j=i+1;j<a.length;j++) push(a[i],a[j]); });
+  }
+  /* Analyse d'une liste : retourne les groupes [{recs,lvl,reasons}] */
+  function scan(list,kind){
+    var F=(list||[]).filter(Boolean).map(function(r,i){ var f=prep(r,kind); f.i=i; return f; });
+    var bk={}; function add(k,f){ if(k) (bk[k]=bk[k]||[]).push(f); }
+    F.forEach(function(f){ if(f.mat) add('m:'+f.mat,f); if(f.x) add('x:'+f.x,f); if(f.nk&&f.t.length>=2) add('n:'+f.nk,f); if(f.d) add('d:'+f.d,f); if(kind!=='eleves'&&f.tl) add('t:'+f.tl,f); });
+    var P=[], seen={}; Object.keys(bk).forEach(function(k){ var a=bk[k]; if(a.length>1) pairsOf(a,P,seen); });
+    var par=F.map(function(_,i){return i;}); function find(x){ while(par[x]!==x){ par[x]=par[par[x]]; x=par[x]; } return x; }
+    var links=[]; P.forEach(function(p){ var c=cmp(p[0],p[1],kind); if(c){ links.push([p[0].i,p[1].i,c]); var a=find(p[0].i), b=find(p[1].i); if(a!==b) par[a]=b; } });
+    var gr={}; links.forEach(function(l){ var g=find(l[0]); var o=gr[g]=gr[g]||{ids:{},lvl:0,why:{}}; o.ids[l[0]]=1; o.ids[l[1]]=1; if(l[2].lvl>o.lvl) o.lvl=l[2].lvl; l[2].why.forEach(function(w){ o.why[w]=1; }); });
+    return Object.keys(gr).map(function(g){ var o=gr[g]; return { recs:Object.keys(o.ids).map(function(i){ return F[+i].r; }), lvl:o.lvl, reasons:Object.keys(o.why) }; });
+  }
+  function U(){ return (window.state&&window.state.user)||{}; }
+  function all(kind){ var st=window.state||{}; return kind==='eleves'?(st.elevesFichier||[]):(st.personnel||[]); }
+  /* Périmètre de l'utilisateur : directeur = son école · instituteur = sa classe · autres = toute l'IEPP chargée */
+  function perimeter(kind){ var u=U(), L=all(kind);
+    if(u.role==='directeur'&&u.ecole) return L.filter(function(r){ return r&&r.ecole===u.ecole; });
+    if(u.role==='instituteur'){ L=L.filter(function(r){ return r&&r.ecole===u.ecole; }); if(kind==='eleves') L=L.filter(function(r){ return String(r.niveau||'').toUpperCase()===String(u.classe||'').toUpperCase(); }); }
+    return L; }
+  /* Une personne qu'on enregistre est-elle déjà dans la base (dans le périmètre de l'utilisateur) ? */
+  function checkNew(kind,rec,exceptId){
+    var A=prep(rec,kind), res=[];
+    perimeter(kind).forEach(function(r){ if(!r||(exceptId&&r.id===exceptId)) return; var c=cmp(A,prep(r,kind),kind); if(c&&c.lvl>=1) res.push({rec:r,lvl:c.lvl,why:c.why}); });
+    res.sort(function(a,b){ return b.lvl-a.lvl; }); return res.slice(0,3);
+  }
+  /* Garde à l'enregistrement : retourne true si on peut enregistrer */
+  function guard(kind,rec,exceptId){
+    var m; try{ m=checkNew(kind,rec,exceptId); }catch(e){ console.warn('[dup-engine]',e); return true; }
+    if(!m.length) return true;
+    function desc(x){ var r=x.rec; return '• '+((r.nom||'')+' '+(r.prenoms||'')).trim()+(r.ecole?' — '+r.ecole:'')+(r.niveau?' — '+r.niveau:(r.fonction?' — '+r.fonction:''))+(r.matricule?' — Matricule : '+r.matricule:'')+'\n   Motif : '+x.why.join(', '); }
+    var msg=(m[0].lvl===2?'⚠️ CETTE PERSONNE EST DÉJÀ DANS LA BASE :':'⚠️ Cette personne semble déjà enregistrée dans la base :')+'\n\n'+m.map(desc).join('\n\n')+'\n\nVoulez-vous quand même l\'enregistrer ?';
+    return window.confirm(msg);
+  }
+  /* Messages d'alerte à la connexion : réservés au Super administrateur, à l'Inspecteur et au Correspondant fichier, une seule fois */
+  function canNotify(){ return ['superadmin','inspecteur','correspondant'].indexOf(U().role)>=0; }
+  window.DupEngine={ scan:scan, cmp:cmp, prep:prep, perimeter:perimeter, checkNew:checkNew, guard:guard, canNotify:canNotify };
+})();
+</script>
 <script id="module-doublons">
 /* Détection / filtrage / suppression des doublons — élèves, enseignants, administratifs (additif) */
 (function(){
@@ -36096,15 +36219,15 @@ function userRestoreFromTrash(trashId){
   var COLLS={
     eleves:{ label:'Élèves', icon:'🎒', key:'elevesFichier',
       all:function(){ return state.elevesFichier||[]; },
-      fields:[['matricule','Matricule'],['nom','Nom'],['prenoms','Prénoms'],['sexe','Sexe'],['dateN','Date naiss.'],['pere','Père'],['mere','Mère'],['ecole','École'],['niveau','Classe']],
+      fields:[['matricule','Matricule'],['nom','Nom'],['prenoms','Prénoms'],['sexe','Sexe'],['dateN','Date naiss.'],['pere','Père'],['mere','Mère'],['numExtrait','N° reg. extrait'],['tel','Téléphone'],['ecole','École'],['niveau','Classe']],
       fullname:function(r){ return (r.nom||'')+' '+(r.prenoms||''); }, scopeClass:true },
     enseignants:{ label:'Enseignants', icon:'👩‍🏫', key:'personnel',
       all:function(){ return (state.personnel||[]).filter(function(p){ try{ return statEstCraieEnMain(p); }catch(e){ return true; } }); },
-      fields:[['matricule','Matricule'],['nom','Nom et prénoms'],['sexe','Sexe'],['dateN','Date naiss.'],['fonction','Fonction'],['grade','Grade'],['ecole','École'],['classe','Classe'],['tel','Téléphone']],
+      fields:[['matricule','Matricule'],['nom','Nom et prénoms'],['sexe','Sexe'],['dateN','Date naiss.'],['mere','Mère'],['fonction','Fonction'],['grade','Grade'],['ecole','École'],['classe','Classe'],['tel','Téléphone']],
       fullname:function(r){ return (r.nom||'')+' '+(r.prenoms||''); } },
     admin:{ label:'Administratifs', icon:'🗂️', key:'personnel',
       all:function(){ return (state.personnel||[]).filter(function(p){ try{ return !statEstCraieEnMain(p); }catch(e){ return false; } }); },
-      fields:[['matricule','Matricule'],['nom','Nom et prénoms'],['sexe','Sexe'],['dateN','Date naiss.'],['fonction','Fonction'],['grade','Grade'],['ecole','École / Service'],['tel','Téléphone']],
+      fields:[['matricule','Matricule'],['nom','Nom et prénoms'],['sexe','Sexe'],['dateN','Date naiss.'],['mere','Mère'],['fonction','Fonction'],['grade','Grade'],['ecole','École / Service'],['tel','Téléphone']],
       fullname:function(r){ return (r.nom||'')+' '+(r.prenoms||''); } }
   };
   var cur='eleves', view='tous', perim='iepp', ecoleSel='', classeSel='', q='', pageSz=40, shown=40, sel={};
@@ -36120,37 +36243,15 @@ function userRestoreFromTrash(trashId){
   }
   /* ---------- détection ---------- */
   function detect(c){
-    var C=COLLS[c], L=scoped(c), par={}, why={};
-    function f(x){ while(par[x]!==x){ par[x]=par[par[x]]; x=par[x]; } return x; }
-    L.forEach(function(r){ par[r.id]=r.id; });
-    function link(a,b,reason,strong){ var ra=f(a), rb=f(b); if(ra!==rb) par[ra]=rb; var k=a<b?a+'|'+b:b+'|'+a; (why[k]=why[k]||[]).push({r:reason,s:strong}); }
-    var idx={m:{},n:{},nd:{},np:{}};
-    L.forEach(function(r){
-      var m=mat(r.matricule), n=nm(C.fullname(r)), d=dn(r.dateN||r.dateNaissance), pe=nm(r.pere), me=nm(r.mere);
-      function add(map,key,reason,strong){ if(!key) return; (map[key]=map[key]||[]).push({id:r.id,reason:reason,strong:strong}); }
-      if(m.length>=4) add(idx.m,m,'Matricule identique',1);
-      if(n&&d) add(idx.nd,n+'#'+d,'Nom, prénoms et date de naissance identiques',1);
-      if(n&&(pe||me)) add(idx.np,n+'#'+pe+'#'+me,'Nom, prénoms et parents identiques',1);
-      if(n) add(idx.n,n,'Homonyme (même nom et prénoms)',0);
-    });
-    ['m','nd','np','n'].forEach(function(t){ var mp=idx[t]; Object.keys(mp).forEach(function(k){ var a=mp[k]; if(a.length<2) return;
-      if(t==='np'){ if(!/#[a-z0-9 ]+#/.test(k+'#') && k.split('#')[1]==='' && k.split('#')[2]==='') return; }
-      for(var i=1;i<a.length;i++) link(a[0].id,a[i].id,a[i].reason,a[i].strong);
-      for(var i2=1;i2<a.length;i2++) for(var j=i2+1;j<a.length;j++){ var k2=a[i2].id<a[j].id?a[i2].id+'|'+a[j].id:a[j].id+'|'+a[i2].id; (why[k2]=why[k2]||[]).push({r:a[j].reason,s:a[j].strong}); }
-    }); });
-    var groups={}; L.forEach(function(r){ var g=f(r.id); (groups[g]=groups[g]||[]).push(r); });
-    var out=[];
-    Object.keys(groups).forEach(function(g){ var G=groups[g]; if(G.length<2) return;
-      var reasons={}, strong=0, ids=G.map(function(r){return r.id;});
-      Object.keys(why).forEach(function(k){ var p=k.split('|'); if(ids.indexOf(p[0])>=0&&ids.indexOf(p[1])>=0) why[k].forEach(function(w){ reasons[w.r]=1; if(w.s) strong=1; }); });
-      var ecoles={}; G.forEach(function(r){ ecoles[r.ecole||'']=1; });
-      var key=ids.slice().sort().join('+');
+    var kind=(c==='eleves')?'eleves':'personnel', L=scoped(c), out=[];
+    window.DupEngine.scan(L,kind).forEach(function(g){
+      var G=g.recs, ecoles={}; G.forEach(function(r){ ecoles[r.ecole||'']=1; });
+      var ids=G.map(function(r){return r.id;}), key=ids.slice().sort().join('+');
       var ign=G.every(function(r){ return r._nodupGrp===key; });
-      /* conserver en priorité l'enregistrement le plus complet */
-      G.sort(function(a,b){ return filled(b)-filled(a); });
-      out.push({ key:key, recs:G, reasons:Object.keys(reasons), strong:!!strong, inter:Object.keys(ecoles).length>1, ign:ign });
+      G.sort(function(a,b){ return filled(b)-filled(a); });   /* conserver en priorité l'enregistrement le plus complet */
+      out.push({ key:key, recs:G, reasons:g.reasons, strong:g.lvl===2, lvl:g.lvl, inter:Object.keys(ecoles).length>1, ign:ign });
     });
-    out.sort(function(a,b){ return (b.strong-a.strong)||(b.recs.length-a.recs.length); });
+    out.sort(function(a,b){ return (b.lvl-a.lvl)||(b.recs.length-a.recs.length); });
     return out;
   }
   function filled(r){ var n=0; for(var k in r){ if(k.charAt(0)!=='_'&&r[k]!==''&&r[k]!=null) n++; } return n; }
@@ -36166,9 +36267,9 @@ function userRestoreFromTrash(trashId){
     var u=U(), tabs=Object.keys(COLLS).filter(canSee), G=groupsNow(), C=COLLS[cur], N=counts(G);
     var ecoles=(state.ecoles||[]).map(function(e){return e.nom;}).sort();
     var single=(u.role==='directeur'||u.role==='instituteur');
-    var vt=[['tous','Tous ('+N.tous+')'],['forts','🔴 Doublons certains ('+N.forts+')'],['faibles','🟠 Homonymes à vérifier ('+N.faibles+')'],['meme','Dans la même école ('+N.meme+')'],['inter','Entre écoles ('+N.inter+')'],['ign','Ignorés ('+N.ign+')']];
+    var vt=[['tous','Tous ('+N.tous+')'],['forts','🔴 Doublons certains ('+N.forts+')'],['faibles','🟠 Probables / homonymes à vérifier ('+N.faibles+')'],['meme','Dans la même école ('+N.meme+')'],['inter','Entre écoles ('+N.inter+')'],['ign','Ignorés ('+N.ign+')']];
     var list=G.filter(pass).filter(function(g){ if(!q) return true; var nq=nrm(q); return g.recs.some(function(r){ return nrm(C.fields.map(function(f){return r[f[0]];}).join(' ')).indexOf(nq)>=0; }); });
-    var h='<div class="hero" style="background:linear-gradient(135deg,#7C2D12 0%,#C2410C 100%)"><h3>🧹 Traitement des doublons — '+esc(C.label)+'</h3><p>Détection par matricule, nom et prénoms, date de naissance et noms des parents. '+(single?'Périmètre : '+esc(u.role==='instituteur'?('ma classe ('+(u.ecole||'')+')'):('mon école ('+(u.ecole||'')+')')):'Périmètre : '+(perim==='ecole'&&ecoleSel?esc(ecoleSel):'toute l\'IEPP en cours ('+esc(String(state.activeIepp||''))+')'))+'.</p></div>';
+    var h='<div class="hero" style="background:linear-gradient(135deg,#7C2D12 0%,#C2410C 100%)"><h3>🧹 Traitement des doublons — '+esc(C.label)+'</h3><p>Contrôle principal : matricule ou identifiant. Contrôles complémentaires : nom + prénoms + date de naissance + nom de la mère (+ N° de registre d\'extrait, téléphone). '+(single?'Périmètre : '+esc(u.role==='instituteur'?('ma classe ('+(u.ecole||'')+')'):('mon école ('+(u.ecole||'')+')')):'Périmètre : '+(perim==='ecole'&&ecoleSel?esc(ecoleSel):'toute l\'IEPP en cours ('+esc(String(state.activeIepp||''))+')'))+'.</p></div>';
     h+='<div class="toolbar" style="margin-top:12px">'+tabs.map(function(t){ return '<button class="btn '+(t===cur?'btn-primary':'btn-ghost')+'" onclick="dupTab(\''+t+'\')">'+COLLS[t].icon+' '+COLLS[t].label+'</button>'; }).join('')+'</div>';
     h+='<div class="card" style="padding:12px;margin-top:8px"><div class="toolbar" style="gap:8px;flex-wrap:wrap;margin:0">';
     if(!single) h+='<label class="text-sm">Périmètre : <select onchange="dupPerim(this.value)" style="padding:7px;border:1px solid var(--line);border-radius:8px"><option value="iepp"'+(perim==='iepp'?' selected':'')+'>Toute l\'IEPP en cours</option><option value="ecole"'+(perim==='ecole'?' selected':'')+'>Une école</option></select></label>'
@@ -36185,7 +36286,7 @@ function userRestoreFromTrash(trashId){
   }
   function groupHtml(g,gi,C){
     var del=canDelete();
-    var head='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><strong>'+(g.strong?'🔴':'🟠')+' Groupe de '+g.recs.length+'</strong><span class="text-xs text-muted">'+esc(g.reasons.join(' · '))+(g.inter?' · entre écoles':' · même école')+'</span><span style="flex:1"></span>'
+    var head='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><strong>'+(g.strong?'🔴 Doublon certain':g.lvl===1?'🟠 Doublon probable':'🟡 Homonyme à vérifier')+' — groupe de '+g.recs.length+'</strong><span class="text-xs text-muted">'+esc(g.reasons.join(' · '))+(g.inter?' · entre écoles':' · même école')+'</span><span style="flex:1"></span>'
       +(del&&!g.ign?'<button class="btn btn-ghost btn-sm" onclick="dupMerge(\''+jq(g.key)+'\')">🔀 Fusionner (garder le 1er, compléter, supprimer les autres)</button>':'')
       +(g.ign?'<button class="btn btn-ghost btn-sm" onclick="dupIgnore(\''+jq(g.key)+'\',0)">↩️ Remettre en doublon</button>':'<button class="btn btn-ghost btn-sm" onclick="dupIgnore(\''+jq(g.key)+'\',1)">✔️ Ce ne sont pas des doublons</button>')+'</div>';
     var t='<div class="table-wrap" style="border:none"><table data-noenh="1"><thead><tr><th>Garder</th>'+C.fields.map(function(f){ return '<th>'+esc(f[1])+'</th>'; }).join('')+'<th></th></tr></thead><tbody>'
@@ -36940,8 +37041,8 @@ function userRestoreFromTrash(trashId){
       if(mod.length&&mod.length<=20){ logAction('Modification · '+L, mod.length+' élément(s) : '+names(mod)); }
       else if(mod.length){ logAction('Modification · '+L, mod.length+' éléments modifiés'); }
       if(k==='elevesFichier'||k==='personnel'){
-        var seen={}, dup=[]; val.forEach(function(o){ var m=String(o.matricule||'').trim().toUpperCase(); if(!m) return; if(seen[m]) dup.push(m); seen[m]=1; });
-        if(dup.length&&add.length){ toast('⚠️ Matricule en double détecté ('+dup.slice(0,3).join(', ')+') — voir le menu Traitement des doublons','error'); logAction('Alerte doublon · '+L, dup.length+' matricule(s) en double : '+dup.slice(0,5).join(', ')); }
+        var seen={}, dup=[]; val.forEach(function(o){ var m=String(o.matricule||'').trim().toUpperCase(); if(!m||(window.matVide&&window.matVide(m))) return; if(seen[m]) dup.push(m); seen[m]=1; });
+        if(dup.length&&add.length){ if(window.DupEngine&&window.DupEngine.canNotify()&&!window.__dupNotified){ window.__dupNotified=true; toast('⚠️ Matricule en double détecté ('+dup.slice(0,3).join(', ')+') — voir le menu Traitement des doublons','error'); } logAction('Alerte doublon · '+L, dup.length+' matricule(s) en double : '+dup.slice(0,5).join(', ')); }
       }
     }catch(e){ console.warn('[trace]',e); }
   }
@@ -36982,7 +37083,7 @@ function userRestoreFromTrash(trashId){
     var iss=[], el=state.elevesFichier||[], pe=state.personnel||[];
     el.forEach(function(e){ if(!e.nom) iss.push({t:'Élève',n:e.matricule||e.id,p:'Nom manquant'}); if(!e.matricule) iss.push({t:'Élève',n:nm(e),p:'Matricule manquant'}); if(e.dateN&&(isNaN(Date.parse(e.dateN))||Date.parse(e.dateN)>Date.now())) iss.push({t:'Élève',n:nm(e),p:'Date de naissance invalide'}); if(!e.ecole) iss.push({t:'Élève',n:nm(e),p:'École manquante'}); });
     pe.forEach(function(p){ if(!p.nom) iss.push({t:'Personnel',n:p.matricule||p.id,p:'Nom manquant'}); if(!p.matricule) iss.push({t:'Personnel',n:nm(p),p:'Matricule manquant'}); });
-    var cnt=function(a){ var m={},d=0; a.forEach(function(o){ var x=String(o.matricule||'').trim().toUpperCase(); if(!x) return; if(m[x]) d++; m[x]=1; }); return d; };
+    var cnt=function(a){ var m={},d=0; a.forEach(function(o){ var x=String(o.matricule||'').trim().toUpperCase(); if(!x||(window.matVide&&window.matVide(x))) return; if(m[x]) d++; m[x]=1; }); return d; };
     return {issues:iss,dupEl:cnt(el),dupPe:cnt(pe),nEl:el.length,nPe:pe.length};
   }
   window.ctForceSave=function(){ var n=0; (SCOPED_STATE||[]).forEach(function(p){ try{ if(state[p[0]]!==undefined&&p[0]!=='audit'){ save(p[0],state[p[0]]); n++; } }catch(e){} }); try{ if(window.syncFlushDirty) window.syncFlushDirty(); }catch(e){} toast(n+' jeu(x) de données enregistré(s) ✅','success'); logAction('Sauvegarde forcée', n+' jeux de données'); render(); };
@@ -39381,7 +39482,7 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
     secs.forEach(function(sc){
       (sc&&sc.enseignants||[]).forEach(function(e){
         if(!e||!e.id||!String(e.nom||'').trim()||ig.indexOf('S:'+e.id)>=0) return;
-        var key=nn(e.nom), mat=mn(e.matricule);
+        var key=nn(e.nom), mat=(window.matVide&&window.matVide(e.matricule))?'':mn(e.matricule);
         var p=st.personnel.find(function(x){ return x&&x.secRef===e.id; })
            || (mat&&st.personnel.find(function(x){ return x&&mn(x.matricule)===mat; }))
            || st.personnel.find(function(x){ return x&&!x.secRef&&nn(x.nom)===key; });
@@ -39477,15 +39578,27 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
       var m={}; (list||[]).forEach(function(x){ if(!x) return; var ks=keyFn(x); (ks||[]).forEach(function(k){ if(k) (m[k]=m[k]||[]).push(x); }); });
       Object.keys(m).forEach(function(k){ var a=m[k]; if(a.length<2) return; a.forEach(function(x){ var o=a.filter(function(y){return y!==x;})[0]; if(!out[x.id]) out[x.id]={type:label,why:k.split('|')[0]==='M'?'même matricule':'même identité',other:fmt(o)}; }); });
     }
-    grp(st.personnel,function(p){ var r=[]; if(mn(p.matricule)) r.push('M|'+mn(p.matricule)); if(nn(p.nom).split(' ').length>=2) r.push('N|'+nn(p.nom)); return r; },'personnel',function(o){ return (o.nom||'')+(o.ecole?' ('+o.ecole+')':''); });
-    grp(st.elevesFichier,function(e){ var r=[]; var m=mn(e.matricule); if(m&&/^(\d{8}[A-Z]|[A-Z]\d{8})$/.test(m)) r.push('M|'+m); var n=nn((e.nom||'')+' '+(e.prenoms||'')); if(n&&e.dateN) r.push('N|'+n+'|'+e.dateN); return r; },'élève',function(o){ return (o.nom||'')+' '+(o.prenoms||'')+(o.ecole?' ('+o.ecole+')':''); });
+    if(window.DupEngine){
+      [['personnel','personnel'],['eleves','élève']].forEach(function(kd){
+        window.DupEngine.scan(window.DupEngine.perimeter(kd[0]),kd[0]).forEach(function(g){ if(g.lvl<1) return;
+          g.recs.forEach(function(x,i){ var o=g.recs[i===0?1:0]; if(!out[x.id]) out[x.id]={type:kd[1],why:g.reasons.join(' ; '),other:(o.nom||'')+(o.prenoms?' '+o.prenoms:'')+(o.ecole?' ('+o.ecole+')':'')}; });
+        });
+      });
+    }
     grp(st.ecoles,function(e){ var r=[]; var k=ekey(e.nom); if(k) r.push('N|'+k); var c=mn(e.code); if(c) r.push('M|'+c); return r; },'école',function(o){ return (o.nom||'')+(o.code?' ['+o.code+']':''); });
     return out;
   }
   function recompute(notify){
-    var d=findDup(), st=S();
-    if(SEEN){ Object.keys(d).forEach(function(id){ if(!SEEN[id]&&notify&&typeof toast==='function'){ var rec=(st.personnel||[]).concat(st.elevesFichier||[]).find(function(x){return x&&x.id===id;}); toast('⚠️ Doublon détecté ('+d[id].type+') : '+((rec&&(rec.nom+' '+(rec.prenoms||'')))||'')+' — '+d[id].why+' avec '+d[id].other,'error'); } }); }
-    SEEN=d; DUP=d; return d;
+    var d=findDup();
+    SEEN=d; DUP=d;
+    /* un seul message par connexion, réservé au Super administrateur, à l'Inspecteur et au Correspondant fichier */
+    try{
+      if(window.DupEngine&&window.DupEngine.canNotify()&&!window.__dupNotified&&typeof toast==='function'){
+        var n=Object.keys(d).filter(function(id){ return d[id].type!=='école'; }).length;
+        if(n>0){ window.__dupNotified=true; toast('⚠️ '+n+' fiche(s) concernée(s) par un doublon possible dans votre périmètre — ouvrez « Traitement des doublons » pour les examiner.','error'); }
+      }
+    }catch(e){}
+    return d;
   }
   window.annDoublons=function(){ return recompute(false); };
 
@@ -40336,7 +40449,7 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
   function S(){ return window.state||null; }
   function norm(v){ v=String(v||'').trim().replace(/\s+/g,''); return /^\d{6}[A-Za-z]$/.test(v)?v.toUpperCase():v; }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-  function dupOf(m,uname){ var st=S(); if(!m||!st||!Array.isArray(st.users)) return null; var k=m.toUpperCase(); return st.users.find(function(x){ return x&&x.username!==uname&&String(x.matricule||'').toUpperCase()===k; })||null; }
+  function dupOf(m,uname){ var st=S(); if(!m||(window.matVide&&window.matVide(m))||!st||!Array.isArray(st.users)) return null; var k=m.toUpperCase(); return st.users.find(function(x){ return x&&x.username!==uname&&String(x.matricule||'').toUpperCase()===k; })||null; }
   function syncPers(){
     try{ var st=S(); if(!st||!Array.isArray(st.users)||!Array.isArray(st.personnel)) return;
       var ch=0; st.users.forEach(function(u){ if(!u||!u.matricule) return;
@@ -40758,7 +40871,7 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
 
   /* ---- droits de saisie ---- */
   var _rce=window.recCanEdit;
-  window.recCanEdit=function(){ var r=U().role; if(r==='directeur') return true; if(r==='instituteur') return (U().classe||'')==='CP1'; return _rce?_rce():false; };
+  window.recCanEdit=function(){ var r=U().role; if(r==='directeur') return true; if(r==='instituteur') return (U().classe||'')==='CP1'||(U().classe||'')==='CM2'; return _rce?_rce():false; };
   var _sce=window.statSitCanEdit;
   window.statSitCanEdit=function(){ var r=U().role; if(r==='directeur'||r==='instituteur') return false; return _sce?_sce():false; };
 
@@ -40850,11 +40963,11 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
   }
 
   var _rcp=window.renderRecCP1, _rma=window.renderRecMat;
-  window.renderRecCP1=function(){ try{ recAutoCalc('cp1',true); }catch(e){} _rcp(); try{ decorate('cp1'); }catch(e){ console.warn(e); } };
-  window.renderRecMat=function(){ try{ recAutoCalc('mat',true); }catch(e){} _rma(); try{ decorate('mat'); }catch(e){ console.warn(e); } };
+  window.renderRecCP1=function(){ _rcp(); try{ decorate('cp1'); }catch(e){ console.warn(e); } };
+  window.renderRecMat=function(){ _rma(); try{ decorate('mat'); }catch(e){ console.warn(e); } };
   var _rsr=window.renderStatRecrutement;
   window.renderStatRecrutement=function(){ _rsr(); try{
-    if(U().role==='instituteur'){ Array.prototype.forEach.call(document.querySelectorAll('.tabs .tab'),function(t){ if(/Maternelle/.test(t.textContent)) t.style.display='none'; }); }
+    if(U().role==='instituteur'&&String(U().classe||'').toUpperCase()!=='CM2'){ Array.prototype.forEach.call(document.querySelectorAll('.tabs .tab'),function(t){ if(/Maternelle/.test(t.textContent)) t.style.display='none'; }); }
     var hp=document.querySelector('.hero p'); if(hp&&perim()!==null) hp.innerHTML+=' <strong>Périmètre : '+esc(U().ecole||'')+'</strong> — vous renseignez le point de votre école puis vous le remontez.';
   }catch(e){} };
 
@@ -40885,6 +40998,19 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
   function zero(){ return {PUBLIC:{pres:0,prim:0},PRIVE:{pres:0,prim:0},COM:{pres:0,prim:0}}; }
   var NIV=['cp1','cp2','ce1','ce2','cm1','cm2'];
   function lvl0(){ return {ps:0,ms:0,gs:0,cp1:0,cp2:0,ce1:0,ce2:0,cm1:0,cm2:0}; }
+  /* hiérarchie : classe -> école (directeur / maître de CM2) -> IEPP -> DRENAET -> DESPS */
+  function classLevel(){ var u=U(); if(u.role==='instituteur' && String(u.classe||'').toUpperCase()!=='CM2') return String(u.classe||'').toLowerCase(); return null; }
+  function schoolFromEleves(school,lv){
+    var P={id:'v_p',nom:school}, R={id:'v_r',nom:school}, any=false;
+    ['ps','ms','gs'].forEach(function(l){ P[l+'G']=0; P[l+'F']=0; }); NIV.forEach(function(l){ R[l+'G']=0; R[l+'F']=0; });
+    (state.elevesFichier||[]).forEach(function(e){ if(!e||nk(e.ecole)!==nk(school)) return;
+      var n=String(e.niveau||'').toUpperCase().replace(/\s+/g,''), x=(String(e.sexe||'').toUpperCase().charAt(0)==='F')?'F':'G', l=lvlMat(n);
+      if(l){ if(lv) return; P[l+x]++; any=true; return; }
+      var low=n.toLowerCase(); if(NIV.indexOf(low)>=0){ if(lv&&lv!==low) return; R[low+x]++; any=true; } });
+    return {pres:[P],prim:[R]};
+  }
+  function effSrc(){ if(perim()===null) return {pres:state.effPrescolaire||[],prim:state.effPrimaire||[]}; return schoolFromEleves(U().ecole,classLevel()); }
+  window.__recsit.schoolFromEleves=schoolFromEleves;
   function ssBuild(){
     var A=zero(), F=zero(), C=zero(), CF=zero(), seen={}, ec=baseEcoles();
     function add(st,ty,fo,ncl){ A[st][ty]++; C[st][ty]+=ncl; if(fo){ F[st][ty]++; CF[st][ty]+=ncl; } }
@@ -40903,9 +41029,9 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
     var EFF={PUBLIC:{G:lvl0(),F:lvl0()},PRIVE:{G:lvl0(),F:lvl0()},COM:{G:lvl0(),F:lvl0()}};
     var NC={PUBLIC:lvl0(),PRIVE:lvl0(),COM:lvl0()};
     function stOf(nom){ var s=seen[nk(nom)]; return s||'PUBLIC'; }
-    (state.effPrescolaire||[]).forEach(function(r){ if(!keep(r.nom)) return; var st=stOf(r.nom);
+    effSrc().pres.forEach(function(r){ if(!keep(r.nom)) return; var st=stOf(r.nom);
       ['ps','ms','gs'].forEach(function(l){ var a=n0(r[l+'G']), b=n0(r[l+'F']); g[l]+=a; f[l]+=b; EFF[st].G[l]+=a; EFF[st].F[l]+=b; if(a+b>0) NC[st][l]++; }); });
-    (state.effPrimaire||[]).forEach(function(r){ if(!keep(r.nom)) return; var st=stOf(r.nom), k=st==='PRIVE'?'priv':(st==='COM'?'comm':'pub');
+    effSrc().prim.forEach(function(r){ if(!keep(r.nom)) return; var st=stOf(r.nom), k=st==='PRIVE'?'priv':(st==='COM'?'comm':'pub');
       NIV.forEach(function(l){ var a=n0(r[l+'G']), b=n0(r[l+'F']); g[k]+=a; f[k]+=b; EFF[st].G[l]+=a; EFF[st].F[l]+=b; if(a+b>0) NC[st][l]++; }); });
     var inEff={}; (state.effPrimaire||[]).forEach(function(r){ inEff[nk(r.nom)]=1; });
     if(perim()===null && (comPup.G||comPup.F)){ var comInEff=com.some(function(c){ return inEff[nk(c.nom)]; });
@@ -41082,10 +41208,355 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
     save('effClasses',state.effClasses); toast('Classes enregistrées ✓','success');
   };
 
+  /* synchronisation : uniquement les écoles de l'IEPP, sans recréer les lignes supprimées */
+  window.syncEffectifsFromRemontees=function(){
+    if(!statCanEdit()){ toast('Action réservée au Correspondant statistique','error'); return; }
+    try{ if(typeof annSyncEcoles==='function') annSyncEcoles(); }catch(e){}   /* détecte d'abord les lignes supprimées */
+    var RI=[]; try{ RI=load('annIgnReg',[])||[]; }catch(e){}
+    function ign(key,nom){ var k=String(nom==null?'':nom).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,''); return RI.some(function(x){ return x.id===key+'|'+k; }); }
+    var addP=0, addR=0; state.effPrescolaire=state.effPrescolaire||[]; state.effPrimaire=state.effPrimaire||[];
+    var exP={}, exR={}; state.effPrescolaire.forEach(function(r){ exP[nk(r.nom)]=1; }); state.effPrimaire.forEach(function(r){ exR[nk(r.nom)]=1; });
+    (state.ecoles||[]).forEach(function(e){ if(!e||!e.nom) return; var k=nk(e.nom);
+      if(isPres(e.nom)){ if(!exP[k]&&!ign('effPrescolaire',e.nom)){ state.effPrescolaire.push({id:'efp'+uid(),nom:e.nom,psG:0,psF:0,msG:0,msF:0,gsG:0,gsF:0}); addP++; } }
+      else if(!exR[k]&&!ign('effPrimaire',e.nom)){ var rec={id:'efr'+uid(),nom:e.nom}; PRIM_NIV.forEach(function(nv){ rec[nv.key+'G']=0; rec[nv.key+'F']=0; }); state.effPrimaire.push(rec); addR++; } });
+    state.effMeta=state.effMeta||{}; state.effMeta.lastSync=new Date().toISOString();
+    save('effPrescolaire',state.effPrescolaire); save('effPrimaire',state.effPrimaire); save('effMeta',state.effMeta);
+    toast((addP+addR)?('Synchronisation : '+addP+' préscolaire(s) et '+addR+' primaire(s) de votre IEPP ajoutée(s)'):'Synchronisation terminée — aucune nouvelle école (les lignes supprimées ne sont pas recréées)','success');
+    renderStatEffectifs();
+  };
   var _erp=window.renderEffPrimaireBody, _erm=window.renderEffPrescolaireBody;
   window.renderEffPrimaireBody=function(){ _erp(); try{ decorEff('efr-table'); classesCard('prim'); }catch(e){ console.warn(e); } };
   window.renderEffPrescolaireBody=function(){ _erm(); try{ decorEff('efp-table'); classesCard('pres'); }catch(e){ console.warn(e); } };
   try{ if(!state.effClasses||typeof state.effClasses!=='object'||Array.isArray(state.effClasses)){ var v=load('effClasses',{}); state.effClasses=(v&&typeof v==='object'&&!Array.isArray(v))?v:{}; } }catch(e){ state.effClasses={}; }
+})();
+</script>
+
+<script id="module-liste-eleves-format-v2">
+/* ===== Liste des élèves : nouveau format Excel (anti-doublons) + en-tête « Ma classe » ===== */
+(function(){
+  if(window.__listeV2) return; window.__listeV2=true;
+  var HEAD=['codeiepp','iepp','codeecole','Ecole','Matricule','Nom & Prenoms','Sexe','Date naissance','Lieu naissance','Nationalite','sousprefecture','nacte','lieuacte','niveau'];
+  function nk(s){ return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim(); }
+  function esc(s){ return escapeHtml(String(s==null?'':s)); }
+  function U(){ return state.user||{}; }
+  function ieppCode(){ try{ var r=(state.ieppRegistry||[]).filter(function(x){ return String(x.name||'').toUpperCase()===String(state.activeIepp||'').toUpperCase(); })[0]; return (r&&r.code)||''; }catch(e){ return ''; } }
+  function ecoleCode(nom){ var e=(state.ecoles||[]).find(function(x){ return nk(x.nom)===nk(nom); }); return e?(e.code||e.codeAGCP||''):''; }
+  function toIso(v){
+    if(v==null||v==='') return '';
+    if(typeof v==='number'&&v>20000&&v<80000){ var d=new Date(Math.round((v-25569)*86400000)); return d.toISOString().slice(0,10); }
+    var s=String(v).trim(), m;
+    if((m=s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/))) return m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
+    if((m=s.match(/^(\d{4})[\/.\-](\d{1,2})[\/.\-](\d{1,2})/))) return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2);
+    return s;
+  }
+  function fmtD(iso){ var m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?m[3]+'/'+m[2]+'/'+m[1]:String(iso||''); }
+
+  /* ---- export au nouveau format ---- */
+  window.mcExportClasse=function(){
+    var u=U(), list=state.elevesFichier.filter(function(e){ return e.ecole===u.ecole && e.niveau===u.classe; });
+    if(!list.length){ toast('Aucun élève à exporter','error'); return; }
+    var ci=ieppCode(), iepp=String(state.activeIepp||'');
+    var rows=list.map(function(e){ var o={};
+      o[HEAD[0]]=ci; o[HEAD[1]]=iepp; o[HEAD[2]]=ecoleCode(e.ecole); o[HEAD[3]]=e.ecole||'';
+      o[HEAD[4]]=e.matricule||''; o[HEAD[5]]=((e.nom||'')+' '+(e.prenoms||'')).trim(); o[HEAD[6]]=e.sexe||'';
+      o[HEAD[7]]=fmtD(e.dateN); o[HEAD[8]]=e.lieuN||''; o[HEAD[9]]=e.nationalite||''; o[HEAD[10]]=e.sousprefecture||'';
+      o[HEAD[11]]=e.nacte||''; o[HEAD[12]]=e.lieuacte||''; o[HEAD[13]]=e.niveau||'';
+      return o; });
+    exportRowsToExcel(rows,'liste_'+u.classe+'_'+String(u.ecole||'').replace(/\s+/g,'_'),u.classe);
+  };
+  /* modèle vide */
+  window.mcModeleExcel=function(){
+    var o={}; var u=U(); o[HEAD[0]]=ieppCode(); o[HEAD[1]]=String(state.activeIepp||''); o[HEAD[2]]=ecoleCode(u.ecole); o[HEAD[3]]=u.ecole||'';
+    HEAD.slice(4).forEach(function(h){ o[h]=''; }); o[HEAD[13]]=u.classe||'';
+    exportRowsToExcel([o],'modele_liste_'+(u.classe||'classe'),'modele');
+  };
+
+  /* ---- import : nouveau format (et ancien), sans doublons ---- */
+  function splitNom(full){
+    var t=String(full||'').trim().split(/\s+/).filter(Boolean); if(!t.length) return ['',''];
+    var i=0; while(i<t.length && t[i]===t[i].toUpperCase() && /[A-ZÀ-Ý]/.test(t[i])) i++;
+    if(i===0) i=1; if(i>=t.length && t.length>1) i=1;
+    return [t.slice(0,i).join(' '), t.slice(i).join(' ')];
+  }
+  function importList(rows,opts){
+    var u=U(), added=0, merged=0, dups=0, autre=0, niv=0, vide=0;
+    state.elevesFichier=state.elevesFichier||[];
+    var idxMat={}, idxId={};
+    state.elevesFichier.forEach(function(e){ if(e.matricule&&!/-2026-/.test(e.matricule)) idxMat[String(e.matricule).toUpperCase()]=e; idxId[nk(e.nom+' '+e.prenoms)+'|'+toIso(e.dateN)+'|'+nk(e.ecole)]=e; });
+    rows.forEach(function(raw){
+      var g={}; Object.keys(raw).forEach(function(k){ g[nk(k).replace(/ /g,'')]=raw[k]; });
+      var full=g['nomprenoms']||g['nomprenom']||''; var nom=g['nom']||'', pre=g['prenoms']||g['prenom']||'';
+      if(full){ var sp=splitNom(full); nom=sp[0]; pre=sp[1]; }
+      nom=String(nom||'').trim(); pre=String(pre||'').trim();
+      if(!nom&&!pre){ vide++; return; }
+      var ecole=String(g['ecole']||'').trim();
+      if(opts.lockEcole && ecole && nk(ecole)!==nk(u.ecole)){ autre++; return; }
+      var niveau=String(g['niveau']||g['classe']||'').trim().toUpperCase();
+      if(opts.lockNiveau && niveau && niveau!==String(u.classe||'').toUpperCase()){ niv++; return; }
+      var mat=String(g['matricule']||'').trim().toUpperCase().replace(/\s+/g,'');
+      var dn=toIso(g['datenaissance']||g['datenaiss']||g['daten']||'');
+      var ec=opts.lockEcole?u.ecole:(ecole||u.ecole), nv=opts.lockNiveau?u.classe:(niveau||u.classe||'CP1');
+      var ex=(mat&&idxMat[mat])||idxId[nk(nom+' '+pre)+'|'+dn+'|'+nk(ec)]||null;
+      var vals={ sexe:String(g['sexe']||'').trim().toUpperCase().charAt(0)==='F'?'F':(String(g['sexe']||'').trim()?'M':''), dateN:dn, lieuN:String(g['lieunaissance']||g['lieun']||'').trim(),
+        nationalite:String(g['nationalite']||'').trim(), sousprefecture:String(g['sousprefecture']||g['sp']||'').trim(), nacte:String(g['nacte']||'').trim(), lieuacte:String(g['lieuacte']||'').trim() };
+      if(ex){
+        if(nk(ex.ecole)!==nk(ec)||String(ex.niveau)!==String(nv)){ dups++; return; }   /* déjà dans une autre école/classe : pas de doublon */
+        var ch=false; Object.keys(vals).forEach(function(k){ if(vals[k]&&!ex[k]){ ex[k]=vals[k]; ch=true; } });
+        if(mat&&/-2026-/.test(ex.matricule||'')&&!idxMat[mat]){ ex.matricule=mat; ch=true; }
+        if(ch){ ex._upd=Date.now(); merged++; } else dups++;
+        return;
+      }
+      var scope=(state.activeIepp||'iepp').toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,8);
+      var e=Object.assign({ id:'e_'+uid(), matricule: mat || (scope+'-2026-'+String((state.elevesFichier||[]).length+added+1).padStart(5,'0')), nom:nom.toUpperCase(), prenoms:pre, niveau:nv, ecole:ec, pere:'', mere:'', tel:'', extrait:vals.nacte?'OUI':'NON', photo:'' }, vals);
+      if(!e.sexe) e.sexe='M';
+      state.elevesFichier.push(e); if(mat) idxMat[mat]=e; idxId[nk(nom+' '+pre)+'|'+dn+'|'+nk(ec)]=e; added++;
+    });
+    save('elevesFichier',state.elevesFichier);
+    try{ logAction('eleve-import','Import Excel : '+added+' ajouté(s), '+merged+' complété(s) ('+u.ecole+')'); }catch(e){}
+    try{ if(added||merged){ if(window.__recsit&&__recsit.recAutoCalc){ __recsit.recAutoCalc('cp1',true); __recsit.recAutoCalc('mat',true); } } }catch(e){}
+    var msg=added+' élève(s) ajouté(s)'+(merged?' · '+merged+' complété(s)':'')+(dups?' · '+dups+' doublon(s) ignoré(s)':'')+(autre?' · '+autre+' d\'une autre école ignoré(s)':'')+(niv?' · '+niv+' d\'un autre niveau ignoré(s)':'')+(vide?' · '+vide+' ligne(s) vide(s)':'');
+    toast(msg,'success');
+  }
+  window.eleveImportRows=function(rows,opts){ importList(rows,opts||{}); };
+  window.mcImportClasse=function(ev){ importRowsFromFile(ev,function(rows){ importList(rows,{lockEcole:true,lockNiveau:true}); renderMaClasse(); }); };
+  window.meImportEcole=function(ev){ importRowsFromFile(ev,function(rows){ importList(rows,{lockEcole:true,lockNiveau:false}); renderMonEcole(); }); };
+
+  /* ---- en-tête et lignes du tableau « Ma classe » ---- */
+  var _body=window.renderMaClasseBody;
+  window.renderMaClasseBody=function(){
+    var u=U(), q=((document.getElementById('mc-search')||{}).value||'').toLowerCase();
+    var tb=document.getElementById('mc-body'); if(!tb) return _body&&_body();
+    var th=tb.closest('table').querySelector('thead tr');
+    if(th) th.innerHTML='<th style="width:36px;text-align:center"><input type="checkbox" id="mc-check-all" onclick="mcToggleAll(this)"></th><th>Matricule</th><th>Nom &amp; Prénoms</th><th style="text-align:center">Sexe</th><th>Date naiss.</th><th>Lieu naiss.</th><th>Nationalité</th><th>Extrait</th><th></th>';
+    var list=state.elevesFichier.filter(function(e){ return e.ecole===u.ecole&&e.niveau===u.classe&&(!q||String(e.nom||'').toLowerCase().indexOf(q)>=0||String(e.prenoms||'').toLowerCase().indexOf(q)>=0||String(e.matricule||'').toLowerCase().indexOf(q)>=0); });
+    if(!list.length){ tb.innerHTML='<tr><td colspan="9" class="table-empty">Aucun élève dans votre classe. Utilisez « ➕ Élève » ou « 📥 Importer Excel ».</td></tr>'; return; }
+    tb.innerHTML=list.map(function(e){ return '<tr><td style="text-align:center"><input type="checkbox" class="mc-check" value="'+e.id+'"></td>'
+      +'<td><span class="badge badge-grey">'+esc(e.matricule)+'</span></td><td class="fw-7">'+esc(e.nom)+' '+esc(e.prenoms)+'</td>'
+      +'<td style="text-align:center"><span class="badge '+(e.sexe==='F'?'badge-pink':'badge-blue')+'" style="'+(e.sexe==='F'?'background:#FFE0EB;color:#A11A4D':'')+'">'+esc(e.sexe)+'</span></td>'
+      +'<td class="text-sm">'+esc(fmtDate(e.dateN))+'</td><td class="text-sm">'+esc(e.lieuN||'')+'</td><td class="text-sm">'+esc(e.nationalite||'')+'</td>'
+      +'<td>'+(e.extrait==='OUI'?'<span class="badge badge-green">✓ Oui</span>':'<span class="badge badge-red">✗ Non</span>')+'</td>'
+      +'<td class="actions-cell"><button class="icon-btn" onclick="eleveView(\''+e.id+'\')" title="Voir">👁️</button><button class="icon-btn" onclick="mcEditEleve(\''+e.id+'\')" title="Modifier mes infos">✏️</button><button class="icon-btn" onclick="carteEleveOpen(\''+e.id+'\')" title="Carte scolaire" style="background:var(--orange-soft);color:var(--orange-deep)">🪪</button><button class="icon-btn danger" onclick="mcRetirerEleve(\''+e.id+'\')" title="Retirer de ma classe">➖</button></td></tr>'; }).join('');
+  };
+  var _mc=window.renderMaClasse;
+  window.renderMaClasse=function(){ _mc(); try{
+    var imp=document.getElementById('mc-import');
+    if(imp&&!document.getElementById('mc-modele')) imp.insertAdjacentHTML('afterend','<button class="btn btn-ghost" id="mc-modele" onclick="mcModeleExcel()" title="Télécharger le fichier Excel modèle (codeiepp … niveau)">📄 Modèle Excel</button>');
+  }catch(e){} };
+  try{ if(typeof MODULES!=='undefined'&&MODULES['ma-classe']) MODULES['ma-classe'].render=function(){ return window.renderMaClasse(); }; }catch(e){}
+
+  /* ---- champs supplémentaires dans les formulaires ---- */
+  function extra(e){ e=e||{}; return '<div class="form-row lv2-extra"><div class="field"><label>Nationalité</label><input id="lv2-nat" value="'+esc(e.nationalite||'')+'"></div><div class="field"><label>Sous-préfecture (acte)</label><input id="lv2-sp" value="'+esc(e.sousprefecture||'')+'"></div></div><div class="form-row lv2-extra"><div class="field"><label>N° de l\'acte de naissance</label><input id="lv2-nac" value="'+esc(e.nacte||'')+'"></div><div class="field"><label>Lieu de l\'acte</label><input id="lv2-lac" value="'+esc(e.lieuacte||'')+'"></div></div>'; }
+  function readExtra(){ function v(i){ var x=document.getElementById(i); return x?x.value.trim():null; } return {nationalite:v('lv2-nat'),sousprefecture:v('lv2-sp'),nacte:v('lv2-nac'),lieuacte:v('lv2-lac')}; }
+  function inject(anchorId,e){ var a=document.getElementById(anchorId); if(!a||document.getElementById('lv2-nat')) return; var f=a.closest('.field')||a.parentNode; f.insertAdjacentHTML('afterend',extra(e)); }
+  var _ae=window.eleveAddForm; window.eleveAddForm=function(o){ _ae(o); try{ inject('el-ext'); }catch(e){} };
+  var _aes=window.eleveAddSave; window.eleveAddSave=function(cb){ var x=readExtra(), before={}; (state.elevesFichier||[]).forEach(function(e){ before[e.id]=1; }); _aes(cb);
+    try{ var n=(state.elevesFichier||[]).filter(function(e){ return !before[e.id]; })[0]; if(n&&x.nationalite!==null){ Object.keys(x).forEach(function(k){ if(x[k]) n[k]=x[k]; }); save('elevesFichier',state.elevesFichier); } }catch(e){} };
+  var _me=window.mcEditEleve; window.mcEditEleve=function(id){ _me(id); try{ var e=(state.elevesFichier||[]).find(function(z){return z.id===id;}); inject('mc-tel',e); }catch(er){} };
+  var _ms=window.mcSaveEleve; window.mcSaveEleve=function(id){ var x=readExtra(); var e=(state.elevesFichier||[]).find(function(z){return z.id===id;}); if(e&&x.nationalite!==null){ Object.keys(x).forEach(function(k){ e[k]=x[k]; }); } _ms(id); };
+})();
+</script>
+
+<script id="module-consolidation-hierarchique">
+/* ===== Consolidation : classe → école → IEPP → DRENAET → DESPS (central) ===== */
+(function(){
+  if(window.__conso) return; window.__conso=true;
+  function U(){ return state.user||{}; }
+  function nk(s){ return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim(); }
+  function esc(s){ return escapeHtml(String(s==null?'':s)); }
+  function n0(v){ var n=parseInt(v,10); return isNaN(n)?0:n; }
+  var R=function(){ return window.__recsit; };
+  var IEPPROLES=['inspecteur','correspondant','corresp_stat','agent','cpi'];
+  var NIVP=['cp1','cp2','ce1','ce2','cm1','cm2'];
+  function isCM2(){ return U().role==='instituteur' && String(U().classe||'').toUpperCase()==='CM2'; }
+  function isClassOnly(){ return U().role==='instituteur' && !isCM2(); }
+
+  /* ---------- 1) Publication du résumé de l'IEPP (pour DRENAET et DESPS) ---------- */
+  function sum3(o){ var t=0; ['PUBLIC','PRIVE','COM'].forEach(function(s){ t+=n0(o[s].pres)+n0(o[s].prim); }); return t; }
+  function recTot(){
+    var c=(state.recrutementCP1||[]).reduce(function(a,r){ var pr=n0(r.prG)+n0(r.prF), rec=n0(r.recG)+n0(r.recF), ref=n0(r.refG)+n0(r.refF); a.d+=Math.max(pr,rec+ref); a.i+=rec; a.n+=ref; return a; },{d:0,i:0,n:0});
+    var m=(state.recrutementMater||[]).reduce(function(a,r){ var i=n0(r.psG)+n0(r.psF)+n0(r.msG)+n0(r.msF)+n0(r.gsG)+n0(r.gsF), ref=n0(r.refG)+n0(r.refF); a.d+=i+ref; a.i+=i; a.n+=ref; return a; },{d:0,i:0,n:0});
+    return {cp1:c,mat:m};
+  }
+  var _t=null;
+  function publish(){
+    try{
+      if(IEPPROLES.indexOf(U().role)<0||!R()||!R().ssBuild) return;
+      var iepp=String(state.activeIepp||U().iepp||'').trim(); if(!iepp) return;
+      var B=R().ssBuild(), rc=recTot();
+      var sit={ ecoles:sum3(B.A), classes:sum3(B.C), gar:0, fil:0 };
+      ['ps','ms','gs','pub','priv','comm'].forEach(function(k){ sit.gar+=n0(B.g[k]); sit.fil+=n0(B.f[k]); });
+      sit.pres=n0(B.g.ps)+n0(B.g.ms)+n0(B.g.gs)+n0(B.f.ps)+n0(B.f.ms)+n0(B.f.gs); sit.prim=sit.gar+sit.fil-sit.pres;
+      if(!Array.isArray(state.ieppStats)) state.ieppStats=load('ieppStats',[]);
+      var arr=state.ieppStats.slice(), key=iepp.toUpperCase(), i=arr.findIndex(function(s){ return String((s&&s.iepp)||'').trim().toUpperCase()===key; });
+      var e=i>=0?Object.assign({},arr[i]):{iepp:iepp,ecoles:0,eleves:0,at:Date.now()};
+      var drn=String(U().drenaet||''); try{ var reg=(state.ieppRegistry||[]).find(function(x){ return String(x.name||'').toUpperCase()===key; }); if(reg&&reg.drenaet) drn=reg.drenaet; }catch(er){}
+      var nu={sit:sit,rec:rc,drenaet:drn};
+      if(JSON.stringify([e.sit,e.rec,e.drenaet])===JSON.stringify([nu.sit,nu.rec,nu.drenaet])) return;
+      Object.assign(e,nu,{sat:Date.now()}); if(i>=0) arr[i]=e; else arr.push(e);
+      state.ieppStats=arr; save('ieppStats',arr);
+    }catch(e){ console.warn('conso publish',e); }
+  }
+  window.__conso_publish=publish;
+  var WATCH={statSituationReg:1,recrutementCP1:1,recrutementMater:1,effPrimaire:1,effPrescolaire:1,ecoles:1,elevesFichier:1,effClasses:1};
+  var _save=window.save;
+  window.save=function(k){ var r=_save.apply(this,arguments); try{ if(WATCH[k]){ clearTimeout(_t); _t=setTimeout(publish,900); } }catch(e){} return r; };
+
+  /* ---------- 2) Vue consolidée DRENAET / DESPS ---------- */
+  function normD(s){ return nk(String(s||'').replace(/^drenaet?\s*(de\s+|d')?/i,'')); }
+  function consoCard(kind){
+    var u=U(); if(u.role!=='drenaet'&&u.role!=='superadmin') return '';
+    if(!Array.isArray(state.ieppStats)) state.ieppStats=load('ieppStats',[]);
+    var all=state.ieppStats.filter(function(s){ return s&&s.iepp; });
+    var mine=u.role==='superadmin'?all:all.filter(function(s){ return normD(s.drenaet)===normD(u.drenaet); });
+    var groups={}; mine.forEach(function(s){ var g=s.drenaet||'Non précisée'; (groups[g]=groups[g]||[]).push(s); });
+    var Gs=Object.keys(groups).sort();
+    var cols = kind==='rec'
+      ? [['IEPP',null],['CP1 demandes',function(s){return s.rec&&s.rec.cp1.d;}],['CP1 inscrits',function(s){return s.rec&&s.rec.cp1.i;}],['CP1 refusés',function(s){return s.rec&&s.rec.cp1.n;}],['Présc. demandes',function(s){return s.rec&&s.rec.mat.d;}],['Présc. inscrits',function(s){return s.rec&&s.rec.mat.i;}],['Présc. refusés',function(s){return s.rec&&s.rec.mat.n;}]]
+      : [['IEPP',null],['Écoles',function(s){return s.sit&&s.sit.ecoles;}],['Classes',function(s){return s.sit&&s.sit.classes;}],['Garçons',function(s){return s.sit&&s.sit.gar;}],['Filles',function(s){return s.sit&&s.sit.fil;}],['Élèves préscolaire',function(s){return s.sit&&s.sit.pres;}],['Élèves primaire',function(s){return s.sit&&s.sit.prim;}],['Total élèves',function(s){return s.sit&&(n0(s.sit.gar)+n0(s.sit.fil));}]];
+    function tot(list){ return cols.slice(1).map(function(c){ return list.reduce(function(a,s){ return a+n0(c[1](s)); },0); }); }
+    function row(s){ var has=kind==='rec'?!!s.rec:!!s.sit; return '<tr><td class="fw-7">'+esc(s.iepp)+(has?'':' <span class="text-xs" style="color:var(--danger)">(pas encore compilée)</span>')+'</td>'+cols.slice(1).map(function(c){ return '<td style="text-align:center">'+(has?n0(c[1](s)):'—')+'</td>'; }).join('')+'</tr>'; }
+    function trow(label,list,bg){ return '<tr style="background:'+bg+';font-weight:800"><td>'+esc(label)+'</td>'+tot(list).map(function(v){ return '<td style="text-align:center">'+v+'</td>'; }).join('')+'</tr>'; }
+    var body='';
+    Gs.forEach(function(g){ if(u.role==='superadmin') body+='<tr><td colspan="'+cols.length+'" style="background:var(--blue-soft);font-weight:800">'+esc(g)+'</td></tr>'; body+=groups[g].map(row).join(''); if(u.role==='superadmin') body+=trow('Sous-total '+g+' ('+groups[g].length+' IEPP)',groups[g],'var(--bg)'); });
+    if(!Gs.length) body='<tr><td colspan="'+cols.length+'" class="table-empty">Aucune IEPP n\'a encore publié ses données. Elles apparaissent dès que l\'IEPP ouvre sa situation statistique.</td></tr>';
+    else body+=trow(u.role==='superadmin'?'TOTAL NATIONAL — DESPS ('+mine.length+' IEPP)':'TOTAL '+(u.drenaet||'DRENAET')+' ('+mine.length+' IEPP)',mine,'#EEF4FB');
+    return '<div class="card" style="margin-bottom:14px;border-left:4px solid var(--blue)"><div class="card-header"><div><div class="card-title">'+(u.role==='superadmin'?'Consolidation nationale — DESPS (toutes les DRENAET)':'Consolidation DRENAET — toutes les IEPP')+'</div><div class="card-sub">'+(kind==='rec'?'Recrutement CP1 et préscolaire':'Situation statistique')+' · classe → école → IEPP → DRENAET → DESPS</div></div></div><div class="table-wrap" style="border:none"><table><thead><tr>'+cols.map(function(c){ return '<th>'+c[0]+'</th>'; }).join('')+'</tr></thead><tbody>'+body+'</tbody></table></div></div>';
+  }
+
+  /* ---------- 3) Écran classe / école : chaîne + remontée ---------- */
+  window.__conso_remonterEff=function(){
+    var u=U(); var S=R().schoolFromEleves(u.ecole,null), n=0;
+    state.effPrescolaire=state.effPrescolaire||[]; state.effPrimaire=state.effPrimaire||[];
+    function up(arr,key,src,fields){ var any=fields.some(function(f){ return n0(src[f+'G'])+n0(src[f+'F'])>0; }); if(!any) return;
+      var r=arr.find(function(x){ return nk(x.nom)===nk(u.ecole); }); if(!r){ r={id:(key==='effPrimaire'?'efr':'efp')+uid(),nom:u.ecole}; arr.push(r); }
+      fields.forEach(function(f){ r[f+'G']=n0(src[f+'G']); r[f+'F']=n0(src[f+'F']); }); r.remontePar=u.name||''; r.remonteLe=Date.now(); r._upd=Date.now(); save(key,arr); n++; }
+    up(state.effPrimaire,'effPrimaire',S.prim[0],NIVP); up(state.effPrescolaire,'effPrescolaire',S.pres[0],['ps','ms','gs']);
+    toast(n?'Effectifs de l\'école consolidés depuis les classes et remontés à l\'IEPP ✓':'Aucun élève dans les classes de l\'école : rien à remonter',n?'success':'error');
+  };
+  function chainCard(){
+    var u=U(); if(u.role!=='directeur'&&u.role!=='instituteur') return '';
+    var cls=String(u.classe||'').toUpperCase();
+    var step=function(t,on){ return '<span style="padding:4px 10px;border-radius:999px;font-weight:700;font-size:12px;background:'+(on?'var(--orange)':'var(--bg)')+';color:'+(on?'#fff':'var(--ink-soft)')+'">'+t+'</span>'; };
+    var scope=u.role==='directeur'?'l\'école « '+esc(u.ecole||'')+' » (toutes les classes)':(isCM2()?'l\'école « '+esc(u.ecole||'')+' » (consolidation par le maître de CM2)':'votre classe '+esc(cls)+' uniquement');
+    return '<div class="card" style="margin-bottom:14px;border-left:4px solid var(--orange)"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">'+step('Classe',isClassOnly())+' → '+step('École',u.role==='directeur'||isCM2())+' → '+step('IEPP',false)+' → '+step('DRENAET',false)+' → '+step('DESPS',false)+'</div>'
+      +'<div class="text-sm">Les calculs partent de la liste des élèves de chaque classe. Vous voyez ici : <strong>'+scope+'</strong>.</div>'
+      +((u.role==='directeur'||isCM2())?'<div style="margin-top:10px"><button class="btn btn-orange" onclick="__conso_remonterEff()">📤 Consolider les classes et remonter l\'effectif de l\'école à l\'IEPP</button></div>':'')+'</div>';
+  }
+
+  /* ---------- 4) branchement sur les pages ---------- */
+  function afterHero(html){ if(!html) return; var h=document.querySelector('#content .hero, .hero'); if(h) h.insertAdjacentHTML('afterend',html); }
+  var _ss=window.renderStatSituation;
+  window.renderStatSituation=function(){ _ss(); try{ afterHero(consoCard('sit')+chainCard()); publish(); }catch(e){ console.warn(e); } };
+  var _sr=window.renderStatRecrutement;
+  window.renderStatRecrutement=function(){ _sr(); try{
+    afterHero(consoCard('rec')+chainCard());
+    if(isClassOnly()){ var pane=document.getElementById('tab-rec-cp1'); var cls=String(U().classe||'').toUpperCase();
+      if(cls!=='CP1' && pane){ pane.insertAdjacentHTML('afterbegin','<div class="card" style="padding:12px 14px;margin-bottom:10px">Le point de recrutement du CP1 est renseigné par le maître de CP1, puis consolidé par le directeur. Vous le consultez ici en lecture seule.</div>'); } }
+    if(U().role==='instituteur'&&isCM2()){ Array.prototype.forEach.call(document.querySelectorAll('.tabs .tab'),function(t){ if(/Maternelle/.test(t.textContent)) t.style.display=''; }); }
+    publish();
+  }catch(e){ console.warn(e); } };
+  try{ MODULES['stat-situation'].render=function(){ return window.renderStatSituation(); }; MODULES['stat-recrutement'].render=function(){ return window.renderStatRecrutement(); }; }catch(e){}
+  /* DRENAET / DESPS : l'accès aux tableaux de compilation */
+  try{ ['drenaet','superadmin'].forEach(function(r){ if(ACL[r]) ['stat-recrutement','stat-situation'].forEach(function(m){ if(ACL[r].indexOf(m)<0) ACL[r].push(m); }); }); }catch(e){}
+})();
+</script>
+
+<script id="module-suppression-listes-eleves">
+/* ===== Suppression des listes d'élèves : Ma classe (CP1→CM2), Mon école (directeur), Gestion des élèves (correspondant fichier, inspecteur) ===== */
+(function(){
+  if(window.__supprListes) return; window.__supprListes=true;
+  function U(){ return state.user||{}; }
+  function nk(s){ return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim(); }
+  function inTrash(id){ return (state.corbeille||[]).some(function(t){ return t&&t.parentKey==='elevesFichier'&&t.matchVal===id; }); }
+  function supprimer(ids,libelle,cb){
+    ids=ids.filter(function(x,i,a){ return a.indexOf(x)===i; });
+    if(!ids.length){ toast('Aucun élève à supprimer','error'); return; }
+    if(!confirm('Supprimer '+libelle+' ('+ids.length+' élève'+(ids.length>1?'s':'')+') ?\n\nLes élèves sont envoyés à la Corbeille (récupérables).')) return;
+    var before=(state.corbeille||[]).length;
+    var gone=(state.elevesFichier||[]).filter(function(e){ return ids.indexOf(e.id)>=0; });
+    gone.forEach(function(e){ try{ if(!inTrash(e.id)) trashItem('elevesFichier',e,'eleve',((e.nom||'')+' '+(e.prenoms||''))+' — '+(e.ecole||'')+'/'+(e.niveau||'')); }catch(er){} });
+    state.elevesFichier=state.elevesFichier.filter(function(e){ return ids.indexOf(e.id)<0; });
+    save('elevesFichier',state.elevesFichier);
+    try{ logAction('eleves-suppression','Suppression de '+gone.length+' élève(s) : '+libelle); }catch(e){}
+    toast(gone.length+' élève(s) supprimé(s) — récupérables dans la Corbeille','success');
+    try{ cb&&cb(); }catch(e){}
+  }
+  window.__supprListes={supprimer:supprimer};
+
+  /* ---- Ma classe (instituteur) ---- */
+  window.mcSupprSelection=function(){ var ids=[].map.call(document.querySelectorAll('.mc-check:checked'),function(c){return c.value;}); supprimer(ids,'la sélection',renderMaClasse); };
+  window.mcSupprListe=function(){ var u=U(); var ids=(state.elevesFichier||[]).filter(function(e){ return nk(e.ecole)===nk(u.ecole)&&String(e.niveau)===String(u.classe); }).map(function(e){return e.id;}); supprimer(ids,'toute la liste de la classe '+(u.classe||''),renderMaClasse); };
+  var _mc=window.renderMaClasse;
+  window.renderMaClasse=function(){ _mc(); try{
+    var bar=document.querySelector('.toolbar'); if(bar&&!document.getElementById('mc-suppr-sel')){
+      var anchor=document.getElementById('mc-modele')||document.getElementById('mc-import');
+      var h='<button class="btn btn-ghost danger" id="mc-suppr-sel" onclick="mcSupprSelection()">🗑️ Supprimer la sélection</button><button class="btn btn-ghost danger" id="mc-suppr-all" onclick="mcSupprListe()">🧹 Vider ma liste</button>';
+      (anchor||bar.lastElementChild).insertAdjacentHTML('afterend',h); }
+  }catch(e){ console.warn(e); } };
+  try{ if(MODULES['ma-classe']) MODULES['ma-classe'].render=function(){ return window.renderMaClasse(); }; }catch(e){}
+
+  /* ---- Mon école (directeur) ---- */
+  window.meSupprClasse=function(niv){ var u=U(); var ids=(state.elevesFichier||[]).filter(function(e){ return nk(e.ecole)===nk(u.ecole)&&String(e.niveau)===String(niv); }).map(function(e){return e.id;}); supprimer(ids,'la liste de la classe '+niv,renderMonEcole); };
+  window.meSupprEcole=function(){ var u=U(); var ids=(state.elevesFichier||[]).filter(function(e){ return nk(e.ecole)===nk(u.ecole); }).map(function(e){return e.id;}); supprimer(ids,'toutes les listes de l\'école '+(u.ecole||''),renderMonEcole); };
+  var _me=window.renderMonEcole;
+  window.renderMonEcole=function(){ _me(); try{
+    if(U().role!=='directeur') return;
+    Array.prototype.forEach.call(document.querySelectorAll('td .badge-purple'),function(b){ var td=b.closest('tr').querySelector('.actions-cell'); var niv=b.textContent.trim(); if(td&&!td.querySelector('.me-suppr')) td.insertAdjacentHTML('beforeend','<button class="icon-btn danger me-suppr" onclick="meSupprClasse(\''+niv+'\')" title="Vider la liste de cette classe">🗑️</button>'); });
+    var bar=document.querySelector('.toolbar'); if(bar&&!document.getElementById('me-suppr-all')) bar.insertAdjacentHTML('beforeend','<button class="btn btn-ghost danger" id="me-suppr-all" onclick="meSupprEcole()">🧹 Vider toutes les listes de l\'école</button>');
+  }catch(e){ console.warn(e); } };
+  try{ if(MODULES['mon-ecole']) MODULES['mon-ecole'].render=function(){ return window.renderMonEcole(); }; }catch(e){}
+
+  /* ---- Gestion des élèves (correspondant fichier, inspecteur, superadmin, directeur) ---- */
+  window.elSupprAffiches=function(){ var ids=[].map.call(document.querySelectorAll('.el-check'),function(c){return c.value;}); supprimer(ids,'la liste affichée (selon vos filtres)',renderElevesBody); };
+  var _reb=window.renderElevesBody;
+  window.renderElevesBody=function(){ _reb.apply(this,arguments); try{
+    var b=document.querySelector('button[onclick="elBulkDelete()"]'); if(b&&!document.getElementById('el-suppr-aff')) b.insertAdjacentHTML('afterend','<button class="btn btn-ghost danger" id="el-suppr-aff" onclick="elSupprAffiches()" title="Supprime tous les élèves actuellement affichés (appliquez d\'abord un filtre école / niveau si besoin)">🧹 Vider la liste affichée</button>');
+  }catch(e){} };
+  window.elBulkDelete=function(){ var ids=[].map.call(document.querySelectorAll('.el-check:checked'),function(c){return c.value;}); supprimer(ids,'la sélection',renderElevesBody); };
+})();
+</script>
+
+<script id="module-export-dfa-modele">
+/* ===== Export DFA au modèle officiel (feuille « eleves » : annee, matricule, nom, prenoms, ecole, niveau, dfa) ===== */
+(function(){
+  if(window.__dfaExport) return; window.__dfaExport=true;
+  var ORDRE=['CP1','CP2','CE1','CE2','CM1','CM2'];
+  function U(){ return state.user||{}; }
+  function nk(s){ return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim(); }
+  function an(){ var a=String(window.ANNEE_SCOLAIRE||'2026-2027'); var m=a.match(/(\d{4})\D+(\d{4})/); return m?(m[1].slice(2)+m[2].slice(2)):a.replace(/\D/g,'').slice(0,4); }
+  function code(v){ return v==='Admis'?'A':(v==='Redouble'?'R':''); }
+  /* périmètre : instituteur = sa classe ; directeur = son école ; autres = IEPP active (les données sont déjà propres à l'IEPP) */
+  function inScope(ecole,classe){ var u=U(), r=u.role;
+    if(r==='instituteur') return nk(ecole)===nk(u.ecole)&&String(classe).toUpperCase()===String(u.classe||'').toUpperCase();
+    if(r==='directeur') return nk(ecole)===nk(u.ecole);
+    return true; }
+  function rows(only){
+    var u=U(), out=[], a=an(), annee=String(window.ANNEE_SCOLAIRE||'2026-2027'), seen={};
+    (state.notesComposDfa||[]).forEach(function(d){ if(!d||String(d.annee||annee)!==annee) return;
+      if(only&&!(nk(d.ecole)===nk(only.ecole)&&String(d.classe).toUpperCase()===String(only.classe).toUpperCase())) return;
+      if(!inScope(d.ecole,d.classe)) return;
+      var own=(u.role==='instituteur');
+      if(!own && !d.lignes) return;                              /* les niveaux supérieurs exportent les DFA soumises */
+      seen[nk(d.ecole)+'|'+String(d.classe).toUpperCase()]=1;
+      if(d.lignes){ d.lignes.forEach(function(l){ out.push({annee:a,matricule:l.matricule||'',nom:l.nom||'',prenoms:l.prenoms||'',ecole:d.ecole,niveau:String(d.classe).toUpperCase(),dfa:code(l.dec)}); }); }
+      else { (state.elevesFichier||[]).filter(function(e){ return nk(e.ecole)===nk(d.ecole)&&String(e.niveau).toUpperCase()===String(d.classe).toUpperCase(); }).forEach(function(e){ out.push({annee:a,matricule:e.matricule||'',nom:e.nom||'',prenoms:e.prenoms||'',ecole:d.ecole,niveau:String(d.classe).toUpperCase(),dfa:code((d.decisions||{})[e.id])}); }); }
+    });
+    /* instituteur sans enregistrement : la liste de sa classe, décisions à renseigner */
+    if(u.role==='instituteur'&&!out.length&&!only){ (state.elevesFichier||[]).filter(function(e){ return nk(e.ecole)===nk(u.ecole)&&String(e.niveau).toUpperCase()===String(u.classe||'').toUpperCase(); }).forEach(function(e){ out.push({annee:a,matricule:e.matricule||'',nom:e.nom||'',prenoms:e.prenoms||'',ecole:e.ecole,niveau:String(e.niveau).toUpperCase(),dfa:''}); }); }
+    out.sort(function(x,y){ return nk(x.ecole).localeCompare(nk(y.ecole))||ORDRE.indexOf(x.niveau)-ORDRE.indexOf(y.niveau)||nk(x.nom+' '+x.prenoms).localeCompare(nk(y.nom+' '+y.prenoms)); });
+    return out;
+  }
+  window.dfaExport=function(ecole,classe){
+    var only=ecole?{ecole:ecole,classe:classe}:null, list=rows(only);
+    if(!list.length){ toast('Aucune DFA à exporter dans votre périmètre (aucune DFA soumise).','error'); return; }
+    var u=U(), nom='DFA_'+(only?(classe+'_'+String(ecole).replace(/\s+/g,'_')):(u.role==='instituteur'?String(u.classe||'')+'_'+String(u.ecole||'').replace(/\s+/g,'_'):(u.role==='directeur'?String(u.ecole||'').replace(/\s+/g,'_'):String(state.activeIepp||'IEPP').replace(/\s+/g,'_'))))+'_'+an();
+    var head=['annee','matricule','nom','prenoms','ecole','niveau','dfa'];
+    if(window.__XLSX_READY&&window.XLSX){
+      try{ var ws=XLSX.utils.json_to_sheet(list,{header:head}); var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'eleves'); XLSX.writeFile(wb,nom+'.xls',{bookType:'biff8'}); toast('Fichier DFA téléchargé ('+list.length+' élèves)','success'); try{ logAction('dfa-export','Export DFA '+list.length+' élèves'); }catch(e){} return; }catch(e){ console.warn('xls',e); }
+    }
+    exportRowsToExcel(list,nom,'eleves');
+  };
+  window.__dfaExport={rows:rows,an:an};
 })();
 </script>
 
