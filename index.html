@@ -1647,6 +1647,11 @@ const ROLES = {
   coges:      { label: 'COGES (Comité de gestion)',             short: 'COGES',              color: 'orange' },
   alphabetisation: { label: 'Conseiller Alphabétisation',         short: 'Alphabétisation',    color: 'purple' },
   alpha:      { label: 'Conseiller Alphabétisation (ancien profil)', short: 'Alphabétisation', color: 'purple' },
+  /* ---- ENF / Alphabétisation / Classes passerelle (étape Q) ---- */
+  enf_superviseur: { label: 'Superviseur en IEPP (ENF / Alpha)',            short: 'Superviseur IEPP',    color: 'purple' },
+  enf_coordo:      { label: 'Coordo Alpha / CESAL en IEPP',                 short: 'Coordo Alpha IEPP',   color: 'purple' },
+  enf_cesal:       { label: 'CESAL / CIEPA (Conseiller Extrascolaire Alphabétisation)', short: 'CESAL / CIEPA', color: 'purple' },
+  enf_auxiliaire:  { label: 'Auxiliaire (rôle de conseiller Alphabétisation)', short: 'Auxiliaire',       color: 'purple' },
   islam:      { label: 'Structures Islamiques d\'Éducation',      short: 'Struct. islamiques', color: 'green' },
   autres:     { label: 'Autres (profil personnalisé)',          short: 'Autres',             color: 'grey' },
   /* ---- Profils d'accès ciblé par espace (cloisonnement IEPP · ajout) ---- */
@@ -1659,7 +1664,7 @@ const ROLES = {
 
 /* ---- Fonctions du personnel de la DRENAET (étape F) : comptes rattachés à UNE DRENAET ---- */
 Object.assign(ROLES, {
-  dren_superviseur:  { label: 'Superviseur en DRENAET',                      short: 'Superviseur DRENAET', color: 'blue' },
+  dren_superviseur:  { label: 'Superviseur en DRENAET / DENF / ALPHA',                      short: 'Superviseur DRENAET', color: 'blue' },
   dren_coordo:       { label: 'Coordinateur DRENAET (Coordo DRENAET)',       short: 'Coordo DRENAET',      color: 'blue' },
   dren_sg:           { label: 'SG (Secrétaire Général de la DRENAET)',       short: 'SG DRENAET',          color: 'purple' },
   dren_coordo_deps:  { label: 'Coordo DEPS',                                 short: 'Coordo DEPS',         color: 'green' },
@@ -1722,6 +1727,10 @@ const ACL = {
   cantine:      ['dashboard','economat','courrier','archives'],
   coges:        ['dashboard','coges','courrier','archives'],
   alphabetisation: ['dashboard','alpha','islam','courrier','archives'],
+  enf_superviseur: ['dashboard','alpha-sup','enf-bull','courrier','archives'],
+  enf_coordo:      ['dashboard','alpha','alpha-sup','enf-bull','courrier','archives'],
+  enf_cesal:       ['dashboard','alpha','islam','alpha-sup','enf-bull','courrier','archives'],
+  enf_auxiliaire:  ['dashboard','alpha','islam','alpha-sup','enf-bull','courrier','archives'],
   autres:       ['dashboard','courrier','archives'],
 };
 
@@ -1811,6 +1820,10 @@ function can(action) {
     coges:         ['view','print','view-mail'],
     alphabetisation: ['view','print','view-mail','export-data'],
     alpha:           ['view','print','view-mail','export-data'],
+    enf_superviseur: ['view','print','view-mail','export-data'],
+    enf_coordo:      ['view','print','view-mail','export-data'],
+    enf_cesal:       ['view','print','view-mail','export-data'],
+    enf_auxiliaire:  ['view','print','view-mail','export-data'],
     islam:           ['view','print','view-mail','export-data'],
     autres:        ['view'],
     examens:        ['view','print','export-data'],
@@ -6519,6 +6532,22 @@ function userForm(username, presetRole) {
       <div class="field"><label>École (si applicable)</label><input id="u-ecole" value="${escapeHtml(u.ecole||'')}" ${me.role==='directeur'?'readonly':''}></div>
       <div class="field"><label>Téléphone</label><input id="u-tel" value="${escapeHtml(u.tel||u.contact||'')}" placeholder="ex : 0700000000"></div>
     </div>
+    <div id="u-ident-extra" style="border:1px dashed var(--border,#cbd5e1);border-radius:8px;padding:8px 10px;margin:6px 0">
+      <div class="text-xs text-muted" style="margin-bottom:4px">🪪 Renseignements professionnels <em>(facultatifs)</em></div>
+      <div class="form-row">
+        <div class="field"><label>Date de naissance</label><input type="date" id="u-naiss" value="${escapeHtml(u.dateNaissance||'')}"></div>
+        <div class="field"><label>Lieu de naissance</label><input id="u-lieunaiss" value="${escapeHtml(u.lieuNaissance||'')}"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Emploi</label><input id="u-emploi" value="${escapeHtml(u.emploi||'')}" placeholder="ex : Instituteur, Inspecteur…"></div>
+        <div class="field"><label>Fonction</label><input id="u-fonction" value="${escapeHtml(u.fonction||'')}" placeholder="ex : Directeur d'école, Chef de service…"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Lieu du service</label><input id="u-lieuserv" value="${escapeHtml(u.lieuService||'')}"></div>
+        <div class="field"><label>Date de 1<sup>er</sup> service</label><input type="date" id="u-date1serv" value="${escapeHtml(u.datePremierService||'')}"></div>
+      </div>
+      <label id="u-passerelle-row" class="text-xs" style="display:${u.role==='directeur'?'flex':'none'};gap:6px;align-items:center;margin-top:4px"><input type="checkbox" id="u-passerelle" ${u.passerelle?'checked':''}> DEP rattaché aux Classes Passerelle <span class="text-muted">(accès aux bulletins ENF)</span></label>
+    </div>
     <div class="form-row" id="u-classe-row" style="display:${u.role==='instituteur'?'':'none'}">
       <div class="field"><label>Classe / Niveau tenu <span style="color:#E63946">*</span></label>
         <select id="u-classe">
@@ -6556,6 +6585,7 @@ function userForm(username, presetRole) {
 function toggleClasseField(role){
   var row = document.getElementById('u-classe-row');
   if(row) row.style.display = (role==='instituteur') ? '' : 'none';
+  var pr = document.getElementById('u-passerelle-row'); if(pr) pr.style.display = (role==='directeur') ? 'flex' : 'none';
 }
 async function userSave(username) {
   const me = state.user;
@@ -6574,6 +6604,8 @@ async function userSave(username) {
   };
   { const _t = (document.getElementById('u-tel')?.value || '').trim(); data.tel = _t; data.contact = _t; }
   { var _cl = (document.getElementById('u-classe')?.value || '').trim(); if(_cl) data.classe = _cl; }
+  [['u-naiss','dateNaissance'],['u-lieunaiss','lieuNaissance'],['u-emploi','emploi'],['u-fonction','fonction'],['u-lieuserv','lieuService'],['u-date1serv','datePremierService']].forEach(function(p){ var el=document.getElementById(p[0]); if(el) data[p[1]]=(el.value||'').trim(); });
+  { var _pa=document.getElementById('u-passerelle'); data.passerelle = (role==='directeur' && !!(_pa&&_pa.checked)); }
   if (role === 'instituteur' && !data.classe) { toast('Veuillez préciser la classe / le niveau tenu (ex : CP1, CP2…).', 'error'); return; }
   { var _ac=document.getElementById('u-actif'); if(_ac) data.actif = (_ac.value==='1'); }
   { var _db=document.getElementById('u-debut'); if(_db) data.debut = _db.value||''; }
@@ -37540,7 +37572,7 @@ function userRestoreFromTrash(trashId){
   var $=function(s){ return document.querySelector(s); };
   var esc=function(s){ return (typeof escapeHtml==='function')?escapeHtml(String(s==null?'':s)):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
   var U=function(){ return (window.state&&state.user)||{}; };
-  var EDIT_R=['alphabetisation','alpha','superadmin','inspecteur'];
+  var EDIT_R=['alphabetisation','alpha','enf_cesal','enf_auxiliaire','enf_coordo','superadmin','inspecteur'];
   var NIV=['CPU','CEU','CMU'];
   var LIB={CPU:'Cours préparatoire unique',CEU:'Cours élémentaire unique',CMU:'Cours moyen unique'};
   function arr(k){ if(!Array.isArray(state[k])){ var v=null; try{ v=load(k,null); }catch(e){} state[k]=Array.isArray(v)?v:[]; } return state[k]; }
@@ -38453,7 +38485,7 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
   var $=function(s){ return document.querySelector(s); };
   var esc=function(s){ return (typeof escapeHtml==='function')?escapeHtml(String(s==null?'':s)):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
   var U=function(){ return (window.state&&state.user)||{}; };
-  var EDIT_R=['alphabetisation','alpha','superadmin','inspecteur'];
+  var EDIT_R=['alphabetisation','alpha','enf_cesal','enf_auxiliaire','enf_coordo','superadmin','inspecteur'];
   var inp='width:100%;padding:7px 9px;border:1px solid #cbd5e1;border-radius:7px;font:inherit;color:#0f172a;-webkit-text-fill-color:#0f172a;background:#fff;box-sizing:border-box';
   var NIV=['CPU','CEU','CMU'], LIB={CPU:'Cours préparatoire unique',CEU:'Cours élémentaire unique',CMU:'Cours moyen unique'};
   var STAT=['Fonctionnel(le)','Non fonctionnel(le)','En projet','Fermé(e)'];
@@ -38579,7 +38611,7 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
   var $=function(s){ return document.querySelector(s); };
   var esc=function(s){ return (typeof escapeHtml==='function')?escapeHtml(String(s==null?'':s)):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
   var U=function(){ return (window.state&&state.user)||{}; };
-  var EDIT_R=['alphabetisation','alpha','superadmin','inspecteur'];
+  var EDIT_R=['alphabetisation','alpha','enf_cesal','enf_auxiliaire','enf_coordo','superadmin','inspecteur'];
   var KEY='alphaRapports';
   var DOM={ 'alpha-eco':{d:'eco',key:'alphaEcolesCom',t:'Écoles communautaires',s:'école communautaire',p:'écoles communautaires',ico:'🏘️',col:'#ea580c'},
             'alpha-cal':{d:'cal',key:'alphaCentres',t:"Centres d'Alphabétisation",s:"centre d'alphabétisation",p:"centres d'alphabétisation",ico:'🔤',col:'#0f766e'},
@@ -38768,7 +38800,7 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
   var $=function(s){ return document.querySelector(s); };
   var esc=function(s){ return (typeof escapeHtml==='function')?escapeHtml(String(s==null?'':s)):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
   var U=function(){ return (window.state&&state.user)||{}; };
-  var EDIT_R=['alphabetisation','alpha','superadmin','inspecteur'];
+  var EDIT_R=['alphabetisation','alpha','enf_cesal','enf_auxiliaire','enf_coordo','superadmin','inspecteur'];
   function canEdit(){ return EDIT_R.indexOf(U().role)>=0; }
   function ld(k){ try{ var v=load(k,null); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
   function arr(k){ if(!Array.isArray(state[k])) state[k]=ld(k); return state[k]; }
@@ -40179,9 +40211,9 @@ function ld(k){ try{ var v=load(k,[]); return Array.isArray(v)?v:[]; }catch(e){ 
 function sv(k,a){ try{ save(k,a); }catch(e){} }
 function annee(){ return String(window.ANNEE_SCOLAIRE||'2026-2027'); }
 function role(){ return U().role||''; }
-function isCons(){ return role()==='alphabetisation'||role()==='alpha'; }
-function isInsp(){ return role()==='inspecteur'||role()==='superadmin'; }
-function isReg(){ return role()==='drenaet'||role()==='superadmin'; }
+function isCons(){ return ['alphabetisation','alpha','enf_cesal','enf_auxiliaire','enf_superviseur','dren_superviseur','dren_cesal','dren_conseiller_ciepa','dren_auxiliaire'].indexOf(role())>=0; }
+function isInsp(){ return role()==='inspecteur'||role()==='superadmin'||role()==='enf_coordo'; }
+function isReg(){ return role()==='drenaet'||role()==='superadmin'||role()==='dren_coordo'||role()==='dren_superviseur'; }
 function ieppName(){ return (window.state&&(state.activeIepp||U().iepp))||''; }
 function drenaetName(){ var u=U(); if(u.drenaet) return u.drenaet; try{ var k=String(ieppName()).toUpperCase(); var r=(state.drenaet||[]).find(function(x){ return String(x.iepp||'').toUpperCase()===k; }); if(r) return r.drenaet||''; }catch(e){} return ''; }
 function slug(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''); }
@@ -40372,7 +40404,7 @@ window.asxOut=function(m){ var rec=ui.rec; if(!rec) return; if(!ui.ro) rec.d=col
 /* ---------- intégration ---------- */
 try{
   MODULES['alpha-sup']={title:'Rapport trimestriel du superviseur',sub:'Alphabétisation & ENF — saisie assistée et consolidation',render:home};
-  ['alphabetisation','alpha','inspecteur','drenaet','superadmin'].forEach(function(r){ if(ACL[r]&&ACL[r].indexOf('alpha-sup')<0) ACL[r].push('alpha-sup'); });
+  ['alphabetisation','alpha','inspecteur','drenaet','superadmin','enf_cesal','enf_auxiliaire','enf_coordo','enf_superviseur','dren_coordo','dren_superviseur','dren_cesal','dren_conseiller_ciepa','dren_auxiliaire'].forEach(function(r){ if(ACL[r]&&ACL[r].indexOf('alpha-sup')<0) ACL[r].push('alpha-sup'); });
   var tryLink=function(){
     if(document.querySelector('.sb-link[data-module="alpha-sup"]')) return;
     var anchor=document.querySelector('.sb-link[data-module="alpha"]')||document.querySelector('.sb-link[data-module="dashboard"]'); if(!anchor) return;
@@ -44163,6 +44195,303 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
     setInterval(function(){ try{ if(state&&state.user) group(); }catch(e){} },700);
     var _a=window.applyACL; if(typeof _a==='function'&&!window.__polWrapped){ window.applyACL=function(){ var r=_a.apply(this,arguments); try{ group(); }catch(e){} return r; }; window.__polWrapped=true; }
   }catch(e){ console.warn('[menu-policy]',e); }
+})();
+</script>
+<script id="iepp-enf-bull">
+/* ENF / Alphabétisation / Classes passerelle — Bulletins de suivi (DEP, CAENF, Superviseur) + consolidation (étape Q) */
+(function(){
+try{
+  var KEY='enfBulletins';
+  try{ if(typeof GLOBAL_KEYS!=='undefined'&&!GLOBAL_KEYS.has(KEY)) GLOBAL_KEYS.add(KEY); }catch(e){}
+  try{ Object.assign(AUTO_TRASH_LABELS,{enfBulletins:'Bulletins ENF / Classes passerelle'}); }catch(e){}
+  function U(){ return (window.state&&state.user)||{}; }
+  function esc(s){ return escapeHtml(String(s==null?'':s)); }
+  function N(s){ return String(s||'').trim().toUpperCase(); }
+  function ld(){ try{ var v=load(KEY,[]); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
+  function sv(a){ try{ save(KEY,a); }catch(e){} }
+
+  /* ---------- constructeurs de schéma ---------- */
+  var OUI=['Oui','Non'], OPN=['Oui','Partiellement','Non'], QUAL=['Très satisfaisante','Satisfaisante','Insuffisante','À renforcer'], APPR=['Satisfaisant','Acceptable','À améliorer','Insuffisant'];
+  function info(id,title,fields){ return {id:id,t:'info',title:title,f:fields.map(function(x){ return typeof x==='string'?{k:slug(x),l:x}:x; })}; }
+  function slug(s){ return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''); }
+  function yn(id,title,rows,opts){ return {id:id,t:'yn',title:title,o:opts||OUI,rows:rows}; }
+  function num(id,title,rows,cols){ return {id:id,t:'num',title:title,rows:rows,cols:cols||['Filles','Garçons','Total']}; }
+  function txt(id,title,labels){ return {id:id,t:'txt',title:title,rows:labels}; }
+  function sel(id,title,label,opts){ return {id:id,t:'sel',title:title,label:label,o:opts}; }
+  function prog(id,title,rows){ return {id:id,t:'prog',title:title,rows:rows}; }
+  var PROG=[['EDHEC',16],['Poésie',40],['Lecture-Écriture',271],['Expression orale',170],['EPS',26],['AEC',19],['Dictée','']];
+  var GEN_SUP=['DRENA','IEPP','Localité','École de rattachement','Classe passerelle','Animateur et contact'];
+
+  var FORMS={
+    dep:{ title:'Bulletin de visite du DEP', short:'Bulletin DEP', icon:'🏫', who:'DEP rattaché aux Classes Passerelle', sections:[
+      info('g','I. Informations générales',[{k:'mois_visite',l:'Visite du mois de',type:'month'},'DRENAET','IEPP','Localité','Classe','Animateur et contact','DEP et contact']),
+      num('eff','Effectifs',['Effectif inscrit','Effectif présent'],['Filles','Garçons','Total']),
+      yn('fc','II. Fonctionnement de la classe',['Ouverture régulière de la classe','Respect des horaires','Présence de l’animateur','Assiduité des apprenants']),
+      yn('env','III. Environnement scolaire',['Salle propre','Mobilier suffisant','Matériel didactique disponible']),
+      yn('adm','IV. Suivi administratif',['Registre d’appel à jour','Cahier journal disponible','Cahier journal renseigné','Cahiers des apprenants à jour','Évaluations réalisées','Rapports transmis au CAENF']),
+      info('s1i','C. Observation d’une séance (1)',[{k:'seance1',l:'Séance observée'}]),
+      yn('s1','Observation de la séance (1)',['Préparation pédagogique (fiches, matériels)','Maîtrise de la méthodologie','Participation des apprenants','Utilisation du matériel','Évaluation en fin de séance']),
+      info('s2i','C. Observation d’une séance (2) — facultatif',[{k:'seance2',l:'Séance observée'}]),
+      yn('s2','Observation de la séance (2)',['Préparation pédagogique (fiches, matériels)','Maîtrise de la méthodologie','Participation des apprenants','Utilisation du matériel','Évaluation en fin de séance']),
+      txt('ac','D. Appui-conseil',['Points positifs','Difficultés observées','Conseils donnés','Engagement de l’animateur'])
+    ]},
+    caenf:{ title:'Bulletin de visite du CAENF (CESAL / CIEPA)', short:'Bulletin CAENF', icon:'📘', who:'CESAL / CIEPA / Auxiliaire', sections:[
+      info('g','Informations générales',['DRENAET','IEPP','École de rattachement','Code de l’école','Localité de la passerelle suivie','Classe','Nom du DEP','Contact du DEP','Nom du CIEPA','Contact du CIEPA','Nom de l’animateur','Contact de l’animateur','Ancienneté dans la fonction d’animateur',{k:'pnapas',l:'Formation PNAPAS',type:'sel',o:OUI}]),
+      yn('env','Environnement d’apprentissage',['Classe propre','Classe décorée avec supports pédagogiques','Matériel didactique bien rangé','Disposition de la classe favorisant l’apprentissage'],OPN),
+      yn('aux','Vérification des auxiliaires pédagogiques',['Registre d’appel à jour','Cahier journal parfaitement renseigné et visé','Cahiers des apprenants à jour et visés','Cahier de visites et de conseils renseigné','Fiche d’évaluation bimensuelle des apprenants à jour'],OPN),
+      sel('pm','Observation de la séance PNAPAS','Matière observée',['Lecture/Écriture','Mathématiques']),
+      yn('pp','A.1 Préparation',['Fiche de séance disponible','Contenu correspond à la progression','Matériel en nombre suffisant','Matériel adapté à l’activité en cours'],OPN),
+      yn('pw','A.2 Mise en œuvre de la démarche',['Respect des étapes de la séance','Lecture individuelle (lecture) / Manipulation (maths)','Correction individuelle (lecture) / Schématisation (maths)','Explication des mots nouveaux (lecture) / Questionnement (maths)','Travail collectif','Travail en groupe','Travail individuel','Questionnement des apprenants','Correction immédiate','Respect du temps imparti','Activités de soutien','Évaluation finale'],OPN),
+      sel('pq','A.3 Qualité des enseignements (développement des compétences)','Appréciation',QUAL),
+      txt('pd','Décisions — développement des compétences',['Actions immédiates','Actions à programmer','Besoins en renforcement']),
+      info('sa','B. Soutien aux apprentissages',[{k:'type_classe',l:'Type de classe observée',type:'sel',o:['Homogène','Hétérogène']},{k:'groupes',l:'Groupes de niveau'}]),
+      yn('sp','Analyse du plan de session',['Objectif de la semaine bien défini','Objectif en lien avec le groupe de niveau','Activités choisies pertinentes','Plan de session cohérent'],OPN),
+      yn('sm','Méthodologie et aptitudes pédagogiques',['Stratégie de travail collectif','Stratégie de travail en groupe','Stratégie de travail individuel','Démarche de l’activité respectée','Consignes bien formulées','Questionnement bien mené','Le facilitateur apprécie les réponses','Langage de l’animateur correct et adapté','Temps imparti correctement géré','Mobilité de l’animateur observée dans la classe','Matériel didactique adapté à l’activité en cours','Matériel didactique en nombre suffisant','Matériel didactique bien utilisé','Interaction animateur-apprenant favorisée','Interaction apprenant-apprenant favorisée'],OPN),
+      sel('sq','Qualité des enseignements (soutien)','Appréciation',QUAL),
+      txt('sd','Décisions — soutien aux apprentissages',['Actions immédiates','Actions à programmer','Besoins en renforcement']),
+      sel('md','Observation séance de modules disciplinaires','Discipline observée',['EDHC','EPS','AEC','Poésie','Dictée','Écriture']),
+      prog('op','Organisation pédagogique — séances exécutées',PROG),
+      yn('mp','1. Préparation (module)',['Fiche de séance disponible','Contenu correspond à la progression','Supports didactiques prévus et en nombre suffisant','Matériel adapté à l’activité en cours'],OPN),
+      yn('mw','2. Mise en œuvre (module)',['Respect de la méthodologie','Gestuelle','Voix pédagogique','Déplacement pédagogique','Animation vivante','Maîtrise du contenu','Maîtrise de la méthodologie','Maîtrise de la langue','Respect du temps','Participation des élèves','Contrôle final prévu','Production des apprenants','Exercices variés','Contrôle systématique des exercices'],OPN),
+      sel('mq','Qualité des enseignements (module)','Appréciation',QUAL),
+      txt('mdc','Décisions — modules disciplinaires',['Actions immédiates','Actions à programmer','Besoins en renforcement']),
+      num('st','Statistiques de la classe',['Effectif total de la classe','Effectif au moment du contrôle','Total des absences dans le mois','Taux de fréquentation (%)','Taux de progression (%)']),
+      num('ev','Si évaluation',['Présents à l’évaluation','Moyenne de la classe','Nombre total d’admis','Taux de réussite de la classe (%)']),
+      txt('ca','Principales causes et problèmes',['Causes des absences','Causes des abandons','Problèmes spécifiques rencontrés']),
+      yn('dv','D. Vérification du suivi du DEP',['Deux visites réalisées','Bulletins remplis','Conseils formulés','Suivi des conseils formulés','Animateur assidu','Bonne présentation physique de l’animateur'])
+    ]},
+    sup1:{ title:'Bulletin du Superviseur — Démarrage', short:'Superviseur · Démarrage', icon:'🧭', who:'Superviseur', sections:[
+      info('g','I. Informations générales',GEN_SUP.concat([{k:'date_demarrage',l:'Date de démarrage des enseignements',type:'date'},{k:'effectif_prevu',l:'Effectif prévu',type:'number'},'CAENF et contact','Superviseur et contact'])),
+      num('eff','Effectifs',['Effectif inscrit','Effectif présent']),
+      yn('a','A. Fonctionnement de la classe',['Classe effectivement ouverte à la date officielle indiquée','Classe fonctionnelle','Animateur présent','Animateur régulier','Effectif conforme aux prévisions','Apprenants effectivement inscrits','Présence des apprenants','Assiduité des apprenants satisfaisante']),
+      yn('b','B. Conditions d’apprentissage',['Salle disponible adaptée','Salle sécurisée','Mobilier disponible','Manuels et fournitures disponibles','Manuels et fournitures suffisants','Matériel pédagogique disponible','Environnement de classe favorable aux apprentissages']),
+      yn('c','C. Suivi pédagogique',['Préparations pédagogiques disponibles','Progression pédagogique respectée','Méthodes adaptées au niveau des apprenants','Participation active des apprenants','Évaluation régulière des apprentissages']),
+      yn('d','D. Suivi des apprenants',['Registre de présence renseigné','Données sur les apprenants à jour dans le registre','Apprenants à risque d’abandon identifiés','Mesures prises pour prévenir les abandons','Matrice DESPS remplie']),
+      yn('e','E. Fonctionnement de l’encadrement',['Existence d’un DEP','Le DEP a entamé ses visites','Bulletins de visites du DEP disponibles','Existence d’un CAENF','Le CAENF a entamé ses visites','Bulletins de visites du CAENF disponibles','Difficultés traitées']),
+      num('ind','III. Indicateurs',['Absents','Abandons']),
+      txt('cau','Causes',['Causes des absences','Causes des abandons']),
+      txt('al','Points d’alerte',['Principales difficultés constatées','Besoins urgents','Mesures correctives proposées']),
+      sel('ap','Appréciation globale','Appréciation',APPR)
+    ]},
+    sup2:{ title:'Bulletin du Superviseur — Suivi (assiduité & qualité)', short:'Superviseur · Suivi', icon:'🧭', who:'Superviseur', sections:[
+      info('g','I. Informations générales',GEN_SUP.concat(['CAENF et contact','Superviseur et contact'])),
+      num('eff','Effectifs',['Effectif inscrit','Effectif présent']),
+      yn('f','Fréquentation',['Taux d’assiduité des apprenants ≥ 90 %','Cas d’absences répétées','Cas d’abandons','Mesures prises pour maintenir les apprenants']),
+      yn('q','Qualité des enseignements',['Préparations pédagogiques','Respect de la progression','Maîtrise de la méthodologie','Participation des apprenants','Utilisation du matériel didactique','Gestion du temps','Prise en compte des différences de niveau']),
+      yn('s','Suivi pédagogique',['Évaluations périodiques réalisées','Difficultés d’apprentissage identifiées','Activités de soutien ou remédiation']),
+      yn('gc','Gestion de la classe',['Organisation de la classe','Propreté et environnement','Relations animateur-apprenants','Participation communautaire','Matrice DESPS remplie']),
+      txt('rec','Recommandations',['Principales recommandations']),
+      num('ind','Indicateurs',['Absents','Abandons']),
+      txt('cau','Causes',['Causes des absences','Causes des abandons']),
+      txt('al','Points d’alerte',['Principales difficultés constatées','Besoins urgents','Mesures correctives proposées']),
+      sel('ap','Appréciation globale','Appréciation',APPR)
+    ]},
+    sup3:{ title:'Bulletin du Superviseur — Programme & clôture', short:'Superviseur · Clôture', icon:'🧭', who:'Superviseur', sections:[
+      info('g','I. Informations générales',GEN_SUP.concat(['CAENF et contact','Superviseur et contact'])),
+      num('eff','Effectifs',['Effectif inscrit','Effectif présent']),
+      prog('op','Supervision — séances exécutées par matière',PROG),
+      yn('pr','Progression et acquis',['Progression pédagogique','Niveau d’exécution du programme','Retards éventuels dans l’exécution','Acquis des apprenants (résultats test ASER)','Français','Mathématiques','Évolution depuis le début des apprentissages']),
+      yn('dif','Apprenants en difficulté',['Apprenants en difficulté identifiés','Principales difficultés identifiées','Solutions apportées']),
+      yn('fin','Préparation de l’évaluation finale',['Évaluations périodiques réalisées','Test d’évaluation prévu','Documents administratifs à jour']),
+      yn('rei','Préparation de la réinsertion',['Identification des apprenants susceptibles d’être intégrés au formel ou à l’apprentissage professionnel']),
+      txt('rec','Recommandations',['Principales recommandations']),
+      num('ind','Indicateurs',['Absents','Abandons']),
+      txt('cau','Causes',['Causes des absences','Causes des abandons']),
+      txt('al','Points d’alerte',['Principales difficultés constatées','Besoins urgents','Mesures correctives proposées']),
+      sel('ap','Appréciation globale','Appréciation',APPR)
+    ]}
+  };
+  var AVG=/taux|moyenne/i;
+
+  /* ---------- droits ---------- */
+  var WRITERS={ dep:function(u){ return u.role==='directeur'&&!!u.passerelle; },
+    caenf:function(u){ return ['enf_cesal','enf_auxiliaire','dren_cesal','dren_conseiller_ciepa','dren_auxiliaire'].indexOf(u.role)>=0; },
+    sup:function(u){ return ['enf_superviseur','dren_superviseur'].indexOf(u.role)>=0; } };
+  function canWrite(f,u){ u=u||U(); if(u.role==='superadmin') return true; var w=f.indexOf('sup')===0?WRITERS.sup:WRITERS[f]; return !!(w&&w(u)); }
+  function myForms(u){ return Object.keys(FORMS).filter(function(f){ return canWrite(f,u); }); }
+  function scope(u){ u=u||U(); if(u.role==='superadmin') return 'all'; if(u.role==='enf_coordo') return 'iepp'; if(u.role==='dren_coordo'||u.role==='dren_superviseur') return 'dren'; return 'own'; }
+  function allowed(u){ u=u||U(); return !!u.role&&(myForms(u).length>0||scope(u)!=='own'); }
+  window.enfAllowed=allowed;
+  function inScope(r,u){ u=u||U(); if(r.auteur===u.username) return true; if(r.statut==='brouillon') return false; var s=scope(u);
+    if(s==='all') return true; if(s==='iepp') return N(r.iepp)===N(u.iepp); if(s==='dren') return N(r.drenaet)===N(u.drenaet); return false; }
+  function canCorrect(r,u){ u=u||U(); var s=scope(u); return s!=='own'&&r.auteur!==u.username&&r.statut!=='brouillon'&&inScope(r,u); }
+  function canEdit(r,u){ u=u||U(); return (r.auteur===u.username&&r.statut==='brouillon')||u.role==='superadmin'||canCorrect(r,u); }
+
+  /* ---------- période ---------- */
+  function annee(m){ var y=+m.slice(0,4), mo=+m.slice(5,7); return mo>=9?(y+'-'+(y+1)):((y-1)+'-'+y); }
+  function trim(m){ var mo=+m.slice(5,7); return (mo>=9&&mo<=12)?'T1':(mo>=1&&mo<=3)?'T2':'T3'; }
+  function curMonth(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2); }
+  function drenOf(iepp){ try{ var k=N(iepp); var r=(state.drenaet||[]).find(function(x){ return N(x.iepp)===k; }); return r?(r.drenaet||''):''; }catch(e){ return ''; } }
+
+  /* ---------- éditeur ---------- */
+  var ED={rec:null,ro:false};
+  function fld(sid,k,type,val,o,cls){
+    var id='data-k="'+k+'"';
+    if(type==='sel'||o) return '<select '+id+' class="'+(cls||'')+'"><option value=""></option>'+(o||[]).map(function(x){ return '<option'+(val===x?' selected':'')+'>'+esc(x)+'</option>'; }).join('')+'</select>';
+    return '<input '+id+' type="'+(type||'text')+'" value="'+esc(val)+'" class="'+(cls||'')+'">';
+  }
+  function secHtml(S,d){
+    var h='<h4 style="margin:14px 0 6px;background:var(--bg-soft,#eef2ff);padding:5px 8px;border-radius:6px">'+esc(S.title)+'</h4>';
+    if(S.t==='info'){ h+='<div class="form-row" style="flex-wrap:wrap">'+S.f.map(function(x){ var k=S.id+'__'+x.k; return '<div class="field" style="min-width:230px"><label>'+esc(x.l)+'</label>'+fld(S.id,k,x.type,d[k],x.o)+'</div>'; }).join('')+'</div>'; }
+    else if(S.t==='yn'){ h+='<table class="table" style="width:100%"><thead><tr><th>Élément</th><th style="width:140px">Réponse</th><th>Observations</th></tr></thead><tbody>'+S.rows.map(function(r,i){ var k=S.id+'_'+i; return '<tr><td>'+esc(r)+'</td><td>'+fld(S.id,k,'sel',d[k],S.o)+'</td><td><input data-k="'+k+'_o" value="'+esc(d[k+'_o'])+'"></td></tr>'; }).join('')+'</tbody></table>'; }
+    else if(S.t==='num'){ h+='<table class="table" style="width:100%"><thead><tr><th></th>'+S.cols.map(function(c){ return '<th>'+esc(c)+'</th>'; }).join('')+'<th>Observations</th></tr></thead><tbody>'+S.rows.map(function(r,i){ var k=S.id+'_'+i; return '<tr><td>'+esc(r)+'</td>'+S.cols.map(function(c,j){ var kk=k+'_'+j; var calc=(S.cols.length===3&&j===2&&!AVG.test(r)); return '<td><input type="number" step="any" data-k="'+kk+'" value="'+esc(d[kk])+'" style="width:90px"'+(calc?' data-tot="'+k+'" readonly':' oninput="enfTot(\''+k+'\')"')+'></td>'; }).join('')+'<td><input data-k="'+k+'_o" value="'+esc(d[k+'_o'])+'"></td></tr>'; }).join('')+'</tbody></table>'; }
+    else if(S.t==='txt'){ h+=S.rows.map(function(r,i){ var k=S.id+'_'+i; return '<div class="field"><label>'+esc(r)+'</label><textarea data-k="'+k+'" rows="2">'+esc(d[k])+'</textarea></div>'; }).join(''); }
+    else if(S.t==='sel'){ var k=S.id+'__v'; h+='<div class="field" style="max-width:340px"><label>'+esc(S.label)+'</label>'+fld(S.id,k,'sel',d[k],S.o)+'</div>'+(S.id.match(/^(pq|sq|mq|ap)$/)?'<div class="field"><label>Observation</label><input data-k="'+S.id+'__o" value="'+esc(d[S.id+'__o'])+'"></div>':''); }
+    else if(S.t==='prog'){ h+='<table class="table" style="width:100%"><thead><tr><th>Matière</th><th>Séances annuelles</th><th>Séances exécutées</th><th>%</th></tr></thead><tbody>'+S.rows.map(function(r,i){ var k=S.id+'_'+i; return '<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td><input type="number" min="0" data-k="'+k+'" data-an="'+(r[1]||'')+'" value="'+esc(d[k])+'" style="width:90px" oninput="enfPct(this)"></td><td data-pct="'+k+'">'+pct(d[k],r[1])+'</td></tr>'; }).join('')+'</tbody></table><div class="text-xs text-muted">% par matière = séances exécutées × 100 ÷ séances annuelles.</div>'; }
+    return h;
+  }
+  function pct(e,a){ e=+e; a=+a; return (a>0&&!isNaN(e)&&e!==''&&e!=null)?(Math.round(e*1000/a)/10)+' %':''; }
+  window.enfTot=function(k){ var m=document.getElementById('modal-body'); if(!m) return; var a=m.querySelector('[data-k="'+k+'_0"]'), b=m.querySelector('[data-k="'+k+'_1"]'), t=m.querySelector('[data-k="'+k+'_2"]'); if(!t) return; if(a.value===''&&b.value===''){ t.value=''; return; } t.value=(+a.value||0)+(+b.value||0); };
+  window.enfPct=function(el){ var td=document.querySelector('[data-pct="'+el.getAttribute('data-k')+'"]'); if(td) td.textContent=el.value===''?'':pct(el.value,el.getAttribute('data-an')); };
+  function collect(){ var o={}; document.querySelectorAll('#modal-body [data-k]').forEach(function(e){ if(e.value!=='') o[e.getAttribute('data-k')]=e.value; }); return o; }
+  function prefill(f){
+    var u=U(), d={}, ip=(u.iepp&&u.iepp!=='TOUTES')?u.iepp:(window.state&&state.activeIepp)||'', dr=u.drenaet||drenOf(ip)||'';
+    FORMS[f].sections.forEach(function(S){ if(S.id==='g'){ S.f.forEach(function(x){ var n=N(x.l), k='g__'+x.k;
+      if(n==='DRENAET'||n==='DRENA') d[k]=dr; else if(n==='IEPP') d[k]=String(ip).replace(/^IEPP\s+/i,'');
+      else if(/^SUPERVISEUR ET CONTACT/.test(n)||/^DEP ET CONTACT/.test(n)&&f==='dep') d[k]=(u.name||'')+(u.tel?' — '+u.tel:'');
+      else if(n==='NOM DU CIEPA'&&f==='caenf') d[k]=u.name||''; else if(n==='CONTACT DU CIEPA'&&f==='caenf') d[k]=u.tel||''; else if(n==='NOM DU DEP'&&f==='caenf') d[k]=''; }); } });
+    if(f==='dep'){ d['g__dep_et_contact']=(u.name||'')+(u.tel?' — '+u.tel:''); d['g__mois_visite']=curMonth(); if(u.ecole) d['g__localite']=''; }
+    return d;
+  }
+  function openEditor(rec,ro,title){
+    ED.rec=rec; ED.ro=ro; var F=FORMS[rec.form];
+    var body='<div data-wide="1">'+(rec.corrections&&rec.corrections.length?'<div class="text-xs" style="background:#fef3c7;padding:6px 8px;border-radius:6px;margin-bottom:6px">✏️ Corrigé par '+rec.corrections.map(function(c){ return esc(c.nom)+' ('+new Date(c.at).toLocaleDateString('fr-FR')+')'; }).join(', ')+'</div>':'')
+      +'<div class="form-row"><div class="field"><label>Mois du bulletin</label><input type="month" id="enf-mois" value="'+esc(rec.mois)+'"></div><div class="field"><label>École / centre</label><input id="enf-ecole" value="'+esc(rec.ecole||'')+'"></div></div>'
+      +F.sections.map(function(S){ return secHtml(S,rec.d||{}); }).join('')+'</div>';
+    var foot='<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>'+
+      '<button class="btn btn-ghost" onclick="enfPrint(\''+rec.id+'\',false)">🖨️ Imprimer</button><button class="btn btn-ghost" onclick="enfPrint(\''+rec.id+'\',true)">📄 Word</button>'+
+      (ro?'':'<button class="btn btn-primary" onclick="enfSave(false)">💾 Enregistrer</button>'+(rec.auteur===U().username&&rec.statut==='brouillon'?'<button class="btn btn-orange" onclick="enfSave(true)">📤 Enregistrer et transmettre</button>':''));
+    openModal(title||(F.icon+' '+F.title),body,foot);
+    if(ro) document.querySelectorAll('#modal-body input,#modal-body select,#modal-body textarea').forEach(function(e){ e.disabled=true; });
+  }
+  window.enfNew=function(f){ if(!canWrite(f)){ toast('Ce formulaire n’est pas autorisé pour votre profil.','error'); return; }
+    var u=U(), ip=(u.iepp&&u.iepp!=='TOUTES')?u.iepp:(state.activeIepp||'');
+    var rec={id:'enf_'+(typeof uid==='function'?uid():Date.now().toString(36)),form:f,mois:curMonth(),annee:annee(curMonth()),iepp:ip,drenaet:u.drenaet||drenOf(ip)||'',ecole:u.ecole||'',auteur:u.username,auteurNom:u.name||u.username,role:u.role,statut:'brouillon',d:prefill(f),_upd:Date.now()};
+    openEditor(rec,false); };
+  window.enfOpen=function(id,ro){ var r=ld().find(function(x){ return x.id===id; }); if(!r) return; openEditor(JSON.parse(JSON.stringify(r)),!!ro&&!canEdit(r)||!!ro); };
+  window.enfSave=function(transmit){
+    var r=ED.rec; if(!r||ED.ro) return; var m=(document.getElementById('enf-mois')||{}).value||r.mois;
+    if(!/^\d{4}-\d{2}$/.test(m)){ toast('Choisissez le mois du bulletin.','error'); return; }
+    r.mois=m; r.annee=annee(m); r.ecole=(document.getElementById('enf-ecole')||{}).value||''; r.d=collect();
+    var gi=r.d['g__iepp']; if(gi&&r.auteur===U().username&&!r.iepp) r.iepp=gi;
+    var me=U(); if(r.auteur!==me.username&&me.role!=='superadmin'){ r.corrections=(r.corrections||[]).concat([{by:me.username,nom:me.name||me.username,at:Date.now()}]); }
+    if(transmit){ r.statut='transmis'; r.transmisAt=Date.now(); }
+    r._upd=Date.now(); var a=ld(), i=a.findIndex(function(x){ return x.id===r.id; }); if(i>=0) a[i]=r; else a.push(r); sv(a);
+    try{ logAction('enf-bull',(transmit?'Transmission : ':'Enregistrement : ')+FORMS[r.form].short+' '+r.mois); }catch(e){}
+    toast(transmit?'Bulletin transmis ✅':'Bulletin enregistré ✅','success'); closeModal(); render();
+  };
+  window.enfDel=function(id){ var a=ld(), r=a.find(function(x){ return x.id===id; }); if(!r) return;
+    var me=U(); if(!(me.role==='superadmin'||(r.auteur===me.username&&r.statut==='brouillon')||(scope(me)!=='own'&&inScope(r,me)))){ toast('Suppression non autorisée.','error'); return; }
+    if(!confirm('Mettre ce bulletin à la corbeille ?')) return; sv(a.filter(function(x){ return x.id!==id; })); toast('Bulletin envoyé à la corbeille','success'); render(); };
+
+  /* ---------- consolidation ---------- */
+  function consolidate(list,fk){
+    var F=FORMS[fk], out=[];
+    F.sections.forEach(function(S){
+      var o={S:S,rows:[]};
+      if(S.t==='yn'){ S.rows.forEach(function(r,i){ var c={}; S.o.forEach(function(x){ c[x]=0; }); var n=0; list.forEach(function(b){ var v=(b.d||{})[S.id+'_'+i]; if(v&&c[v]!=null){ c[v]++; n++; } }); o.rows.push({l:r,c:c,n:n,p:n?Math.round(c[S.o[0]]*1000/n)/10:null}); }); }
+      else if(S.t==='num'){ S.rows.forEach(function(r,i){ var cells=[]; S.cols.forEach(function(cn,j){ var s=0,n=0; list.forEach(function(b){ var v=(b.d||{})[S.id+'_'+i+'_'+j]; if(v!==undefined&&v!==''){ s+=+v; n++; } }); cells.push(n?(AVG.test(r)?Math.round(s*10/n)/10:s):null); }); o.rows.push({l:r,cells:cells,avg:AVG.test(r)}); }); }
+      else if(S.t==='prog'){ S.rows.forEach(function(r,i){ var s=0,n=0; list.forEach(function(b){ var v=(b.d||{})[S.id+'_'+i]; if(v!==undefined&&v!==''){ s+=+v; n++; } }); o.rows.push({l:r[0],an:r[1],exe:s,n:n,p:(r[1]&&n)?Math.round(s*1000/(r[1]*n))/10:null}); }); }
+      else if(S.t==='sel'){ var c={}; S.o.forEach(function(x){ c[x]=0; }); list.forEach(function(b){ var v=(b.d||{})[S.id+'__v']; if(v&&c[v]!=null) c[v]++; }); o.rows.push({l:S.label,c:c}); }
+      else if(S.t==='txt'){ S.rows.forEach(function(r,i){ var arr=[]; list.forEach(function(b){ var v=(b.d||{})[S.id+'_'+i]; if(v) arr.push({src:(b.ecole||b.d['g__localite']||b.d['g__localite_de_la_passerelle_suivie']||b.iepp||''),v:v}); }); o.rows.push({l:r,items:arr}); }); }
+      else if(S.t==='info'){ return; }
+      out.push(o);
+    });
+    return out;
+  }
+  function consoHtml(list,fk,printMode){
+    var F=FORMS[fk], C=consolidate(list,fk), h='';
+    h+='<div style="margin:6px 0"><b>'+list.length+'</b> bulletin(s) pris en compte — '+esc(F.title)+'</div>';
+    C.forEach(function(o){ var S=o.S; h+='<h4 style="margin:12px 0 4px;background:#eef2ff;padding:4px 8px">'+esc(S.title)+'</h4>';
+      if(S.t==='yn'){ h+='<table class="table" style="width:100%"><thead><tr><th>Élément</th>'+S.o.map(function(x){ return '<th>'+x+'</th>'; }).join('')+'<th>% '+S.o[0]+'</th></tr></thead><tbody>'+o.rows.map(function(r){ return '<tr><td>'+esc(r.l)+'</td>'+S.o.map(function(x){ return '<td>'+r.c[x]+'</td>'; }).join('')+'<td>'+(r.p==null?'—':r.p+' %')+'</td></tr>'; }).join('')+'</tbody></table>'; }
+      else if(S.t==='num'){ h+='<table class="table" style="width:100%"><thead><tr><th></th>'+S.cols.map(function(c){ return '<th>'+esc(c)+'</th>'; }).join('')+'</tr></thead><tbody>'+o.rows.map(function(r){ return '<tr><td>'+esc(r.l)+(r.avg?' <span class="text-xs text-muted">(moyenne)</span>':'')+'</td>'+r.cells.map(function(c){ return '<td>'+(c==null?'—':c)+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table>'; }
+      else if(S.t==='prog'){ h+='<table class="table" style="width:100%"><thead><tr><th>Matière</th><th>Séances annuelles</th><th>Total exécuté</th><th>% moyen</th></tr></thead><tbody>'+o.rows.map(function(r){ return '<tr><td>'+esc(r.l)+'</td><td>'+esc(r.an)+'</td><td>'+r.exe+'</td><td>'+(r.p==null?'—':r.p+' %')+'</td></tr>'; }).join('')+'</tbody></table>'; }
+      else if(S.t==='sel'){ h+='<table class="table"><tbody>'+Object.keys(o.rows[0].c).map(function(x){ return '<tr><td>'+esc(x)+'</td><td>'+o.rows[0].c[x]+'</td></tr>'; }).join('')+'</tbody></table>'; }
+      else if(S.t==='txt'){ h+=o.rows.map(function(r){ return '<div style="margin:4px 0"><b>'+esc(r.l)+'</b>'+(r.items.length?'<ul style="margin:2px 0 0 18px">'+r.items.map(function(x){ return '<li>'+(x.src?'<i>'+esc(x.src)+' : </i>':'')+esc(x.v)+'</li>'; }).join('')+'</ul>':' <span class="text-muted">— aucune réponse</span>')+'</div>'; }).join(''); }
+    });
+    return h;
+  }
+  /* ---------- impression / Word ---------- */
+  var CSS='<style>body{font-family:Arial,sans-serif;font-size:11px;margin:14px;color:#000}h1{text-align:center;font-size:14px}h4{background:#e0e7ff;padding:4px 6px;font-size:12px;margin:12px 0 4px}table{border-collapse:collapse;width:100%;margin:4px 0}td,th{border:1px solid #444;padding:3px 5px;text-align:left;vertical-align:top}th{background:#f1f5f9}</style>';
+  var HEAD='<table style="border:none"><tr><td style="border:none;width:50%"><b>MINISTÈRE DE L’ÉDUCATION NATIONALE, DE L’ALPHABÉTISATION ET DE L’ENSEIGNEMENT TECHNIQUE</b><br>Direction de l’Éducation Non Formelle</td><td style="border:none;text-align:right"><b>RÉPUBLIQUE DE CÔTE D’IVOIRE</b><br>Union – Discipline – Travail</td></tr></table>';
+  function recPrint(r){ var F=FORMS[r.form], d=r.d||{}, h=HEAD+'<h1>'+esc(F.title.toUpperCase())+'</h1><p><b>Mois :</b> '+esc(r.mois)+' — <b>Auteur :</b> '+esc(r.auteurNom||r.auteur)+'</p>';
+    F.sections.forEach(function(S){ h+='<h4>'+esc(S.title)+'</h4>';
+      if(S.t==='info') h+='<table>'+S.f.map(function(x){ return '<tr><td style="width:40%">'+esc(x.l)+'</td><td>'+esc(d[S.id+'__'+x.k]||'')+'</td></tr>'; }).join('')+'</table>';
+      else if(S.t==='yn') h+='<table><tr><th>Élément</th><th>Réponse</th><th>Observations</th></tr>'+S.rows.map(function(x,i){ return '<tr><td>'+esc(x)+'</td><td>'+esc(d[S.id+'_'+i]||'')+'</td><td>'+esc(d[S.id+'_'+i+'_o']||'')+'</td></tr>'; }).join('')+'</table>';
+      else if(S.t==='num') h+='<table><tr><th></th>'+S.cols.map(function(c){ return '<th>'+esc(c)+'</th>'; }).join('')+'<th>Obs.</th></tr>'+S.rows.map(function(x,i){ return '<tr><td>'+esc(x)+'</td>'+S.cols.map(function(c,j){ return '<td>'+esc(d[S.id+'_'+i+'_'+j]||'')+'</td>'; }).join('')+'<td>'+esc(d[S.id+'_'+i+'_o']||'')+'</td></tr>'; }).join('')+'</table>';
+      else if(S.t==='txt') h+=S.rows.map(function(x,i){ return '<p><b>'+esc(x)+' :</b> '+esc(d[S.id+'_'+i]||'')+'</p>'; }).join('');
+      else if(S.t==='sel') h+='<p><b>'+esc(S.label)+' :</b> '+esc(d[S.id+'__v']||'')+' '+esc(d[S.id+'__o']||'')+'</p>';
+      else if(S.t==='prog') h+='<table><tr><th>Matière</th><th>Annuelles</th><th>Exécutées</th><th>%</th></tr>'+S.rows.map(function(x,i){ return '<tr><td>'+esc(x[0])+'</td><td>'+esc(x[1])+'</td><td>'+esc(d[S.id+'_'+i]||'')+'</td><td>'+pct(d[S.id+'_'+i],x[1])+'</td></tr>'; }).join('')+'</table>'; });
+    return h; }
+  function outDoc(title,html,word){ var doc='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title>'+CSS+'</head><body>'+html+'</body></html>';
+    if(word){ downloadFile('﻿'+doc,title.replace(/[^a-z0-9]+/gi,'_')+'.doc','application/msword;charset=utf-8'); toast('Word téléchargé','success'); return; }
+    var w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-up.','error'); return; } w.document.write(doc.replace('</body>','<script>window.onload=function(){window.print();}<\/script></body>')); w.document.close(); }
+  window.enfPrint=function(id,word){ var r=(ED.rec&&ED.rec.id===id&&!ED.ro)?Object.assign({},ED.rec,{d:collect()}):ld().find(function(x){ return x.id===id; }); if(!r) r=ED.rec; if(!r) return; outDoc(FORMS[r.form].short+'_'+r.mois,recPrint(r),word); };
+
+  /* ---------- interface ---------- */
+  var UI={tab:'',form:'',tr:'',an:'',iepp:'',st:''};
+  function visible(){ var u=U(); return ld().filter(function(r){ return FORMS[r.form]&&inScope(r,u); }); }
+  function filtered(list){ return list.filter(function(r){ return (!UI.form||r.form===UI.form)&&(!UI.an||r.annee===UI.an)&&(!UI.tr||trim(r.mois)===UI.tr)&&(!UI.iepp||N(r.iepp)===N(UI.iepp))&&(!UI.st||r.statut===UI.st); }); }
+  var ST={brouillon:['Brouillon','#b45309','#fef3c7'],transmis:['Transmis','#1d4ed8','#dbeafe']};
+  function badge(s){ var x=ST[s]||ST.transmis; return '<span style="background:'+x[2]+';color:'+x[1]+';padding:1px 8px;border-radius:10px;font-size:11px">'+x[0]+'</span>'; }
+  window.enfSet=function(k,v){ UI[k]=v; render(); };
+  window.enfTab=function(t){ UI.tab=t; render(); };
+  function render(){
+    var u=U(), c=document.getElementById('content'); if(!c||state.module!=='enf-bull') return;
+    if(!allowed(u)){ setContent('<div class="card"><div class="table-empty">Accès réservé aux profils ENF / Alphabétisation / Classes passerelle.</div></div>'); return; }
+    var mine=myForms(u), cons=scope(u)!=='own', tabs=[]; if(mine.length) tabs.push(['mine','✍️ Mes bulletins']); if(cons) tabs.push(['recus','📥 Bulletins reçus'],['conso','🧮 Consolidation']);
+    if(!UI.tab||!tabs.some(function(t){ return t[0]===UI.tab; })) UI.tab=tabs[0][0];
+    var all=visible(), years=[]; all.forEach(function(r){ if(years.indexOf(r.annee)<0) years.push(r.annee); }); years.sort();
+    var iepps=[]; all.forEach(function(r){ if(r.iepp&&iepps.indexOf(r.iepp)<0) iepps.push(r.iepp); });
+    var selF='<select onchange="enfSet(\'form\',this.value)"><option value="">Tous les formulaires</option>'+Object.keys(FORMS).filter(function(f){ return UI.tab==='mine'?mine.indexOf(f)>=0:(u.role==='enf_coordo'?true:true); }).map(function(f){ return '<option value="'+f+'"'+(UI.form===f?' selected':'')+'>'+esc(FORMS[f].short)+'</option>'; }).join('')+'</select>';
+    var flt=selF+'<select onchange="enfSet(\'an\',this.value)"><option value="">Toutes années</option>'+years.map(function(y){ return '<option'+(UI.an===y?' selected':'')+'>'+y+'</option>'; }).join('')+'</select>'
+      +'<select onchange="enfSet(\'tr\',this.value)"><option value="">Tous trimestres</option>'+['T1','T2','T3'].map(function(t){ return '<option value="'+t+'"'+(UI.tr===t?' selected':'')+'>'+t+'</option>'; }).join('')+'</select>'
+      +(scope(u)==='dren'||scope(u)==='all'?'<select onchange="enfSet(\'iepp\',this.value)"><option value="">Toutes les IEPP</option>'+iepps.map(function(x){ return '<option'+(UI.iepp===x?' selected':'')+'>'+esc(x)+'</option>'; }).join('')+'</select>':'');
+    var h='<div class="card"><div class="hero" style="background:linear-gradient(135deg,#7c3aed,#4c1d95);color:#fff;padding:14px;border-radius:10px"><h3 style="margin:0">📚 Bulletins ENF / Alphabétisation / Classes passerelle</h3><p style="margin:4px 0 0;opacity:.9">Bulletins DEP, CAENF et Superviseur — saisie, transmission, corrections et consolidation.</p></div>'
+      +'<div class="toolbar" style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">'+tabs.map(function(t){ return '<button class="btn '+(UI.tab===t[0]?'btn-primary':'btn-ghost')+'" onclick="enfTab(\''+t[0]+'\')">'+t[1]+'</button>'; }).join('')+'</div>';
+    if(UI.tab==='mine'){
+      h+='<div style="margin:10px 0;display:flex;gap:6px;flex-wrap:wrap">'+mine.map(function(f){ return '<button class="btn btn-orange" onclick="enfNew(\''+f+'\')">+ '+FORMS[f].icon+' '+esc(FORMS[f].short)+'</button>'; }).join('')+'</div>';
+      var L=filtered(all.filter(function(r){ return r.auteur===u.username; })).sort(function(a,b){ return b._upd-a._upd; });
+      h+=listTable(L,'mine');
+    } else if(UI.tab==='recus'){
+      var L2=filtered(all.filter(function(r){ return r.auteur!==u.username; })).sort(function(a,b){ return b._upd-a._upd; });
+      h+='<div style="margin:10px 0;display:flex;gap:6px;flex-wrap:wrap">'+flt+'</div>'+listTable(L2,'recus');
+    } else {
+      var fk=UI.form||(mine[0]||'dep'); if(!FORMS[UI.form]) UI.form=fk;
+      var L3=filtered(all.filter(function(r){ return r.statut!=='brouillon'; })).filter(function(r){ return r.form===UI.form; });
+      h+='<div style="margin:10px 0;display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+flt+'<button class="btn btn-ghost" onclick="enfConsoOut(false)">🖨️ Imprimer</button><button class="btn btn-ghost" onclick="enfConsoOut(true)">📄 Word</button><button class="btn btn-ghost" style="color:#b91c1c" onclick="enfClear()">🗑️ Vider le tableau</button></div>'+consoHtml(L3,UI.form);
+    }
+    setContent(h+'</div>');
+    if(UI.tab==='mine'){ var tb=document.querySelector('#content .card'); }
+  }
+  function listTable(L,mode){
+    if(!L.length) return '<div class="table-empty" style="padding:18px">Aucun bulletin.</div>';
+    return '<div style="overflow:auto"><table class="table" style="width:100%"><thead><tr><th>Mois</th><th>Formulaire</th><th>IEPP</th><th>École / centre</th><th>Auteur</th><th>Statut</th><th></th></tr></thead><tbody>'+L.map(function(r){
+      var me=U(), ed=canEdit(r);
+      return '<tr><td>'+esc(r.mois)+'</td><td>'+FORMS[r.form].icon+' '+esc(FORMS[r.form].short)+'</td><td>'+esc(r.iepp||'')+'</td><td>'+esc(r.ecole||'')+'</td><td>'+esc(r.auteurNom||r.auteur)+'</td><td>'+badge(r.statut)+(r.corrections&&r.corrections.length?' <span title="Corrigé" style="font-size:11px">✏️</span>':'')+'</td><td style="white-space:nowrap">'
+        +'<button class="btn btn-ghost btn-sm" onclick="enfOpen(\''+r.id+'\','+(ed?'false':'true')+')">'+(ed?(r.auteur===me.username?'✏️ Ouvrir':'✏️ Corriger'):'👁️ Voir')+'</button> '
+        +((r.auteur===me.username&&r.statut==='brouillon')||me.role==='superadmin'||(mode==='recus'&&scope(me)!=='own')?'<button class="btn btn-ghost btn-sm" onclick="enfDel(\''+r.id+'\')">🗑️</button>':'')+'</td></tr>'; }).join('')+'</tbody></table></div>';
+  }
+  function curConsoList(){ return filtered(visible().filter(function(r){ return r.statut!=='brouillon'&&r.form===UI.form; })); }
+  window.enfConsoOut=function(word){ var L=curConsoList(); var t='Consolidation_'+UI.form+(UI.an?'_'+UI.an:'')+(UI.tr?'_'+UI.tr:''); outDoc(t,HEAD+'<h1>CONSOLIDATION — '+esc(FORMS[UI.form].title.toUpperCase())+'</h1><p>'+esc(UI.an||'Toutes années')+' · '+esc(UI.tr||'Tous trimestres')+' · '+esc(U().drenaet||U().iepp||'')+'</p>'+consoHtml(L,UI.form),word); };
+  window.enfClear=function(){ var L=curConsoList().filter(function(r){ return r.auteur!==U().username||U().role==='superadmin'||true; }); if(!L.length){ toast('Rien à vider pour ce filtre.','info'); return; }
+    if(!confirm('Vider le tableau : '+L.length+' bulletin(s) « '+FORMS[UI.form].short+' » seront envoyés à la corbeille (récupérables). Continuer ?')) return;
+    var ids={}; L.forEach(function(r){ ids[r.id]=1; }); sv(ld().filter(function(r){ return !ids[r.id]; })); try{ logAction('enf-bull','Tableau vidé : '+L.length+' bulletin(s) '+UI.form); }catch(e){} toast(L.length+' bulletin(s) envoyé(s) à la corbeille','success'); render(); };
+
+  /* ---------- intégration ---------- */
+  MODULES['enf-bull']={title:'Bulletins ENF / Classes passerelle',sub:'Bulletins DEP, CAENF, Superviseur — saisie et consolidation',render:function(){ render(); }};
+  ['superadmin','directeur','enf_superviseur','enf_coordo','enf_cesal','enf_auxiliaire','dren_coordo','dren_superviseur','dren_cesal','dren_conseiller_ciepa','dren_auxiliaire'].forEach(function(r){ if(ACL[r]&&ACL[r].indexOf('enf-bull')<0) ACL[r].push('enf-bull'); });
+  function link(){
+    if(!state||!state.user) return;
+    var el=document.querySelector('.sb-link[data-module="enf-bull"]');
+    if(!el){ var a=document.querySelector('.sb-link[data-module="alpha-sup"]')||document.querySelector('.sb-link[data-module="dashboard"]'); if(!a) return;
+      el=document.createElement('div'); el.className='sb-link'; el.setAttribute('data-module','enf-bull'); el.setAttribute('onclick',"navigate('enf-bull')"); el.innerHTML='<span class="sb-icon">📚</span><span>Bulletins ENF / Passerelle</span>'; a.parentNode.insertBefore(el,a.nextSibling); }
+    el.style.display=allowed(state.user)?'':'none';
+  }
+  setInterval(function(){ try{ link(); }catch(e){} },800);
+  var _a=window.applyACL; if(typeof _a==='function'&&!window.__enfWrapped){ window.applyACL=function(){ var r=_a.apply(this,arguments); try{ link(); }catch(e){} return r; }; window.__enfWrapped=true; }
+  window.__enfApi={FORMS:FORMS,consolidate:consolidate,allowed:allowed,scope:scope,canWrite:canWrite};
+}catch(e){ console.warn('[enf-bull]',e); }
 })();
 </script>
 </body>
