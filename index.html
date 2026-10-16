@@ -1136,6 +1136,11 @@ function vieResetAllData() {
 .tab{border-radius:10px 10px 0 0;transition:background .15s ease,color .15s ease}
 .table-wrap table tbody tr,table.table tbody tr{transition:background .12s ease}
 .table-wrap table tbody tr:hover,table.table tbody tr:hover{background:rgba(10,77,166,.045)}
+/* ===== En-têtes de tableaux fixes (étape E) =====
+   Le conteneur du tableau défile en interne (hauteur bornée) ; les <th> restent collés en haut. */
+.table-wrap,.card:has(>table){max-height:calc(100vh - 170px);overflow:auto;overscroll-behavior:contain}
+.table-wrap table thead th,.card>table thead th{position:sticky;top:0;z-index:5;background:var(--bg);box-shadow:inset 0 -1px 0 var(--line)}
+@media print{.table-wrap,.card:has(>table){max-height:none!important;overflow:visible!important}.table-wrap table thead th,.card>table thead th{position:static}}
 input:focus,select:focus,textarea:focus{outline:none;border-color:#16a34a!important;box-shadow:0 0 0 3px rgba(22,163,74,.18)}
 .modal{border-radius:16px;box-shadow:0 24px 60px rgba(15,23,42,.35)}
 .badge{border-radius:999px}
@@ -1217,7 +1222,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#16a34a!import
     <div class="sb-section" id="sb-drenaet-section">
       <div class="sb-section-title">Direction régionale</div>
       <div class="sb-link" data-module="drenaet" onclick="navigate('drenaet')">
-        <span class="sb-icon" style="background:#DCE9F5;color:#002F5A">🏛️</span><span>Administration des IEPP</span>
+        <span class="sb-icon" style="background:#DCE9F5;color:#002F5A">🏛️</span><span>Administration DRENAET et IEPP</span>
       </div>
     </div>
 
@@ -1645,6 +1650,22 @@ const ROLES = {
   bibliothecaire: { label: 'Service Bibliothèque',                          short: 'Bibliothèque',        color: 'yellow' },
 };
 
+/* ---- Fonctions du personnel de la DRENAET (étape F) : comptes rattachés à UNE DRENAET ---- */
+Object.assign(ROLES, {
+  dren_superviseur:  { label: 'Superviseur en DRENAET',                      short: 'Superviseur DRENAET', color: 'blue' },
+  dren_coordo:       { label: 'Coordinateur DRENAET (Coordo DRENAET)',       short: 'Coordo DRENAET',      color: 'blue' },
+  dren_sg:           { label: 'SG (Secrétaire Général de la DRENAET)',       short: 'SG DRENAET',          color: 'purple' },
+  dren_coordo_deps:  { label: 'Coordo DEPS',                                 short: 'Coordo DEPS',         color: 'green' },
+  dren_coordo_drh:   { label: 'Coordo DRH en DRENAET',                       short: 'Coordo DRH',          color: 'orange' },
+  dren_point_focal:  { label: 'Point Focal',                                 short: 'Point Focal',         color: 'yellow' },
+  dren_agent:        { label: 'Agent DRENAET',                               short: 'Agent DRENAET',       color: 'grey' },
+  dren_autres:       { label: 'Autres (personnel DRENAET)',                  short: 'Autres DRENAET',      color: 'grey' }
+});
+const REGIONAL_STAFF = ['dren_superviseur','dren_coordo','dren_sg','dren_coordo_deps','dren_coordo_drh','dren_point_focal','dren_agent','dren_autres'];
+function isRegionalStaff(r){ return REGIONAL_STAFF.indexOf(r) >= 0; }
+function isRegionalRole(r){ return r === 'drenaet' || isRegionalStaff(r); }   /* niveau DRENAET (périmètre = sa région) */
+try { window.isRegionalRole = isRegionalRole; window.REGIONAL_STAFF = REGIONAL_STAFF; } catch(e){}
+
 /* Modules accessibles par rôle (pages visibles dans la sidebar) */
 const CORRESPONDANT_MODULES = [
   'comptes-correspondant','immatriculation',
@@ -1667,7 +1688,7 @@ const ACL = {
   /* Grand Administrateur National : voit le module DRENAET (pilotage national multi-IEPP) + accès complet */
   superadmin:   ['dashboard','corbeille','drenaet','statistiques','rapports','ecoles','examens','cpi','vie-scolaire','rh','absences','coges','economat','courrier','archives','archiviste','secretariat','communication','cantine','smoss','users','audit','parametres', ...CORRESPONDANT_MODULES],
   /* Directeur DRENAET : voit le module DRENAET mais limité à sa région + tout sauf comptes utilisateurs nationaux */
-  drenaet:      ['dashboard','corbeille','drenaet','statistiques','rapports','ecoles','examens','cpi','rh','absences','coges','courrier','archives','audit','parametres','users','stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','fiche-prescolaire','fiche-primaire','fiche-alphabetisation','fiche-islamique','fiche-generateur','carte-prescolaire','carte-primaire','carte-secondaire','carte-rapport','pnapas','aser','aser-livret','aser-ace','aser-stats','etat-compositions','perroquet-notes'],
+  drenaet:      ['dashboard','corbeille','drenaet','statistiques','rapports','ecoles','examens','cpi','rh','absences','coges','courrier','archives','audit','users','stat-recrutement','stat-situation','stat-effectifs','sans-extrait','remontees','fiche-prescolaire','fiche-primaire','fiche-alphabetisation','fiche-islamique','fiche-generateur','carte-prescolaire','carte-primaire','carte-secondaire','carte-rapport','pnapas','aser','aser-livret','aser-ace','aser-stats','etat-compositions','perroquet-notes'],
   /* Inspecteur IEPP : voit son IEPP, pas le pilotage régional */
   inspecteur:   ['dashboard','corbeille','immatriculation','statistiques','rapports','ecoles','examens','cpi','vie-scolaire','rh','absences','coges','economat','courrier','archives','archiviste','secretariat','communication','cantine','smoss','users','audit','parametres', ...CORRESPONDANT_MODULES],
   cpi:          ['dashboard','corbeille','statistiques','rapports','ecoles','cpi','vie-scolaire','rh','absences','archives','users','examens','stat-effectifs','stat-situation','carte-prescolaire','carte-primaire','carte-rapport','pnapas','aser','aser-livret','aser-ace','aser-stats'],
@@ -1705,6 +1726,15 @@ if (ACL.smoss)      ACL.smoss      = ACL.smoss.concat(SERVICE_MODULES.smoss);
 if (ACL.viescolaire)ACL.viescolaire= ACL.viescolaire.concat(SERVICE_MODULES.smoss);
 
 try { window.ACL = ACL; } catch(e){}
+
+/* ACL du personnel DRENAET : lecture de leur région (jamais d'autre DRENAET), pas de gestion des comptes */
+(function(){
+  var base=['dashboard','drenaet','statistiques','rapports','courrier','archives'];
+  var extra={ dren_sg:['rh','absences','audit'], dren_coordo:['ecoles','examens','rh','absences'], dren_superviseur:['ecoles','cpi','examens'],
+              dren_coordo_deps:['ecoles','examens','cpi'], dren_coordo_drh:['rh','absences'], dren_point_focal:['ecoles'], dren_agent:[], dren_autres:[] };
+  REGIONAL_STAFF.forEach(function(r){ ACL[r] = base.concat(extra[r]||[]); });
+})();
+
 
 /* ==================================================================
    CLOISONNEMENT DES ACCÈS PAR ESPACE (ajout · dernière déclaration prioritaire)
@@ -2664,15 +2694,22 @@ function accessibleIepps() {
   ])];
   if (!all.includes('IEPP TENGRELA')) all.push('IEPP TENGRELA');
   if (me.role === 'superadmin') return all.sort();
-  if (me.role === 'drenaet') {
-    const mineUsers = state.users.filter(u=>u.drenaet===me.drenaet).map(u=>u.iepp);
+  if (isRegionalRole(me.role)) {
+    if (!me.drenaet || me.drenaet === 'TOUTES') return [];          /* cloisonnement : sans DRENAET renseignée, aucune IEPP */
+    const mineUsers = state.users.filter(u=>u.role!=='superadmin' && u.drenaet===me.drenaet).map(u=>u.iepp);
     const mineReg = reg.filter(r=>r.drenaet===me.drenaet).map(r=>r.name);
-    const mine = [...new Set([...mineUsers, ...mineReg].filter(i=>i && i!=='TOUTES'))];
-    return mine.length ? mine.sort() : (me.iepp && me.iepp!=='TOUTES' ? [me.iepp] : all.sort());
+    const mineDr = (state.drenaet||[]).filter(d=>d && d.drenaet===me.drenaet).map(d=>d.iepp);
+    const mine = [...new Set([...mineUsers, ...mineReg, ...mineDr].filter(i=>i && i!=='TOUTES'))];
+    return mine.sort();                                              /* uniquement les IEPP de SA DRENAET */
   }
   return [me.iepp && me.iepp!=='TOUTES' ? me.iepp : 'IEPP TENGRELA'];
 }
 function setActiveIepp(iepp) {
+  /* Cloisonnement : un utilisateur (hors superadmin) ne peut activer qu'une IEPP de son périmètre */
+  if (state.user && state.user.role !== 'superadmin') {
+    const _acc = accessibleIepps();
+    if (_acc.length ? !_acc.includes(iepp) : iepp !== '— aucune IEPP —') { console.warn('[Cloisonnement] IEPP hors périmètre refusée :', iepp); return; }
+  }
   state.activeIepp = iepp;
   activeScope = scopeSlug(iepp);
   reloadScopedState();
@@ -2694,7 +2731,7 @@ function refreshScopeSelector() {
   const me = state.user;
   const list = accessibleIepps();
   // Sélecteur visible seulement si l'utilisateur a accès à plusieurs circonscriptions (DRENAET / Superadmin)
-  if (me && (me.role === 'superadmin' || me.role === 'drenaet') && list.length >= 1) {
+  if (me && (me.role === 'superadmin' || isRegionalRole(me.role)) && list.length >= 1) {
     sel.innerHTML = list.map(i=>`<option value="${escapeHtml(i)}" ${i===state.activeIepp?'selected':''}>${escapeHtml(i)}</option>`).join('');
     box.style.display = 'flex';
   } else {
@@ -3311,7 +3348,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
 
   function refreshAfterPull(){
     try { if (typeof reloadScopedState==='function') reloadScopedState(); } catch(e){}
-    ['users','drenaet','ieppRegistry','customServices','courrierMsg','courrierMatrice','pnapasForm','ieppStats']
+    ['users','drenaet','ieppRegistry','drenaetList','customServices','courrierMsg','courrierMatrice','pnapasForm','ieppStats']
       .forEach(function(k){ try { state[k] = load(k, state[k]); } catch(e){} });
     try { if (typeof publishIeppStats==='function') publishIeppStats(); } catch(e){}
     try { if (window.__healUsers) window.__healUsers(); } catch(e){}
@@ -4525,6 +4562,8 @@ async function doLogin() {
   var _now = Date.now();
   if (found.debut) { var _db = new Date(found.debut + 'T00:00:00'); if (!isNaN(_db) && _now < _db.getTime()) { err.textContent = '⏳ Ce compte sera actif à partir du ' + found.debut.split('-').reverse().join('/') + '.'; err.classList.add('show'); return; } }
   if (found.fin)   { var _df = new Date(found.fin + 'T23:59:59'); if (!isNaN(_df) && _now > _df.getTime()) { err.textContent = '⛔ Ce compte est désactivé depuis le ' + found.fin.split('-').reverse().join('/') + '.'; err.classList.add('show'); return; } }
+  /* DRENAET suspendue par le super administrateur : ses comptes ne se connectent plus */
+  { var _drb = (found.role !== 'superadmin' && window.DRN) ? (DRN.blocked ? DRN.blocked(found.drenaet) : (DRN.suspended(found.drenaet) ? '⛔ ' + found.drenaet + ' est suspendue par l\'administrateur national. Contactez-le.' : '')) : ''; if (_drb) { err.textContent = _drb; err.classList.add('show'); return; } }
   /* Statut de la circonscription — le super administrateur national n'est JAMAIS bloqué */
   if (found.role !== 'superadmin' && found.iepp && found.iepp !== 'TOUTES' && typeof ieppStatus === 'function') {
     var _st = ieppStatus(found.iepp);
@@ -4602,9 +4641,9 @@ function startApp() {
   const me = state.user;
   const list = accessibleIepps();
   let target;
-  if (me.role === 'superadmin' || me.role === 'drenaet') {
+  if (me.role === 'superadmin' || isRegionalRole(me.role)) {
     const remembered = (function(){ try { return localStorage.getItem(KEY+'active_iepp'); } catch(e){ return null; } })();
-    target = (remembered && list.includes(remembered)) ? remembered : (list[0] || 'IEPP TENGRELA');
+    target = (remembered && list.includes(remembered)) ? remembered : (list[0] || (isRegionalRole(me.role) ? '— aucune IEPP —' : 'IEPP TENGRELA'));
   } else {
     target = (me.iepp && me.iepp !== 'TOUTES') ? me.iepp : 'IEPP TENGRELA';
   }
@@ -4709,7 +4748,7 @@ const MODULES = {
   'aser-classe':  { title:'Test ASER des élèves',     sub:'Évaluation ASER (Lecture & Maths) par élève · groupe de remédiation PNAPAS', render: ()=> (typeof renderAserClasse==='function'? renderAserClasse() : setContent('<div class="card" style="padding:18px">Module en cours de chargement…</div>')) },
   'pnapas-classe':{ title:'Activités PNAPAS',          sub:'Registre des activités de remédiation de la classe (CE1 → CM2)', render: ()=> (typeof renderPnapasClasse==='function'? renderPnapasClasse() : setContent('<div class="card" style="padding:18px">Module en cours de chargement…</div>')) },
   'mon-ecole':    { title:'Mon école',                sub:'Espace personnel du directeur — classes, effectifs, personnel',  render: renderMonEcole },
-  'drenaet':      { title:'Administration des IEPP',  sub:'Pilotage régional multi-IEPP · réservé au Grand Administrateur', render: renderDrenaet },
+  'drenaet':      { title:'Administration DRENAET et IEPP',  sub:'Pilotage régional multi-IEPP · réservé au Grand Administrateur', render: renderDrenaet },
   'statistiques': { title:'Module Statistiques',     sub:'Effectifs · carte scolaire · résultats',         render: renderStats },
   'rapports':     { title:'Rapports',                sub:'Rapports trimestriels et annuels',               render: renderRapports },
   'ecoles':       { title:'Gestion des Écoles',     sub:'Liste, cartographie, effectifs, directeurs, infrastructures et statut ouverture', render: renderEcoles },
@@ -4778,7 +4817,7 @@ const MODULES = {
 
   /* ===== Paramètres (création de services dans le système) ===== */
   'corbeille':            { title:'Corbeille', sub:'Restaurer ou supprimer définitivement les éléments supprimés', render: renderCorbeille },
-  'parametres':           { title:'Paramètres', sub:'Création et gestion des services du système', render: renderParametres },
+  'parametres':           { title:'Paramètres', sub:'Signature, cachet, logo, sauvegarde · « Services du système » réservé au Grand Administrateur', render: renderParametres },
 };
 
 function navigate(mod) {
@@ -5026,6 +5065,8 @@ function ieppActivEdit(name){
   if(code===null) return;
   var dren = prompt("DRENAET de rattachement de « "+court+" » :", r.drenaet||"");
   if(dren===null) return;
+  if(window.DRN && String(dren).trim() && !DRN.exists(dren)){ toast("DRENAET inconnue : créez-la d'abord (Administration DRENAET et IEPP → Créer une DRENAET).","error"); return; }
+  if(window.DRN) dren = DRN.canonical(dren);
   r.code = String(code).trim(); r.drenaet = String(dren).trim(); r._upd = Date.now();
   try{
     (state.drenaet||[]).forEach(function(d){
@@ -5038,6 +5079,7 @@ function ieppActivEdit(name){
   }catch(e){}
   save("ieppRegistry", state.ieppRegistry);
   try{ save("drenaet", state.drenaet); }catch(e){}
+  try{ if(window.DRN) DRN.syncUsers(name, r.drenaet); }catch(e){}
   logAction("iepp-edit","Modification IEPP "+name+" (code="+r.code+", drenaet="+r.drenaet+")");
   toast("IEPP mise à jour ✅","success");
   ieppActivRefresh();
@@ -5272,7 +5314,7 @@ function drRealTotals(d){
 }
 
 function renderDrenaet(skipCloud) {
-  if (!['superadmin','drenaet'].includes(state.user.role)) {
+  if (!(state.user.role==='superadmin' || isRegionalRole(state.user.role))) {
     setContent(`<div class="card" style="text-align:center;padding:40px">
       <div style="font-size:42px">🔒</div>
       <h3 style="margin:12px 0">Accès réservé</h3>
@@ -5281,7 +5323,7 @@ function renderDrenaet(skipCloud) {
     return;
   }
   // Le Directeur DRENAET ne voit que les IEPP de sa région
-  const isRegional = state.user.role === 'drenaet';
+  const isRegional = isRegionalRole(state.user.role);
   const myDrenaet = state.user.drenaet;
   ensureDrenaetFromRegistry();
   /* Rafraîchit le registre depuis le cloud UNE SEULE FOIS (jamais lors du re-rendu),
@@ -5301,7 +5343,7 @@ function renderDrenaet(skipCloud) {
 
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,var(--blue) 0%,#002F5A 100%)">
-      <h3>${isRegional ? 'IEPP de ma <em>région</em>' : 'Administration des <em>IEPP</em> (vue nationale)'}</h3>
+      <h3>${isRegional ? 'IEPP de ma <em>région</em>' : 'Administration <em>DRENAET et IEPP</em> (vue nationale)'}</h3>
       <p>${isRegional
         ? `Vue régionale ${escapeHtml(myDrenaet)} — pilotage des Inspections de l'Enseignement Préscolaire et Primaire de votre Direction Régionale (DRENAET).`
         : `Pilotage national couvrant l'ensemble des Inspections de l'Enseignement Préscolaire et Primaire (IEPP) et leurs Directions Régionales (DRENAET). Espace réservé au Grand Administrateur.`}
@@ -5329,6 +5371,7 @@ function renderDrenaet(skipCloud) {
       <button class="btn btn-primary" onclick="drenaetForm()">+ Nouvelle IEPP</button>`}
     </div>
 
+    ${(typeof drenaetManagerCard==='function') ? drenaetManagerCard() : ''}
     ${ieppActivationPanelHtml()}
 
     <div class="card" style="padding:0">
@@ -5351,7 +5394,7 @@ function drFiltered() {
   const q = (document.getElementById('dr-search')?.value || '').toLowerCase();
   const f = document.getElementById('dr-filter')?.value || '';
   // Filtre régional automatique pour les Directeurs DRENAET (vue limitée à leur région)
-  const isRegional = state.user?.role === 'drenaet';
+  const isRegional = isRegionalRole(state.user?.role);
   const myDrenaet = state.user?.drenaet;
   return state.drenaet.filter(d =>
     (!isRegional || d.drenaet === myDrenaet) &&
@@ -5391,7 +5434,7 @@ function drenaetForm(id) {
   const d = id ? state.drenaet.find(x=>x.id===id) : {drenaet:'',iepp:'',ieppCode:'',chef:'',ecoles:0,prescolaire:0,primaire:0,eleves:0,statut:'Active'};
   openModal(id ? 'Modifier l\'IEPP' : 'Nouvelle IEPP', `
     <div class="form-row">
-      <div class="field"><label>DRENAET</label><input id="dr-dren" value="${escapeHtml(d.drenaet)}" placeholder="ex : DRENAET Boundiali"></div>
+      <div class="field"><label>DRENAET</label>${window.DRN ? DRN.selectHtml('dr-dren', d.drenaet, false, []) : `<input id="dr-dren" value="${escapeHtml(d.drenaet)}" placeholder="ex : DRENAET Boundiali">`}</div>
       <div class="field"><label>Statut</label>
         <select id="dr-stat"><option ${d.statut==='Active'?'selected':''}>Active</option><option ${d.statut==='Suspendue'?'selected':''}>Suspendue</option></select>
       </div>
@@ -5412,6 +5455,7 @@ function drenaetForm(id) {
   `, `<button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="drenaetSave('${id||''}')">Enregistrer</button>`);
 }
 function drenaetSave(id) {
+  if (state.user.role !== 'superadmin') { toast('Réservé au Grand Administrateur.', 'error'); return; }
   const data = {
     drenaet: document.getElementById('dr-dren').value.trim(),
     iepp: document.getElementById('dr-iepp').value.trim(),
@@ -5435,10 +5479,12 @@ function drenaetSave(id) {
     toast('IEPP ajoutée','success');
   }
   save('drenaet', state.drenaet);
+  try { if (window.DRN) DRN.setIeppDren(data.iepp, data.drenaet); } catch(e){}
   closeModal();
   renderDrenaetBody();
 }
 function drenaetDelete(id) {
+  if (state.user.role !== 'superadmin') { toast('Réservé au Grand Administrateur.', 'error'); return; }
   const d = state.drenaet.find(x=>x.id===id);
   if (!confirm(`Supprimer l'IEPP « ${d.iepp} » ?`)) return;
   state.drenaet = state.drenaet.filter(x=>x.id!==id);
@@ -5448,6 +5494,7 @@ function drenaetDelete(id) {
   renderDrenaetBody();
 }
 function drBulkDelete() {
+  if (state.user.role !== 'superadmin') { toast('Réservé au Grand Administrateur.', 'error'); return; }
   const ids = drSelectedIds();
   if (!ids.length) { toast('Aucune ligne cochée','error'); return; }
   if (!confirm(`Supprimer définitivement ${ids.length} IEPP sélectionnée(s) ?`)) return;
@@ -5463,13 +5510,14 @@ function drBulkExport() {
   exportDrenaetExcel(rows);
 }
 function exportDrenaetExcel(rows) {
-  const data = (Array.isArray(rows) ? rows : state.drenaet).map(d => ({
+  const data = (Array.isArray(rows) ? rows : drFiltered()).map(d => ({      /* périmètre : jamais la liste nationale pour une DRENAET */
     DRENAET: d.drenaet, IEPP: d.iepp, 'Code IEPP': d.ieppCode, 'Chef de circonscription': d.chef,
     'Écoles': d.ecoles, 'Préscolaire': d.prescolaire, 'Primaire': d.primaire, 'Élèves': d.eleves, 'Statut': d.statut
   }));
   exportRowsToExcel(data, 'administration_iepp', 'IEPP');
 }
 function importDrenaetExcel(ev) {
+  if (state.user.role !== 'superadmin') { toast('Réservé au Grand Administrateur.', 'error'); return; }
   importRowsFromFile(ev, (rows) => {
     let n = 0;
     rows.forEach(r => {
@@ -5522,7 +5570,7 @@ function dashScopedData() {
     visites   = visites.filter(v => v.enseignant === u.name);
     eleves    = eleves.filter(e => e.ecole === u.ecole && e.niveau === u.classe);
     label = `votre classe ${u.classe||''} — ${u.ecole||''}`.trim();
-  } else if (u.role === 'drenaet') {
+  } else if (isRegionalRole(u.role)) {
     label = `région ${u.drenaet || ''} (IEPP active : ${state.activeIepp||'—'})`;
   } else if (u.role === 'superadmin') {
     label = `vue globale (IEPP active : ${state.activeIepp||'—'})`;
@@ -5542,6 +5590,7 @@ function renderDashboard() {
   const totalPersonnel = d.personnel.length;
   const pendingAbs = d.absences.filter(a => (a.statut||'').includes('attente') || (a.statut||'').includes('directeur')).length;
   const visitesMois = d.visites.length;
+  const eqx = (typeof EQ !== 'undefined' && EQ.dashModel) ? EQ.dashModel(d, { totalEleves, filles, garcons, totalEcoles, pendingAbs, visitesMois, eleves: d.eleves.length }) : null;
   const greeting = `Bonjour ${(u.name||'').split(' ')[0]}`;
   // Hero personnalisé par rôle
   let heroSubtitle = '';
@@ -5558,7 +5607,7 @@ function renderDashboard() {
       <h3>${greeting}, <em>bienvenue</em> sur la plateforme</h3>
       <p>${heroSubtitle}</p>
       <div class="hero-stats">
-        ${u.role==='instituteur'?`
+        ${(eqx && u.role!=='instituteur')?eqx.hero(u.role):u.role==='instituteur'?`
           <div><span>${d.eleves.length}</span><span>Élèves de ma classe</span></div>
           <div><span>${garcons}</span><span>Garçons</span></div>
           <div><span>${filles}</span><span>Filles</span></div>
@@ -5580,19 +5629,20 @@ function renderDashboard() {
     <div class="stat-grid">
       <div class="stat s-orange">
         <div class="stat-label">${u.role==='instituteur'?"Mes demandes d'absence":"Demandes d'absence"}</div>
-        <div class="stat-value">${u.role==='instituteur'?d.absences.length:pendingAbs}</div>
+        <div class="stat-value" data-count="${u.role==='instituteur'?d.absences.length:pendingAbs}">${u.role==='instituteur'?d.absences.length:pendingAbs}</div>
         <div class="stat-delta">${u.role==='instituteur'?'soumises':'en attente de validation'}</div>
       </div>
       <div class="stat s-green">
         <div class="stat-label">${isPersonalScope?'Filles / Garçons':"Taux de réussite CEPE"}</div>
-        <div class="stat-value">${isPersonalScope?(filles+'/'+garcons):(tauxReussiteCEPE()+'%')}</div>
+        <div class="stat-value"${isPersonalScope?'':` data-count="${tauxReussiteCEPE()}" data-suffix="%"`}>${isPersonalScope?(filles+'/'+garcons):(tauxReussiteCEPE()+'%')}</div>
         <div class="stat-delta">${isPersonalScope?'effectif':'session 2026'}</div>
       </div>
       <div class="stat s-purple">
         <div class="stat-label">${u.role==='instituteur'?'Visites reçues':'Couverture pédagogique'}</div>
-        <div class="stat-value">${u.role==='instituteur'?visitesMois:(totalPersonnel?Math.round((visitesMois/totalPersonnel)*100)+'%':'—')}</div>
+        <div class="stat-value"${u.role==='instituteur'?` data-count="${visitesMois}"`:(totalPersonnel?` data-count="${Math.round((visitesMois/totalPersonnel)*100)}" data-suffix="%"`:'')}>${u.role==='instituteur'?visitesMois:(totalPersonnel?Math.round((visitesMois/totalPersonnel)*100)+'%':'—')}</div>
         <div class="stat-delta">${u.role==='instituteur'?'sur ma classe':'visites / enseignants'}</div>
       </div>
+      ${eqx?eqx.cards(u.role):''}
       <div class="stat s-pink">
         <div class="stat-label">Espace de données</div>
         <div class="stat-value" style="font-size:13px;font-weight:700">${escapeHtml(d.label)}</div>
@@ -5600,6 +5650,7 @@ function renderDashboard() {
       </div>
     </div>
   `);
+  try { if (window.EQ && EQ.animate) EQ.animate(document.getElementById('content')); } catch (_) {}
 }
 
 function quickActionsFor(role) {
@@ -6140,8 +6191,9 @@ function canSeeUser(target) {
   if (!me || !target) return false;
   if (me.role === 'superadmin') return true;             // Superadmin : accès total
   if (target.role === 'superadmin') return false;        // nul autre ne voit le Superadmin
-  if (me.role === 'drenaet') {                           // DRENAET : sa région uniquement
-    return (target.drenaet || '') === (me.drenaet || '');
+  if (isRegionalRole(me.role)) {                           // DRENAET (et son personnel) : sa région uniquement
+    if (!me.drenaet || me.drenaet === 'TOUTES') return target.username === me.username;
+    return (target.drenaet || '') === me.drenaet;
   }
   // Directeur d'école : ne voit que les enseignants de SA propre école
   if (me.role === 'directeur') {
@@ -6150,7 +6202,8 @@ function canSeeUser(target) {
     return ['instituteur','directeur'].includes(target.role);
   }
   // Niveau IEPP (inspecteur, correspondant, corresp_stat, agent, etc.)
-  if (target.role === 'drenaet') return false;           // une IEPP ne voit pas la DRENAET
+  if (isRegionalRole(target.role)) return false;           // une IEPP ne voit pas la DRENAET ni son personnel
+  if (!me.iepp || me.iepp === 'TOUTES') return target.username === me.username;   // sans circonscription : soi-même seulement
   return (target.iepp || '') === (me.iepp || '') && (target.drenaet || '') === (me.drenaet || '');
 }
 function canCreateUsers() { return ['superadmin','drenaet','inspecteur','cpi','correspondant','directeur'].includes(state.user.role); }
@@ -6163,7 +6216,7 @@ function canManageUser(u){
   if (u.username===me.username) return true;                       /* son propre compte */
   if (me.role==='directeur') return u.role==='instituteur';        /* 👨‍🏫 instituteurs de son école */
   if (me.role==='drenaet') return true;                            /* 🏢 sa DRENAET (canSeeUser) */
-  if (u.role==='drenaet') return false;
+  if (isRegionalRole(u.role)) return false;
   /* 📁 Correspondant fichier / CPI : leur IEPP, sauf le compte de l'Inspecteur */
   if ((me.role==='correspondant' || me.role==='cpi') && u.role==='inspecteur') return false;
   return true;                                                      /* 🏫 Inspecteur : son IEPP */
@@ -6281,7 +6334,7 @@ function assignableRoles() {
   if (me.role === 'superadmin') return Object.keys(ROLES);
   if (me.role === 'directeur')  return ['instituteur'];
   if (me.role === 'drenaet')    return Object.keys(ROLES).filter(r => r !== 'superadmin');
-  return Object.keys(ROLES).filter(r => r !== 'superadmin' && r !== 'drenaet');
+  return Object.keys(ROLES).filter(r => r !== 'superadmin' && !isRegionalRole(r));
 }
 
 function userPerimetreLabel(){
@@ -6437,8 +6490,8 @@ function userForm(username, presetRole) {
       <div class="field"><label>Email</label><input type="email" id="u-email" value="${escapeHtml(u.email||'')}"></div>
     </div>
     <div class="form-row">
-      <div class="field"><label>DRENAET</label><input id="u-drenaet" value="${escapeHtml(drenVal)}" ${drenLocked?'readonly':''}></div>
-      <div class="field"><label>IEPP</label><input id="u-iepp" value="${escapeHtml(ieppVal)}" ${ieppLocked?'readonly':''}></div>
+      <div class="field"><label>DRENAET</label>${(isSuper && window.DRN) ? DRN.selectHtml('u-drenaet', drenVal, true, ['TOUTES']) : `<input id="u-drenaet" value="${escapeHtml(drenVal)}" ${drenLocked?'readonly':''}>`}</div>
+      <div class="field"><label>IEPP</label>${(me.role==='drenaet') ? `<select id="u-iepp">${(ieppVal && ieppVal!=='TOUTES' && !accessibleIepps().includes(ieppVal)) ? '' : ''}${['TOUTES'].filter(()=>u.role==='drenaet' || ieppVal==='TOUTES').concat(accessibleIepps()).map(i=>`<option value="${escapeHtml(i)}" ${i===ieppVal?'selected':''}>${escapeHtml(i)}</option>`).join('')}</select>` : `<input id="u-iepp" value="${escapeHtml(ieppVal)}" ${ieppLocked?'readonly':''}>`}</div>
     </div>
     <div class="form-row">
       <div class="field"><label>École (si applicable)</label><input id="u-ecole" value="${escapeHtml(u.ecole||'')}" ${me.role==='directeur'?'readonly':''}></div>
@@ -6505,6 +6558,12 @@ async function userSave(username) {
   { var _fn=document.getElementById('u-fin'); if(_fn) data.fin = _fn.value||''; }
   if (role==='superadmin' && username && username===me.username) data.actif = true;   /* on ne se désactive pas soi-même */
   if (!data.username || !data.name) { toast('Identifiant et nom obligatoires', 'error'); return; }
+  if (isRegionalStaff(data.role)) {
+    data.iepp = 'TOUTES';
+    if (me.role === 'drenaet') data.drenaet = me.drenaet;
+    if (!data.drenaet || data.drenaet === 'TOUTES') { toast('Choisissez la DRENAET de rattachement de ce compte.', 'error'); return; }
+  }
+  if (me.role === 'drenaet' && !username && !isRegionalRole(data.role) && (!data.iepp || !accessibleIepps().includes(data.iepp))) { toast('Cette IEPP est hors de votre périmètre.', 'error'); return; }
   if (me.role === 'directeur') {
     data.ecole = me.ecole || data.ecole; data.iepp = me.iepp; data.drenaet = me.drenaet;
     if (username && username === me.username) data.role = me.role;
@@ -6834,7 +6893,8 @@ const STAT_FONCTIONS_ADMIN = [
   'inspecteur', 'conseiller', 'secr', 'archiv', 'econome',
   'comptab', 'courrier', 'communication', 'attach', 'agent', 'gestionnaire',
   'charg', 'correspondant', 'surveillant', 'intendant',
-  'iepp', 'circonscription', 'pédagogique', 'pedagogique', 'cppp', 'bureau'
+  'iepp', 'circonscription', 'pédagogique', 'pedagogique', 'cppp', 'bureau',
+  'coordo', 'superviseur', 'techno', 'administrateur', 'drenaet'
 ];
 
 /* Un agent est « craie en main » s'il tient effectivement une classe. */
@@ -10933,7 +10993,7 @@ function rhForm(id) {
     <div class="form-row">
       <div class="field"><label>Fonction</label><input id="rh-fonction" list="rh-fonction-list" value="${escapeHtml(p.fonction||'')}" onchange="persoFoncGrade(this.value,'rh-grade')" placeholder="Choisir ou saisir une fonction"><datalist id="rh-fonction-list">${(window.FONCTIONS_TOUTES||window.FONCTIONS_ENSEIGNANT||[]).map(f=>`<option value="${escapeHtml(f.l)}">`).join('')}</datalist></div>
       <div class="field"><label>Affectation</label>
-        <select id="rh-ecole"><optgroup label="Écoles">${state.ecoles.map(e=>`<option ${e.nom===p.ecole?'selected':''}>${escapeHtml(e.nom)}</option>`).join('')}</optgroup><optgroup label="Postes administratifs">${['Correspondant fichier DESPS','Correspondant Carte scolaire','Correspondant Suivi Évaluation','Correspondant Statistique','Chargé des Ressources Humaines','Secrétaire','Bibliothécaire','Archiviste','Chargé du Courrier','Chargé Examen et concours','Chargé de Communication','Chargé SMOSS','IEPP','Économe'].map(x=>`<option ${x===p.ecole?'selected':''}>${x}</option>`).join('')}</optgroup></select>
+        <select id="rh-ecole"><optgroup label="Écoles">${state.ecoles.map(e=>`<option ${e.nom===p.ecole?'selected':''}>${escapeHtml(e.nom)}</option>`).join('')}</optgroup><optgroup label="Postes administratifs">${['Correspondant fichier DESPS','Correspondant Carte scolaire','Correspondant Suivi Évaluation','Correspondant Statistique','Chargé des Ressources Humaines','Secrétaire','Bibliothécaire','Archiviste','Chargé du Courrier','Chargé Examen et concours','Chargé de Communication','Chargé SMOSS','IEPP','DRENAET','Économe'].map(x=>`<option ${x===p.ecole?'selected':''}>${x}</option>`).join('')}</optgroup></select>
       </div>
     </div>
     <div class="form-row">
@@ -14154,7 +14214,7 @@ function courrierGo(tab){ courrierTab = tab; renderCourrier(); }
 function courrierDansMonPerimetre(ieppAutre, drenaetAutre){
   const u = state.user || {};
   if (u.role === 'superadmin') return true;
-  if (u.role === 'drenaet')   return !drenaetAutre || drenaetAutre === u.drenaet;
+  if (isRegionalRole(u.role)) return !drenaetAutre || drenaetAutre === u.drenaet;
   return !ieppAutre || ieppAutre === u.iepp;
 }
 function courrierMsgRecus() {
@@ -19709,12 +19769,13 @@ function injectCustomServiceSidebar() {
 }
 
 /* ---------- Page PARAMÈTRES ---------- */
-function paramCanManage(){ return ['superadmin','drenaet','inspecteur'].includes(state.user.role); }
+function paramCanManage(){ return state.user && state.user.role === 'superadmin'; }
+function paramCanView(){ return state.user && ['superadmin','inspecteur','correspondant'].includes(state.user.role); }   /* Paramètres : signature, cachet, logo, sauvegarde */   /* Services du système : réservé au Grand Administrateur */
 
 const BUILTIN_SVC_KEYS = ['secretariat','cantine','smoss','bibliotheque'];
 
 function renderParametres() {
-  if (!paramCanManage()) { setContent('<div class="card"><div class="table-empty">Accès réservé aux administrateurs.</div></div>'); return; }
+  if (!paramCanView()) { setContent('<div class="card"><div class="table-empty">Accès réservé aux administrateurs.</div></div>'); return; }
   const customCount = (state.customServices||[]).length;
   const builtinRows = BUILTIN_SVC_KEYS.filter(k=>SERVICES[k]).map(k => svcParamRow(k, false));
   const customRows  = (state.customServices||[]).map(s => svcParamRow(s.key, true));
@@ -19760,6 +19821,7 @@ function renderParametres() {
       </div>
     </div>
 
+    ${paramCanManage() ? `
     <div class="hero" style="background:linear-gradient(135deg,#5B1F94 0%,#2E0E54 100%)">
       <h3>⚙️ <em>Paramètres</em> — Services du système</h3>
       <p>Créez de nouveaux services dotés des mêmes fonctionnalités que les services existants : matrice d'activités et activités permanentes, avec ajout, modification, suppression, import/export Excel et impression. Les services créés apparaissent automatiquement dans le menu « Services de l'IEPP ».</p>
@@ -19771,6 +19833,7 @@ function renderParametres() {
       <div class="stat s-orange"><div class="stat-label">Services personnalisés</div><div class="stat-value">${customCount}</div></div>
     </div>
 
+    ` : ''}
     ${ieppManagerCard()}
 
     <div class="card" style="border:2px solid #2A9D8F;background:#fff;padding:16px;margin-bottom:16px">
@@ -19785,6 +19848,7 @@ function renderParametres() {
       </div>
     </div>
 
+    ${paramCanManage() ? `
     <h3 style="font-size:15px;margin:4px 0 8px">🧩 Services du système</h3>
     <div class="toolbar">
       <div style="flex:1"></div>
@@ -19803,6 +19867,7 @@ function renderParametres() {
       </div>
     </div>
     <p class="text-xs text-muted" style="margin-top:10px">Les services intégrés (Secrétariat, Cantine, SMOSS, Bibliothèque) ne peuvent pas être supprimés. Les services personnalisés sont entièrement modifiables et supprimables.</p>
+    ` : ''}
   `);
 }
 function svcParamRow(key, isCustom) {
@@ -19824,6 +19889,7 @@ function svcParamRow(key, isCustom) {
 }
 
 function serviceForm(editKey) {
+  if (!paramCanManage()) { toast('Action réservée au Grand Administrateur.', 'error'); return; }
   const s = editKey ? (state.customServices||[]).find(x=>x.key===editKey) : null;
   const cur = s || { label:'', icon:'🧩', color:'blue', intro:'', permLabel:'', cols:svcBuildCols('Résultats attendus','') };
   const c3 = (cur.cols && cur.cols[2]) ? cur.cols[2].label : 'Résultats attendus';
@@ -19852,6 +19918,7 @@ function serviceForm(editKey) {
 }
 
 function serviceSave(editKey) {
+  if (!paramCanManage()) { toast('Action réservée au Grand Administrateur.', 'error'); return; }
   const label = document.getElementById('svc-f-label').value.trim();
   if (!label) { toast('Le nom du service est obligatoire','error'); return; }
   const icon  = document.getElementById('svc-f-icon').value.trim() || '🧩';
@@ -19889,6 +19956,7 @@ function serviceSave(editKey) {
 }
 
 function serviceDelete(key) {
+  if (!paramCanManage()) { toast('Action réservée au Grand Administrateur.', 'error'); return; }
   const s = (state.customServices||[]).find(x=>x.key===key);
   if (!s) return;
   if (!confirm(`Supprimer définitivement le service « ${s.label} » et toutes ses activités ?`)) return;
@@ -20621,7 +20689,7 @@ function ieppManagerCard() {
 function ieppForm() {
   openModal('Créer une circonscription (IEPP)', `
     <div class="field"><label>Nom de l'IEPP</label><input id="iepp-name" placeholder="ex : IEPP Dabakala"></div>
-    <div class="field"><label>DRENAET de rattachement</label><input id="iepp-dren" placeholder="ex : DRENAET Boundiali"></div>
+    <div class="field"><label>DRENAET de rattachement</label>${window.DRN ? DRN.selectHtml('iepp-dren','',true,[]) : '<input id="iepp-dren" placeholder="ex : DRENAET Boundiali">'}</div>
     <p class="text-xs text-muted" style="margin:4px 0 0">Un espace de données vierge et cloisonné sera créé pour cette IEPP. Vous pourrez ensuite « provisionner » ses comptes d'accès en un clic.</p>
   `, `
     <button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
@@ -20703,6 +20771,7 @@ async function ieppProvision(name) {
 
 state.customServices = load('customServices', []);
 state.ieppRegistry = load('ieppRegistry', []);
+state.drenaetList = load('drenaetList', []);
 state.pnapasForm = load('pnapasForm', defaultPnapasForm());
 state.pnapasResponses = load('pnapasResponses', []);
 state.aserVerif = load('aserVerif', []);
@@ -27728,11 +27797,7 @@ function ecCanManage() { return ['superadmin','drenaet','inspecteur','correspond
 function ecCanCreateEcole() { return ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role); }
 function ecCanToggleStatus() { return ['superadmin','drenaet','inspecteur'].includes(state.user.role); }
 function ecRatio(infra, eff) {
-  const tb = parseInt(infra?.tableBancs||0,10);
-  if (!eff) return { tb, ratio:'—', deficit:0 };
-  const ratio = tb ? (Math.round(eff/tb*10)/10) : null;
-  const deficit = Math.max(0, Math.ceil(eff/2) - tb);
-  return { tb, ratio: ratio!=null ? ratio+' él./TB' : '—', deficit };
+  return EQ.ui.ratio(infra, eff);   // calcul aligné sur les normes (module équipements)
 }
 function renderEcoles() {
   setContent(`
@@ -28230,116 +28295,12 @@ function ecDirTelSave(ref, del) {
 
 /* ===== 5. Infrastructures ===== */
 function ecInfraEmpty() {
-  return { tableBancs:0, toilettes:0, cloture:'', tableaux:0, bureauDirecteur:'', tableMaitre:0, autres:[] };
+  return { tableBancs:0, tbFonct:null, toilettes:0, toiFonct:null, electricite:'', cloture:'', clotureType:'', eauTotal:null, eauFonct:null, eauHS:null, tableaux:0, bureauDirecteur:'', tableMaitre:0, autres:[] };
 }
 function ecInfraHtml() {
-  const list = state.ecoles;
-  const canManage = ecCanManage();
-  const S_NUM  = 'width:80px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:white;text-align:right;font:inherit;color:inherit';
-  const S_CTR  = 'width:80px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:white;text-align:center;font:inherit;color:inherit';
-  const S_TXT  = 'width:100%;min-width:140px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:white;font:inherit;color:inherit';
-  const S_CODE = 'width:96px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:white;font:inherit;color:inherit';
-  const rows = list.length ? list.map(e => {
-    const inf = e.infrastructures || ecInfraEmpty();
-    const r = ecRatio(inf, e.effectif||0);
-    if (!canManage) {
-      // Lecture seule pour les profils sans droit d'édition
-      return `<tr>
-        <td><span class="badge badge-blue">${escapeHtml(e.code)}</span></td>
-        <td class="fw-7">${escapeHtml(e.nom)}</td>
-        <td style="text-align:right">${e.effectif||0}</td>
-        <td style="text-align:right" class="fw-7">${inf.tableBancs||0}</td>
-        <td style="text-align:center"><span class="badge ${r.deficit>0?'badge-red':'badge-green'}">${r.ratio}${r.deficit>0?' · manque '+r.deficit:''}</span></td>
-        <td style="text-align:center">${inf.toilettes||0}</td>
-        <td style="text-align:center">${inf.tableaux||0}</td>
-        <td style="text-align:center">${inf.tableMaitre||0}</td>
-        <td class="text-sm">${escapeHtml(inf.cloture||'')}</td>
-        <td class="text-sm">${escapeHtml(inf.bureauDirecteur||'')}</td>
-        <td class="text-sm">${(inf.autres||[]).map(a=>`<span class="badge badge-grey" style="margin:1px">${escapeHtml(a.label)} : ${a.qty}</span>`).join(' ')}</td>
-        <td></td>
-      </tr>`;
-    }
-    const autresChips = (inf.autres||[]).map((a,i)=>
-      `<span class="badge badge-grey" style="margin:1px;display:inline-flex;align-items:center;gap:4px">${escapeHtml(a.label)} : ${a.qty}<button class="icon-btn" onclick="ecInfraAutreDel('${e.id}',${i})" title="Supprimer" style="padding:0 4px;font-size:11px;background:transparent;color:var(--danger)">✗</button></span>`
-    ).join(' ');
-    return `<tr>
-      <td><input type="text" value="${escapeHtml(e.code||'')}" onchange="ecInfraCellSave('${e.id}','code',this.value)" style="${S_CODE}"></td>
-      <td><input type="text" value="${escapeHtml(e.nom||'')}" onchange="ecInfraCellSave('${e.id}','nom',this.value)" style="${S_TXT}"></td>
-      <td style="text-align:right"><input type="number" min="0" value="${e.effectif||0}" onchange="ecInfraCellSave('${e.id}','effectif',this.value)" style="${S_NUM}"></td>
-      <td style="text-align:right"><input type="number" min="0" value="${inf.tableBancs||0}" onchange="ecInfraCellSave('${e.id}','tableBancs',this.value)" style="${S_NUM}"></td>
-      <td style="text-align:center"><span class="badge ${r.deficit>0?'badge-red':'badge-green'}">${r.ratio}${r.deficit>0?' · manque '+r.deficit:''}</span></td>
-      <td style="text-align:center"><input type="number" min="0" value="${inf.toilettes||0}" onchange="ecInfraCellSave('${e.id}','toilettes',this.value)" style="${S_CTR}"></td>
-      <td style="text-align:center"><input type="number" min="0" value="${inf.tableaux||0}" onchange="ecInfraCellSave('${e.id}','tableaux',this.value)" style="${S_CTR}"></td>
-      <td style="text-align:center"><input type="number" min="0" value="${inf.tableMaitre||0}" onchange="ecInfraCellSave('${e.id}','tableMaitre',this.value)" style="${S_CTR}"></td>
-      <td><input type="text" value="${escapeHtml(inf.cloture||'')}" placeholder="Bonne · Grillage · À refaire" onchange="ecInfraCellSave('${e.id}','cloture',this.value)" style="${S_TXT}"></td>
-      <td><input type="text" value="${escapeHtml(inf.bureauDirecteur||'')}" placeholder="Oui / Non / En construction" onchange="ecInfraCellSave('${e.id}','bureauDirecteur',this.value)" style="${S_TXT}"></td>
-      <td class="text-sm" style="min-width:240px">
-        <div>${autresChips || '<span class="text-muted text-xs">Aucun équipement</span>'}</div>
-        <div style="display:flex;gap:4px;margin-top:4px;align-items:center;flex-wrap:wrap">
-          <input id="inf-aut-lab-${e.id}" type="text" placeholder="Libellé (cantine, point d'eau…)" style="flex:1;min-width:120px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:white;font:inherit;color:inherit" onkeydown="if(event.key==='Enter'){event.preventDefault();ecInfraAutreAdd('${e.id}');}">
-          <input id="inf-aut-qty-${e.id}" type="number" min="0" value="1" style="width:60px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:white;text-align:right;font:inherit;color:inherit" onkeydown="if(event.key==='Enter'){event.preventDefault();ecInfraAutreAdd('${e.id}');}">
-          <button class="btn btn-sm btn-ghost" onclick="ecInfraAutreAdd('${e.id}')" style="padding:4px 10px">+</button>
-        </div>
-      </td>
-      <td class="actions-cell">
-        <button class="icon-btn" onclick="ecInfraForm('${e.id}')" title="Édition détaillée (modale)">✏️</button>
-      </td>
-    </tr>`;
-  }).join('') : `<tr><td colspan="12" class="table-empty">Aucune école — créez d'abord des écoles dans l'onglet « Liste ».</td></tr>`;
-  return `
-    <div class="card" style="background:#FFF9E6;padding:12px 14px;margin-bottom:10px;border-left:3px solid #B45309">
-      <div class="text-xs"><strong>Saisie directe</strong> · cliquez dans une cellule pour saisir / corriger une valeur — l'enregistrement est automatique à la sortie du champ. <strong>Ratio table-bancs</strong> : on compte idéalement <strong>1 table-banc pour 2 élèves</strong> ; le manque affiché indique le nombre de table-bancs à ajouter pour combler le déficit.</div>
-    </div>
-    <div class="toolbar">
-      <div style="flex:1"></div>
-      <button class="btn btn-ghost" onclick="document.getElementById('ec-infra-import').click()">📥 Importer Excel</button>
-      <input type="file" id="ec-infra-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="ecInfraImport(event)">
-      <button class="btn btn-green" onclick="ecInfraExportExcel()">📊 Excel</button>
-      <button class="btn btn-ghost" onclick="ecInfraExportPrint(true)">📄 Word</button>
-      <button class="btn btn-ghost" onclick="ecInfraExportPrint()">🖨️ PDF</button>
-    </div>
-    <div class="card" style="padding:0;overflow:auto"><table style="min-width:1100px">
-      <thead><tr>
-        <th>Code</th><th>École</th><th style="text-align:right">Effectif</th>
-        <th style="text-align:right">Table-bancs</th><th style="text-align:center">Ratio / Manque</th>
-        <th style="text-align:center">Toilettes</th><th style="text-align:center">Tableaux</th><th style="text-align:center">Tables maître</th>
-        <th>Clôture</th><th>Bureau directeur</th><th>Autres équipements</th><th style="width:60px"></th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table></div>`;
+  return EQ.ui.html();   // tableau unique : électricité, clôture, points d'eau, tables-bancs, toilettes (+ besoins/déficits)
 }
-function ecInfraForm(id) {
-  const e = state.ecoles.find(x=>x.id===id); if (!e) return;
-  e.infrastructures = e.infrastructures || ecInfraEmpty();
-  const inf = JSON.parse(JSON.stringify(e.infrastructures));
-  if (!inf.autres) inf.autres = [];
-  const autresRows = inf.autres.map((a,i)=>`
-    <div class="form-row" style="margin-bottom:6px;align-items:center;gap:6px">
-      <input class="inf-autre-label" data-i="${i}" value="${escapeHtml(a.label||'')}" placeholder="ex : Cantine, point d'eau, panneaux solaires…" style="flex:2">
-      <input class="inf-autre-qty" data-i="${i}" type="number" min="0" value="${a.qty||0}" style="width:80px">
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('inf-autres').children[${i}].remove()">✗</button>
-    </div>`).join('');
-  openModal(`Infrastructures — ${escapeHtml(e.nom)}`, `
-    <div class="form-row">
-      <div class="field"><label>Table-bancs (nombre)</label><input id="inf-tb" type="number" min="0" value="${inf.tableBancs||0}"></div>
-      <div class="field"><label>Toilettes</label><input id="inf-toi" type="number" min="0" value="${inf.toilettes||0}"></div>
-    </div>
-    <div class="form-row">
-      <div class="field"><label>Tableaux</label><input id="inf-tx" type="number" min="0" value="${inf.tableaux||0}"></div>
-      <div class="field"><label>Tables maître</label><input id="inf-tm" type="number" min="0" value="${inf.tableMaitre||0}"></div>
-    </div>
-    <div class="form-row">
-      <div class="field"><label>Clôture (état / matériau)</label><input id="inf-clo" value="${escapeHtml(inf.cloture||'')}" placeholder="ex : Bonne · Grillage · À refaire"></div>
-      <div class="field"><label>Bureau directeur</label><input id="inf-bd" value="${escapeHtml(inf.bureauDirecteur||'')}" placeholder="ex : Oui / Non / En construction"></div>
-    </div>
-    <div class="card" style="background:#F9FAFB;padding:10px;margin-top:10px">
-      <div style="font-size:11px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;margin-bottom:8px">Autres équipements</div>
-      <div id="inf-autres">${autresRows}</div>
-      <button class="btn btn-ghost btn-sm" onclick="ecInfraAddAutreRow()">+ Ajouter un équipement</button>
-    </div>
-  `, `<button class="btn btn-ghost" onclick="closeModal()">Annuler</button>
-      <button class="btn btn-orange" onclick="ecInfraSave('${id}')">Enregistrer</button>`);
-}
+function ecInfraForm(id) { return EQ.ui.form(id); }
 function ecInfraAddAutreRow() {
   const container = document.getElementById('inf-autres');
   if (!container) return;
@@ -28349,46 +28310,26 @@ function ecInfraAddAutreRow() {
   row.innerHTML = `<input class="inf-autre-label" placeholder="Ex : cantine, point d'eau…" style="flex:2"><input class="inf-autre-qty" type="number" min="0" value="0" style="width:80px"><button class="btn btn-ghost btn-sm" onclick="this.parentElement.remove()">✗</button>`;
   container.appendChild(row);
 }
-function ecInfraSave(id) {
-  const e = state.ecoles.find(x=>x.id===id); if (!e) return;
-  const v = (s,n)=>{ const el=document.getElementById(s); return n?(parseInt(el?.value,10)||0):(el?.value||'').trim(); };
-  const autres = [...document.querySelectorAll('#inf-autres > div')].map(div=>({
-    label: div.querySelector('.inf-autre-label')?.value.trim() || '',
-    qty: parseInt(div.querySelector('.inf-autre-qty')?.value, 10) || 0
-  })).filter(a=>a.label);
-  e.infrastructures = {
-    tableBancs: v('inf-tb',1), toilettes: v('inf-toi',1), tableaux: v('inf-tx',1), tableMaitre: v('inf-tm',1),
-    cloture: v('inf-clo'), bureauDirecteur: v('inf-bd'), autres
-  };
-  save('ecoles', state.ecoles);
-  logAction('infra-save', `Infrastructures de ${e.nom} mises à jour`);
-  toast('Infrastructures enregistrées','success'); closeModal(); ecRenderPane();
-}
+function ecInfraSave(id) { return EQ.ui.save(id); }
 
 /* ----- Saisie directe en cellule (Infrastructures) ----- */
 function ecInfraCellSave(id, field, raw) {
   if (!ecCanManage()) { toast('Action réservée à la gestion.', 'error'); return; }
   const e = state.ecoles.find(x=>x.id===id); if (!e) return;
-  e.infrastructures = e.infrastructures || ecInfraEmpty();
-  const schoolFields = { code:'text', nom:'text', effectif:'int' };
-  const infraFields  = { tableBancs:'int', toilettes:'int', tableaux:'int', tableMaitre:'int', cloture:'text', bureauDirecteur:'text' };
-  let target, type;
-  if (Object.prototype.hasOwnProperty.call(schoolFields, field))      { target = e;                  type = schoolFields[field]; }
-  else if (Object.prototype.hasOwnProperty.call(infraFields, field))  { target = e.infrastructures;  type = infraFields[field]; }
-  else return;
-  const val = (type === 'int') ? Math.max(0, parseInt(raw, 10) || 0) : String(raw || '').trim();
+  if (!EQ._f.canEdit(e)) { toast('Action réservée à la gestion de votre périmètre.', 'error'); return; }
+  if (field !== 'code' && field !== 'nom' && field !== 'effectif') { EQ.ui.cell(id, field, raw, true); return; }
+  const val = (field === 'effectif') ? Math.max(0, parseInt(raw, 10) || 0) : String(raw || '').trim();
   if (field === 'code') {
     if (!val) { toast('Le code ne peut pas être vide.', 'error'); ecRenderPane(); return; }
     if (state.ecoles.some(x => x.id !== id && (x.code||'') === val)) { toast('Ce code est déjà utilisé par une autre école.', 'error'); ecRenderPane(); return; }
   }
   if (field === 'nom' && !val) { toast('Le nom ne peut pas être vide.', 'error'); ecRenderPane(); return; }
-  if (target[field] === val) return; // pas de changement
-  target[field] = val;
+  if (e[field] === val) return;
+  e[field] = val;
   save('ecoles', state.ecoles);
   logAction('infra-cell', `${e.nom} → ${field} = ${val}`);
   toast('Enregistré', 'success');
-  // Le ratio dépend d'effectif et de tableBancs → on rafraîchit la pane
-  if (field === 'effectif' || field === 'tableBancs') ecRenderPane();
+  if (field === 'effectif') ecRenderPane();   // besoins et déficits dépendent de l'effectif
 }
 function ecInfraAutreAdd(id) {
   if (!ecCanManage()) { toast('Action réservée.', 'error'); return; }
@@ -34731,12 +34672,14 @@ function userRestoreFromTrash(trashId){
     'Conseiller pédagogique du préscolaire et primaire (CPPP)','Conseiller pédagogique d’inspection (CPI)',
     'Conseiller extrascolaire (CES)','Conseiller cantine','Conseiller vie scolaire','Conseiller COGES','Conseiller Alphabétisation',
     'Chargé des ressources humaines','Correspondant Fichier','Chargé des statistiques','Chargé de la carte scolaire','Chargé des examens et concours','Chargé SMOSS','Secrétaire','Chargé du courrier arrivée/départ',
-    'Agent de bureau'
+    'Agent de bureau',
+    /* Ajout : fonctions DRENAET / supervision (classées « Personnel administratif », jamais « craie en main ») */
+    'Coordonnateur DRENAET (Coordo DRENAET)','Superviseur IEPP','Superviseur DRENAET','Technopédagogue (Techno-Péda)','Administrateur','Secrétaire général(e) (SG) DRENAET'
   ];
   window.FONCTIONS_ADMIN=FONCTIONS_ADMIN;
   window.CAT_ENS='Personnel enseignant'; window.CAT_ADM='Personnel administratif';
   window.FONCTIONS_TOUTES=FONCTIONS.map(function(f){return {l:f.l};}).concat(FONCTIONS_ADMIN.map(function(l){return {l:l};}));
-  var ADM_KW=['inspecteur','conseiller','secr','agent','charg','correspondant','courrier','iepp','circonscription','pédagogique','pedagogique','cppp','archiv','econome','économe','comptab','communication','gestionnaire','bureau'];
+  var ADM_KW=['inspecteur','conseiller','secr','agent','charg','correspondant','courrier','iepp','circonscription','pédagogique','pedagogique','cppp','archiv','econome','économe','comptab','communication','gestionnaire','bureau','coordo','superviseur','techno','administrateur','drenaet'];
   var ENS_KW=['instituteur','enseignant','maitre','maître','animateur','directeur d','directrice','directeur adjoint'];
   window.persoCategorie=function(p){
     var f=key(p&&p.fonction);
@@ -34927,7 +34870,7 @@ function userRestoreFromTrash(trashId){
   function roleLabel(v){ try{ return (ROLES[v]&&ROLES[v].label)||v; }catch(e){ return v; } }
   function dataOf(c){
     var d=state[COLL[c].key]; if(!Array.isArray(d)) d=[]; var u=U();
-    if(c==='users'){ if(u.role!=='superadmin' && u.role!=='drenaet') d=d.filter(function(x){ return x.iepp===u.iepp; }); return d; }
+    if(c==='users'){ if(u.role!=='superadmin' && !isRegionalRole(u.role)) d=d.filter(function(x){ return x.iepp===u.iepp; }); return d; }
     if(u.role==='instituteur'){ if(c==='eleves') d=d.filter(function(e){ return e.ecole===u.ecole && String(e.niveau).toUpperCase()===String(u.classe||'').toUpperCase(); }); if(c==='ecoles') d=d.filter(function(e){ return e.nom===u.ecole; }); }
     else if(u.role==='directeur' && u.ecole){
       if(c==='eleves'||c==='personnel') d=d.filter(function(e){ return e.ecole===u.ecole; });
@@ -36134,11 +36077,15 @@ function userRestoreFromTrash(trashId){
     var t=toks((r.nom||'')+' '+(r.prenoms||'')).sort();
     var x=String(r.numExtrait||r.registreExtrait||r.nRegistre||'').toUpperCase().replace(/[^A-Z0-9]/g,''); if(x.length<3||/^(.)\1*$/.test(x)) x='';
     var tl=String(r.tel||r.telephone||'').replace(/\D/g,'').slice(-8); if(tl.length<8) tl='';
-    return { r:r, t:t, nk:t.join(' '), d:dob(r.dateN||r.dateNaissance||r.dateNais), m:toks(r.mere).sort(), x:x, tl:tl, mat:officialMat(r.matricule,kind) };
+    var ci=String(r.codeIepp||r.codeIEPP||r.code_iepp||'').toUpperCase().replace(/[^A-Z0-9]/g,''); if(ci.length<3||matVide(ci)) ci='';
+    var exp=Number(r.anciennete!=null&&r.anciennete!==''?r.anciennete:r.experience); if(!isFinite(exp)) exp=null;
+    return { r:r, t:t, nk:t.join(' '), d:dob(r.dateN||r.dateNaissance||r.dateNais), m:toks(r.mere).sort(), x:x, tl:tl, mat:officialMat(r.matricule,kind),
+      ci:ci, gr:nrm(r.grade), fn:nrm(r.fonction), em:nrm(r.emploi), ex:exp };
   }
   /* Comparaison de deux fiches → {lvl:2 certain | 1 probable | 0 homonyme, why:[…]} ou null */
   function cmp(A,B,kind){
     if(A.mat&&A.mat===B.mat) return { lvl:2, why:[(kind==='eleves'?'Matricule / identifiant':'Matricule')+' identique'] };
+    if(kind!=='eleves'&&A.ci&&A.ci===B.ci) return { lvl:2, why:['Code IEPP identique'] };
     var nr=nameRel(A.t,B.t);
     var dr=A.d&&B.d?(A.d===B.d?1:-1):0, mr=A.m.length&&B.m.length?(motherEq(A.m,B.m)?1:-1):0, xr=A.x&&B.x?(A.x===B.x?1:-1):0, tr=A.tl&&B.tl?(A.tl===B.tl?1:-1):0;
     var matDiff=!!(A.mat&&B.mat&&A.mat!==B.mat);
@@ -36156,6 +36103,12 @@ function userRestoreFromTrash(trashId){
     /* date de naissance absente d'un côté */
     if(nr===2&&mr===1) return { lvl:1, why:[nt,'même nom de la mère','date de naissance manquante'] };
     if(kind!=='eleves'&&nr===2&&tr===1) return { lvl:1, why:[nt,'même téléphone','date de naissance manquante'] };
+    /* Personnel : grade / emploi / fonction / expérience concordants = indices supplémentaires. Une différence sur ces champs
+       (changement de fonction, de grade, d'affectation…) n'écarte jamais un doublon si l'identité concorde. */
+    if(kind!=='eleves'&&nr===2&&!matDiff&&mr!==-1&&tr!==-1){
+      var ev=[]; if(A.gr&&A.gr===B.gr) ev.push('même grade'); if(A.fn&&A.fn===B.fn) ev.push('même fonction'); if(A.em&&A.em===B.em) ev.push('même emploi'); if(A.ex!=null&&B.ex!=null&&A.ex>0&&A.ex===B.ex) ev.push('même expérience');
+      if(ev.length) return { lvl:1, why:[nt].concat(ev,['date de naissance non comparable']) };
+    }
     if(nr===2&&mr!==-1&&xr!==-1&&tr!==-1) return { lvl:0, why:['Homonyme (même nom et prénoms)'] };
     return null;
   }
@@ -36169,7 +36122,7 @@ function userRestoreFromTrash(trashId){
   function scan(list,kind){
     var F=(list||[]).filter(Boolean).map(function(r,i){ var f=prep(r,kind); f.i=i; return f; });
     var bk={}; function add(k,f){ if(k) (bk[k]=bk[k]||[]).push(f); }
-    F.forEach(function(f){ if(f.mat) add('m:'+f.mat,f); if(f.x) add('x:'+f.x,f); if(f.nk&&f.t.length>=2) add('n:'+f.nk,f); if(f.d) add('d:'+f.d,f); if(kind!=='eleves'&&f.tl) add('t:'+f.tl,f); });
+    F.forEach(function(f){ if(f.mat) add('m:'+f.mat,f); if(f.x) add('x:'+f.x,f); if(f.nk&&f.t.length>=2) add('n:'+f.nk,f); if(f.d) add('d:'+f.d,f); if(kind!=='eleves'&&f.tl) add('t:'+f.tl,f); if(kind!=='eleves'&&f.ci) add('c:'+f.ci,f); });
     var P=[], seen={}; Object.keys(bk).forEach(function(k){ var a=bk[k]; if(a.length>1) pairsOf(a,P,seen); });
     var par=F.map(function(_,i){return i;}); function find(x){ while(par[x]!==x){ par[x]=par[par[x]]; x=par[x]; } return x; }
     var links=[]; P.forEach(function(p){ var c=cmp(p[0],p[1],kind); if(c){ links.push([p[0].i,p[1].i,c]); var a=find(p[0].i), b=find(p[1].i); if(a!==b) par[a]=b; } });
@@ -36199,7 +36152,112 @@ function userRestoreFromTrash(trashId){
   }
   /* Messages d'alerte à la connexion : réservés au Super administrateur, à l'Inspecteur et au Correspondant fichier, une seule fois */
   function canNotify(){ return ['superadmin','inspecteur','correspondant'].indexOf(U().role)>=0; }
-  window.DupEngine={ scan:scan, cmp:cmp, prep:prep, perimeter:perimeter, checkNew:checkNew, guard:guard, canNotify:canNotify };
+  window.DupEngine={ scan:scan, cmp:cmp, prep:prep, perimeter:perimeter, checkNew:checkNew, guard:guard, canNotify:canNotify, nrm:nrm, toks:toks, ft:ft, nameRel:nameRel };
+})();
+</script>
+<script id="module-dup-engine-ext">
+/* Extension du moteur de doublons (AJOUT) : écoles, classes/niveaux, conseillers.
+   Réutilise DupEngine (matricule, noms, accents, variantes) et ajoute :
+   - ÉCOLES  : code école / code AGCP / code CS, nom (chiffres significatifs : « KEBE BALLO 1 » ≠ « KEBE BALLO 2 »), commune, effectif
+   - CLASSES : école (code ou nom) + niveau + année ; l'effectif peut varier et ne suffit pas à écarter un doublon
+   Niveaux : lvl 2 = certain · 1 = probable · 0 = à vérifier (même convention que le moteur existant). */
+(function(){
+  'use strict';
+  var D=window.DupEngine; if(!D||D.scanEcoles) return;
+  function nrm(s){ return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim(); }
+  function lev1(a,b){ if(a===b) return true; var la=a.length, lb=b.length; if(Math.abs(la-lb)>1) return false; var i=0,j=0,d=0; while(i<la&&j<lb){ if(a.charAt(i)===b.charAt(j)){ i++; j++; continue; } if(++d>1) return false; if(la===lb){ i++; j++; } else if(la>lb) i++; else j++; } d+=(la-i)+(lb-j); return d<=1; }
+  function ft(a,b){ return a===b || (a.length>=5&&b.length>=5&&lev1(a,b)); }
+  var STOP={ ecole:1, primaire:1, publique:1, public:1, de:1, du:1, la:1, le:1, les:1, des:1, d:1, l:1, et:1 };
+  function codeN(c){ return String(c==null?'':c).toUpperCase().replace(/[^A-Z0-9]/g,''); }
+  /* code provisoire / auto-généré : jamais suffisant seul pour conclure */
+  function provCode(raw){ var c=codeN(raw); return !c || c.length<4 || /^(AUTO|TEMP|PROV|SANS|TENM|TENC)/.test(c); }
+  function sTok(n){ var t=nrm(n).split(' ').filter(Boolean).filter(function(x){ return !STOP[x]; }); return { nums:t.filter(function(x){ return /^\d+$/.test(x); }).sort(), words:t.filter(function(x){ return !/^\d+$/.test(x); }).sort() }; }
+  /* 2 = identique · 1 = très proche (variante d'orthographe) · 0 = différent */
+  function schoolRel(a,b){
+    var A=sTok(a), B=sTok(b); if(!A.words.length||!B.words.length) return 0;
+    if(A.nums.join(',')!==B.nums.join(',')) return 0;           /* chiffres différents = écoles différentes */
+    if(A.words.join(' ')===B.words.join(' ')) return 2;
+    if(A.words.length===B.words.length && A.words.every(function(t,i){ return ft(t,B.words[i]); })) return 1;
+    return 0;
+  }
+  function pairsAll(items,fn){
+    var seen={}; function push(a,b){ var k=a.i<b.i?a.i+'|'+b.i:b.i+'|'+a.i; if(seen[k]) return; seen[k]=1; fn(a,b); }
+    if(items.length<=300){ for(var i=0;i<items.length;i++) for(var j=i+1;j<items.length;j++) push(items[i],items[j]); return; }
+    var inv={}; items.forEach(function(it){ (it.keys||[]).forEach(function(k){ (inv[k]=inv[k]||[]).push(it); }); });
+    Object.keys(inv).forEach(function(k){ var a=inv[k]; if(a.length>80) return; for(var i=0;i<a.length;i++) for(var j=i+1;j<a.length;j++) push(a[i],a[j]); });
+  }
+  function group(F,links){
+    var par=F.map(function(_,i){ return i; }); function find(x){ while(par[x]!==x){ par[x]=par[par[x]]; x=par[x]; } return x; }
+    links.forEach(function(l){ var a=find(l[0]), b=find(l[1]); if(a!==b) par[a]=b; });
+    var gr={}; links.forEach(function(l){ var g=find(l[0]); var o=gr[g]=gr[g]||{ids:{},lvl:0,why:{}}; o.ids[l[0]]=1; o.ids[l[1]]=1; if(l[2].lvl>o.lvl) o.lvl=l[2].lvl; l[2].why.forEach(function(w){ o.why[w]=1; }); });
+    return Object.keys(gr).map(function(g){ var o=gr[g]; return { recs:Object.keys(o.ids).map(function(i){ return F[+i].r; }), lvl:o.lvl, reasons:Object.keys(o.why) }; });
+  }
+
+  /* ---------- ÉCOLES ---------- */
+  function prepEcole(r,i){
+    var tk=sTok(r.nom).words;
+    return { r:r, i:i, nom:r.nom||'', c:codeN(r.code), cp:provCode(r.code), g:codeN(r.codeAGCP), gp:provCode(r.codeAGCP), s:codeN(r.codeCS||r.code_cs), com:nrm(r.commune), eff:Number(r.effectif)||0,
+      keys:tk.filter(function(t){ return t.length>=4; }).concat(r.code&&!provCode(r.code)?['c:'+codeN(r.code)]:[], r.codeAGCP&&!provCode(r.codeAGCP)?['g:'+codeN(r.codeAGCP)]:[]) };
+  }
+  function cmpEcole(A,B){
+    var nr=schoolRel(A.nom,B.nom), why=[];
+    var codeEq=A.c&&A.c===B.c&&!A.cp, agcpEq=A.g&&A.g===B.g&&!A.gp, csEq=A.s&&A.s===B.s;
+    var comEq=A.com&&B.com&&A.com===B.com, comDiff=A.com&&B.com&&A.com!==B.com;
+    var effEq=A.eff>0&&B.eff>0&&A.eff===B.eff;
+    var nt=nr===2?'Nom identique':'Nom très proche (variante d\'orthographe)';
+    if(codeEq||agcpEq||csEq){
+      var cw=codeEq?'même code école':(agcpEq?'même code AGCP':'même code CS');
+      if(nr>=1){ why=[cw,nt]; if(comEq) why.push('même commune'); if(effEq) why.push('même effectif'); return { lvl:2, why:why }; }
+      return { lvl:1, why:[cw,'noms différents : code réutilisé ou erreur de saisie — à vérifier'] };
+    }
+    if(A.c&&A.c===B.c&&A.cp&&B.cp&&A.c.length>=4&&nr>=1) return { lvl:1, why:['Code provisoire identique (non probant)',nt] };
+    if(nr===0) return null;
+    var diffCodes=(A.c&&B.c&&!A.cp&&!B.cp&&A.c!==B.c)?'codes école différents (à vérifier)':'';
+    why=[nt]; if(comEq) why.push('même commune'); else if(comDiff) why.push('communes différentes'); if(effEq) why.push('même effectif'); if(diffCodes) why.push(diffCodes);
+    if(nr===2&&comEq) return { lvl:1, why:why };
+    if(nr===1&&comEq&&effEq) return { lvl:1, why:why };
+    if(nr===2) return { lvl:0, why:why.concat(['homonyme possible']) };
+    return null;
+  }
+  D.scanEcoles=function(list){
+    var F=(list||[]).filter(Boolean).map(prepEcole), links=[];
+    pairsAll(F,function(a,b){ var c=cmpEcole(a,b); if(c) links.push([a.i,b.i,c]); });
+    return group(F,links);
+  };
+  D.schoolRel=schoolRel; D.provCode=provCode;
+
+  /* ---------- CLASSES (effectifs par école et niveau) ---------- */
+  function nivN(s){ return String(s==null?'':s).toUpperCase().replace(/[^A-Z0-9]/g,''); }
+  function anN(s){ return String(s==null?'':s).replace(/\s/g,''); }
+  function ecoleKey(nom){
+    var st=(window.state&&window.state.ecoles)||[];
+    var n=nrm(nom), e=st.filter(function(x){ return nrm(x.nom)===n; })[0];
+    return e&&e.code&&!provCode(e.code)?'c:'+codeN(e.code):'n:'+n;
+  }
+  function prepClasse(r,i){
+    var tot=Number(r.total); if(!(tot>=0)) tot=(Number(r.garcons)||0)+(Number(r.filles)||0);
+    return { r:r, i:i, k:ecoleKey(r.ecole), nom:r.ecole||'', niv:nivN(r.niveau), an:anN(r.annee), eff:tot, keys:['n:'+nivN(r.niveau)] };
+  }
+  function cmpClasse(A,B){
+    if(!A.niv||A.niv!==B.niv) return null;
+    var sameSchool=A.k===B.k, closeSchool=!sameSchool&&schoolRel(A.nom,B.nom)>=1;
+    if(!sameSchool&&!closeSchool) return null;
+    var anEq=A.an===B.an, anMiss=!A.an||!B.an;
+    if(!anEq&&!anMiss) return null;                                     /* années différentes : classes légitimement distinctes */
+    var why=['Même classe / niveau ('+(A.r.niveau||'')+')', sameSchool?'même école':'école très proche (code ou orthographe)'];
+    if(anEq&&A.an) why.push('même année scolaire'); else if(anMiss) why.push('année scolaire non renseignée');
+    var effEq=A.eff===B.eff;
+    why.push(effEq?'même effectif':'effectif différent ('+A.eff+' / '+B.eff+') — mise à jour possible, à vérifier');
+    if(sameSchool&&anEq&&effEq) return { lvl:2, why:why };
+    if(sameSchool&&anEq) return { lvl:1, why:why };
+    return { lvl:anMiss?0:1, why:why };
+  }
+  D.scanClasses=function(list){
+    var F=(list||[]).filter(Boolean).map(prepClasse), links=[];
+    var by={}; F.forEach(function(f){ (by[f.niv]=by[f.niv]||[]).push(f); });
+    Object.keys(by).forEach(function(k){ var a=by[k]; for(var i=0;i<a.length;i++) for(var j=i+1;j<a.length;j++){ var c=cmpClasse(a[i],a[j]); if(c) links.push([a[i].i,a[j].i,c]); } });
+    return group(F,links);
+  };
 })();
 </script>
 <script id="module-doublons">
@@ -36228,14 +36286,33 @@ function userRestoreFromTrash(trashId){
     admin:{ label:'Administratifs', icon:'🗂️', key:'personnel',
       all:function(){ return (state.personnel||[]).filter(function(p){ try{ return !statEstCraieEnMain(p); }catch(e){ return false; } }); },
       fields:[['matricule','Matricule'],['nom','Nom et prénoms'],['sexe','Sexe'],['dateN','Date naiss.'],['mere','Mère'],['fonction','Fonction'],['grade','Grade'],['ecole','École / Service'],['tel','Téléphone']],
-      fullname:function(r){ return (r.nom||'')+' '+(r.prenoms||''); } }
+      fullname:function(r){ return (r.nom||'')+' '+(r.prenoms||''); } },
+    conseillers:{ label:'Conseillers & encadrement', icon:'🎓', key:'personnel',
+      help:'CPPP (conseillers pédagogiques du préscolaire et du primaire), CPI (conseiller principal d\'inspection), CPS (conseillers pédagogiques de secteur) et conseillers extrascolaires. Mêmes contrôles que le personnel : matricule, code IEPP, identité, grade, emploi, fonction, expérience et date de naissance. Un changement de fonction, de grade ou d\'affectation n\'écarte pas un doublon si l\'identité concorde.',
+      all:function(){ var re=/cppp|\bcpi\b|\bcps\b|conseiller|extrascolaire|inspecteur|\bcc\b|\bcca\b/i; return (state.personnel||[]).filter(function(p){ return re.test(String(p.fonction||'')); }).concat(state.cppp||[]); },
+      fields:[['matricule','Matricule'],['nom','Nom et prénoms'],['fonction','Fonction'],['grade','Grade'],['ecole','École / Service'],['tel','Téléphone'],['email','E-mail']],
+      remove:function(set){ var n=0, f=function(r){ if(set[r.id]){ n++; return false; } return true; }; state.personnel=(state.personnel||[]).filter(f); state.cppp=(state.cppp||[]).filter(f); save('personnel',state.personnel); save('cppp',state.cppp); return n; },
+      roles:['superadmin','drenaet','inspecteur','correspondant','cpi','rh','suivi_eval'], delRoles:['superadmin','inspecteur','correspondant','rh'],
+      fullname:function(r){ return (r.nom||'')+' '+(r.prenoms||''); } },
+    ecoles:{ label:'Écoles', icon:'🏫', key:'ecoles', of:'nom',
+      help:'Comparaison du code école / code AGCP / code CS, du nom (les chiffres comptent : « KEBE BALLO 1 » ≠ « KEBE BALLO 2 »), de la commune et de l\'effectif. Un code provisoire ou réutilisé est signalé « à vérifier » et ne suffit jamais à conclure seul. À la fusion, les élèves, enseignants et effectifs rattachés à l\'école supprimée sont rattachés à l\'école conservée.',
+      scan:function(L){ return window.DupEngine.scanEcoles(L); }, all:function(){ return state.ecoles||[]; },
+      fields:[['code','Code école'],['codeAGCP','Code AGCP'],['nom','Nom'],['commune','Commune'],['effectif','Effectif'],['classes','Classes'],['statut','Statut'],['directeur','Directeur']],
+      roles:['superadmin','drenaet','inspecteur','correspondant','cpi','corresp_stat'], delRoles:['superadmin','inspecteur','correspondant'],
+      fullname:function(r){ return r.nom||''; } },
+    classes:{ label:'Classes / niveaux', icon:'📚', key:'effectifs',
+      help:'Comparaison du niveau (classe), de l\'école (code ou nom) et de l\'année scolaire. L\'effectif d\'une classe peut varier en cours d\'année : une différence d\'effectif ne suffit donc pas à écarter un doublon.',
+      scan:function(L){ return window.DupEngine.scanClasses(L); }, all:function(){ return state.effectifs||[]; },
+      fields:[['ecole','École'],['niveau','Classe / niveau'],['annee','Année'],['garcons','Garçons'],['filles','Filles'],['total','Effectif']],
+      roles:['superadmin','drenaet','inspecteur','correspondant','cpi','corresp_stat','directeur'], delRoles:['superadmin','inspecteur','correspondant','corresp_stat','directeur'],
+      fullname:function(r){ return (r.ecole||'')+' '+(r.niveau||''); } }
   };
   var cur='eleves', view='tous', perim='iepp', ecoleSel='', classeSel='', q='', pageSz=40, shown=40, sel={};
-  function canDelete(){ var r=U().role; return ['superadmin','correspondant','inspecteur','directeur','corresp_stat','rh'].indexOf(r)>=0 && !(r==='corresp_stat'&&cur!=='eleves') && !(r==='rh'&&cur==='eleves'); }
-  function canSee(c){ var r=U().role; if(c==='eleves') return true; return r!=='instituteur'; }
+  function canDelete(){ var r=U().role; var C0=COLLS[cur]; if(C0&&C0.delRoles) return C0.delRoles.indexOf(r)>=0; return ['superadmin','correspondant','inspecteur','directeur','corresp_stat','rh'].indexOf(r)>=0 && !(r==='corresp_stat'&&cur!=='eleves') && !(r==='rh'&&cur==='eleves'); }
+  function canSee(c){ var r=U().role; var C0=COLLS[c]; if(C0&&C0.roles) return C0.roles.indexOf(r)>=0; if(c==='eleves') return true; return r!=='instituteur'; }
   function scoped(c){
     var C=COLLS[c], u=U(), L=C.all();
-    if(u.role==='directeur'&&u.ecole) L=L.filter(function(r){ return r.ecole===u.ecole; });
+    if(u.role==='directeur'&&u.ecole) L=L.filter(function(r){ return r[C.of||'ecole']===u.ecole; });
     else if(u.role==='instituteur'){ L=L.filter(function(r){ return r.ecole===u.ecole && (c!=='eleves'||String(r.niveau).toUpperCase()===String(u.classe||'').toUpperCase()); }); }
     else if(perim==='ecole'&&ecoleSel) L=L.filter(function(r){ return r.ecole===ecoleSel; });
     if(classeSel && C.scopeClass) L=L.filter(function(r){ return String(r.niveau)===classeSel; });
@@ -36244,7 +36321,7 @@ function userRestoreFromTrash(trashId){
   /* ---------- détection ---------- */
   function detect(c){
     var kind=(c==='eleves')?'eleves':'personnel', L=scoped(c), out=[];
-    window.DupEngine.scan(L,kind).forEach(function(g){
+    (COLLS[c].scan?COLLS[c].scan(L):window.DupEngine.scan(L,kind)).forEach(function(g){
       var G=g.recs, ecoles={}; G.forEach(function(r){ ecoles[r.ecole||'']=1; });
       var ids=G.map(function(r){return r.id;}), key=ids.slice().sort().join('+');
       var ign=G.every(function(r){ return r._nodupGrp===key; });
@@ -36269,7 +36346,7 @@ function userRestoreFromTrash(trashId){
     var single=(u.role==='directeur'||u.role==='instituteur');
     var vt=[['tous','Tous ('+N.tous+')'],['forts','🔴 Doublons certains ('+N.forts+')'],['faibles','🟠 Probables / homonymes à vérifier ('+N.faibles+')'],['meme','Dans la même école ('+N.meme+')'],['inter','Entre écoles ('+N.inter+')'],['ign','Ignorés ('+N.ign+')']];
     var list=G.filter(pass).filter(function(g){ if(!q) return true; var nq=nrm(q); return g.recs.some(function(r){ return nrm(C.fields.map(function(f){return r[f[0]];}).join(' ')).indexOf(nq)>=0; }); });
-    var h='<div class="hero" style="background:linear-gradient(135deg,#7C2D12 0%,#C2410C 100%)"><h3>🧹 Traitement des doublons — '+esc(C.label)+'</h3><p>Contrôle principal : matricule ou identifiant. Contrôles complémentaires : nom + prénoms + date de naissance + nom de la mère (+ N° de registre d\'extrait, téléphone). '+(single?'Périmètre : '+esc(u.role==='instituteur'?('ma classe ('+(u.ecole||'')+')'):('mon école ('+(u.ecole||'')+')')):'Périmètre : '+(perim==='ecole'&&ecoleSel?esc(ecoleSel):'toute l\'IEPP en cours ('+esc(String(state.activeIepp||''))+')'))+'.</p></div>';
+    var h='<div class="hero" style="background:linear-gradient(135deg,#7C2D12 0%,#C2410C 100%)"><h3>🧹 Traitement des doublons — '+esc(C.label)+'</h3><p>'+(C.help||'Contrôle principal : matricule ou identifiant. Contrôles complémentaires : nom + prénoms + date de naissance + nom de la mère (+ N° de registre d\'extrait, téléphone). Les numéros provisoires (NIA-…) ne suffisent jamais à confirmer un doublon.')+' '+(single?'Périmètre : '+esc(u.role==='instituteur'?('ma classe ('+(u.ecole||'')+')'):('mon école ('+(u.ecole||'')+')')):'Périmètre : '+(perim==='ecole'&&ecoleSel?esc(ecoleSel):'toute l\'IEPP en cours ('+esc(String(state.activeIepp||''))+')'))+'.</p></div>';
     h+='<div class="toolbar" style="margin-top:12px">'+tabs.map(function(t){ return '<button class="btn '+(t===cur?'btn-primary':'btn-ghost')+'" onclick="dupTab(\''+t+'\')">'+COLLS[t].icon+' '+COLLS[t].label+'</button>'; }).join('')+'</div>';
     h+='<div class="card" style="padding:12px;margin-top:8px"><div class="toolbar" style="gap:8px;flex-wrap:wrap;margin:0">';
     if(!single) h+='<label class="text-sm">Périmètre : <select onchange="dupPerim(this.value)" style="padding:7px;border:1px solid var(--line);border-radius:8px"><option value="iepp"'+(perim==='iepp'?' selected':'')+'>Toute l\'IEPP en cours</option><option value="ecole"'+(perim==='ecole'?' selected':'')+'>Une école</option></select></label>'
@@ -36286,7 +36363,7 @@ function userRestoreFromTrash(trashId){
   }
   function groupHtml(g,gi,C){
     var del=canDelete();
-    var head='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><strong>'+(g.strong?'🔴 Doublon certain':g.lvl===1?'🟠 Doublon probable':'🟡 Homonyme à vérifier')+' — groupe de '+g.recs.length+'</strong><span class="text-xs text-muted">'+esc(g.reasons.join(' · '))+(g.inter?' · entre écoles':' · même école')+'</span><span style="flex:1"></span>'
+    var head='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><strong>'+(g.strong?'🔴 Doublon certain':g.lvl===1?'🟠 Doublon probable':'🟡 Homonyme à vérifier')+' — groupe de '+g.recs.length+'</strong><span class="text-xs text-muted">'+esc(g.reasons.join(' · '))+(C.of==='nom'?'':(g.inter?' · entre écoles':' · même école'))+'</span><span style="flex:1"></span>'
       +(del&&!g.ign?'<button class="btn btn-ghost btn-sm" onclick="dupMerge(\''+jq(g.key)+'\')">🔀 Fusionner (garder le 1er, compléter, supprimer les autres)</button>':'')
       +(g.ign?'<button class="btn btn-ghost btn-sm" onclick="dupIgnore(\''+jq(g.key)+'\',0)">↩️ Remettre en doublon</button>':'<button class="btn btn-ghost btn-sm" onclick="dupIgnore(\''+jq(g.key)+'\',1)">✔️ Ce ne sont pas des doublons</button>')+'</div>';
     var t='<div class="table-wrap" style="border:none"><table data-noenh="1"><thead><tr><th>Garder</th>'+C.fields.map(function(f){ return '<th>'+esc(f[1])+'</th>'; }).join('')+'<th></th></tr></thead><tbody>'
@@ -36299,13 +36376,28 @@ function userRestoreFromTrash(trashId){
   function grp(key){ return groupsNow().filter(function(g){ return g.key===key; })[0]; }
   function removeIds(ids){
     var C=COLLS[cur], set={}; ids.forEach(function(i){ set[i]=1; }); var n=0;
+    if(C.remove){ n=C.remove(set); try{ logAction('doublons','Suppression de doublons ('+C.label+') : '+n); }catch(_){} return n; }
     state[C.key]=(state[C.key]||[]).filter(function(r){ if(set[r.id]){ n++; return false; } return true; });
     save(C.key,state[C.key]); try{ logAction('doublons','Suppression de doublons ('+C.label+') : '+n); }catch(_){}
     return n;
   }
+  /* Fusion contrôlée : champs vides complétés + HISTORIQUE conservé (_fusions : date, auteur, copie de la fiche absorbée) */
   function mergeInto(keep,others){
-    others.forEach(function(o){ for(var k in o){ if(k==='id'||k.charAt(0)==='_') continue; if((keep[k]===''||keep[k]==null)&&o[k]!==''&&o[k]!=null) keep[k]=o[k]; } });
-    keep._upd=Date.now();
+    var hist=(keep._fusions||[]).slice(), now=new Date().toISOString(), who=(U().username||U().name||'');
+    others.forEach(function(o){
+      for(var k in o){ if(k==='id'||k.charAt(0)==='_') continue; if((keep[k]===''||keep[k]==null)&&o[k]!==''&&o[k]!=null) keep[k]=o[k]; }
+      var snap={}; for(var f in o){ if(f.charAt(0)!=='_'&&typeof o[f]!=='object') snap[f]=o[f]; }
+      hist.push({ date:now, par:who, absorbe:snap }); (o._fusions||[]).forEach(function(h){ hist.push(h); });
+    });
+    keep._fusions=hist; keep._upd=Date.now();
+    try{ logAction('doublons-fusion','Fusion : '+(keep.nom||keep.ecole||'')+' ← '+others.map(function(o){ return (o.nom||o.ecole||'')+(o.matricule?' ['+o.matricule+']':'')+(o.code?' ['+o.code+']':''); }).join(' ; ')); }catch(_){}
+  }
+  /* Fusion d'écoles : les fiches rattachées (par nom d'école) à l'école supprimée sont rattachées à l'école conservée */
+  function repointEcoles(keep,others){
+    var n=0, keys=['elevesFichier','personnel','effectifs','absences','visites'];
+    others.forEach(function(o){ if(!o.nom||o.nom===keep.nom) return;
+      keys.forEach(function(k){ var ch=false; (state[k]||[]).forEach(function(r){ if(r&&r.ecole===o.nom){ r.ecole=keep.nom; r._upd=Date.now(); n++; ch=true; } }); if(ch) save(k,state[k]); }); });
+    return n;
   }
   window.dupTab=function(t){ cur=t; view='tous'; shown=pageSz; classeSel=(COLLS[t].scopeClass?classeSel:''); refresh(); };
   window.dupView=function(v){ view=v; shown=pageSz; render(); };
@@ -36318,8 +36410,10 @@ function userRestoreFromTrash(trashId){
   window.dupIgnore=function(key,on){ var g=grp(key); if(!g) return; g.recs.forEach(function(r){ if(on) r._nodupGrp=key; else delete r._nodupGrp; r._upd=Date.now(); }); save(COLLS[cur].key,state[COLLS[cur].key]); refresh(); };
   window.dupDel=function(id){ if(!canDelete()) return; if(!confirm('Supprimer cet enregistrement ? (récupérable dans la Corbeille)')) return; removeIds([id]); toast('Enregistrement supprimé (Corbeille)','success'); refresh(); };
   window.dupKeep=function(key,id){ if(!canDelete()) return; var g=grp(key); if(!g) return; var keep=g.recs.filter(function(r){return r.id===id;})[0], others=g.recs.filter(function(r){return r.id!==id;});
-    if(!confirm('Garder cet enregistrement et supprimer les '+others.length+' autre(s) ? (les champs vides seront complétés ; récupérable dans la Corbeille)')) return;
-    mergeInto(keep,others); removeIds(others.map(function(r){return r.id;})); toast('Doublon(s) supprimé(s) ✅','success'); refresh(); };
+    var extra=(cur==='ecoles')?'\n\nLes élèves, enseignants et effectifs rattachés (par nom) aux écoles supprimées seront rattachés à l\'école conservée. Les comptes utilisateurs ne sont pas modifiés.':'';
+    if(!confirm('Garder cet enregistrement et supprimer les '+others.length+' autre(s) ? (les champs vides seront complétés ; l\'historique de fusion est conservé ; récupérable dans la Corbeille)'+extra)) return;
+    var rp=(cur==='ecoles')?repointEcoles(keep,others):0;
+    mergeInto(keep,others); removeIds(others.map(function(r){return r.id;})); save(COLLS[cur].key,state[COLLS[cur].key]); toast('Doublon(s) supprimé(s) ✅'+(rp?' · '+rp+' fiche(s) rattachée(s) à l\'école conservée':''),'success'); refresh(); };
   window.dupMerge=function(key){ var g=grp(key); if(g) window.dupKeep(key,g.recs[0].id); };
   window.dupAutoAll=function(){
     if(!canDelete()) return; var L=groupsNow().filter(function(g){ return pass(g)&&g.strong&&!g.inter; });
@@ -36339,7 +36433,7 @@ function userRestoreFromTrash(trashId){
   window.renderDoublons=function(){ cache=null; shown=pageSz; render(); };
   try{
     MODULES['doublons']={ title:'Traitement des doublons', sub:'Élèves · enseignants · administratifs — détection, filtrage, suppression', render:window.renderDoublons };
-    ['superadmin','correspondant','inspecteur','directeur','instituteur','corresp_stat','cpi','rh','suivi_eval'].forEach(function(r){ if(ACL[r]&&ACL[r].indexOf('doublons')<0) ACL[r].push('doublons'); });
+    ['superadmin','drenaet','correspondant','inspecteur','directeur','instituteur','corresp_stat','cpi','rh','suivi_eval'].forEach(function(r){ if(ACL[r]&&ACL[r].indexOf('doublons')<0) ACL[r].push('doublons'); });
     var tryLink=function(){
       if(document.querySelector('.sb-link[data-module="doublons"]')) return;
       var d=document.querySelector('.sb-link[data-module="donnees"]')||document.querySelector('.sb-link[data-module="dashboard"]'); if(!d) return;
@@ -39043,8 +39137,8 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
       var ok=csu.apply(this,arguments); if(ok) return true;
       try{
         var me=state.user; if(!me||!target) return false;
-        if(['superadmin','drenaet','directeur'].indexOf(me.role)>=0) return false;
-        if(target.role==='superadmin'||target.role==='drenaet') return false;
+        if(me.role==='superadmin'||me.role==='directeur'||isRegionalRole(me.role)) return false;
+        if(target.role==='superadmin'||isRegionalRole(target.role)) return false;
         var a=norm(target.iepp), b=norm(me.iepp); if(!a||!b||a!==b) return false;
         var da=norm(target.drenaet), db=norm(me.drenaet); return !da||!db||da===db;
       }catch(e){ return false; }
@@ -41404,7 +41498,7 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
   /* ---------- 2) Vue consolidée DRENAET / DESPS ---------- */
   function normD(s){ return nk(String(s||'').replace(/^drenaet?\s*(de\s+|d')?/i,'')); }
   function consoCard(kind){
-    var u=U(); if(u.role!=='drenaet'&&u.role!=='superadmin') return '';
+    var u=U(); if(!isRegionalRole(u.role)&&u.role!=='superadmin') return '';
     if(!Array.isArray(state.ieppStats)) state.ieppStats=load('ieppStats',[]);
     var all=state.ieppStats.filter(function(s){ return s&&s.iepp; });
     var mine=u.role==='superadmin'?all:all.filter(function(s){ return normD(s.drenaet)===normD(u.drenaet); });
@@ -42060,5 +42154,1033 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
 })();
 </script>
 
+
+<script id="iepp-equipements-dashboard">
+/* ============================================================================
+   ÉQUIPEMENTS SCOLAIRES · NORMES · TABLEAU DE BORD (AJOUT — n'altère rien d'existant)
+   Cahier des charges : sections A (tableau de bord), B (calculs), C (normes), F (équipements).
+   Ce bloc est AUTONOME : le retirer ramène exactement l'ancien comportement.
+   - Normes modifiables par le superadmin (clé globale « normesEquip », versions datées)
+   - Calcul école par école puis agrégation (arrondi par école)
+   - Distinction : zéro confirmé / absence confirmée / non renseigné
+   - Compteurs animés (≈1,2 s, sans rejeu inutile, respect de prefers-reduced-motion)
+   ============================================================================ */
+(function(){
+  'use strict';
+  if(window.EQ) return;
+
+  /* ---------- utilitaires ---------- */
+  function esc(s){ return (typeof escapeHtml==='function') ? escapeHtml(s) : String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function U(){ return (window.state&&window.state.user)||{}; }
+  function nil(v){ return v===null||v===undefined||v===''; }
+  function num(v){ if(nil(v)) return null; var n=parseFloat(String(v).replace(/\s/g,'').replace(',','.')); return isFinite(n)?n:null; }
+  function fr(n){ return (n==null||isNaN(n))?'—':Number(n).toLocaleString('fr-FR'); }
+  function ceilDiv(a,b){ return b>0 ? Math.ceil(a/b-1e-9) : 0; }
+  function today(){ return new Date().toISOString().slice(0,10); }
+  function txtNorm(s){ return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim(); }
+
+  /* ---------- C. NORMES (paramétrables, versionnées) ---------- */
+  var NK='normesEquip';
+  try{ if(typeof GLOBAL_KEYS!=='undefined') GLOBAL_KEYS.add(NK); }catch(e){}
+  var NORMS_DEF={
+    tableBanc:{ label:'Tables-bancs',              unite:'élèves par table-banc',                        valeur:2,  aide:'Besoin = effectif ÷ norme, arrondi au supérieur, calculé école par école.' },
+    toilette: { label:'Toilettes fonctionnelles',  unite:'élèves par toilette',                          valeur:50, aide:'Besoin = effectif ÷ norme, arrondi au supérieur, calculé école par école. Les toilettes hors service ne comptent pas.' },
+    eau:      { label:'Points d\'eau',             unite:'point(s) d\'eau fonctionnel(s) minimum par école', valeur:1,  aide:'Une école est « équipée » si elle compte au moins ce nombre de points d\'eau fonctionnels.' },
+    electricite:{ label:'Électrification',         unite:'école électrifiée par école recensée',         valeur:1,  aide:'Besoin théorique : toutes les écoles recensées.' },
+    cloture:  { label:'Clôture en dur',            unite:'clôture en dur complète par école recensée',   valeur:1,  aide:'Besoin théorique : toutes les écoles recensées. Grillage, clôture partielle ou inconnue ≠ mur en dur complet.' }
+  };
+  var NORM_KEYS=Object.keys(NORMS_DEF);
+  function readStore(){
+    var s=null; try{ s=load(NK,null); }catch(e){}
+    if(!s||typeof s!=='object'||!s.versions||typeof s.versions!=='object') s={versions:{}};
+    NORM_KEYS.forEach(function(k){
+      if(!Array.isArray(s.versions[k])||!s.versions[k].length){
+        s.versions[k]=[{ valeur:NORMS_DEF[k].valeur, unite:NORMS_DEF[k].unite, source:'Paramètre provisoire du cahier des charges (non confirmé par un texte officiel)', dateVigueur:'', statut:'À confirmer' }];
+      }
+    });
+    return s;
+  }
+  /* Norme applicable : parmi les versions en vigueur à la date du jour, la dernière VALIDÉE ; à défaut la dernière en vigueur (provisoire) */
+  function norm(k){
+    var vs=readStore().versions[k]||[], t=today();
+    var inForce=vs.filter(function(v){ return !v.dateVigueur || v.dateVigueur<=t; });
+    if(!inForce.length) inForce=vs.slice(0,1);
+    var val=inForce.filter(function(v){ return v.statut==='Validée'; });
+    var pool=(val.length?val:inForce).slice().sort(function(a,b){ return String(a.dateVigueur||'').localeCompare(String(b.dateVigueur||'')); });
+    var v=pool[pool.length-1]||{};
+    var n=Number(v.valeur); if(!(n>0)) n=NORMS_DEF[k].valeur;
+    return { key:k, valeur:n, unite:v.unite||NORMS_DEF[k].unite, source:v.source||'', dateVigueur:v.dateVigueur||'', statut:v.statut||'À confirmer', provisoire:v.statut!=='Validée' };
+  }
+  function normsAll(){ var o={}; NORM_KEYS.forEach(function(k){ o[k]=norm(k); }); return o; }
+  function anyProvisional(keys){ return (keys||NORM_KEYS).some(function(k){ return norm(k).provisoire; }); }
+  function saveNorm(k,d){
+    if(U().role!=='superadmin') return { ok:false, msg:'Réservé au Grand Administrateur (superadmin).' };
+    var v=Number(String(d.valeur).replace(',','.'));
+    if(!(v>0)) return { ok:false, msg:'La valeur doit être un nombre supérieur à 0.' };
+    if(!String(d.unite||'').trim()) return { ok:false, msg:'L\'unité est obligatoire.' };
+    if(d.dateVigueur && !/^\d{4}-\d{2}-\d{2}$/.test(d.dateVigueur)) return { ok:false, msg:'Date d\'entrée en vigueur invalide.' };
+    if(d.statut==='Validée' && (!String(d.source||'').trim() || !d.dateVigueur)) return { ok:false, msg:'Une norme « Validée » exige une source réglementaire et une date d\'entrée en vigueur.' };
+    var s=readStore(), vs=s.versions[k];
+    var rec={ valeur:v, unite:String(d.unite).trim(), source:String(d.source||'').trim(), dateVigueur:d.dateVigueur||'', statut:d.statut==='Validée'?'Validée':'À confirmer', _par:(U().username||U().name||''), _le:new Date().toISOString() };
+    var i=vs.findIndex(function(x){ return (x.dateVigueur||'')===(rec.dateVigueur||''); });
+    if(i>=0) vs[i]=rec; else vs.push(rec);
+    try{ save(NK,s); }catch(e){ return { ok:false, msg:'Échec de l\'enregistrement.' }; }
+    try{ logAction('normes-equip','Norme « '+NORMS_DEF[k].label+' » : '+rec.valeur+' '+rec.unite+' ('+rec.statut+(rec.dateVigueur?', en vigueur le '+rec.dateVigueur:'')+')'); }catch(e){}
+    return { ok:true };
+  }
+
+  /* ---------- B. DONNÉES D'ÉQUIPEMENT ---------- */
+  function inf(e){ return (e&&e.infrastructures)||{}; }
+  /* Une quantité est « renseignée » si elle est > 0, ou si un zéro a été saisi explicitement (indicateur saisi[champ]) */
+  function renseigne(i,f){ if(i.saisi&&i.saisi[f]===true) return true; var n=num(i[f]); return n!==null && n>0; }
+
+  function effOf(e){ var n=num(e&&e.effectif); return (n!==null&&n>0)?Math.round(n):0; }
+
+  function tbOf(i){
+    var f=num(i.tbFonct), t=num(i.tableBancs);
+    if(f!==null) return { known:true, avail:f, total:(t!==null&&(t>0||renseigne(i,'tableBancs')))?t:f };
+    if(renseigne(i,'tableBancs')) return { known:true, avail:t||0, total:t||0 };
+    return { known:false, avail:0, total:null };
+  }
+  function toiOf(i){
+    var f=num(i.toiFonct), t=num(i.toilettes);
+    if(f!==null) return { known:true, avail:f, total:(t!==null&&(t>0||renseigne(i,'toilettes')))?t:f };
+    if(renseigne(i,'toilettes')) return { known:true, avail:t||0, total:t||0 };
+    return { known:false, avail:0, total:null };
+  }
+  function elecOf(i){ var v=txtNorm(i.electricite); if(v==='oui'||v==='o'||v==='yes') return 'oui'; if(v==='non'||v==='n'||v==='no') return 'non'; return ''; }
+
+  var CLO_TYPES=[['dur','En dur (complète)'],['grillage','Grillage'],['partielle','Partielle'],['autre','Autre'],['aucune','Aucune clôture']];
+  function cloLabel(t){ var x=CLO_TYPES.filter(function(c){ return c[0]===t; })[0]; return x?x[1]:''; }
+  /* Préremplissage À PARTIR du champ texte d'origine — ne modifie jamais la donnée originale */
+  function cloInfer(txt){
+    var t=txtNorm(txt); if(!t) return '';
+    if(/partiel|incomplet|inacheve|en cours|moitie|a moitie/.test(t)) return 'partielle';
+    if(/grillage|haie|barbele|bois|paille|banco|natte|piquet/.test(t)) return 'grillage';
+    if(/^(non|aucune|neant|pas de cloture|sans cloture|aucune cloture)$/.test(t)) return 'aucune';
+    if(/\b(mur|murs|beton|parpaing|parpaings|brique|briques|en dur|dur)\b/.test(t)) return 'dur';
+    return '';   /* ambigu (« Bonne », « À refaire »…) → à vérifier, jamais assimilé à un mur en dur */
+  }
+  function cloOf(i){
+    var ty=String(i.clotureType||'');
+    if(CLO_TYPES.some(function(c){ return c[0]===ty; })) return { type:ty, src:'saisie', aVerifier:false };
+    var g=cloInfer(i.cloture);
+    if(g) return { type:g, src:'auto', aVerifier:true };
+    return { type:'', src:'', aVerifier:!!txtNorm(i.cloture) };
+  }
+  function eauOf(i){
+    var tot=num(i.eauTotal), f=num(i.eauFonct), hs=num(i.eauHS);
+    if(f===null && tot!==null && hs!==null) f=Math.max(0,tot-hs);
+    if(f===null && tot===0) f=0;
+    if(tot===null && f!==null && hs!==null) tot=f+hs;
+    if(tot===null && f!==null && hs===null) tot=f;
+    return { total:tot, fonct:f, hs:(hs!==null?hs:((tot!==null&&f!==null)?Math.max(0,tot-f):null)), known:f!==null };
+  }
+
+  /* Évaluation d'une école (besoin, disponible, déficit) */
+  function evalSchool(e,N){
+    N=N||normsAll(); var i=inf(e), eff=effOf(e), effKnown=eff>0;
+    var tb=tbOf(i), toi=toiOf(i), eau=eauOf(i), clo=cloOf(i), el=elecOf(i);
+    var tbNeed=effKnown?ceilDiv(eff,N.tableBanc.valeur):null, toiNeed=effKnown?ceilDiv(eff,N.toilette.valeur):null;
+    return {
+      e:e, eff:eff, effKnown:effKnown,
+      tb:{ known:tb.known, total:tb.total, avail:tb.avail, need:tbNeed, deficit:(effKnown&&tb.known)?Math.max(0,tbNeed-tb.avail):null, evaluated:effKnown&&tb.known },
+      toi:{ known:toi.known, total:toi.total, avail:toi.avail, need:toiNeed, deficit:(effKnown&&toi.known)?Math.max(0,toiNeed-toi.avail):null, evaluated:effKnown&&toi.known },
+      elec:el, clo:clo,
+      eau:{ total:eau.total, fonct:eau.fonct, hs:eau.hs, known:eau.known, equipped:eau.known?(eau.fonct>=N.eau.valeur):null }
+    };
+  }
+
+  /* B.9 Agrégation : calcul école par école, puis somme */
+  function aggregate(list){
+    var N=normsAll(); list=list||[];
+    var R={ n:list.length, norms:N, rows:[],
+      tb:{ dispo:0, dispoEval:0, besoin:0, deficit:0, nEval:0, nNon:0 },
+      toi:{ dispo:0, dispoEval:0, besoin:0, deficit:0, nEval:0, nNon:0 },
+      elec:{ oui:0, non:0, nr:0, besoin:list.length*N.electricite.valeur },
+      clo:{ dur:0, durAuto:0, autre:0, nr:0, aVerifier:0, besoin:list.length*N.cloture.valeur },
+      eau:{ equipees:0, points:0, nr:0, besoin:list.length }
+    };
+    list.forEach(function(e){
+      var s=evalSchool(e,N); R.rows.push(s);
+      [['tb','tb'],['toi','toi']].forEach(function(p){ var a=R[p[0]], x=s[p[1]];
+        if(x.known) a.dispo+=x.avail;
+        if(x.evaluated){ a.nEval++; a.dispoEval+=x.avail; a.besoin+=x.need; a.deficit+=x.deficit; } else a.nNon++;
+      });
+      if(s.elec==='oui') R.elec.oui++; else if(s.elec==='non') R.elec.non++; else R.elec.nr++;
+      if(s.clo.type==='dur'){ R.clo.dur++; if(s.clo.src==='auto') R.clo.durAuto++; }
+      else if(s.clo.type) R.clo.autre++; else R.clo.nr++;
+      if(s.clo.aVerifier && s.clo.src==='auto') R.clo.aVerifier++; else if(!s.clo.type && s.clo.aVerifier) R.clo.aVerifier++;
+      if(s.eau.known){ R.eau.points+=s.eau.fonct; if(s.eau.equipped) R.eau.equipees++; } else R.eau.nr++;
+    });
+    function taux(a,b){ return b>0 ? Math.round(a/b*100) : null; }
+    R.tb.taux=taux(R.tb.dispoEval,R.tb.besoin); R.toi.taux=taux(R.toi.dispoEval,R.toi.besoin);
+    R.elec.deficit=Math.max(0,R.elec.besoin-R.elec.oui); R.elec.taux=(R.elec.oui+R.elec.non>0)?taux(R.elec.oui,R.n):null;
+    R.clo.deficit=Math.max(0,R.clo.besoin-R.clo.dur);    R.clo.taux=(R.n-R.clo.nr>0)?taux(R.clo.dur,R.n):null;
+    R.eau.deficit=Math.max(0,R.eau.besoin-R.eau.equipees); R.eau.taux=(R.n-R.eau.nr>0)?taux(R.eau.equipees,R.n):null;
+    return R;
+  }
+
+  /* ---------- personnel : agents uniques ---------- */
+  function nameKey(p){ var t=txtNorm((p.nom||'')+' '+(p.prenoms||'')).split(' ').filter(Boolean).sort().join(' '); return t; }
+  function personKey(p){
+    var m=String(p.matricule||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+    if(m && !(typeof window.matVide==='function' && window.matVide(p.matricule))) return 'm:'+m;
+    var d=String(p.dateN||p.dateNaissance||'').trim();
+    return 'n:'+nameKey(p)+(d?'|'+d:'');
+  }
+  function isCraie(p){ try{ return statEstCraieEnMain(p); }catch(e){ return !!(p&&p.classe); } }
+  /* Un agent ayant plusieurs fiches / fonctions n'est compté qu'une fois ; « craie en main » est prioritaire */
+  function staffCounts(list){
+    var by={};
+    (list||[]).forEach(function(p){ if(!p) return; var k=personKey(p); if(k==='n:'||k.indexOf('n:|')===0) k='id:'+p.id; var o=by[k]=by[k]||{ craie:false, admin:false }; if(isCraie(p)) o.craie=true; else o.admin=true; });
+    var ks=Object.keys(by), c=0, a=0;
+    ks.forEach(function(k){ if(by[k].craie) c++; else a++; });
+    return { craie:c, admin:a, total:ks.length };
+  }
+
+  window.EQ={ norm:norm, normsAll:normsAll, saveNorm:saveNorm, NORMS_DEF:NORMS_DEF, NORM_KEYS:NORM_KEYS, anyProvisional:anyProvisional,
+    inf:inf, num:num, nil:nil, renseigne:renseigne, effOf:effOf, tbOf:tbOf, toiOf:toiOf, elecOf:elecOf, cloOf:cloOf, cloInfer:cloInfer, CLO_TYPES:CLO_TYPES, cloLabel:cloLabel, eauOf:eauOf,
+    evalSchool:evalSchool, aggregate:aggregate, staffCounts:staffCounts, ceilDiv:ceilDiv, fr:fr, esc:esc, U:U, txtNorm:txtNorm };
+})();
+/* ============================================================================
+   ÉQUIPEMENTS — INTERFACE (tableau de bord intégré + onglet Infrastructures)
+   Ce module fournit les fragments HTML utilisés par renderDashboard() et par
+   l'onglet « Infrastructures » de Gestion des écoles (fonctions natives).
+   ============================================================================ */
+(function(){
+  'use strict';
+  var esc=EQ.esc, U=EQ.U, fr=EQ.fr, num=EQ.num, nil=EQ.nil, inf=EQ.inf;
+  var UI=EQ.ui={};
+
+  /* ---------- styles (compacts, dans l'esprit des cartes existantes) ---------- */
+  if(!document.getElementById('eq-style')){
+    var st=document.createElement('style'); st.id='eq-style';
+    st.textContent='.stat.eq-click{cursor:pointer}.stat .eq-line{display:block;font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.4}.stat .eq-line b{color:var(--ink)}'
+      +'.stat .eq-nr{font-size:12px;font-weight:600;color:var(--muted)}.stat .eq-prov{display:inline-block;margin-top:6px;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;background:#FEF3C7;color:#92400E}'
+      +'.stat .eq-big-nr{font-family:inherit;font-size:16px;font-weight:700;color:var(--muted)}'
+      +'.eq-sel{padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:#fff;font:inherit;color:inherit}.eq-auto{font-size:11px;color:#B45309;margin-top:2px}.eq-nr{color:var(--muted)}';
+    document.head.appendChild(st);
+  }
+
+  /* ---------- A.1 compteurs animés ---------- */
+  var DUREE=1200, seen={};
+  function fmtN(n,suf){ return fr(n)+(suf||''); }
+  function scopeKey(){ var u=U(); return (u.role||'')+'|'+(window.state&&state.activeIepp||'')+'|'+(u.ecole||''); }
+  EQ.animate=function(root){
+    if(!root) return;
+    var els=[].slice.call(root.querySelectorAll('[data-count]'));
+    if(!els.length) return;
+    var reduced=false; try{ reduced=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){}
+    var sc=scopeKey(), todo=[];
+    els.forEach(function(el,idx){
+      var t=Number(el.getAttribute('data-count')), suf=el.getAttribute('data-suffix')||'', key=sc+'|'+idx;
+      if(!isFinite(t)) return;
+      el.textContent=fmtN(t,suf);                       /* la valeur finale (réelle) est toujours écrite d'abord */
+      if(t===0||reduced||seen[key]===t){ seen[key]=t; return; }   /* zéro = zéro ; pas de rejeu inutile */
+      todo.push({el:el,t:t,suf:suf,key:key});
+    });
+    if(!todo.length) return;
+    var t0=null;
+    todo.forEach(function(o){ o.el.textContent=fmtN(0,o.suf); });
+    function step(ts){
+      if(t0===null) t0=ts;
+      var p=Math.min(1,(ts-t0)/DUREE), k=1-Math.pow(1-p,3);
+      todo.forEach(function(o){ if(o.el.isConnected) o.el.textContent=fmtN(Math.round(o.t*k),o.suf); });
+      if(p<1) requestAnimationFrame(step); else done();
+    }
+    function done(){ todo.forEach(function(o){ if(o.el.isConnected) o.el.textContent=fmtN(o.t,o.suf); seen[o.key]=o.t; }); }
+    requestAnimationFrame(step);
+    setTimeout(done,DUREE+400);                         /* filet de sécurité (onglet en arrière-plan) */
+  };
+
+  /* ---------- A.2 / B : modèle du tableau de bord ---------- */
+  function cnt(n,suf){ return '<b data-count="'+n+'"'+(suf?' data-suffix="'+suf+'"':'')+' style="white-space:nowrap">'+fmtN(n,suf)+'</b>'; }
+  function pctH(v){ return v==null?'<span class="eq-nr">Non renseigné</span>':cnt(v,'\u00a0%'); }
+  function heroItem(v,label,title){ return '<div'+(title?' title="'+esc(title)+'"':'')+'>'+(v==null?'<span>—</span>':'<span data-count="'+v+'">'+fmtN(v)+'</span>')+'<span>'+label+'</span></div>'; }
+  function prov(keys){ return EQ.anyProvisional(keys)?'<div><span class="eq-prov" title="Norme non encore validée par un texte officiel">Estimation provisoire</span></div>':''; }
+  function card(color,label,big,lines,keys){
+    return '<div class="stat '+color+' eq-click" onclick="eqGoInfra()" title="Ouvrir Gestion des écoles → Infrastructures">'
+      +'<div class="stat-label">'+label+'</div><div class="stat-value">'+big+'</div>'
+      +lines.map(function(l){ return '<div class="eq-line">'+l+'</div>'; }).join('')+prov(keys)+'</div>';
+  }
+  function bigOrNr(known,n){ return known?cnt(n):'<span class="eq-big-nr">Non renseigné</span>'; }
+  function bd(R){ return 'Besoin '+(R.b==null?'<b>—</b>':cnt(R.b))+' · Déficit '+(R.d==null?'<b>—</b>':cnt(R.d)); }
+
+  EQ.dashModel=function(d,x){
+    var list=d.ecoles||[], R=EQ.aggregate(list), S=EQ.staffCounts(d.personnel||[]);
+    var anyTb=R.rows.some(function(s){ return s.tb.known; }), anyToi=R.rows.some(function(s){ return s.toi.known; });
+    var fgOk=(x.filles+x.garcons)>0;
+    return { R:R, S:S,
+      hero:function(role){
+        var items=[];
+        if(role==='directeur') items.push(heroItem(x.eleves||x.totalEleves,"Élèves de l'école"));
+        else items.push(heroItem(x.totalEcoles,'Écoles suivies'), heroItem(x.totalEleves,'Élèves inscrits'));
+        items.push(fgOk?heroItem(x.filles,'Filles','Filles + garçons = '+fr(x.filles+x.garcons)+' (effectif total : '+fr(x.totalEleves)+')'):'<div><span class="eq-nr" style="font-size:15px">Non renseigné</span><span>Filles</span></div>');
+        items.push(fgOk?heroItem(x.garcons,'Garçons'):'<div><span class="eq-nr" style="font-size:15px">Non renseigné</span><span>Garçons</span></div>');
+        items.push(heroItem(S.craie,'Enseignants craie en main','Enseignants uniques en classe'), heroItem(S.admin,'Personnel administratif','Agents administratifs uniques'));
+        if(role==='directeur') items.push(heroItem(x.pendingAbs,'Abs. à valider'));
+        items.push(heroItem(x.visitesMois,'Visites de classe'));
+        return items.join('');
+      },
+      cards:function(role){
+        if(role==='instituteur') return '';
+        var n=R.n, h='';
+        if(!n) return card('s-orange','Équipements scolaires','<span class="eq-big-nr">Non renseigné</span>',['Aucune école recensée dans ce périmètre.'],[]);
+        var tb=R.tb, toi=R.toi, el=R.elec, cl=R.clo, ea=R.eau;
+        h+=card('s-orange','Tables-bancs disponibles',bigOrNr(anyTb,tb.dispo),[
+          tb.nEval?bd({b:tb.besoin,d:tb.deficit}):'Besoin / déficit : <span class="eq-nr">Non renseigné</span>',
+          'Couverture '+pctH(tb.taux)+(tb.nNon?' · <span class="eq-nr">'+tb.nNon+' école(s) non évaluée(s)</span>':'')],['tableBanc']);
+        h+=card('s-purple','Toilettes fonctionnelles',bigOrNr(anyToi,toi.dispo),[
+          toi.nEval?bd({b:toi.besoin,d:toi.deficit}):'Besoin / déficit : <span class="eq-nr">Non renseigné</span>',
+          'Couverture '+pctH(toi.taux)+(toi.nNon?' · <span class="eq-nr">'+toi.nNon+' école(s) non évaluée(s)</span>':'')],['toilette']);
+        h+=card('s-yellow','Écoles électrifiées',bigOrNr(el.oui+el.non>0,el.oui),[
+          bd({b:el.besoin,d:el.deficit})+(el.nr?' <span class="eq-nr">(dont '+el.nr+' non renseignée(s))</span>':''),
+          'Taux '+pctH(el.taux)],['electricite']);
+        h+=card('s-green','Écoles clôturées en dur',bigOrNr(cl.nr<n,cl.dur),[
+          bd({b:cl.besoin,d:cl.deficit})+(cl.nr?' <span class="eq-nr">(dont '+cl.nr+' non renseignée(s))</span>':''),
+          'Taux '+pctH(cl.taux)+(cl.aVerifier?' · <span class="eq-nr">'+cl.aVerifier+' à vérifier</span>':'')],['cloture']);
+        h+=card('s-pink','Écoles avec point d\'eau',bigOrNr(ea.nr<n,ea.equipees),[
+          bd({b:ea.besoin,d:ea.deficit})+(ea.nr?' <span class="eq-nr">(dont '+ea.nr+' non renseignée(s))</span>':''),
+          'Points d\'eau fonctionnels : '+(ea.nr<n?cnt(ea.points):'<b>—</b>')+' · Taux '+pctH(ea.taux)],['eau']);
+        return h;
+      }
+    };
+  };
+  window.eqGoInfra=function(){ try{ navigate('ecoles'); if(typeof ecGo==='function') ecGo('infra'); }catch(e){} };
+
+  /* ---------- F. onglet Infrastructures : briques communes ---------- */
+  var S_NUM ='width:76px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:white;text-align:right;font:inherit;color:inherit';
+  var S_TXT ='width:100%;min-width:140px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:white;font:inherit;color:inherit';
+  var S_CODE='width:96px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:white;font:inherit;color:inherit';
+
+  function listEcoles(){
+    var L=(window.state&&state.ecoles)||[], u=U();
+    if(u.role==='directeur'&&u.ecole) L=L.filter(function(e){ return e.nom===u.ecole; });
+    return L;
+  }
+  function canEdit(e){ if(!(typeof ecCanManage==='function'&&ecCanManage())) return false; var u=U(); if(u.role==='directeur') return !!(e&&u.ecole&&e.nom===u.ecole); return true; }
+  function numIn(id,field,val,ph){ return '<input type="number" min="0" '+(nil(val)?'':'value="'+esc(val)+'" ')+'placeholder="'+(ph||'—')+'" onchange="eqCell(\''+esc(id)+'\',\''+field+'\',this.value,event.isTrusted)" style="'+S_NUM+'">'; }
+  function selIn(id,field,opts,cur,cls){ return '<select class="eq-sel" onchange="eqCell(\''+esc(id)+'\',\''+field+'\',this.value,event.isTrusted)">'+opts.map(function(o){ return '<option value="'+esc(o[0])+'"'+(String(o[0])===String(cur)?' selected':'')+'>'+esc(o[1])+'</option>'; }).join('')+'</select>'; }
+  function txt(v){ return nil(v)?'<span class="text-muted">—</span>':esc(v); }
+  function badgeNR(){ return '<span class="badge badge-grey">Non renseigné</span>'; }
+
+  function tbBadge(s,kind){
+    var x=s[kind];
+    if(!s.effKnown) return '<span class="badge badge-grey">Effectif non renseigné</span>';
+    if(!x.known) return badgeNR();
+    return '<span class="badge '+(x.deficit>0?'badge-red':'badge-green')+'">besoin '+fr(x.need)+(x.deficit>0?' · manque '+fr(x.deficit):' · complet')+'</span>';
+  }
+  function provLine(){
+    var N=EQ.normsAll(), p=EQ.NORM_KEYS.filter(function(k){ return N[k].provisoire; });
+    if(!p.length) return '';
+    return '<div class="card" style="background:#FEF3C7;padding:8px 14px;margin-bottom:10px;border-left:3px solid #D97706"><div class="text-xs"><strong>Estimation provisoire</strong> — normes de calcul « À confirmer » : tables-bancs 1 pour '+N.tableBanc.valeur+' élèves · toilettes 1 pour '+N.toilette.valeur+' élèves · 1 point d\'eau fonctionnel par école. <a style="cursor:pointer;text-decoration:underline" onclick="eqNormsOpen()">Voir / modifier les normes</a></div></div>';
+  }
+  var OUI_NON=[['','— à renseigner —'],['Oui','Oui'],['Non','Non']];
+  UI.html=function(){
+    var list=listEcoles(), N=EQ.normsAll();
+    var rows=list.length?list.map(function(e){
+      var i=inf(e), s=EQ.evalSchool(e,N), can=canEdit(e), id=e.id, ide=esc(id);
+      var el=EQ.elecOf(i), eau=EQ.eauOf(i);
+      var tbTot=EQ.renseigne(i,'tableBancs')?num(i.tableBancs):(s.tb.known?s.tb.total:null);
+      var toiTot=EQ.renseigne(i,'toilettes')?num(i.toilettes):(s.toi.known?s.toi.total:null);
+      var autres=(i.autres||[]).map(function(a,k){ return '<span class="badge badge-grey" style="margin:1px;display:inline-flex;align-items:center;gap:4px">'+esc(a.label)+' : '+esc(a.qty)+(can?'<button class="icon-btn" onclick="ecInfraAutreDel(\''+ide+'\','+k+')" title="Supprimer" style="padding:0 4px;font-size:11px;background:transparent;color:var(--danger)">✗</button>':'')+'</span>'; }).join(' ');
+      var cloOpts=[['','— à renseigner —']].concat(EQ.CLO_TYPES);
+      var auto=(!can||s.clo.src!=='auto')?(s.clo.src!=='auto'&&s.clo.aVerifier&&!i.clotureType?'<div class="eq-auto">Texte ambigu — à vérifier</div>':''):'<div class="eq-auto">Déduit du texte : '+esc(EQ.cloLabel(s.clo.type))+' <a style="cursor:pointer;text-decoration:underline" onclick="eqCell(\''+ide+'\',\'clotureType\',\''+s.clo.type+'\')">Confirmer</a></div>';
+      if(!can){
+        return '<tr><td><span class="badge badge-blue">'+esc(e.code)+'</span></td><td class="fw-7">'+esc(e.nom)+'</td><td style="text-align:right">'+(s.effKnown?fr(s.eff):badgeNR())+'</td>'
+          +'<td style="text-align:center">'+(el?(el==='oui'?'Oui':'Non'):badgeNR())+'</td><td class="text-sm">'+txt(i.cloture)+'</td><td class="text-sm">'+(EQ.cloLabel(s.clo.type)?esc(EQ.cloLabel(s.clo.type))+(s.clo.src==='auto'?' <span class="eq-auto">(déduit)</span>':''):badgeNR())+'</td>'
+          +'<td style="text-align:right">'+(eau.total==null?'—':fr(eau.total))+'</td><td style="text-align:right">'+(eau.fonct==null?'—':fr(eau.fonct))+'</td>'
+          +'<td style="text-align:right" class="fw-7">'+(tbTot==null?badgeNR():fr(tbTot))+'</td><td style="text-align:right">'+(num(i.tbFonct)==null?'—':fr(num(i.tbFonct)))+'</td><td style="text-align:center">'+tbBadge(s,'tb')+'</td>'
+          +'<td style="text-align:right">'+(toiTot==null?badgeNR():fr(toiTot))+'</td><td style="text-align:right">'+(num(i.toiFonct)==null?'—':fr(num(i.toiFonct)))+'</td><td style="text-align:center">'+tbBadge(s,'toi')+'</td>'
+          +'<td style="text-align:center">'+fr(i.tableaux||0)+'</td><td style="text-align:center">'+fr(i.tableMaitre||0)+'</td><td class="text-sm">'+esc(i.bureauDirecteur||'')+'</td><td class="text-sm">'+autres+'</td><td></td></tr>';
+      }
+      return '<tr>'
+        +'<td><input type="text" value="'+esc(e.code||'')+'" onchange="ecInfraCellSave(\''+ide+'\',\'code\',this.value)" style="'+S_CODE+'"></td>'
+        +'<td><input type="text" value="'+esc(e.nom||'')+'" onchange="ecInfraCellSave(\''+ide+'\',\'nom\',this.value)" style="'+S_TXT+'"></td>'
+        +'<td style="text-align:right"><input type="number" min="0" value="'+esc(e.effectif||0)+'" onchange="ecInfraCellSave(\''+ide+'\',\'effectif\',this.value)" style="'+S_NUM+'"></td>'
+        +'<td style="text-align:center">'+selIn(id,'electricite',OUI_NON,el==='oui'?'Oui':(el==='non'?'Non':''))+'</td>'
+        +'<td><input type="text" value="'+esc(i.cloture||'')+'" placeholder="Bonne · Grillage · À refaire" onchange="eqCell(\''+ide+'\',\'cloture\',this.value)" style="'+S_TXT+'"></td>'
+        +'<td>'+selIn(id,'clotureType',cloOpts,String(i.clotureType||''))+auto+'</td>'
+        +'<td style="text-align:right">'+numIn(id,'eauTotal',eau.total)+'</td><td style="text-align:right">'+numIn(id,'eauFonct',eau.fonct)+'</td>'
+        +'<td style="text-align:right">'+numIn(id,'tableBancs',tbTot)+'</td><td style="text-align:right">'+numIn(id,'tbFonct',num(i.tbFonct))+'</td><td style="text-align:center">'+tbBadge(s,'tb')+'</td>'
+        +'<td style="text-align:right">'+numIn(id,'toilettes',toiTot)+'</td><td style="text-align:right">'+numIn(id,'toiFonct',num(i.toiFonct))+'</td><td style="text-align:center">'+tbBadge(s,'toi')+'</td>'
+        +'<td style="text-align:center"><input type="number" min="0" value="'+esc(i.tableaux||0)+'" onchange="eqCell(\''+ide+'\',\'tableaux\',this.value)" style="'+S_NUM+'"></td>'
+        +'<td style="text-align:center"><input type="number" min="0" value="'+esc(i.tableMaitre||0)+'" onchange="eqCell(\''+ide+'\',\'tableMaitre\',this.value)" style="'+S_NUM+'"></td>'
+        +'<td><input type="text" value="'+esc(i.bureauDirecteur||'')+'" placeholder="Oui / Non / En construction" onchange="eqCell(\''+ide+'\',\'bureauDirecteur\',this.value)" style="'+S_TXT+'"></td>'
+        +'<td class="text-sm" style="min-width:240px"><div>'+(autres||'<span class="text-muted text-xs">Aucun équipement</span>')+'</div>'
+        +'<div style="display:flex;gap:4px;margin-top:4px;align-items:center;flex-wrap:wrap"><input id="inf-aut-lab-'+ide+'" type="text" placeholder="Libellé (cantine, panneaux solaires…)" style="flex:1;min-width:120px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:white;font:inherit;color:inherit" onkeydown="if(event.key===\'Enter\'){event.preventDefault();ecInfraAutreAdd(\''+ide+'\');}">'
+        +'<input id="inf-aut-qty-'+ide+'" type="number" min="0" value="1" style="width:60px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;background:white;text-align:right;font:inherit;color:inherit" onkeydown="if(event.key===\'Enter\'){event.preventDefault();ecInfraAutreAdd(\''+ide+'\');}">'
+        +'<button class="btn btn-sm btn-ghost" onclick="ecInfraAutreAdd(\''+ide+'\')" style="padding:4px 10px">+</button></div></td>'
+        +'<td class="actions-cell"><button class="icon-btn" onclick="ecInfraForm(\''+ide+'\')" title="Édition détaillée (modale)">✏️</button></td></tr>';
+    }).join(''):'<tr><td colspan="19" class="table-empty">Aucune école — créez d\'abord des écoles dans l\'onglet « Liste ».</td></tr>';
+    var R=EQ.aggregate(list);
+    var foot=list.length?'<tfoot><tr style="font-weight:700;background:#F0F4F8"><td colspan="2">TOTAL ('+list.length+' école'+(list.length>1?'s':'')+')</td><td style="text-align:right">'+fr(R.rows.reduce(function(a,s){return a+s.eff;},0))+'</td>'
+      +'<td style="text-align:center">'+R.elec.oui+' oui · '+R.elec.non+' non · '+R.elec.nr+' n.r.</td><td></td><td style="text-align:center">'+R.clo.dur+' en dur · '+R.clo.nr+' n.r.</td>'
+      +'<td colspan="2" style="text-align:right">'+(R.eau.nr<R.n?fr(R.eau.points)+' point(s) fonctionnel(s) · '+R.eau.equipees+' école(s)':'—')+'</td>'
+      +'<td style="text-align:right">'+fr(R.tb.dispo)+'</td><td></td><td style="text-align:center">besoin '+fr(R.tb.besoin)+' · manque '+fr(R.tb.deficit)+(R.tb.nNon?' · '+R.tb.nNon+' non évaluée(s)':'')+'</td>'
+      +'<td style="text-align:right">'+fr(R.toi.dispo)+'</td><td></td><td style="text-align:center">besoin '+fr(R.toi.besoin)+' · manque '+fr(R.toi.deficit)+(R.toi.nNon?' · '+R.toi.nNon+' non évaluée(s)':'')+'</td><td colspan="5"></td></tr></tfoot>':'';
+    return provLine()
+      +'<div class="card" style="background:#FFF9E6;padding:12px 14px;margin-bottom:10px;border-left:3px solid #B45309"><div class="text-xs"><strong>Saisie directe</strong> · cliquez dans une cellule pour saisir / corriger une valeur — l\'enregistrement est automatique à la sortie du champ. <strong>Cellule vide = non renseigné</strong> (différent de 0 : saisissez 0 pour confirmer l\'absence). Besoin en tables-bancs et toilettes : arrondi au supérieur, école par école ; les équipements hors service ne comptent pas comme disponibles.</div></div>'
+      +'<div class="toolbar"><div style="flex:1"></div>'
+      +'<button class="btn btn-ghost" onclick="eqNormsOpen()">📏 Normes de calcul</button>'
+      +'<button class="btn btn-ghost" onclick="document.getElementById(\'ec-infra-import\').click()">📥 Importer Excel</button>'
+      +'<input type="file" id="ec-infra-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="ecInfraImport(event)">'
+      +'<button class="btn btn-green" onclick="ecInfraExportExcel()">📊 Excel</button>'
+      +'<button class="btn btn-ghost" onclick="ecInfraExportPrint(true)">📄 Word</button>'
+      +'<button class="btn btn-ghost" onclick="ecInfraExportPrint()">🖨️ PDF</button></div>'
+      +'<div class="card" style="padding:0;overflow:auto"><table style="min-width:1750px"><thead><tr>'
+      +'<th>Code</th><th>École</th><th style="text-align:right">Effectif</th><th style="text-align:center">Électrifiée</th><th>Clôture (texte d\'origine)</th><th>Type de clôture</th>'
+      +'<th style="text-align:right">Points d\'eau</th><th style="text-align:right">dont fonct.</th>'
+      +'<th style="text-align:right">Tables-bancs</th><th style="text-align:right">dont fonct.</th><th style="text-align:center">Besoin / manque</th>'
+      +'<th style="text-align:right">Toilettes</th><th style="text-align:right">dont fonct.</th><th style="text-align:center">Besoin / manque</th>'
+      +'<th style="text-align:center">Tableaux</th><th style="text-align:center">Tables maître</th><th>Bureau directeur</th><th>Autres équipements</th><th style="width:60px"></th>'
+      +'</tr></thead><tbody>'+rows+'</tbody>'+foot+'</table></div>';
+  };
+
+  /* ---------- C. normes : fenêtre dédiée ---------- */
+  function normsBody(){
+    var u=U(), isSA=u.role==='superadmin', N=EQ.normsAll(), st=null;
+    try{ st=load('normesEquip',null); }catch(e){}
+    var h='<div class="text-xs text-muted" style="margin-bottom:10px">Ces normes pilotent les besoins et déficits (tableau de bord, Infrastructures, exports). '
+      +(isSA?'Chaque enregistrement crée une version datée ; les données saisies ne sont jamais modifiées.':'Modification réservée au Grand Administrateur (superadmin).')
+      +' Tant qu\'une norme n\'est pas « Validée », les résultats portent la mention <strong>Estimation provisoire</strong>.</div>';
+    EQ.NORM_KEYS.forEach(function(k){
+      var n=N[k], D=EQ.NORMS_DEF[k];
+      var vs=((st&&st.versions&&st.versions[k])||[]).slice().sort(function(a,b){ return String(b.dateVigueur||'').localeCompare(String(a.dateVigueur||'')); });
+      var inp=function(id,val,type){ return '<input id="nm-'+k+'-'+id+'" type="'+(type||'text')+'" value="'+esc(val)+'" '+(isSA?'':'disabled ')+'style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font:inherit;background:white">'; };
+      h+='<div class="card" style="padding:12px;margin-bottom:10px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px"><strong>'+esc(D.label)+'</strong>'
+        +'<span class="badge '+(n.provisoire?'badge-orange':'badge-green')+'">'+(n.provisoire?'À confirmer — estimation provisoire':'Validée')+'</span>'
+        +'<span class="text-xs text-muted">Appliquée aujourd\'hui : '+n.valeur+' '+esc(n.unite)+'</span></div>'
+        +'<div class="text-xs text-muted" style="margin-bottom:8px">'+esc(D.aide)+'</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:end">'
+        +'<label class="text-xs">Valeur<br>'+inp('valeur',n.valeur,'number')+'</label>'
+        +'<label class="text-xs">Unité<br>'+inp('unite',n.unite)+'</label>'
+        +'<label class="text-xs">Source réglementaire / administrative<br>'+inp('source',n.source)+'</label>'
+        +'<label class="text-xs">Date d\'entrée en vigueur<br>'+inp('date',n.dateVigueur,'date')+'</label>'
+        +'<label class="text-xs">Statut<br><select id="nm-'+k+'-statut" '+(isSA?'':'disabled ')+'style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font:inherit;background:white"><option'+(n.statut!=='Validée'?' selected':'')+'>À confirmer</option><option'+(n.statut==='Validée'?' selected':'')+'>Validée</option></select></label>'
+        +(isSA?'<button class="btn btn-green" onclick="eqNormSave(\''+k+'\')">Enregistrer</button>':'')+'</div>'
+        +(vs.length>1?'<details style="margin-top:8px"><summary class="text-xs" style="cursor:pointer">Historique des versions ('+vs.length+')</summary><table style="margin-top:6px;font-size:12px"><thead><tr><th>Entrée en vigueur</th><th>Valeur</th><th>Unité</th><th>Source</th><th>Statut</th><th>Modifiée par</th></tr></thead><tbody>'
+          +vs.map(function(v){ return '<tr><td>'+esc(v.dateVigueur||'—')+'</td><td>'+esc(v.valeur)+'</td><td>'+esc(v.unite||'')+'</td><td>'+esc(v.source||'')+'</td><td>'+esc(v.statut||'')+'</td><td>'+esc(v._par||'')+' '+esc((v._le||'').slice(0,10))+'</td></tr>'; }).join('')+'</tbody></table></details>':'')
+        +'</div>';
+    });
+    return h;
+  }
+  window.eqNormsOpen=function(){ openModal('📏 Normes de calcul des équipements',normsBody(),'<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>'); };
+  window.eqNormSave=function(k){
+    var g=function(i){ var el=document.getElementById('nm-'+k+'-'+i); return el?el.value:''; };
+    var r=EQ.saveNorm(k,{ valeur:g('valeur'), unite:g('unite'), source:g('source'), dateVigueur:g('date'), statut:g('statut') });
+    if(!r.ok){ toast(r.msg,'error'); return; }
+    toast('Norme enregistrée','success'); eqNormsOpen(); if(typeof ecRenderPane==='function'&&document.getElementById('ec-pane')) ecRenderPane();
+  };
+  UI.ratio=function(infra,eff){
+    var s=EQ.evalSchool({ effectif:eff, infrastructures:infra||{} });
+    if(!s.effKnown) return { tb:0, ratio:'Effectif non renseigné', deficit:0, unknown:true };
+    if(!s.tb.known) return { tb:0, ratio:'Non renseigné', deficit:0, unknown:true };
+    return { tb:s.tb.avail, ratio:s.tb.avail>0?(Math.round(eff/s.tb.avail*10)/10)+' él./TB':'—', deficit:s.tb.deficit };
+  };
+
+  /* ---- saisie (cellule + modale) : validation commune ---- */
+  var INT_REQ={ tableBancs:1, toilettes:1, tableaux:1, tableMaitre:1 };
+  var INT_NUL={ tbFonct:1, toiFonct:1, eauTotal:1, eauFonct:1, eauHS:1 };
+  var TXT={ cloture:1, bureauDirecteur:1 };
+  function setField(i,f,raw){
+    i.saisi=i.saisi||{};
+    var s=String(raw==null?'':raw).trim();
+    if(INT_REQ[f]){
+      if(s===''){ i[f]=0; if(f==='tableBancs'||f==='toilettes') delete i.saisi[f]; return null; }
+      var n=Math.round(Number(s.replace(',','.'))); if(!isFinite(n)||n<0) return 'Valeur invalide (entier ≥ 0 attendu).';
+      i[f]=n; if(f==='tableBancs'||f==='toilettes') i.saisi[f]=true; return null;
+    }
+    if(INT_NUL[f]){
+      if(s===''){ i[f]=null; return null; }
+      var m=Math.round(Number(s.replace(',','.'))); if(!isFinite(m)||m<0) return 'Valeur invalide (entier ≥ 0 attendu).';
+      i[f]=m; return null;
+    }
+    if(TXT[f]){ i[f]=s; return null; }
+    if(f==='electricite'){ if(s===''||s==='Oui'||s==='Non'){ i[f]=s; return null; } return 'Valeur invalide pour l\'électricité (Oui / Non).'; }
+    if(f==='clotureType'){ if(s===''||EQ.CLO_TYPES.some(function(c){return c[0]===s;})){ i[f]=s; return null; } return 'Type de clôture invalide.'; }
+    return 'Champ inconnu.';
+  }
+  function cohere(i){
+    i.saisi=i.saisi||{};
+    var pairs=[['tableBancs','tbFonct','table-bancs'],['toilettes','toiFonct','toilettes']];
+    for(var k=0;k<pairs.length;k++){
+      var t=pairs[k][0], fk=pairs[k][1], f=num(i[fk]);
+      if(f!==null){
+        if(!EQ.renseigne(i,t)){ i[t]=f; i.saisi[t]=true; }
+        else if(f>num(i[t])) return 'Les '+pairs[k][2]+' fonctionnel(le)s ('+f+') dépassent le total ('+num(i[t])+').';
+      }
+    }
+    var tot=num(i.eauTotal), fo=num(i.eauFonct), hs=num(i.eauHS);
+    if(tot!==null&&fo!==null&&fo>tot) return 'Les points d\'eau fonctionnels ('+fo+') dépassent le total ('+tot+').';
+    if(tot!==null&&fo!==null&&hs!==null&&tot!==fo+hs) return 'Total des points d\'eau ('+tot+') ≠ fonctionnels ('+fo+') + hors service ('+hs+').';
+    if(tot===null&&fo!==null) i.eauTotal=fo+(hs||0);
+    return null;
+  }
+  function commit(e,i,logMsg){
+    e.infrastructures=i;
+    try{ save('ecoles',state.ecoles); }catch(x){}
+    try{ logAction('infra-equip',logMsg); }catch(x){}
+  }
+  function clone(o){ return JSON.parse(JSON.stringify(o||{})); }
+  var NEW_FIELDS={ tbFonct:1, toiFonct:1, eauTotal:1, eauFonct:1, eauHS:1, electricite:1, clotureType:1, tableBancs:1, toilettes:1, tableaux:1, tableMaitre:1, cloture:1, bureauDirecteur:1 };
+  window.eqCell=function(id,field,raw,trusted){
+    /* « Remise à zéro » (événement programmatique, non fiable) : on revient à « non renseigné » plutôt qu'à un 0 confirmé */
+    if(trusted===false && String(raw).trim()==='0' && (field==='tableBancs'||field==='toilettes'||field==='tbFonct'||field==='toiFonct'||field==='eauTotal'||field==='eauFonct'||field==='eauHS')) raw='';
+    var e=(state.ecoles||[]).filter(function(x){return x.id===id;})[0]; if(!e) return;
+    if(!canEdit(e)){ toast('Action réservée à la gestion de votre périmètre.','error'); return; }
+    if(!NEW_FIELDS[field]) return;
+    var i=clone(e.infrastructures||(typeof ecInfraEmpty==='function'?ecInfraEmpty():{}));
+    var before=JSON.stringify(i);
+    /* vider un total efface aussi ses sous-quantités (on ne peut pas avoir de « fonctionnels » sans total) */
+    if(String(raw).trim()===''){
+      if(field==='tableBancs') i.tbFonct=null;
+      if(field==='toilettes') i.toiFonct=null;
+      if(field==='eauTotal'){ i.eauFonct=null; i.eauHS=null; }
+    }
+    var err=setField(i,field,raw)||cohere(i);
+    if(err){ toast(err,'error'); ecRenderPane(); return; }
+    if(JSON.stringify(i)===before) return;
+    commit(e,i,e.nom+' → '+field+' = '+(raw===''?'(vide)':raw));
+    toast('Enregistré','success');
+    ecRenderPane();
+  };
+  /* ---- modale d'édition détaillée ---- */
+  UI.form=function(id){
+    var e=(state.ecoles||[]).filter(function(x){return x.id===id;})[0]; if(!e) return;
+    if(!canEdit(e)){ toast('Action réservée à la gestion de votre périmètre.','error'); return; }
+    var i=clone(e.infrastructures||(typeof ecInfraEmpty==='function'?ecInfraEmpty():{}));
+    var s=EQ.evalSchool(e);
+    var tbTot=EQ.renseigne(i,'tableBancs')?num(i.tableBancs):(s.tb.known?s.tb.total:null);
+    var toiTot=EQ.renseigne(i,'toilettes')?num(i.toilettes):(s.toi.known?s.toi.total:null);
+    var autres=(i.autres||[]).map(function(a,k){ return '<div class="form-row" style="margin-bottom:6px;align-items:center;gap:6px"><input class="inf-autre-label" data-i="'+k+'" value="'+esc(a.label||'')+'" placeholder="ex : Cantine, panneaux solaires…" style="flex:2"><input class="inf-autre-qty" data-i="'+k+'" type="number" min="0" value="'+esc(a.qty||0)+'" style="width:80px"><button class="btn btn-ghost btn-sm" onclick="this.parentElement.remove()">✗</button></div>'; }).join('');
+    var F=function(lbl,idf,val,extra){ return '<div class="field"><label>'+lbl+'</label><input id="'+idf+'" type="number" min="0" value="'+(nil(val)?'':esc(val))+'" placeholder="non renseigné" '+(extra||'')+'></div>'; };
+    var cloSel='<select id="inf-clot-type"><option value="">— à renseigner —</option>'+EQ.CLO_TYPES.map(function(c){ return '<option value="'+c[0]+'"'+(String(i.clotureType||'')===c[0]?' selected':'')+'>'+esc(c[1])+'</option>'; }).join('')+'</select>';
+    var elSel='<select id="inf-elec"><option value="">— à renseigner —</option><option'+(EQ.elecOf(i)==='oui'?' selected':'')+'>Oui</option><option'+(EQ.elecOf(i)==='non'?' selected':'')+'>Non</option></select>';
+    var auto=(s.clo.src==='auto')?'<div class="eq-auto">Valeur déduite du texte d\'origine : '+esc(EQ.cloLabel(s.clo.type))+' — à vérifier puis choisir le type ci-dessus.</div>':'';
+    openModal('Équipements & infrastructures — '+esc(e.nom),
+      '<div class="text-xs text-muted" style="margin-bottom:8px">Laissez un champ vide = <strong>non renseigné</strong>. Saisissez 0 pour confirmer l\'absence. Les équipements hors service ne comptent pas comme disponibles.</div>'
+      +'<div class="form-row">'+F('Table-bancs (total)','inf-tb',tbTot)+F('dont fonctionnels','inf-tbf',num(i.tbFonct))+'</div>'
+      +'<div class="form-row">'+F('Toilettes (total)','inf-toi',toiTot)+F('dont fonctionnelles','inf-toif',num(i.toiFonct))+'</div>'
+      +'<div class="form-row"><div class="field"><label>Électrification de l\'école</label>'+elSel+'</div><div class="field"><label>Type de clôture</label>'+cloSel+auto+'</div></div>'
+      +'<div class="form-row"><div class="field" style="flex:1"><label>Clôture — description d\'origine (état / matériau)</label><input id="inf-clo" value="'+esc(i.cloture||'')+'" placeholder="ex : Mur en parpaing · Grillage · À refaire"></div></div>'
+      +'<div class="form-row">'+F('Points d\'eau (total)','inf-eau-t',num(i.eauTotal))+F('dont fonctionnels','inf-eau-f',num(i.eauFonct))+F('dont hors service','inf-eau-h',num(i.eauHS))+'</div>'
+      +'<div class="form-row">'+F('Tableaux','inf-tx',i.tableaux||0)+F('Tables maître','inf-tm',i.tableMaitre||0)+'<div class="field"><label>Bureau directeur</label><input id="inf-bd" value="'+esc(i.bureauDirecteur||'')+'" placeholder="Oui / Non / En construction"></div></div>'
+      +'<div class="card" style="background:#F9FAFB;padding:10px;margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;margin-bottom:8px">Autres équipements</div><div id="inf-autres">'+autres+'</div><button class="btn btn-ghost btn-sm" onclick="ecInfraAddAutreRow()">+ Ajouter un équipement</button></div>',
+      '<button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-green" onclick="ecInfraSave(\''+esc(id)+'\')">Enregistrer</button>');
+  };
+  UI.save=function(id){
+    var e=(state.ecoles||[]).filter(function(x){return x.id===id;})[0]; if(!e) return;
+    if(!canEdit(e)){ toast('Action réservée.','error'); return; }
+    var g=function(k){ var el=document.getElementById(k); return el?el.value:''; };
+    var i=clone(e.infrastructures||(typeof ecInfraEmpty==='function'?ecInfraEmpty():{}));
+    var plan=[['tableBancs','inf-tb'],['tbFonct','inf-tbf'],['toilettes','inf-toi'],['toiFonct','inf-toif'],['electricite','inf-elec'],['clotureType','inf-clot-type'],['cloture','inf-clo'],['eauTotal','inf-eau-t'],['eauFonct','inf-eau-f'],['eauHS','inf-eau-h'],['tableaux','inf-tx'],['tableMaitre','inf-tm'],['bureauDirecteur','inf-bd']];
+    /* le total est d'abord vidé pour que « fonctionnels » puisse le fixer si le total est laissé vide */
+    var err=null;
+    for(var k=0;k<plan.length&&!err;k++) err=setField(i,plan[k][0],g(plan[k][1]));
+    if(!err) err=cohere(i);
+    if(err){ toast(err,'error'); return; }
+    i.autres=[].slice.call(document.querySelectorAll('#inf-autres > div')).map(function(div){ return { label:(div.querySelector('.inf-autre-label')||{value:''}).value.trim(), qty:parseInt((div.querySelector('.inf-autre-qty')||{value:0}).value,10)||0 }; }).filter(function(a){ return a.label; });
+    commit(e,i,'Équipements de '+e.nom+' mis à jour');
+    toast('Équipements enregistrés','success'); closeModal(); ecRenderPane();
+  };
+  UI.cell=window.eqCell;
+  EQ._f={ setField:setField, cohere:cohere, clone:clone, canEdit:canEdit, commit:commit, listEcoles:listEcoles };
+})();
+
+/* ============================================================================
+   PARTIE 3 — Import / export Excel, Word, PDF des équipements (F.2)
+   ============================================================================ */
+(function(){
+  'use strict';
+  var EQ=window.EQ; if(!EQ||!EQ._f||window.__eqIoDone) return; window.__eqIoDone=true;
+  var F=EQ._f, num=EQ.num, nil=EQ.nil, inf=EQ.inf, T=EQ.txtNorm;
+  var NR='Non renseigné';
+
+  function nrm(h){ return (typeof ecNorm==='function')?ecNorm(h):String(h||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,''); }
+  function mention(){ return EQ.anyProvisional(['tableBanc','toilette','eau','electricite','cloture'])?'Estimation provisoire (normes à confirmer)':''; }
+  function cloDur(s){ return s.clo.type==='dur'?('Oui'+(s.clo.src==='auto'?' (déduit du texte — à vérifier)':'')):(s.clo.type?'Non':(s.clo.aVerifier?'À vérifier':NR)); }
+
+  function fullRows(list){
+    var N=EQ.normsAll(), M=mention();
+    return list.map(function(e){
+      var i=inf(e), s=EQ.evalSchool(e,N), eau=EQ.eauOf(i), el=EQ.elecOf(i);
+      var tbT=EQ.renseigne(i,'tableBancs')?num(i.tableBancs):(s.tb.known?s.tb.total:'');
+      var toT=EQ.renseigne(i,'toilettes')?num(i.toilettes):(s.toi.known?s.toi.total:'');
+      return {
+        'Code':e.code, 'École':e.nom, 'Effectif':s.effKnown?s.eff:'',
+        'Table-bancs':tbT, 'Table-bancs fonctionnels':nil(i.tbFonct)?'':num(i.tbFonct),
+        'Besoin table-bancs':s.tb.need==null?NR:s.tb.need, 'Manque table-bancs':s.tb.deficit==null?NR:s.tb.deficit,
+        'Ratio (élèves/TB)':(s.tb.known&&s.tb.avail>0&&s.effKnown)?Math.round(s.eff/s.tb.avail*10)/10:'',
+        'Toilettes':toT, 'Toilettes fonctionnelles':nil(i.toiFonct)?'':num(i.toiFonct),
+        'Besoin toilettes':s.toi.need==null?NR:s.toi.need, 'Manque toilettes':s.toi.deficit==null?NR:s.toi.deficit,
+        'Tableaux':i.tableaux||0, 'Tables maître':i.tableMaitre||0,
+        'Clôture':i.cloture||'', 'Type de clôture':EQ.cloLabel(String(i.clotureType||'')),
+        'Clôture en dur complète':cloDur(s),
+        'Bureau directeur':i.bureauDirecteur||'',
+        'Électricité':el?(el==='oui'?'Oui':'Non'):'',
+        "Points d'eau (total)":eau.total==null?'':eau.total, "Points d'eau fonctionnels":eau.fonct==null?'':eau.fonct, "Points d'eau hors service":eau.hs==null?'':eau.hs,
+        "École avec point d'eau":s.eau.known?(s.eau.equipped?'Oui':'Non'):NR,
+        'Autres équipements':(i.autres||[]).map(function(a){ return a.label+' : '+a.qty; }).join(' · '),
+        'Mention':M
+      };
+    });
+  }
+  window.ecInfraRows=function(){ var N=EQ.normsAll(); return F.listEcoles().map(function(e){ var s=EQ.evalSchool(e,N); return { e:e, inf:inf(e), eff:s.eff, tb:s.tb.avail, ratio:null, deficit:s.tb.deficit||0, autresStr:(inf(e).autres||[]).map(function(a){ return a.label+' : '+a.qty; }).join(' · ') }; }); };
+  window.ecInfraExportExcel=function(){
+    var L=F.listEcoles(); if(!L.length){ toast('Aucune école à exporter','error'); return; }
+    exportRowsToExcel(fullRows(L),'infrastructures_'+ecSlug(),'Infrastructures');
+  };
+  window.ecInfraExportPrint=function(){
+    var L=F.listEcoles(); if(!L.length){ toast('Aucune école à exporter','error'); return; }
+    var N=EQ.normsAll(), M=mention(), R=EQ.aggregate(L);
+    var headers=['Code','École',{label:'Effectif',align:'right'},{label:'Table-bancs (fonct.)',align:'right'},{label:'Besoin TB',align:'right'},{label:'Manque TB',align:'right'},{label:'Toilettes (fonct.)',align:'right'},{label:'Besoin toil.',align:'right'},{label:'Manque toil.',align:'right'},{label:'Électricité',align:'center'},{label:'Clôture en dur',align:'center'},{label:"Points d'eau fonct.",align:'right'},{label:'École équipée en eau',align:'center'}];
+    var rows=R.rows.map(function(s){
+      var i=inf(s.e), el=EQ.elecOf(i);
+      return [ s.e.code, s.e.nom, s.effKnown?s.eff:NR, s.tb.known?s.tb.avail:NR, s.tb.need==null?'—':s.tb.need, s.tb.deficit==null?NR:s.tb.deficit, s.toi.known?s.toi.avail:NR, s.toi.need==null?'—':s.toi.need, s.toi.deficit==null?NR:s.toi.deficit, el?(el==='oui'?'Oui':'Non'):NR, s.clo.type==='dur'?'Oui'+(s.clo.src==='auto'?' (à vérifier)':''):(s.clo.type?'Non':NR), s.eau.known?s.eau.fonct:NR, s.eau.known?(s.eau.equipped?'Oui':'Non'):NR ];
+    });
+    rows.push(['','TOTAL', '', R.tb.dispo, R.tb.besoin, R.tb.deficit, R.toi.dispo, R.toi.besoin, R.toi.deficit, R.elec.oui+' oui / '+R.n, R.clo.dur+' / '+R.n, R.eau.points, R.eau.equipees+' / '+R.n]);
+    var sub='Besoin : 1 table-banc pour '+N.tableBanc.valeur+' élèves · 1 toilette pour '+N.toilette.valeur+' élèves (arrondi au supérieur, école par école) · « '+NR+' » ≠ 0'+(M?' · '+M:'');
+    ecPrintDoc('Équipements et infrastructures des écoles', sub, headers, rows, 'infrastructures_'+ecSlug());
+  };
+
+  /* ---------- Import ---------- */
+  var ALIAS={
+    code:['code','codeecole'], nom:['ecole','nom','nomecole'], eff:['effectif'],
+    tb:['tablebancs','tablebanc','tablesbancs'], tbF:['tablebancsfonctionnels','tablebancfonctionnels','tablesbancsfonctionnelles','tablebancsfonctionnelles'],
+    toi:['toilettes','toilette'], toiF:['toilettesfonctionnelles','toilettefonctionnelles'],
+    tx:['tableaux','tableau'], tm:['tablesmaitre','tablemaitre'], clo:['cloture'], cloT:['typedecloture','typecloture','cloturetype'],
+    bd:['bureaudirecteur','bureau'], el:['electricite','electrifie','electrification','ecoleelectrifiee','electrifiee'],
+    eT:['pointsdeautotal','pointsdeau','nombrepointsdeau'], eF:['pointsdeaufonctionnels','pointsdeaufonctionnel'], eH:['pointsdeauhorsservice']
+  };
+  function pick(m,key){ var a=ALIAS[key]; for(var k=0;k<a.length;k++){ if(Object.prototype.hasOwnProperty.call(m,a[k])) return m[a[k]]; } return undefined; }
+  function has(v){ return v!==undefined && v!==null && String(v).trim()!==''; }
+  function cloFromText(v){ var t=T(v); if(!t) return ''; if(/^(en )?dur/.test(t)) return 'dur'; if(/^grillage/.test(t)) return 'grillage'; if(/^partiel/.test(t)) return 'partielle'; if(/^autre/.test(t)) return 'autre'; if(/^aucune/.test(t)) return 'aucune'; return null; }
+  window.ecInfraImport=function(ev){
+    importRowsFromFile(ev,function(rows){
+      var upd=0, nf=0, rej=[], denied=0, N0=0;
+      rows.forEach(function(raw,ri){
+        var m={}; Object.keys(raw).forEach(function(h){ m[nrm(h)]=raw[h]; });
+        var code=has(pick(m,'code'))?String(pick(m,'code')).trim():'', nomv=has(pick(m,'nom'))?String(pick(m,'nom')).trim():'';
+        if(!code&&!nomv) return; N0++;
+        var L=(state.ecoles||[]);
+        var e=code?L.filter(function(x){ return String(x.code)===code; })[0]:null;
+        if(!e&&nomv) e=L.filter(function(x){ return T(x.nom)===T(nomv); })[0];
+        if(!e){ nf++; return; }
+        if(!F.canEdit(e)){ denied++; return; }
+        var i=F.clone(e.infrastructures||(typeof ecInfraEmpty==='function'?ecInfraEmpty():{})), err=null;
+        var set=function(f,key){ var v=pick(m,key); if(!has(v)) return; if(!err) err=F.setField(i,f,v); };
+        set('tableBancs','tb'); set('tbFonct','tbF'); set('toilettes','toi'); set('toiFonct','toiF');
+        set('tableaux','tx'); set('tableMaitre','tm'); set('cloture','clo'); set('bureauDirecteur','bd');
+        set('eauTotal','eT'); set('eauFonct','eF'); set('eauHS','eH');
+        var vE=pick(m,'el'); if(has(vE)&&!err){ var t=T(vE); if(/^(oui|o|yes|1|vrai)$/.test(t)) err=F.setField(i,'electricite','Oui'); else if(/^(non|n|no|0|faux)$/.test(t)) err=F.setField(i,'electricite','Non'); }
+        var vC=pick(m,'cloT'); if(has(vC)&&!err){ var ct=cloFromText(vC); if(ct) err=F.setField(i,'clotureType',ct); }
+        var ef=pick(m,'eff'); if(has(ef)&&!err){ var en=Math.round(num(ef)); if(isFinite(en)&&en>=0){ e.effectif=en; } }
+        if(!err) err=F.cohere(i);
+        if(err){ rej.push('ligne '+(ri+2)+' ('+(e.nom||code)+') : '+err); return; }
+        e.infrastructures=i; upd++;
+      });
+      try{ save('ecoles',state.ecoles); }catch(x){}
+      try{ logAction('infra-import','Import équipements : '+upd+' école(s)'+(rej.length?', '+rej.length+' ligne(s) rejetée(s)':'')); }catch(x){}
+      toast(upd+' école(s) mise(s) à jour'+(nf?' · '+nf+' introuvable(s)':'')+(denied?' · '+denied+' hors de votre périmètre':'')+(rej.length?' · '+rej.length+' ligne(s) rejetée(s) (incohérence)':''),rej.length?'error':'success');
+      if(rej.length){ try{ console.warn('[Import équipements] lignes rejetées :\n'+rej.join('\n')); alert('Lignes rejetées (valeurs incohérentes) :\n\n'+rej.slice(0,12).join('\n')+(rej.length>12?'\n… +'+(rej.length-12):'')); }catch(x){} }
+      if(typeof ecRenderPane==='function') ecRenderPane();
+    });
+  };
+
+  /* ---------- Export de la liste des écoles : colonnes d'équipements complétées ---------- */
+  window.ecExport=function(){
+    var L=state.ecoles||[]; if(!L.length){ toast('Aucune école à exporter','error'); return; }
+    var N=EQ.normsAll();
+    var rows=L.map(function(e){
+      var i=inf(e), s=EQ.evalSchool(e,N), el=EQ.elecOf(i), eau=EQ.eauOf(i);
+      return { Code:e.code, Nom:e.nom, Commune:e.commune, Directeur:e.directeur, Effectif:e.effectif, Classes:e.classes, Statut:e.statut,
+        Latitude:e.lat||'', Longitude:e.lng||'', Ouverte:(e.ouverte===false?'Non':'Oui'),
+        'Table-bancs':EQ.renseigne(i,'tableBancs')?num(i.tableBancs):'', 'Table-bancs fonctionnels':nil(i.tbFonct)?'':num(i.tbFonct),
+        'Toilettes':EQ.renseigne(i,'toilettes')?num(i.toilettes):'', 'Toilettes fonctionnelles':nil(i.toiFonct)?'':num(i.toiFonct),
+        'Clôture':i.cloture||'', 'Type de clôture':EQ.cloLabel(String(i.clotureType||'')), 'Électricité':el?(el==='oui'?'Oui':'Non'):'',
+        "Points d'eau (total)":eau.total==null?'':eau.total, "Points d'eau fonctionnels":eau.fonct==null?'':eau.fonct, "Points d'eau hors service":eau.hs==null?'':eau.hs,
+        'Tableaux':i.tableaux||0, 'Bureau directeur':i.bureauDirecteur||'', 'Tables maître':i.tableMaitre||0 };
+    });
+    exportRowsToExcel(rows,'ecoles_'+(state.activeIepp||'iepp').toLowerCase().replace(/\W+/g,'_'),'Écoles');
+  };
+})();
+</script>
+<script id="iepp-drenaet-module">
+/* ============================================================================
+   DRENAET — création par le superadmin, menu latéral dédié, cloisonnement (AJOUT)
+   - Registre des DRENAET (clé globale « drenaetList ») ; l'identité d'une DRENAET reste son NOM
+     (champ « drenaet » des comptes, du registre des IEPP et de la liste « Administration des IEPP »).
+   - Le retrait de ce bloc ne détruit aucune donnée : les noms de DRENAET restent portés par les comptes/IEPP.
+   ============================================================================ */
+(function(){
+  'use strict';
+  if(window.DRN) return;
+  var KEY='drenaetList';
+  try{ if(typeof GLOBAL_KEYS!=='undefined') GLOBAL_KEYS.add(KEY); }catch(e){}
+  try{ if(typeof AUTO_TRASH_EXCLUDE!=='undefined' && AUTO_TRASH_EXCLUDE.indexOf(KEY)<0) AUTO_TRASH_EXCLUDE.push(KEY); }catch(e){}
+  function esc(s){ return (typeof escapeHtml==='function')?escapeHtml(s):String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function U(){ return (window.state&&state.user)||{}; }
+  function T(s){ return String(s==null?'':s).trim(); }
+  function UP(s){ return T(s).toUpperCase(); }
+  function isSA(){ return U().role==='superadmin'; }
+  function real(n){ n=T(n); return n && UP(n)!=='TOUTES'; }
+
+  function list(){ if(!Array.isArray(state.drenaetList)){ try{ state.drenaetList=load(KEY,[])||[]; }catch(e){ state.drenaetList=[]; } } return state.drenaetList; }
+  function entry(nom){ var k=UP(nom); return list().filter(function(x){ return UP(x&&x.nom)===k; })[0]||null; }
+  function legacyNames(){
+    var o={};
+    (state.drenaet||[]).forEach(function(d){ if(d&&real(d.drenaet)) o[T(d.drenaet)]=1; });
+    (state.ieppRegistry||[]).forEach(function(r){ if(r&&real(r.drenaet)) o[T(r.drenaet)]=1; });
+    (state.users||[]).forEach(function(u){ if(u&&u.role!=='superadmin'&&real(u.drenaet)) o[T(u.drenaet)]=1; });
+    return Object.keys(o);
+  }
+  function names(){
+    var o={}; list().forEach(function(x){ if(x&&real(x.nom)) o[T(x.nom)]=1; });
+    legacyNames().forEach(function(n){ var k=Object.keys(o).filter(function(m){ return UP(m)===UP(n); })[0]; if(!k) o[n]=1; });
+    return Object.keys(o).sort(function(a,b){ return a.localeCompare(b,'fr'); });
+  }
+  function exists(nom){ return names().some(function(n){ return UP(n)===UP(nom); }); }
+  function canonical(nom){ var n=names().filter(function(m){ return UP(m)===UP(nom); })[0]; return n||T(nom); }
+  /* enregistre (sans rien détruire) les DRENAET déjà présentes dans les données d'origine */
+  function ensureRegistered(){
+    if(!isSA()) return;
+    var ch=false;
+    legacyNames().forEach(function(n){ if(!entry(n)){ list().push({ id:'dr_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5), nom:n, code:'', siege:'', directeur:'', statut:'Active', origine:'existante', _upd:Date.now() }); ch=true; } });
+    if(ch){ try{ save(KEY,state.drenaetList); }catch(e){} }
+  }
+  function status(nom){ var e=entry(nom); return e?(e.statut||'Active'):'Active'; }
+  function suspended(nom){ return real(nom) && status(nom)==='Suspendue'; }
+
+  function iepps(nom){
+    var o={}, k=UP(nom);
+    (state.ieppRegistry||[]).forEach(function(r){ if(r&&UP(r.drenaet)===k&&T(r.name)) o[T(r.name)]=1; });
+    (state.drenaet||[]).forEach(function(d){ if(d&&UP(d.drenaet)===k&&T(d.iepp)) o[T(d.iepp)]=1; });
+    return Object.keys(o).sort();
+  }
+  function freeIepps(){
+    var all={}; (state.ieppRegistry||[]).forEach(function(r){ if(r&&T(r.name)) all[T(r.name)]=r; });
+    (state.drenaet||[]).forEach(function(d){ if(d&&T(d.iepp)&&!all[T(d.iepp)]) all[T(d.iepp)]={name:T(d.iepp),drenaet:d.drenaet}; });
+    return Object.keys(all).filter(function(n){ return !real(all[n].drenaet); }).sort();
+  }
+  function accounts(nom){ var k=UP(nom); return (state.users||[]).filter(function(u){ return u&&u.role!=='superadmin'&&UP(u.drenaet)===k; }).length; }
+
+  /* rattache / détache une IEPP : registre, liste régionale ET comptes de l'IEPP (cohérence du cloisonnement) */
+  function syncUsers(ieppName, drenNom){
+    var k=UP(ieppName), ch=false;
+    (state.users||[]).forEach(function(u){ if(u&&u.role!=='superadmin'&&u.role!=='drenaet'&&UP(u.iepp)===k&&T(u.drenaet)!==T(drenNom)){ u.drenaet=T(drenNom); u._upd=Date.now(); ch=true; } });
+    if(ch){ try{ save('users',state.users); }catch(e){} }
+  }
+  function setIeppDren(ieppName, drenNom){
+    var k=UP(ieppName), d=T(drenNom);
+    var r=(state.ieppRegistry||[]).filter(function(x){ return x&&UP(x.name)===k; })[0];
+    if(!r){ state.ieppRegistry=state.ieppRegistry||[]; r={name:T(ieppName)}; state.ieppRegistry.push(r); }
+    r.drenaet=d; r._upd=Date.now();
+    (state.drenaet||[]).forEach(function(x){ if(x&&UP(x.iepp)===k){ x.drenaet=d; x._upd=Date.now(); } });
+    syncUsers(ieppName,d);
+    try{ save('ieppRegistry',state.ieppRegistry); }catch(e){}
+    try{ save('drenaet',state.drenaet); }catch(e){}
+  }
+
+  /* ---------------- interface superadmin : carte « Directions régionales » ---------------- */
+  function card(){
+    if(!isSA()) return '';
+    ensureRegistered();
+    var rows=list().slice().sort(function(a,b){ return String(a.nom).localeCompare(String(b.nom),'fr'); }).map(function(e){
+      var ip=iepps(e.nom), q=esc(e.nom).replace(/'/g,'&#39;'), susp=(e.statut==='Suspendue');
+      return '<tr><td class="fw-7">'+esc(e.nom)+'<div class="text-xs text-muted" style="font-weight:400">'+esc([e.siege,e.directeur].filter(Boolean).join(' · '))+'</div></td>'
+        +'<td><span class="badge badge-blue">'+esc(e.code||'—')+'</span></td>'
+        +'<td class="text-sm">'+(ip.length?esc(ip.map(function(n){return n.replace(/^IEPP\s+/i,'');}).join(', ')):'<span class="text-muted">Aucune IEPP</span>')+'</td>'
+        +'<td style="text-align:center">'+accounts(e.nom)+'</td>'
+        +'<td>'+(susp?'<span class="badge badge-orange">Suspendue</span>':'<span class="badge badge-green">Active</span>')+'</td>'
+        +'<td class="actions-cell" style="white-space:nowrap">'
+        +'<button class="icon-btn" onclick="drnForm(\''+q+'\')" title="Modifier / rattacher des IEPP">✏️</button>'
+        +'<button class="icon-btn" onclick="drnToggle(\''+q+'\')" title="'+(susp?'Réactiver':'Suspendre')+' cette DRENAET">'+(susp?'✅':'⛔')+'</button>'
+        +'<button class="icon-btn danger" onclick="drnDelete(\''+q+'\')" title="Supprimer">🗑️</button></td></tr>';
+    }).join('')||'<tr><td colspan="6" class="table-empty">Aucune DRENAET — utilisez « + Créer une DRENAET »</td></tr>';
+    return '<div class="card" style="padding:14px;margin-bottom:14px;border:1.5px solid var(--blue)">'
+      +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px"><div style="flex:1;min-width:220px"><div class="card-title">🏛️ Directions régionales (DRENAET) — Grand Administrateur</div>'
+      +'<div class="text-xs text-muted">Créez une DRENAET avec son compte de direction : elle disposera de son menu latéral et ne verra que les IEPP et comptes de son périmètre.</div></div>'
+      +'<button class="btn btn-orange" onclick="drnForm()">+ Créer une DRENAET</button></div>'
+      +'<div class="table-wrap" style="border:1px solid var(--line)"><table><thead><tr><th>DRENAET</th><th>Code</th><th>IEPP rattachées</th><th style="text-align:center">Comptes</th><th>Statut</th><th style="width:120px"></th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+  }
+  function genPwd(){ try{ return generateInitialPassword(); }catch(e){ return 'Dr'+Math.random().toString(36).slice(2,10)+'#9'; } }
+  function slug(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/^drenaet\s*(de|d')?\s*/,'').replace(/[^a-z0-9]+/g,'').slice(0,14)||'dren'; }
+
+  window.drnForm=function(nom){
+    if(!isSA()){ toast('Réservé au Grand Administrateur.','error'); return; }
+    var e=nom?entry(nom):null; if(nom&&!e){ toast('DRENAET introuvable.','error'); return; }
+    var mine=e?iepps(e.nom):[], free=freeIepps();
+    var chk=function(n,on){ return '<label style="display:flex;gap:8px;align-items:center;font-size:13px;padding:3px 0"><input type="checkbox" class="drn-iepp" value="'+esc(n)+'" '+(on?'checked':'')+'> '+esc(n)+'</label>'; };
+    var ieppBox='<div class="field"><label>IEPP rattachées à cette DRENAET</label><div style="max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 10px">'
+      +(mine.concat(free).map(function(n){ return chk(n,mine.indexOf(n)>=0); }).join('')||'<span class="text-xs text-muted">Aucune IEPP disponible : créez d\'abord des IEPP (Paramètres). Les IEPP déjà rattachées à une autre DRENAET n\'apparaissent pas.</span>')
+      +'</div></div>';
+    var acct=e?'':('<div class="card" style="background:#F0F4F8;padding:10px 12px;margin-top:8px"><div class="text-xs fw-7" style="margin-bottom:6px">Compte de direction de la DRENAET</div>'
+      +'<div class="form-row"><div class="field"><label>Identifiant</label><input id="drn-user" placeholder="ex : drenaet.boundiali"></div>'
+      +'<div class="field"><label>Mot de passe initial</label><input id="drn-pass" value="'+esc(genPwd())+'"></div></div>'
+      +'<div class="text-xs text-muted">Le mot de passe est affiché une seule fois après la création ; à changer à la première connexion.</div></div>');
+    openModal(e?'Modifier la DRENAET':'Créer une DRENAET',
+      '<div class="form-row"><div class="field"><label>Nom de la DRENAET</label><input id="drn-nom" value="'+esc(e?e.nom:'')+'" '+(e?'readonly':'')+' placeholder="ex : DRENAET Boundiali"></div>'
+      +'<div class="field"><label>Code</label><input id="drn-code" value="'+esc(e?e.code:'')+'" placeholder="ex : DREN-BDL"></div></div>'
+      +'<div class="form-row"><div class="field"><label>Siège / région</label><input id="drn-siege" value="'+esc(e?e.siege:'')+'"></div>'
+      +'<div class="field"><label>Directeur (nom et prénoms)</label><input id="drn-dir" value="'+esc(e?e.directeur:'')+'"></div></div>'
+      +'<div class="form-row"><div class="field"><label>Email</label><input id="drn-mail" type="email" value="'+esc(e?e.email:'')+'"></div>'
+      +'<div class="field"><label>Téléphone</label><input id="drn-tel" value="'+esc(e?e.tel:'')+'"></div></div>'
+      +ieppBox+acct+(e?'<p class="text-xs text-muted" style="margin:6px 0 0">Le nom est verrouillé (il identifie les comptes et IEPP rattachés). Décocher une IEPP la détache de cette DRENAET.</p>':''),
+      '<button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-orange" onclick="drnSave(\''+esc(nom||'').replace(/'/g,'&#39;')+'\')">'+(e?'Enregistrer':'Créer')+'</button>');
+  };
+  window.drnSave=async function(nomEdit){
+    if(!isSA()){ toast('Réservé au Grand Administrateur.','error'); return; }
+    var g=function(id){ var el=document.getElementById(id); return el?T(el.value):''; };
+    var nom=nomEdit?nomEdit:g('drn-nom');
+    if(!nom){ toast('Le nom de la DRENAET est obligatoire.','error'); return; }
+    if(!nomEdit && !/^drenaet/i.test(nom)) nom='DRENAET '+nom;
+    var e=nomEdit?entry(nomEdit):null;
+    if(!nomEdit && exists(nom)){ toast('Cette DRENAET existe déjà.','error'); return; }
+    var chosen=[].slice.call(document.querySelectorAll('.drn-iepp:checked')).map(function(c){ return c.value; });
+    var user=null;
+    if(!nomEdit){
+      var un=g('drn-user'), pw=g('drn-pass');
+      if(!un||!pw){ toast('Identifiant et mot de passe du compte de direction obligatoires.','error'); return; }
+      if((state.users||[]).some(function(u){ return u&&String(u.username).toLowerCase()===un.toLowerCase(); })){ toast('Identifiant déjà utilisé.','error'); return; }
+      user={ username:un, pass:pw };
+    }
+    if(!e){ e={ id:'dr_'+Date.now().toString(36), nom:nom, origine:'creee' }; list().push(e); }
+    e.code=g('drn-code'); e.siege=g('drn-siege'); e.directeur=g('drn-dir'); e.email=g('drn-mail'); e.tel=g('drn-tel'); e.statut=e.statut||'Active'; e._upd=Date.now();
+    /* IEPP : rattache les cochées, détache les décochées */
+    iepps(e.nom).forEach(function(n){ if(chosen.indexOf(n)<0) setIeppDren(n,''); });
+    chosen.forEach(function(n){ setIeppDren(n,e.nom); });
+    if(user){
+      var u={ username:user.username, passwordHash:await hashPassword(user.pass), pwdAdmin:user.pass, name:e.directeur||('Directeur '+e.nom), role:'drenaet', email:e.email||'', tel:e.tel||'', contact:e.tel||'', iepp:'TOUTES', drenaet:e.nom, _upd:Date.now() };
+      state.users.push(u);
+      try{ var del=(load('usersDeleted',[])||[]).filter(function(t){ var x=(t&&typeof t==='object')?((t.u!=null)?t.u:t.username):t; return String(x)!==String(u.username); }); save('usersDeleted',del); }catch(er){}
+      try{ await save('users',state.users); }catch(er){}
+    }
+    try{ save(KEY,state.drenaetList); }catch(er){}
+    try{ logAction(nomEdit?'drenaet-update':'drenaet-create',(nomEdit?'Modification ':'Création ')+'DRENAET '+e.nom); }catch(er){}
+    closeModal(); try{ refreshScopeSelector(); }catch(er){}
+    if(user){
+      openModal('DRENAET créée — '+esc(e.nom),'<p class="text-sm">La DRENAET et son compte de direction ont été créés. Notez ces identifiants : le mot de passe n\'est affiché qu\'ici.</p>'
+        +'<div class="card" style="padding:10px 12px;background:#F0F4F8"><div>Identifiant : <strong>'+esc(user.username)+'</strong></div><div>Mot de passe initial : <strong>'+esc(user.pass)+'</strong></div></div>',
+        '<button class="btn btn-primary" onclick="closeModal()">Fermer</button>');
+    } else toast('DRENAET enregistrée','success');
+    if(typeof renderDrenaet==='function' && state.module==='drenaet') renderDrenaet(true);
+  };
+  window.drnToggle=function(nom){
+    if(!isSA()){ toast('Réservé au Grand Administrateur.','error'); return; }
+    var e=entry(nom); if(!e) return;
+    var to=(e.statut==='Suspendue')?'Active':'Suspendue';
+    if(to==='Suspendue' && !confirm('Suspendre « '+e.nom+' » ?\nLes comptes rattachés à cette DRENAET ne pourront plus se connecter.')) return;
+    e.statut=to; e._upd=Date.now(); try{ save(KEY,state.drenaetList); }catch(er){}
+    try{ logAction('drenaet-statut',e.nom+' → '+to); }catch(er){}
+    toast('DRENAET '+(to==='Active'?'réactivée':'suspendue'),'success');
+    if(typeof renderDrenaet==='function' && state.module==='drenaet') renderDrenaet(true);
+  };
+  window.drnDelete=function(nom){
+    if(!isSA()){ toast('Réservé au Grand Administrateur.','error'); return; }
+    var e=entry(nom); if(!e) return;
+    var ip=iepps(e.nom), nb=accounts(e.nom);
+    if(ip.length||nb){ alert('Impossible de supprimer « '+e.nom+' » : '+ip.length+' IEPP et '+nb+' compte(s) y sont rattachés.\nDétachez/supprimez-les d\'abord.'); return; }
+    if(!confirm('Supprimer définitivement la DRENAET « '+e.nom+' » ?')) return;
+    state.drenaetList=list().filter(function(x){ return x!==e; });
+    try{ save(KEY,state.drenaetList); }catch(er){}
+    try{ logAction('drenaet-delete','Suppression DRENAET '+e.nom); }catch(er){}
+    toast('DRENAET supprimée','success');
+    if(typeof renderDrenaet==='function' && state.module==='drenaet') renderDrenaet(true);
+  };
+
+  /* liste déroulante des DRENAET (formulaires) — conserve une valeur héritée absente de la liste */
+  function selectHtml(id,cur,withEmpty,extra){
+    var ns=names(); if(real(cur)&&!ns.some(function(n){ return UP(n)===UP(cur); })) ns.push(cur);
+    return '<select id="'+id+'">'+(withEmpty?'<option value="">— aucune —</option>':'')+extra.map(function(x){ return '<option value="'+esc(x)+'"'+(x===cur?' selected':'')+'>'+esc(x)+'</option>'; }).join('')
+      +ns.map(function(n){ return '<option value="'+esc(n)+'"'+(UP(n)===UP(cur)?' selected':'')+'>'+esc(n)+'</option>'; }).join('')+'</select>';
+  }
+
+  /* ---------------- menu latéral dédié DRENAET ---------------- */
+  var MOVE=['dashboard','drenaet','users','statistiques','rapports','courrier','archives','audit'];
+  var LABEL={ drenaet:'Mes IEPP (ma région)' };
+  function ensureSection(){
+    var s=document.getElementById('sb-drn-espace'); if(s) return s;
+    var anchor=document.getElementById('sb-drenaet-section'); if(!anchor||!anchor.parentNode) return null;
+    s=document.createElement('div'); s.className='sb-section'; s.id='sb-drn-espace'; s.style.display='none';
+    s.innerHTML='<div class="sb-section-title">Espace DRENAET</div><div id="sb-drn-nom" style="margin:0 12px 8px;padding:8px 10px;border-radius:10px;background:#EAF1F9;color:#002F5A;font-size:12.5px;font-weight:700;line-height:1.3"></div>';
+    anchor.parentNode.insertBefore(s,anchor);
+    return s;
+  }
+  var HOME={};
+  function layoutSidebar(){
+    var s=ensureSection(); if(!s) return;
+    var me=U(), isD=isRegionalRole(me.role);
+    MOVE.forEach(function(m){
+      var el=document.querySelector('.sb-link[data-module="'+m+'"]'); if(!el) return;
+      var lbl=el.querySelector('span:not(.sb-icon)');
+      if(isD){
+        if(!HOME[m]){ HOME[m]={ parent:el.parentNode, next:el.nextSibling, label:lbl?lbl.textContent:'' }; }
+        if(el.parentNode!==s) s.appendChild(el);
+        if(LABEL[m]&&lbl) lbl.textContent=LABEL[m];
+      } else if(HOME[m]){
+        try{ HOME[m].parent.insertBefore(el,(HOME[m].next&&HOME[m].next.parentNode===HOME[m].parent)?HOME[m].next:null); }catch(e){}
+        if(lbl&&HOME[m].label) lbl.textContent=HOME[m].label;
+      }
+    });
+    s.style.display=isD?'':'none';
+    var nm=document.getElementById('sb-drn-nom');
+    if(isD&&nm){ var n=iepps(me.drenaet).length; nm.innerHTML='🏛️ '+esc(me.drenaet||'Ma DRENAET')+'<div style="font-weight:500;font-size:11px;opacity:.8">'+n+' IEPP dans mon périmètre</div>'; }
+    /* la section « Direction régionale » ne contient plus rien pour la DRENAET */
+    var old=document.getElementById('sb-drenaet-section'); if(old && isD) old.style.display='none';
+    if(isD){ s.querySelectorAll('.sb-link').forEach(function(el){ el.style.display=((ACL[me.role]||[]).indexOf(el.dataset.module)>=0)?'':'none'; }); }
+  }
+
+  window.DRN={ names:names, exists:exists, canonical:canonical, entry:entry, status:status, suspended:suspended, iepps:iepps, accounts:accounts, card:card, selectHtml:selectHtml, syncUsers:syncUsers, setIeppDren:setIeppDren, layoutSidebar:layoutSidebar, ensureRegistered:ensureRegistered };
+  window.drenaetManagerCard=card;
+})();
+
+/* Menu latéral dédié DRENAET : appliqué après le filtrage par rôle */
+(function(){ var _a=window.applyACL; if(typeof _a==='function' && !_a.__drn){ window.applyACL=function(){ var r=_a.apply(this,arguments); try{ if(window.DRN) DRN.layoutSidebar(); }catch(e){ console.warn('[DRENAET menu]',e); } return r; }; window.applyACL.__drn=true; } })();
+</script>
+<script id="iepp-drenaet-panel">
+/* ============================================================================
+   DRENAET — panneau « Gestion des DRENAET » (même format que « Activation des IEPP »)
+   + gestion des utilisateurs d'une DRENAET + période d'accès. AJOUT : rien n'est supprimé.
+   ============================================================================ */
+(function(){
+  'use strict';
+  if(window.__drnPanel || !window.DRN) return; window.__drnPanel=true;
+  var KEY='drenaetList';
+  function esc(s){ return escapeHtml(s); }
+  function T(s){ return String(s==null?'':s).trim(); }
+  function UP(s){ return T(s).toUpperCase(); }
+  function isSA(){ return state.user && state.user.role==='superadmin'; }
+  function guard(){ if(!isSA()){ toast('Réservé au Grand Administrateur.','error'); return false; } return true; }
+  function sl(n){ return String(n||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'_'); }
+  function q(n){ return esc(n).replace(/'/g,'&#39;'); }
+  function entries(){ DRN.ensureRegistered(); return (state.drenaetList||[]).slice().sort(function(a,b){ return String(a.nom).localeCompare(String(b.nom),'fr'); }); }
+  function users(nom){ var k=UP(nom); return (state.users||[]).filter(function(u){ return u && u.role!=='superadmin' && UP(u.drenaet)===k; }); }
+  function today(){ return new Date().toISOString().slice(0,10); }
+  function refresh(){ if(typeof renderDrenaet==='function' && state.module==='drenaet') renderDrenaet(true); }
+
+  /* ---- accès : suspension OU hors période (appelé par doLogin) ---- */
+  DRN.blocked=function(nom){
+    if(!nom || UP(nom)==='TOUTES') return '';
+    var e=DRN.entry(nom); if(!e) return '';
+    if(e.statut==='Suspendue') return '⛔ '+nom+' est suspendue par l\'administrateur national. Contactez-le.';
+    var t=today();
+    if((e.debut && t<e.debut) || (e.fin && t>e.fin)) return '⛔ L\'accès de '+nom+' est fermé (hors période d\'accès'+(e.debut?' · du '+e.debut:'')+(e.fin?' · au '+e.fin:'')+'). Contactez l\'administrateur national.';
+    return '';
+  };
+
+  function rowsData(){
+    return entries().map(function(e){
+      var ip=DRN.iepps(e.nom), us=users(e.nom);
+      return { "DRENAET":e.nom, "Code":e.code||'', "Siège":e.siege||'', "Directeur":e.directeur||'', "État":e.statut==='Suspendue'?'Suspendue':'Active',
+               "Accès du":e.debut||'', "Accès au":e.fin||'', "IEPP rattachées":ip.join(', '), "Comptes":us.length };
+    });
+  }
+
+  function panel(){
+    if(!isSA()) return '';
+    var list=entries(), nbC=(state.users||[]).filter(function(u){ return u&&u.role!=='superadmin'&&T(u.drenaet)&&UP(u.drenaet)!=='TOUTES'; }).length;
+    var rows=list.map(function(e){
+      var ip=DRN.iepps(e.nom), us=users(e.nom), on=(e.statut!=='Suspendue'), s=sl(e.nom), n=q(e.nom);
+      var sub=[ip.length+' IEPP', us.length+' compte'+(us.length>1?'s':''), e.directeur||''].filter(Boolean).join(' · ');
+      var blocked=DRN.blocked(e.nom) && on;
+      return '<tr><td class="fw-7">'+esc(e.nom)+(e.code?' <span class="badge badge-blue">'+esc(e.code)+'</span>':'')+'<div class="text-xs text-muted" style="font-weight:400">'+esc(sub)+'</div></td>'
+        +'<td>'+(on?(blocked?'<span class="badge badge-orange">Hors période</span>':'<span class="badge badge-green">Active</span>'):'<span class="badge badge-orange">Suspendue</span>')+'</td>'
+        +'<td><input type="date" id="drn-deb-'+s+'" value="'+esc(e.debut||'')+'" style="padding:4px;border:1px solid var(--line);border-radius:6px;font-size:12px"></td>'
+        +'<td><input type="date" id="drn-fin-'+s+'" value="'+esc(e.fin||'')+'" style="padding:4px;border:1px solid var(--line);border-radius:6px;font-size:12px"></td>'
+        +'<td style="white-space:nowrap;text-align:right">'
+        +(on?'<button class="btn btn-ghost danger" style="padding:4px 8px" onclick="drnToggle(\''+n+'\')" title="Suspendre la DRENAET">⛔</button>'
+            :'<button class="btn btn-ghost" style="padding:4px 8px;color:var(--green-deep)" onclick="drnToggle(\''+n+'\')" title="Réactiver la DRENAET">✅</button>')
+        +' <button class="btn btn-ghost" style="padding:4px 8px" onclick="drnSavePeriode(\''+n+'\')" title="Enregistrer la période d\'accès">💾</button>'
+        +' <button class="btn btn-ghost" style="padding:4px 8px;color:var(--blue)" onclick="drnUsers(\''+n+'\')" title="Gérer les utilisateurs de cette DRENAET">🧑‍💼 Utilisateurs</button>'
+        +' <button class="btn btn-ghost danger" style="padding:4px 8px" onclick="drnBulkActif(\''+n+'\',false)" title="Désactiver TOUS les comptes de cette DRENAET">👥⛔</button>'
+        +' <button class="btn btn-ghost" style="padding:4px 8px;color:var(--green-deep)" onclick="drnBulkActif(\''+n+'\',true)" title="Réactiver TOUS les comptes de cette DRENAET">👥✅</button>'
+        +' <button class="btn btn-ghost" style="padding:4px 8px" onclick="drnForm(\''+n+'\')" title="Modifier (code / IEPP rattachées)">✏️</button>'
+        +' <button class="btn btn-ghost danger" style="padding:4px 8px" onclick="drnDelete(\''+n+'\')" title="Supprimer cette DRENAET">🗑️</button></td></tr>';
+    }).join('')||'<tr><td colspan="5" class="table-empty">Aucune DRENAET — utilisez « + Nouvelle DRENAET »</td></tr>';
+    return '<div class="card" style="padding:14px;margin-bottom:14px;border:1.5px solid var(--blue)">'
+      +'<div class="card-title">🏛️ Gestion des DRENAET (super administrateur national)</div>'
+      +'<p class="text-xs text-muted" style="margin:2px 0 10px">Créez une DRENAET (avec son compte de direction), rattachez-lui des IEPP et paramétrez tous ses utilisateurs (bouton « Utilisateurs »). Désactivée ou hors période, aucun compte de cette DRENAET ne peut se connecter — sauf vous.</p>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:2px 0 10px">'
+      +'<button class="btn btn-primary" onclick="drnForm()">+ Nouvelle DRENAET</button>'
+      +'<span class="text-xs text-muted" style="margin-right:auto">'+list.length+' DRENAET · '+nbC+' compte(s) rattaché(s)</span>'
+      +'<button class="btn btn-ghost" style="padding:6px 10px" onclick="drnExportExcel()" title="Exporter au format Excel/CSV">📊 Export Excel</button>'
+      +'<button class="btn btn-ghost" style="padding:6px 10px" onclick="drnPrint()" title="Imprimer ou enregistrer en PDF">🖨️ Imprimer / PDF</button></div>'
+      +'<div style="overflow:auto;max-height:60vh;border:1px solid var(--line);border-radius:8px"><table class="table" style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr style="text-align:left;color:var(--ink-soft)"><th>DRENAET</th><th>État</th><th>Accès du</th><th>Accès au</th><th style="text-align:right">Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+  }
+  window.drenaetManagerCard=panel; DRN.card=panel;
+
+  window.drnSavePeriode=function(nom){
+    if(!guard()) return; var e=DRN.entry(nom); if(!e) return;
+    var s=sl(nom), d=document.getElementById('drn-deb-'+s), f=document.getElementById('drn-fin-'+s);
+    var deb=d?d.value:'', fin=f?f.value:'';
+    if(deb&&fin&&fin<deb){ toast('La date de fin précède la date de début.','error'); return; }
+    e.debut=deb; e.fin=fin; e._upd=Date.now(); try{ save(KEY,state.drenaetList); }catch(er){}
+    try{ logAction('drenaet-periode',nom+' : '+(deb||'…')+' → '+(fin||'…')); }catch(er){}
+    toast('Période d\'accès enregistrée','success'); refresh();
+  };
+  window.drnBulkActif=function(nom,actif){
+    if(!guard()) return;
+    if(!confirm((actif?'Réactiver':'Désactiver')+' TOUS les comptes de '+nom+' ?\n(Le super administrateur n\'est pas affecté.)')) return;
+    var n=0; users(nom).forEach(function(u){ u.actif=!!actif; u._upd=Date.now(); n++; });
+    try{ save('users',state.users); }catch(er){}
+    try{ logAction('drenaet-bulk-activation',(actif?'Activation':'Désactivation')+' en masse ('+n+') — '+nom); }catch(er){}
+    toast(n+' compte(s) '+(actif?'réactivé(s) ✅':'désactivé(s) ⛔'),actif?'success':'info'); refresh();
+  };
+  window.drnExportExcel=function(){ if(!guard()) return; if(typeof exportRowsToExcel==='function') exportRowsToExcel(rowsData(),'drenaet','DRENAET'); else toast('Export indisponible.','error'); };
+  window.drnPrint=function(){
+    if(!guard()) return; var rows=rowsData(), cols=["DRENAET","Code","Directeur","État","Accès du","Accès au","IEPP rattachées","Comptes"];
+    var html='<h2>Gestion des DRENAET — vue nationale</h2><table><tr>'+cols.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr>'
+      +rows.map(function(r){ return '<tr>'+cols.map(function(c){ return '<td>'+esc(r[c])+'</td>'; }).join('')+'</tr>'; }).join('')+'</table><p style="margin-top:8px;font-size:12px;color:#555">'+rows.length+' DRENAET — édité le '+new Date().toLocaleDateString('fr-FR')+'</p>';
+    if(typeof caPrint==='function'){ caPrint(html,'Gestion des DRENAET'); return; }
+    var w=window.open('','_blank'); if(!w){ toast('Autorisez les fenêtres pop-up pour imprimer.','error'); return; }
+    w.document.write('<html><head><meta charset="utf-8"><title>DRENAET</title><style>body{font-family:system-ui,sans-serif;padding:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:6px 8px;font-size:13px;text-align:left}th{background:#eee}</style></head><body>'+html+'</body></html>'); w.document.close(); setTimeout(function(){ try{ w.print(); }catch(e){} },300);
+  };
+
+  /* ---- utilisateurs d'une DRENAET ---- */
+  var CUR='';
+  function statutBadge(u){ return u.actif===false?'<span class="badge badge-orange">Désactivé</span>':'<span class="badge badge-green">Actif</span>'; }
+  function usersBody(nom){
+    var us=users(nom), reg=us.filter(function(u){ return isRegionalRole(u.role); }), ie=us.filter(function(u){ return !isRegionalRole(u.role); });
+    var tr=function(u){ var r=ROLES[u.role]||{label:u.role};
+      return '<tr><td><code>'+esc(u.username)+'</code></td><td class="fw-7">'+esc(u.name||'')+'</td><td>'+esc(r.label)+'</td><td>'+esc(isRegionalRole(u.role)?'— (toute la région)':(u.iepp||'—'))+'</td><td>'+statutBadge(u)+'</td><td style="white-space:nowrap;text-align:right">'+userActionsHtml(u)+'</td></tr>'; };
+    var th='<thead><tr><th>Identifiant</th><th>Nom</th><th>Fonction</th><th>IEPP</th><th>État</th><th style="text-align:right">Actions</th></tr></thead>';
+    var tbl=function(a,empty){ return '<div style="overflow:auto;max-height:34vh;border:1px solid var(--line);border-radius:8px;margin-bottom:12px"><table class="table" style="width:100%;font-size:13px">'+th+'<tbody>'+(a.map(tr).join('')||'<tr><td colspan="6" class="table-empty">'+empty+'</td></tr>')+'</tbody></table></div>'; };
+    return '<div class="fw-7" style="margin:4px 0 6px">Personnel de la DRENAET ('+reg.length+')</div>'+tbl(reg,'Aucun compte — utilisez « + Nouveau compte DRENAET ».')
+      +'<div class="fw-7" style="margin:4px 0 6px">Comptes des IEPP rattachées ('+ie.length+')</div>'+tbl(ie,'Aucun compte d\'IEPP rattaché à cette DRENAET.');
+  }
+  window.drnUsers=function(nom){
+    if(!guard()) return; var e=DRN.entry(nom); if(!e){ toast('DRENAET introuvable.','error'); return; }
+    CUR=e.nom;
+    openModal('🧑‍💼 Utilisateurs — '+esc(e.nom),
+      '<div style="min-width:min(900px,88vw)"><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center"><button class="btn btn-orange" onclick="drnNewUser()">+ Nouveau compte DRENAET</button>'
+      +'<span class="text-xs text-muted" style="margin-right:auto">Fonctions disponibles : directeur, superviseur, coordo, SG, coordo DEPS, coordo DRH, point focal, agent, autres. Ces comptes ne voient que cette DRENAET.</span></div>'
+      +'<div id="drn-mgr-body">'+usersBody(e.nom)+'</div></div>',
+      '<button class="btn btn-primary" onclick="drnUsersClose()">Fermer</button>');
+  };
+  window.drnUsersClose=function(){ CUR=''; closeModal(); refresh(); };
+  window.drnNewUser=function(){
+    if(!CUR||!guard()) return; var nom=CUR;
+    userForm('', 'dren_agent');
+    var r=document.getElementById('u-role');
+    if(r) [].slice.call(r.options).forEach(function(o){ if(!isRegionalRole(o.value)) o.remove(); });
+    var d=document.getElementById('u-drenaet');
+    if(d){ if(d.tagName==='SELECT'){ if(![].some.call(d.options,function(o){return o.value===nom;})) d.insertAdjacentHTML('beforeend','<option value="'+esc(nom)+'">'+esc(nom)+'</option>'); } d.value=nom; }
+    var i=document.getElementById('u-iepp'); if(i) i.value='TOUTES';
+  };
+  /* après une action sur un compte, on revient à la liste de la DRENAET en cours */
+  ['userSave','userDelete','userSetActif'].forEach(function(fn){
+    var o=window[fn]; if(typeof o!=='function' || o.__drn) return;
+    var w=function(){
+      var r=o.apply(this,arguments), back=function(){ if(CUR){ var c=CUR; setTimeout(function(){ if(CUR===c){ try{ drnUsers(c); }catch(e){} } },60); } };
+      if(r && typeof r.then==='function') r.then(back,back); else back();
+      return r;
+    };
+    w.__drn=1; window[fn]=w;
+  });
+})();
+
+</script>
 </body>
 </html>
