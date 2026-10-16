@@ -1665,10 +1665,13 @@ Object.assign(ROLES, {
   dren_coordo_deps:  { label: 'Coordo DEPS',                                 short: 'Coordo DEPS',         color: 'green' },
   dren_coordo_drh:   { label: 'Coordo DRH en DRENAET',                       short: 'Coordo DRH',          color: 'orange' },
   dren_point_focal:  { label: 'Point Focal',                                 short: 'Point Focal',         color: 'yellow' },
+  dren_conseiller_ciepa: { label: 'Conseiller CIEPA',                         short: 'Conseiller CIEPA',    color: 'blue' },
+  dren_auxiliaire:   { label: 'Auxiliaire',                                  short: 'Auxiliaire',          color: 'grey' },
+  dren_cesal:        { label: 'CESAL',                                       short: 'CESAL',               color: 'green' },
   dren_agent:        { label: 'Agent DRENAET',                               short: 'Agent DRENAET',       color: 'grey' },
   dren_autres:       { label: 'Autres (personnel DRENAET)',                  short: 'Autres DRENAET',      color: 'grey' }
 });
-const REGIONAL_STAFF = ['dren_superviseur','dren_coordo','dren_sg','dren_coordo_deps','dren_coordo_drh','dren_point_focal','dren_agent','dren_autres'];
+const REGIONAL_STAFF = ['dren_superviseur','dren_coordo','dren_sg','dren_coordo_deps','dren_coordo_drh','dren_point_focal','dren_conseiller_ciepa','dren_auxiliaire','dren_cesal','dren_agent','dren_autres'];
 function isRegionalStaff(r){ return REGIONAL_STAFF.indexOf(r) >= 0; }
 function isRegionalRole(r){ return r === 'drenaet' || isRegionalStaff(r); }   /* niveau DRENAET (périmètre = sa région) */
 try { window.isRegionalRole = isRegionalRole; window.REGIONAL_STAFF = REGIONAL_STAFF; } catch(e){}
@@ -1738,7 +1741,7 @@ try { window.ACL = ACL; } catch(e){}
 (function(){
   var base=['dashboard','drenaet','statistiques','rapports','courrier','archives'];
   var extra={ dren_sg:['rh','absences','audit'], dren_coordo:['ecoles','examens','rh','absences'], dren_superviseur:['ecoles','cpi','examens'],
-              dren_coordo_deps:['ecoles','examens','cpi'], dren_coordo_drh:['rh','absences'], dren_point_focal:['ecoles'], dren_agent:[], dren_autres:[] };
+              dren_coordo_deps:['ecoles','examens','cpi'], dren_coordo_drh:['rh','absences'], dren_point_focal:['ecoles'], dren_conseiller_ciepa:['ecoles','cpi'], dren_auxiliaire:[], dren_cesal:['ecoles'], dren_agent:[], dren_autres:[] };
   REGIONAL_STAFF.forEach(function(r){ ACL[r] = base.concat(extra[r]||[]); });
 })();
 
@@ -43389,7 +43392,7 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
     CUR=e.nom;
     openModal('🧑‍💼 Utilisateurs — '+esc(e.nom),
       '<div data-wide="1"><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center"><button class="btn btn-orange" onclick="drnNewUser()">+ Nouveau compte DRENAET</button>'
-      +'<span class="text-xs text-muted" style="margin-right:auto">Fonctions disponibles : directeur, superviseur, coordo, SG, coordo DEPS, coordo DRH, point focal, agent, autres. Ces comptes ne voient que cette DRENAET.</span></div>'
+      +'<span class="text-xs text-muted" style="margin-right:auto">Fonctions disponibles : directeur, superviseur, coordo, SG, coordo DEPS, coordo DRH, point focal, conseiller CIEPA, auxiliaire, CESAL, agent, autres. Ces comptes ne voient que cette DRENAET.</span></div>'
       +'<div id="drn-mgr-body">'+usersBody(e.nom)+'</div></div>',
       '<button class="btn btn-primary" onclick="drnUsersClose()">Fermer</button>');
   };
@@ -44109,16 +44112,57 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
   Object.keys(ACL).forEach(function(r){ if(ACL[r]&&ACL[r].indexOf('recuperation')<0&&['superadmin','inspecteur','drenaet','correspondant','corresp_stat','cpi','directeur','instituteur'].indexOf(r)>=0) ACL[r].push('recuperation'); });
   setInterval(function(){ try{ if(!state||!state.user||document.querySelector('.sb-link[data-module="recuperation"]')) return; var a=document.querySelector('.sb-link[data-module="dashboard"]'); if(!a) return;
     var el=document.createElement('div'); el.className='sb-link'; el.setAttribute('data-module','recuperation'); el.setAttribute('onclick',"navigate('recuperation')"); el.innerHTML='<span class="sb-icon">🛟</span><span>Sauvegarde de récupération</span>'; a.parentNode.insertBefore(el,a.nextSibling); if(typeof applyACL==='function') applyACL(); }catch(e){} },1500);
-  /* onglets d'accès direct aux demandes (tous les rôles sauf l'Inspecteur) */
-  setInterval(function(){ try{ if(!state||!state.user) return; var ins=state.user.role==='inspecteur'; var anchor=document.querySelector('.sb-link[data-module="mes-absences"]'); if(!anchor) return;
-    [['aut','🗓️',"Demande d'autorisation d'absence","absRequestForm()"],['perm','🕑','Demande de permission',"absPermissionForm()"]].forEach(function(d,i,arr){
-      var el=document.querySelector('.sb-link[data-action="'+d[0]+'"]');
-      if(ins){ if(el) el.remove(); return; }
-      if(!el){ el=document.createElement('div'); el.className='sb-link'; el.setAttribute('data-action',d[0]); el.setAttribute('onclick',d[3]); el.innerHTML='<span class="sb-icon">'+d[1]+'</span><span>'+d[2]+'</span>';
-        var prev=i===0?anchor:document.querySelector('.sb-link[data-action="aut"]')||anchor; prev.parentNode.insertBefore(el,prev.nextSibling); }
-    }); }catch(e){} },1500);
   window.__rcApi={snapshot:snapshot,diagnostic:diagnostic,plan:plan,parseKey:parseKey};
   }catch(e){ console.warn('[recovery]',e); }
+})();
+</script>
+<script id="iepp-menu-policy">
+/* Politique des menus (Pilotage) : droits par profil + regroupement « Les Rapports d'activité » */
+(function(){
+  try{
+    var POL={
+      'recuperation':['superadmin'],
+      'valid-conso':['superadmin','correspondant','inspecteur','corresp_stat','directeur'],
+      'cadre-plateforme':['superadmin','correspondant','inspecteur','directeur'],
+      'bulletins-peda':['superadmin','correspondant','inspecteur','directeur','cpi'],
+      'doublons':['superadmin','correspondant','inspecteur','directeur'],
+      'conso-ecole':['directeur'],
+      'fiche-classe':['instituteur']
+    };
+    var NO_TEACHER=['donnees','rapportage-services','rapports-rentree'];
+    function enforce(){
+      Object.keys(ACL).forEach(function(r){
+        var a=ACL[r]; if(!Array.isArray(a)) return;
+        Object.keys(POL).forEach(function(m){
+          var ok=POL[m].indexOf(r)>=0, i=a.indexOf(m);
+          if(ok&&i<0) a.push(m); if(!ok&&i>=0) a.splice(i,1);
+        });
+        if(r==='instituteur') NO_TEACHER.forEach(function(m){ var i=a.indexOf(m); if(i>=0) a.splice(i,1); });
+      });
+    }
+    enforce(); setInterval(enforce,3000);
+    /* supprimer les deux onglets d'action (les boutons flottants et la page « Mes demandes » suffisent) */
+    function dropActionLinks(){ document.querySelectorAll('.sb-link[data-action="aut"],.sb-link[data-action="perm"]').forEach(function(e){ e.remove(); }); }
+    /* groupe « Les Rapports d'activité » */
+    function group(){
+      dropActionLinks();
+      var a=document.querySelector('.sb-link[data-module="rapportage-services"]'), b=document.querySelector('.sb-link[data-module="rapports-rentree"]');
+      var g=document.getElementById('sb-grp-rapports');
+      if(!g){
+        if(!a||!b) return;
+        g=document.createElement('div'); g.className='sb-group'; g.id='sb-grp-rapports';
+        g.innerHTML='<div class="sb-link" id="sb-grp-rapports-h" onclick="toggleGroup(\'sb-grp-rapports\')"><span class="sb-icon">📑</span><span>Les Rapports d\'activité</span><span class="sb-chev">▶</span></div><div class="sb-sub"></div>';
+        a.parentNode.insertBefore(g,a); var sub=g.querySelector('.sb-sub'); sub.appendChild(a); sub.appendChild(b);
+      } else {
+        var sub2=g.querySelector('.sb-sub'); [a,b].forEach(function(x){ if(x&&x.parentNode!==sub2) sub2.appendChild(x); });
+      }
+      var vis=[a,b].some(function(x){ return x&&x.style.display!=='none'; });
+      g.style.display=vis?'':'none';
+      if(vis&&state&&(state.module==='rapportage-services'||state.module==='rapports-rentree')) g.classList.add('open');
+    }
+    setInterval(function(){ try{ if(state&&state.user) group(); }catch(e){} },700);
+    var _a=window.applyACL; if(typeof _a==='function'&&!window.__polWrapped){ window.applyACL=function(){ var r=_a.apply(this,arguments); try{ group(); }catch(e){} return r; }; window.__polWrapped=true; }
+  }catch(e){ console.warn('[menu-policy]',e); }
 })();
 </script>
 </body>
