@@ -287,7 +287,8 @@ a { color: var(--blue); text-decoration: none; }
   #abs-fab .abs-fab-label { display:none; }
   #abs-fab { right:16px; bottom:16px; padding:14px; border-radius:50%; font-size:18px; }
 }
-@media print { #abs-fab { display:none !important; } }
+@media print { #abs-fab, #perm-fab { display:none !important; } }
+#perm-fab:hover { filter:brightness(1.08); transform:translateY(-2px); } #perm-fab { transition:all .15s; }
 
 .sidebar {
   width: var(--sidebar-w);
@@ -1140,6 +1141,8 @@ function vieResetAllData() {
    Le conteneur du tableau défile en interne (hauteur bornée) ; les <th> restent collés en haut. */
 .table-wrap,.card:has(>table){max-height:calc(100vh - 170px);overflow:auto;overscroll-behavior:contain}
 .table-wrap table thead th,.card>table thead th{position:sticky;top:0;z-index:5;background:var(--bg);box-shadow:inset 0 -1px 0 var(--line)}
+/* fenêtres larges (aperçu, listes) : repérées par data-wide="1" dans leur contenu */
+.modal.wide{max-width:min(1150px,96vw)}
 @media print{.table-wrap,.card:has(>table){max-height:none!important;overflow:visible!important}.table-wrap table thead th,.card>table thead th{position:static}}
 input:focus,select:focus,textarea:focus{outline:none;border-color:#16a34a!important;box-shadow:0 0 0 3px rgba(22,163,74,.18)}
 .modal{border-radius:16px;box-shadow:0 24px 60px rgba(15,23,42,.35)}
@@ -1232,7 +1235,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#16a34a!import
         <span class="sb-icon">📊</span><span>Tableau de bord</span>
       </div>
       <div class="sb-link" data-module="mes-absences" onclick="navigate('mes-absences')">
-        <span class="sb-icon">🗓️</span><span>Mes demandes d'absence</span>
+        <span class="sb-icon">🗓️</span><span>Mes demandes d'autorisation d'absence / permission</span>
       </div>
       <div class="sb-link" data-module="statistiques" onclick="navigate('statistiques')">
         <span class="sb-icon">📈</span><span>Statistiques</span>
@@ -1585,8 +1588,12 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#16a34a!import
   </main>
   <!-- Bouton flottant universel : Demande d'autorisation d'absence (tous les services) -->
   <button id="abs-fab" onclick="absRequestForm()" title="Demander une autorisation d'absence"
-    style="position:fixed;right:22px;bottom:22px;z-index:900;display:flex;align-items:center;gap:8px;padding:13px 18px;border:none;border-radius:30px;background:linear-gradient(135deg,#1D4ED8,#1E3A8A);color:#fff;font-weight:700;font-size:13.5px;cursor:pointer;box-shadow:0 6px 20px rgba(29,78,216,.4);font-family:inherit">
-    🗓️ <span class="abs-fab-label">Demande d'absence</span>
+    style="position:fixed;right:22px;bottom:64px;z-index:900;display:flex;align-items:center;gap:6px;padding:7px 13px;border:none;border-radius:12px;background:linear-gradient(135deg,#1D4ED8,#1E3A8A);color:#fff;font-weight:600;font-size:11px;line-height:1.25;max-width:200px;text-align:left;cursor:pointer;box-shadow:0 3px 10px rgba(29,78,216,.35);font-family:inherit">
+    🗓️ <span class="abs-fab-label">Demande d'autorisation d'absence</span>
+  </button>
+  <button id="perm-fab" onclick="absPermissionForm()" title="Demande de permission (courte sortie)"
+    style="position:fixed;right:22px;bottom:112px;z-index:900;display:flex;align-items:center;gap:6px;padding:7px 13px;border:none;border-radius:12px;background:linear-gradient(135deg,#0F766E,#115E59);color:#fff;font-weight:600;font-size:11px;line-height:1.25;cursor:pointer;box-shadow:0 3px 10px rgba(15,118,110,.35);font-family:inherit">
+    🕑 <span class="abs-fab-label">Demande de permission</span>
   </button>
 </div>
 
@@ -1857,7 +1864,7 @@ const KEY = 'iepp_';
    La DRENAET bascule entre ses IEPP ; le Superadmin entre toutes.
    ================================================================== */
 const GLOBAL_KEYS = new Set(['users','usersDeleted','customServices','current_user','drenaet','active_iepp','ieppRegistry','ieppRegistryDeleted','pnapasForm','courrierMsg','courrierMatrice','ieppStats']);
-const SCOPED_KEY_LIST = ['fichesPeda','rapportsAuto','rapportsRentree','ecoles','audit','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','carteRapports','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','secteurs','cpppBulletins','pointage','alphaCentres','alphaAuditeurs','alphaMatriceAction','alphaPasserelles','alphaEcolesCom','alphaRapports','alphaBullDom','alphaEcoEleves','alphaPassEleves','alphaEcoMatrice','alphaPassMatrice','alphaBulletins','rapportsService','islamStructures','islamApprenants','islamMatriceAction','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted','economatRegDeleted','secretariatRegDeleted','cantineRegDeleted','smossRegDeleted','communicationRegDeleted','biblioRegDeleted','archivisteRegDeleted','svcPermDeleted','pnapasClasse','aserEleves','notesCompos','notesComposRem','notesComposDfa','absEleves','notesMat'];
+const SCOPED_KEY_LIST = ['fichesClasse','consoEcoles','fichesPeda','rapportsAuto','rapportsRentree','ecoles','audit','effectifs','personnel','absences','visites','examens','coges','cogesReg','economat','economatReg','courrier','notifications','archives','archivisteReg','secretariatReg','communicationReg','cantineReg','smossReg','biblioReg','statSituationReg','fichesReponses','fichesCustom','matrice','matriceExamens','matriceCpi','matriceVieScolaire','vieActivites','viePlanification','vieClubs','vieVisites','vieDocuments','vieSettings','rhAffectations','rhFormations','rhDossiers','rhDocumentsRH','rhSettings','matriceRH','elevesFichier','recrutementCP1','recrutementMater','pnapas','aser','svcMat','svcPerm','effPrescolaire','effPrimaire','effMeta','effRentreeMater','effRentreePrim','effRentreeMeta','carteScolaire','carteRapports','compositions','immatRequests','pnapasResponses','aserVerif','corbeille','ceapCandidates','dirTels','cppp','secteurs','cpppBulletins','pointage','alphaCentres','alphaAuditeurs','alphaMatriceAction','alphaPasserelles','alphaEcolesCom','alphaRapports','alphaBullDom','alphaEcoEleves','alphaPassEleves','alphaEcoMatrice','alphaPassMatrice','alphaBulletins','rapportsService','islamStructures','islamApprenants','islamMatriceAction','ecolesDeleted','elevesFichierDeleted','effectifsDeleted','personnelDeleted','pointageDeleted','matriceDeleted','matriceRHDeleted','matriceCpiDeleted','matriceExamensDeleted','matriceVieScolaireDeleted','cogesRegDeleted','svcMatDeleted','statSituationRegDeleted','economatRegDeleted','secretariatRegDeleted','cantineRegDeleted','smossRegDeleted','communicationRegDeleted','biblioRegDeleted','archivisteRegDeleted','svcPermDeleted','pnapasClasse','aserEleves','notesCompos','notesComposRem','notesComposDfa','absEleves','notesMat'];
 function scopeSlug(iepp){
   return 'c_' + String(iepp||'IEPP TENGRELA').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 }
@@ -1975,8 +1982,12 @@ const state = {
 };
 try { window.state = state; } catch(e){}
 
+var __PREV = {};   /* instantané des données d'amorçage (jamais encore enregistrées) : base de comparaison pour détecter les suppressions */
+function prevStored(k){ var sk=storeKey(k), v=null; try{ v=localStorage.getItem(sk); }catch(e){} return v || __PREV[sk] || null; }
 function load(k, fallback) {
-  try { const v = localStorage.getItem(storeKey(k)); return v ? JSON.parse(v) : fallback; }
+  try { const v = localStorage.getItem(storeKey(k));
+    if (!v && fallback && typeof fallback==='object' && (Array.isArray(fallback)?fallback.length:Object.keys(fallback).length)) { try{ __PREV[storeKey(k)] = JSON.stringify(fallback); }catch(e){} }
+    return v ? JSON.parse(v) : fallback; }
   catch(e) { return fallback; }
 }
 
@@ -2024,7 +2035,7 @@ function recordMergeTrack(k, val){
   if (RECORD_MERGE_OBJ[k]) return recordMergeTrackObj(k, val);
   if (!RECORD_MERGE[k] || !Array.isArray(val)) return val;
   var prev = [];
-  try { prev = JSON.parse(localStorage.getItem(storeKey(k)) || '[]') || []; } catch(e){ prev = []; }
+  try { prev = JSON.parse(prevStored(k) || '[]') || []; } catch(e){ prev = []; }
   var prevById = {}; prev.forEach(function(it){ if(it && it.id!=null) prevById[it.id]=it; });
   var now = Date.now();
   val.forEach(function(it){
@@ -2212,17 +2223,18 @@ function autoTrashTrack(k, val){
   try{
     if (AUTO_TRASH_EXCLUDE.indexOf(k)>=0 || isTombstoneKey(k) || /__(gtomb|ometa)$/.test(k)) return;
     if (typeof state==='undefined' || !state || !state.user) return;
-    var prevRaw=null; try{ prevRaw=JSON.parse(localStorage.getItem(storeKey(k))||'null'); }catch(e){ prevRaw=null; }
+    var prevRaw=null; try{ prevRaw=JSON.parse(prevStored(k)||'null'); }catch(e){ prevRaw=null; }
     if (prevRaw==null) return;
     var removed=[];   /* {item, regKey, subPath} */
     if (Array.isArray(val) && Array.isArray(prevRaw) && (RECORD_MERGE[k] || isGenericMergeKey(k))){
       var nowK={}; val.forEach(function(it){ nowK[genericRecKey(it)]=1; });
       prevRaw.forEach(function(it){ if(it && typeof it==='object' && !nowK[genericRecKey(it)]) removed.push({item:it}); });
-    } else if (RECORD_MERGE_OBJ[k] && isPlainObj(val) && isPlainObj(prevRaw)){
+    } else if ((RECORD_MERGE_OBJ[k] || k==='fichesReponses') && isPlainObj(val) && isPlainObj(prevRaw)){
+      var _iid=function(it){ return it&&(it.id!=null?it.id:it._id); };   /* fiches statistiques : lignes identifiées par _id */
       Object.keys(prevRaw).forEach(function(p){
         if (!Array.isArray(prevRaw[p])) return;
-        var ids={}; (Array.isArray(val[p])?val[p]:[]).forEach(function(it){ if(it&&it.id!=null) ids[it.id]=1; });
-        prevRaw[p].forEach(function(it){ if(it&&it.id!=null&&!ids[it.id]) removed.push({item:it, regKey:k, subPath:p}); });
+        var ids={}; (Array.isArray(val[p])?val[p]:[]).forEach(function(it){ if(_iid(it)!=null) ids[_iid(it)]=1; });
+        prevRaw[p].forEach(function(it){ if(_iid(it)!=null&&!ids[_iid(it)]) removed.push({item:it, regKey:k, subPath:p}); });
       });
     }
     if (!removed.length) return;
@@ -2230,12 +2242,13 @@ function autoTrashTrack(k, val){
     setTimeout(function(){
       try{
         if (typeof trashGeneric!=='function') return;
-        var cb = (state.corbeille||[]), since=Date.now()-120000;
+        var cb = (state.corbeille||[]).slice(), since=Date.now()-120000;
         function strip(o){ try{ var c={}; Object.keys(o).forEach(function(x){ if(x!=='_upd'&&x!=='_sub'&&x!=='_ft') c[x]=o[x]; }); return JSON.stringify(c); }catch(e){ return ''; } }
         removed.forEach(function(r){
           var it=r.item, idv=(it.id!=null?it.id:(it.username!=null?it.username:null)), sj=strip(it);
           var dup = cb.some(function(t){
             var at=Date.parse(t.deletedAt||'')||0; if (at && at<since) return false;
+            if (!(t.parentKey===k || (r.regKey && t.regKey===r.regKey && t.subPath===r.subPath))) return false;   /* même liste uniquement : des identifiants identiques existent dans d'autres listes */
             if (idv!=null && (t.matchVal===idv || (t.data && (t.data.id===idv || (t.data.ens&&t.data.ens.id===idv))))) return true;
             return !!(t.data && strip(t.data)===sj);
           });
@@ -2243,8 +2256,7 @@ function autoTrashTrack(k, val){
           var c=JSON.parse(JSON.stringify(it)); delete c._sub; delete c._ft;
           trashGeneric({ item:c, type:'auto', parentKey:(r.regKey?null:k), regKey:r.regKey||null, subPath:r.subPath||null,
             moduleLabel: AUTO_TRASH_LABELS[k] || AUTO_TRASH_LABELS[r.regKey] || k });
-          cb = state.corbeille||[];
-        });
+        });   /* dédoublonnage vis-à-vis des entrées antérieures seulement : tout le lot part en corbeille */
       }catch(e){ console.warn('autoTrash', e); }
     }, 700);
   }catch(e){ console.warn('autoTrashTrack', e); }
@@ -2315,7 +2327,7 @@ function genericTombTrack(k, val){
   try{
     if (!isGenericMergeKey(k) || !Array.isArray(val)) return;
     var prev=[];
-    try{ prev = JSON.parse(localStorage.getItem(storeKey(k))||'[]')||[]; }catch(e){ prev=[]; }
+    try{ prev = JSON.parse(prevStored(k)||'[]')||[]; }catch(e){ prev=[]; }
     if (!Array.isArray(prev)) return;
     var nowKeys={}; val.forEach(function(it){ nowKeys[genericRecKey(it)]=1; });
     var removed = prev.filter(function(it){ return !nowKeys[genericRecKey(it)]; })
@@ -2445,7 +2457,7 @@ function recordMergeArrays(listKey, cloudArr, localArr, cloudTomb, localTomb){
 function recordMergeTrackObj(k, val){
   if (!RECORD_MERGE_OBJ[k] || !val || typeof val!=='object' || Array.isArray(val)) return val;
   var prev = {};
-  try { prev = JSON.parse(localStorage.getItem(storeKey(k)) || '{}') || {}; } catch(e){ prev = {}; }
+  try { prev = JSON.parse(prevStored(k) || '{}') || {}; } catch(e){ prev = {}; }
   var now = Date.now();
   var strip = function(o){ var c=Object.assign({},o); delete c._upd; delete c._sub; delete c._ft; return JSON.stringify(c); };
   Object.keys(val).forEach(function(path){
@@ -2631,6 +2643,7 @@ function save(k, val) {
   try { if (typeof objMetaTrack === 'function') objMetaTrack(k, val); } catch(e){ console.warn('objMetaTrack', e); }
   try { if (typeof autoTrashTrack === 'function') autoTrashTrack(k, val); } catch(e){ console.warn('autoTrashTrack', e); }
   try { localStorage.setItem(storeKey(k), JSON.stringify(val)); } catch(e){ console.error('save fail', e); }
+  try { delete __PREV[storeKey(k)]; } catch(e){}
   try { if ((k==='ecoles'||k==='effectifs'||k==='elevesFichier') && typeof publishIeppStats==='function') publishIeppStats(); } catch(e){}
   try { if (window.__cloudPush) return window.__cloudPush(storeKey(k), val); } catch(e){}
   return Promise.resolve({queued:true, ok:false});
@@ -2650,7 +2663,7 @@ const SCOPED_STATE = [
   ['cppp', defaultCPPP],
   ['cpppBulletins', defaultCpppBulletins],
   ['pointage', ()=>[]],
-  ['fichesPeda', ()=>[]], ['rapportsAuto', ()=>[]], ['rapportsRentree', ()=>[]], ['notesCompos', ()=>[]], ['notesComposRem', ()=>[]], ['notesComposDfa', ()=>[]], ['absEleves', ()=>[]], ['notesMat', ()=>[]], ['alphaPasserelles', ()=>[]], ['alphaEcolesCom', ()=>[]], ['alphaRapports', ()=>[]], ['alphaBullDom', ()=>[]], ['alphaEcoEleves', ()=>[]], ['alphaPassEleves', ()=>[]], ['alphaEcoMatrice', ()=>[]], ['alphaPassMatrice', ()=>[]], ['alphaBulletins', ()=>[]], ['rapportsService', ()=>[]],
+  ['fichesClasse', ()=>[]], ['consoEcoles', ()=>[]], ['fichesPeda', ()=>[]], ['rapportsAuto', ()=>[]], ['rapportsRentree', ()=>[]], ['notesCompos', ()=>[]], ['notesComposRem', ()=>[]], ['notesComposDfa', ()=>[]], ['absEleves', ()=>[]], ['notesMat', ()=>[]], ['alphaPasserelles', ()=>[]], ['alphaEcolesCom', ()=>[]], ['alphaRapports', ()=>[]], ['alphaBullDom', ()=>[]], ['alphaEcoEleves', ()=>[]], ['alphaPassEleves', ()=>[]], ['alphaEcoMatrice', ()=>[]], ['alphaPassMatrice', ()=>[]], ['alphaBulletins', ()=>[]], ['rapportsService', ()=>[]],
 ];
 function emptyLike(k) {
   if (['cogesReg','economatReg','secretariatReg','cantineReg','smossReg','communicationReg','biblioReg','archivisteReg','statSituationReg'].includes(k)) return {};
@@ -2669,6 +2682,12 @@ function reloadScopedState() {
     try { fallback = isPrimary ? df() : emptyLike(k); } catch(e) { fallback = emptyLike(k); }
     state[k] = load(k, fallback);
   });
+  /* registres « fiche rentrée » : propres à chaque IEPP (jusqu'ici conservés en mémoire d'une IEPP à l'autre) */
+  try {
+    state.effRentreeMater = load('effRentreeMater', isPrimary ? defaultEffRentree('mater') : defaultEffRentree('mater'));
+    state.effRentreePrim  = load('effRentreePrim',  defaultEffRentree('prim'));
+    state.effRentreeMeta  = load('effRentreeMeta',  {});
+  } catch(e) {}
   if (typeof migrateCpppFonctions === 'function') migrateCpppFonctions();
   if (typeof registerCustomServices === 'function') registerCustomServices();
 }
@@ -3173,7 +3192,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
         try{ lG=JSON.parse(localStorage.getItem(gk)||'[]')||[]; }catch(e){}
         var uG=mergeGenericTomb(cG, lG), set={};
         uG.forEach(function(t){ if(t&&t.k!=null&&gtombActive(t)) set[t.k]=1; });
-        m = m.filter(function(r){ return !set[genericRecKey(r)]; });
+        m = m.filter(function(r){ if(set[genericRecKey(r)]){ try{ window.__rescueLocal&&window.__rescueLocal(base,[r],val); }catch(e){} return false; } return true; });
       }
       return m;
     }
@@ -3315,7 +3334,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
                 var _uT = mergeGenericTomb(_cT, _lT);
                 if (_uT.length){
                   var _tset={}; _uT.forEach(function(t){ if(t&&t.k!=null && gtombActive(t)) _tset[t.k]=1; });
-                  _m = _m.filter(function(r){ return !_tset[genericRecKey(r)]; });
+                  _m = _m.filter(function(r){ if(_tset[genericRecKey(r)]){ try{ window.__rescueLocal&&window.__rescueLocal(k,[r],_lA); }catch(e){} return false; } return true; });
                 }
                 localStorage.setItem(_tk, JSON.stringify(_uT));
                 try { await withTimeout(sbSet(_tk, JSON.stringify(_uT)), 15000, _tk); } catch(e){}
@@ -19835,6 +19854,7 @@ function renderParametres() {
 
     ` : ''}
     ${ieppManagerCard()}
+    ${(typeof iepForeignCard==='function') ? iepForeignCard() : ''}
 
     <div class="card" style="border:2px solid #2A9D8F;background:#fff;padding:16px;margin-bottom:16px">
       <h3 style="font-size:15px;margin:0 0 6px;color:#1d7d70">🛟 Sauvegarde &amp; Synchronisation cloud</h3>
@@ -23380,6 +23400,7 @@ function renderStatEffectifs() {
         <div class="text-xs text-muted">Met à jour la liste des écoles (préscolaire et primaire) à partir des remontées, en ajoutant les écoles manquantes sans écraser vos saisies. Dernière synchronisation : <strong>${last}</strong></div>
       </div>
       <button class="btn btn-orange btn-sm" onclick="syncEffectifsFromRemontees()">🔄 Synchroniser depuis les remontées</button>
+      <button class="btn btn-ghost btn-sm" onclick="iepForeignOpen()" title="Repérer et retirer les écoles d'une autre IEPP mélangées à cette base">🧹 Retirer les écoles d'une autre IEPP</button>
     </div>` : ''}
 
     <div class="tabs">
@@ -23768,9 +23789,12 @@ function syncEffectifsFromRemontees() {
     'Maternelle Tengrela 2','Maternelle Tengrela 3','Maternelle Tengrela Château','Maternelle Tengrela Résidentiel',
     'Maternelle Niangbo','Maternelle Niédiékaha','Maternelle Ouéréguékaha'
   ];
+  /* Cloisonnement : la liste de référence ci-dessus est celle de Tengrela ; une autre IEPP n'utilise que SES maternelles */
+  const _isTen = (activeScope === scopeSlug('IEPP TENGRELA'));
+  const _refPres = _isTen ? refPres : (state.ecoles||[]).filter(e=>/^(maternelle|pr[ée]scolaire|jardin|cr[eè]che)/i.test(String(e.nom||'').trim())).map(e=>e.nom);
   const exP = new Set((state.effPrescolaire||[]).map(r=>r.nom.trim().toLowerCase()));
   let addP = 0;
-  refPres.forEach(nom => { if (!exP.has(nom.toLowerCase())) { state.effPrescolaire.push({ id:'efp'+uid()+'_s'+addP, nom, psG:0,psF:0,msG:0,msF:0,gsG:0,gsF:0 }); addP++; } });
+  _refPres.forEach(nom => { if (!exP.has(nom.toLowerCase())) { state.effPrescolaire.push({ id:'efp'+uid()+'_s'+addP, nom, psG:0,psF:0,msG:0,msF:0,gsG:0,gsF:0 }); addP++; } });
 
   // Primaire : écoles primaires issues des remontées (fichier des écoles)
   const refPrim = (state.ecoles||[]).filter(e=>/^EPP/i.test(e.nom)).map(e=>e.nom);
@@ -27011,6 +27035,7 @@ function corbeilleRestore(trashId) {
     state[tr.regKey][tr.subPath] = state[tr.regKey][tr.subPath] || [];
     const arr = state[tr.regKey][tr.subPath];
     if (tr.data && tr.data.id && arr.find(x => x.id === tr.data.id)) tr.data.id = 'r_' + uid();
+    if (tr.data && typeof tr.data==='object') tr.data._upd = Date.now();   /* la restauration l'emporte sur la marque de suppression (autres appareils) */
     arr.unshift(tr.data);
     save(tr.regKey, state[tr.regKey]);
     state.corbeille = state.corbeille.filter(x => x.id !== trashId);
@@ -27033,6 +27058,7 @@ function corbeilleRestore(trashId) {
   if (tr.parentKey === 'users' && tr.data && tr.data.username){
     tr.data._upd = Date.now();   /* la restauration doit l'emporter sur la marque de suppression */
   }
+  if (tr.data && typeof tr.data==='object') tr.data._upd = Date.now();   /* la restauration l'emporte sur la marque de suppression (autres appareils) */
   state[tr.parentKey].push(tr.data);
   save(tr.parentKey, state[tr.parentKey]);
   /* Compte restauré depuis la corbeille : on lève la marque de suppression (tous formats) */
@@ -27100,6 +27126,7 @@ function corbeilleRestoreAll() {
       state[tr.regKey][tr.subPath] = state[tr.regKey][tr.subPath] || [];
       const arr = state[tr.regKey][tr.subPath];
       if (tr.data && tr.data.id && arr.find(x => x.id === tr.data.id)) tr.data.id = 'r_' + uid();
+      if (tr.data && typeof tr.data==='object') tr.data._upd = Date.now();
       arr.unshift(tr.data);
       touchedReg.add(tr.regKey);
       state.corbeille = state.corbeille.filter(x => x.id !== tr.id);
@@ -27109,6 +27136,7 @@ function corbeilleRestoreAll() {
     state[tr.parentKey] = state[tr.parentKey] || [];
     if (tr.matchKey === 'username' && state[tr.parentKey].find(x => x.username === tr.data.username)) return;
     if (tr.matchKey === 'id' && state[tr.parentKey].find(x => x.id === tr.data.id)) tr.data.id = (tr.type.slice(0,2)||'r') + '_' + uid();
+    if (tr.data && typeof tr.data==='object') tr.data._upd = Date.now();
     state[tr.parentKey].push(tr.data);
     touchedFlat.add(tr.parentKey);
     state.corbeille = state.corbeille.filter(x => x.id !== tr.id);
@@ -33519,7 +33547,7 @@ function userRestoreFromTrash(trashId){
     }).join('') : '<div class="card text-muted" style="padding:28px;text-align:center">Aucune demande d\'autorisation d\'absence pour le moment.</div>';
     setContent('<div class="hero" style="background:linear-gradient(135deg,#7B2CBF 0%,#4A1376 100%)"><h3>🗓️ Mes demandes <em>d\'absence</em></h3>'
       +'<p>Suivez l\'évolution de vos demandes : dépôt, validation du Directeur, du CPS (Conseiller de secteur), décision de l\'Inspecteur et finalisation par l\'IEPP. Imprimez ou téléchargez la fiche de suivi en PDF.</p></div>'
-      +'<div class="toolbar"><div style="flex:1"></div><button class="btn btn-orange" onclick="(typeof absRequestForm===\'function\')&&absRequestForm()">➕ Nouvelle demande</button></div>'+cards);
+      +'<div class="toolbar"><div style="flex:1"></div><button class="btn btn-orange" onclick="(typeof absRequestForm===\'function\')&&absRequestForm()">➕ Autorisation d\'absence</button> <button class="btn btn-ghost" onclick="(typeof absPermissionForm===\'function\')&&absPermissionForm()">🕑 Demande de permission</button></div>'+cards);
   };
 
   /* ---------- 4) Impression ---------- */
@@ -39535,7 +39563,15 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
   function mn(s){ return String(s==null?'':s).replace(/\s+/g,'').toUpperCase(); }
   function iepp(){ var st=S(); return (st&&(st.activeIepp||(st.user&&st.user.iepp)))||''; }
   function same(a,b){ return String(a||'').trim().toUpperCase()===String(b||'').trim().toUpperCase(); }
-  function ign(){ try{ return JSON.parse(localStorage.getItem(storeKey('annIgnore'))||'[]')||[]; }catch(e){ return []; } }
+  function ign(){
+    var a=[]; try{ a=JSON.parse(localStorage.getItem(storeKey('annIgnore'))||'[]')||[]; }catch(e){ a=[]; }
+    /* Tout élément présent dans la Corbeille ne doit JAMAIS être recréé automatiquement : il ne revient que par « Restaurer » */
+    try{ var st=S(); ((st&&st.corbeille)||[]).forEach(function(t){ var d=t&&t.data; if(!d||typeof d!=='object') return;
+      if(t.parentKey==='ecoles'&&d.nom) a.push('E:'+ekey(d.nom));
+      if(t.parentKey==='personnel'){ if(d.userRef) a.push(d.userRef); if(d.secRef) a.push('S:'+d.secRef); if(/^pu_/.test(String(d.id||''))) a.push(String(d.id).slice(3)); if(d.nom) a.push('N:'+nn(d.nom)); }
+    }); }catch(e){}
+    return a;
+  }
   function setIgn(a){ try{ localStorage.setItem(storeKey('annIgnore'),JSON.stringify(a)); }catch(e){} }
 
   /* 1) Comptes de l'IEPP -> Personnel (RH, absences, visites, rapports…) */
@@ -39548,7 +39584,7 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
     st.users.forEach(function(u){
       if(!u||!u.username||SKIP[u.role]||!same(u.iepp,ip)||u.actif===false) return;
       var nm=(u.name||u.username), key=nn(nm), id='pu_'+u.username;
-      if(ig.indexOf(u.username)>=0) return;
+      if(ig.indexOf(u.username)>=0||ig.indexOf('N:'+key)>=0) return;
       var p=st.personnel.find(function(x){ return x&&(x.userRef===u.username||x.id===id); });
       if(!p) p=st.personnel.find(function(x){ return x&&!x.userRef&&nn(x.nom)===key; });
       if(p){
@@ -41825,7 +41861,7 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
   var closing=false, loggingOut=false;
 
   /* 1) clés lues une seule fois au démarrage et jamais rechargées après une synchro/changement d'IEPP */
-  var EXTRA=['pnapasClasse','aserEleves','effRentreeMater','effRentreePrim','effRentreeMeta','secteurs','alphaCentres','alphaAuditeurs','alphaMatriceAction','alphaPasserelles','alphaEcolesCom','alphaRapports','alphaBullDom','alphaEcoEleves','alphaPassEleves','alphaEcoMatrice','alphaPassMatrice','alphaBulletins','rapportsService','islamStructures','islamApprenants','islamMatriceAction'];
+  var EXTRA=['fichesClasse','consoEcoles','pnapasClasse','aserEleves','effRentreeMater','effRentreePrim','effRentreeMeta','secteurs','alphaCentres','alphaAuditeurs','alphaMatriceAction','alphaPasserelles','alphaEcolesCom','alphaRapports','alphaBullDom','alphaEcoEleves','alphaPassEleves','alphaEcoMatrice','alphaPassMatrice','alphaBulletins','rapportsService','islamStructures','islamApprenants','islamMatriceAction'];
   var ARR_DEFAULT_EMPTY=['pnapasClasse','aserEleves'];
   if(typeof window.reloadScopedState==='function' && !window.__extraReloadWrapped){
     var _r=window.reloadScopedState;
@@ -42000,7 +42036,8 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
   try{ if(ACL.inspecteur) ACL.inspecteur=ACL.inspecteur.filter(function(m){ return m!=='mes-absences'; }); }catch(e){}
   function apply(){
     var on=isInsp();
-    var fab=document.getElementById('abs-fab'); if(fab) fab.style.display=(on||(state.user&&state.user.role==='superadmin'))?'none':'';
+    var fab=document.getElementById('abs-fab'); if(fab) fab.style.display=on?'none':'';
+    var pf=document.getElementById('perm-fab'); if(pf) pf.style.display=on?'none':'';
     document.querySelectorAll('.sb-link[data-module="mes-absences"]').forEach(function(l){ if(on) l.style.display='none'; });
   }
   if(!window.__inspCourrierWrapped){
@@ -42523,6 +42560,7 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
     return provLine()
       +'<div class="card" style="background:#FFF9E6;padding:12px 14px;margin-bottom:10px;border-left:3px solid #B45309"><div class="text-xs"><strong>Saisie directe</strong> · cliquez dans une cellule pour saisir / corriger une valeur — l\'enregistrement est automatique à la sortie du champ. <strong>Cellule vide = non renseigné</strong> (différent de 0 : saisissez 0 pour confirmer l\'absence). Besoin en tables-bancs et toilettes : arrondi au supérieur, école par école ; les équipements hors service ne comptent pas comme disponibles.</div></div>'
       +'<div class="toolbar"><div style="flex:1"></div>'
+      +UI.autoBtns()
       +'<button class="btn btn-ghost" onclick="eqNormsOpen()">📏 Normes de calcul</button>'
       +'<button class="btn btn-ghost" onclick="document.getElementById(\'ec-infra-import\').click()">📥 Importer Excel</button>'
       +'<input type="file" id="ec-infra-import" accept=".xlsx,.xls,.csv" style="display:none" onchange="ecInfraImport(event)">'
@@ -42646,6 +42684,200 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
     toast('Enregistré','success');
     ecRenderPane();
   };
+  /* ====================================================================
+     REMPLISSAGE INTELLIGENT du tableau Infrastructures (AJOUT)
+     Sources : fiches statistiques (primaire / préscolaire), élèves enregistrés, nombre de classes.
+     Règles : aperçu AVANT application · cases décochables · valeurs modifiables · jamais d'écrasement
+     par défaut · annulation du dernier remplissage · aucune invention (tables-bancs : pas de source).
+     ==================================================================== */
+  var AUTO_UNDO_KEY=function(){ try{ return (typeof KEY!=='undefined'?KEY:'iepp_')+'infra_auto_undo'; }catch(x){ return 'iepp_infra_auto_undo'; } };
+  var A_LABEL={ effectif:'Effectif', electricite:'Électrifiée', cloture:'Clôture (texte)', clotureType:'Type de clôture', eauTotal:'Points d\'eau', eauFonct:'dont fonctionnels',
+                toilettes:'Toilettes', toiFonct:'dont fonctionnelles', tableaux:'Tableaux', tableMaitre:'Tables maître' };
+  var A_ORDER=['effectif','electricite','cloture','clotureType','eauTotal','eauFonct','toilettes','toiFonct','tableaux','tableMaitre'];
+  var A_STOP={ epp:1, ecole:1, primaire:1, publique:1, ep:1, eprim:1, de:1, du:1, des:1, la:1, le:1, les:1, d:1, l:1 };
+  var A_STATE={ overwrite:false, props:null, stats:null };
+  var txtNorm=EQ.txtNorm;
+  function aKey(s){ return txtNorm(s).split(' ').filter(function(t){ return t&&!A_STOP[t]; }).join(' '); }
+  function aToks(s){ return aKey(s).split(' ').filter(Boolean); }
+
+  /* index des questions utiles par fiche (repérées par leur libellé, pas par leur identifiant) */
+  function aQuestions(key){
+    var out={ elec:[], eau:[], clo:[], lat:[], latF:[], cab:[] };
+    try{
+      var def=(typeof ficheDef==='function')?ficheDef(key):null; if(!def) return out;
+      def.sections.forEach(function(s){ s.questions.forEach(function(q){
+        var l=txtNorm(q.label);
+        if(/aliment\w* en electricite/.test(l)) out.elec.push(q.id);
+        else if(/point d eau/.test(l)) out.eau.push(q.id);
+        else if(/^l ecole a t elle une cloture/.test(l)) out.clo.push(q.id);
+        else if(/latrines pour les eleves/.test(l)) out.lat.push(q.id);
+        else if(/latrines sont.*fonctionnelles/.test(l)) out.latF.push(q.id);
+        else if(/nombre de cabines/.test(l)) out.cab.push(q.id);
+      }); });
+    }catch(x){}
+    return out;
+  }
+  function aFiches(){
+    var all=[];
+    ['primaire','prescolaire'].forEach(function(k){
+      var Q=aQuestions(k), rows=[]; try{ rows=(typeof ficheReponses==='function')?ficheReponses(k):[]; }catch(x){}
+      rows.forEach(function(r){ if(r&&(r._ecole||r._code)) all.push({ r:r, Q:Q, key:k, t:String(r._modifie||r._cree||'') }); });
+    });
+    all.sort(function(a,b){ return b.t.localeCompare(a.t); });   /* plus récentes d'abord */
+    return all;
+  }
+  function aFirst(f,list){ for(var i=0;i<list.length;i++){ var v=String(f.r[list[i]]==null?'':f.r[list[i]]).trim(); if(v!=='') return v; } return ''; }
+  function aMatch(e,fiches){
+    var code=String(e.code||'').trim(), hits=[];
+    if(code) hits=fiches.filter(function(f){ return String(f.r._code||'').trim()===code; });
+    if(!hits.length){ var k=aKey(e.nom); if(k) hits=fiches.filter(function(f){ return aKey(f.r._ecole)===k; }); }
+    if(!hits.length){   /* inclusion de mots, uniquement si la correspondance est unique */
+      var te=aToks(e.nom); if(te.length>=2){
+        var cand={}; fiches.forEach(function(f){ var tf=aToks(f.r._ecole); if(tf.length<2) return;
+          var a=te.length<=tf.length?te:tf, b=te.length<=tf.length?tf:te;
+          if(a.every(function(t){ return b.indexOf(t)>=0; })) cand[aKey(f.r._ecole)]=1; });
+        var ks=Object.keys(cand); if(ks.length===1) hits=fiches.filter(function(f){ return aKey(f.r._ecole)===ks[0]; });
+      }
+    }
+    return hits;
+  }
+  function aElevesCount(e){
+    var k=txtNorm(e.nom), n=0; (state.eleves||[]).forEach(function(x){ if(x && txtNorm(x.ecole)===k) n++; }); return n;
+  }
+  function aCur(e,f){
+    var i=inf(e);
+    switch(f){
+      case 'effectif': return EQ.effOf(e)||'';
+      case 'electricite': var el=EQ.elecOf(i); return el==='oui'?'Oui':(el==='non'?'Non':'');
+      case 'cloture': return i.cloture||'';
+      case 'clotureType': return String(i.clotureType||'');
+      case 'eauTotal': return nil(EQ.eauOf(i).total)?'':EQ.eauOf(i).total;
+      case 'eauFonct': return nil(EQ.eauOf(i).fonct)?'':EQ.eauOf(i).fonct;
+      case 'toilettes': return EQ.renseigne(i,'toilettes')?num(i.toilettes):'';
+      case 'toiFonct': return nil(num(i.toiFonct))?'':num(i.toiFonct);
+      case 'tableaux': return num(i.tableaux)>0?num(i.tableaux):'';
+      case 'tableMaitre': return num(i.tableMaitre)>0?num(i.tableMaitre):'';
+    }
+    return '';
+  }
+  function aShow(f,v){ if(f==='clotureType') return v?EQ.cloLabel(v):''; return v; }
+  function aBuild(){
+    var list=listEcoles().filter(canEdit), fiches=aFiches(), props=[], st={ n:list.length, sansFiche:0, avecProp:0, fiches:fiches.length };
+    list.forEach(function(e){
+      var ch=[], f=aMatch(e,fiches), i=inf(e);
+      var add=function(field,val,conf,why){
+        if(val===''||val==null) return;
+        var cur=aCur(e,field);
+        if(String(cur)===String(val)) return;
+        if(cur!==''&&!A_STATE.overwrite) return;
+        ch.push({ field:field, value:val, conf:conf, why:why, cur:cur, on:(conf==='fiche') });
+      };
+      /* effectif : élèves enregistrés pour cette école (quand l'effectif de la fiche école est vide) */
+      var ne=aElevesCount(e); if(ne>0) add('effectif',ne,'fiche',ne+' élève(s) enregistré(s) pour cette école');
+      if(f.length){
+        var pick=function(name){ for(var k=0;k<f.length;k++){ var v=aFirst(f[k],f[k].Q[name]); if(v!=='') return { v:v, f:f[k] }; } return null; };
+        var src=function(p){ return 'fiche '+p.f.key+' — '+(p.f.r._ecole||''); };
+        var yn=function(v){ var t=txtNorm(v); return t==='oui'?'oui':(t==='non'?'non':''); };
+        var el=pick('elec'); if(el&&yn(el.v)) add('electricite',yn(el.v)==='oui'?'Oui':'Non','fiche',src(el));
+        var cl=pick('clo');
+        if(cl&&yn(cl.v)){
+          if(yn(cl.v)==='non'){ add('clotureType','aucune','fiche',src(cl)+' : pas de clôture'); add('cloture','Non (fiche statistique)','fiche',src(cl)); }
+          else add('cloture','Oui (fiche statistique) — matériau à préciser','fiche',src(cl)+' : clôture existante, type à vérifier');
+        }
+        var ea=pick('eau');
+        if(ea&&yn(ea.v)){
+          if(yn(ea.v)==='non'){ add('eauTotal',0,'fiche',src(ea)+' : aucun point d\'eau'); add('eauFonct',0,'fiche',src(ea)); }
+          else { add('eauTotal',1,'estime',src(ea)+' : « Oui » → au moins 1 (nombre exact à confirmer)'); add('eauFonct',1,'estime','à confirmer : fonctionnel ?'); }
+        }
+        var la=pick('lat'), cab=pick('cab'), lf=pick('latF');
+        if(la&&yn(la.v)==='non'){ add('toilettes',0,'fiche',src(la)+' : pas de latrines élèves'); add('toiFonct',0,'fiche',src(la)); }
+        else if(la&&yn(la.v)==='oui'&&cab&&num(cab.v)>0){
+          var n=Math.round(num(cab.v)); add('toilettes',n,'fiche',src(cab)+' : '+n+' cabine(s)');
+          if(lf&&yn(lf.v)) add('toiFonct',yn(lf.v)==='oui'?n:0,'fiche',src(lf)+' : latrines '+(yn(lf.v)==='oui'?'fonctionnelles':'non fonctionnelles'));
+        }
+      }
+      /* estimation : 1 tableau et 1 table du maître par classe (nombre de classes de l'école) */
+      var nc=num(e.classes); if(nc>0){ add('tableaux',Math.round(nc),'estime','1 par classe ('+Math.round(nc)+' classe(s))'); add('tableMaitre',Math.round(nc),'estime','1 par classe ('+Math.round(nc)+' classe(s))'); }
+      if(!f.length) st.sansFiche++;
+      if(ch.length){ ch.sort(function(a,b){ return A_ORDER.indexOf(a.field)-A_ORDER.indexOf(b.field); }); props.push({ e:e, ch:ch, nFiche:f.length }); st.avecProp++; }
+    });
+    A_STATE.props=props; A_STATE.stats=st; return props;
+  }
+  function aEsc(s){ return esc(s); }
+  function aBody(){
+    var props=A_STATE.props, st=A_STATE.stats, idx=0, nOn=0, nAll=0;
+    var rows=props.map(function(p,pi){
+      return p.ch.map(function(c,ci){
+        var id='eqa-'+pi+'-'+ci, inp;
+        if(c.field==='electricite') inp='<select id="'+id+'-v" style="padding:4px"><option'+(c.value==='Oui'?' selected':'')+'>Oui</option><option'+(c.value==='Non'?' selected':'')+'>Non</option></select>';
+        else if(c.field==='clotureType') inp='<select id="'+id+'-v" style="padding:4px">'+EQ.CLO_TYPES.map(function(t){ return '<option value="'+t[0]+'"'+(t[0]===c.value?' selected':'')+'>'+aEsc(t[1])+'</option>'; }).join('')+'</select>';
+        else if(c.field==='cloture') inp='<input id="'+id+'-v" type="text" value="'+aEsc(c.value)+'" style="width:100%;min-width:200px;padding:4px 6px;border:1px solid var(--line);border-radius:4px">';
+        else inp='<input id="'+id+'-v" type="number" min="0" value="'+aEsc(c.value)+'" style="width:80px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;text-align:right">';
+        nAll++; if(c.on) nOn++;
+        return '<tr'+(ci===0?' style="border-top:2px solid var(--line)"':'')+'><td>'+(ci===0?'<strong>'+aEsc(p.e.nom)+'</strong>'+(p.nFiche?'':'<div class="text-xs text-muted">aucune fiche</div>'):'')+'</td>'
+          +'<td><input type="checkbox" id="'+id+'-c" '+(c.on?'checked':'')+' onchange="eqAutoCount()"></td>'
+          +'<td>'+aEsc(A_LABEL[c.field])+'</td><td class="text-muted">'+(c.cur===''?'—':aEsc(aShow(c.field,c.cur)))+'</td><td>'+inp+'</td>'
+          +'<td><span class="badge '+(c.conf==='fiche'?'badge-green':'badge-orange')+'">'+(c.conf==='fiche'?'Donnée de fiche':'Estimation')+'</span><div class="text-xs text-muted">'+aEsc(c.why)+'</div></td></tr>';
+      }).join('');
+    }).join('')||'<tr><td colspan="6" class="table-empty">Aucune proposition : toutes les cases déduisibles sont déjà renseignées, ou aucune fiche statistique ne correspond aux écoles.</td></tr>';
+    return '<div class="text-xs" style="margin-bottom:8px"><strong>'+st.n+'</strong> école(s) analysée(s) · <strong>'+st.avecProp+'</strong> avec proposition · <strong>'+st.sansFiche+'</strong> sans fiche statistique correspondante · '+st.fiches+' fiche(s) lue(s) (primaire / préscolaire).</div>'
+      +'<div class="card" style="background:#FFF9E6;padding:8px 12px;margin-bottom:8px;border-left:3px solid #B45309"><div class="text-xs"><strong>Rien n\'est écrit avant votre validation.</strong> Cases vertes = données lues dans les fiches (cochées). Cases orange = <em>estimations</em> (décochées par défaut, à vérifier). Vous pouvez corriger chaque valeur avant d\'appliquer. Les tables-bancs ne sont jamais déduites (aucune source fiable).</div></div>'
+      +'<label class="text-xs" style="display:flex;gap:6px;align-items:center;margin-bottom:8px"><input type="checkbox" id="eqa-over" '+(A_STATE.overwrite?'checked':'')+' onchange="eqAutoToggleOver(this.checked)"> Proposer aussi de remplacer les valeurs déjà renseignées</label>'
+      +'<div style="overflow:auto;max-height:52vh;border:1px solid var(--line);border-radius:8px"><table style="width:100%;font-size:12.5px"><thead><tr><th>École</th><th></th><th>Champ</th><th>Actuel</th><th>Proposition</th><th>Source</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+      +'<div class="text-xs text-muted" id="eqa-count" style="margin-top:6px">'+nOn+' modification(s) sélectionnée(s) sur '+nAll+'</div>';
+  }
+  window.eqAutoCount=function(){ var on=0,all=0; (A_STATE.props||[]).forEach(function(p,pi){ p.ch.forEach(function(c,ci){ all++; var cb=document.getElementById('eqa-'+pi+'-'+ci+'-c'); if(cb&&cb.checked) on++; }); }); var el=document.getElementById('eqa-count'); if(el) el.textContent=on+' modification(s) sélectionnée(s) sur '+all; };
+  window.eqAutoToggleOver=function(v){ A_STATE.overwrite=!!v; aBuild(); eqAutoShow(); };
+  function eqAutoShow(){
+    openModal('🪄 Remplissage intelligent — Infrastructures', '<div data-wide="1">'+aBody()+'</div>',
+      '<button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-orange" onclick="eqAutoApply()">✅ Appliquer la sélection</button>');
+  }
+  window.eqAutoOpen=function(){
+    if(!(typeof ecCanManage==='function'&&ecCanManage())){ toast('Action réservée à la gestion de votre périmètre.','error'); return; }
+    A_STATE.overwrite=false; aBuild(); eqAutoShow();
+  };
+  window.eqAutoApply=function(){
+    var props=A_STATE.props||[], undo=[], nOK=0, nKO=[], nEcoles=0, dirty=false;
+    props.forEach(function(p,pi){
+      var e=p.e; if(!canEdit(e)) return;
+      var before={ effectif:e.effectif, infra:clone(e.infrastructures||(typeof ecInfraEmpty==='function'?ecInfraEmpty():{})) };
+      var i=clone(before.infra), touched=0, sel=[];
+      p.ch.forEach(function(c,ci){ var cb=document.getElementById('eqa-'+pi+'-'+ci+'-c'), v=document.getElementById('eqa-'+pi+'-'+ci+'-v'); if(cb&&cb.checked&&v) sel.push({ field:c.field, raw:String(v.value).trim() }); });
+      sel.forEach(function(s){
+        if(s.field==='effectif'){ var n=Math.round(Number(s.raw.replace(',','.'))); if(isFinite(n)&&n>=0){ e.effectif=n; touched++; nOK++; } else nKO.push(e.nom+' · effectif'); return; }
+        var tmp=clone(i), err=setField(tmp,s.field,s.raw)||cohere(tmp);
+        if(err){ nKO.push(e.nom+' · '+A_LABEL[s.field]+' ('+err+')'); return; }
+        i=tmp; touched++; nOK++;
+      });
+      if(touched){ e.infrastructures=i; undo.push({ id:e.id, effectif:before.effectif, infra:before.infra }); nEcoles++; dirty=true; }
+    });
+    if(dirty){
+      try{ save('ecoles',state.ecoles); }catch(x){}
+      try{ localStorage.setItem(AUTO_UNDO_KEY(),JSON.stringify({ at:Date.now(), items:undo })); }catch(x){}
+      try{ logAction('infra-auto','Remplissage intelligent : '+nOK+' valeur(s) dans '+nEcoles+' école(s)'); }catch(x){}
+    }
+    closeModal();
+    toast(nOK+' valeur(s) appliquée(s) dans '+nEcoles+' école(s)'+(nKO.length?' · '+nKO.length+' refusée(s)':''), nKO.length?'info':'success');
+    if(nKO.length) setTimeout(function(){ try{ alert('Valeurs refusées (incohérentes) :\n- '+nKO.slice(0,15).join('\n- ')); }catch(x){} },200);
+    if(typeof ecRenderPane==='function') ecRenderPane();
+  };
+  function aHasUndo(){ try{ var o=JSON.parse(localStorage.getItem(AUTO_UNDO_KEY())||'null'); return !!(o&&o.items&&o.items.length); }catch(x){ return false; } }
+  window.eqAutoUndo=function(){
+    var o=null; try{ o=JSON.parse(localStorage.getItem(AUTO_UNDO_KEY())||'null'); }catch(x){}
+    if(!o||!o.items||!o.items.length){ toast('Rien à annuler.','info'); return; }
+    if(!confirm('Annuler le dernier remplissage intelligent ('+o.items.length+' école(s)) ?\nLes valeurs reviennent à leur état précédent.')) return;
+    var n=0; o.items.forEach(function(it){ var e=(state.ecoles||[]).filter(function(x){ return x.id===it.id; })[0]; if(e&&canEdit(e)){ e.effectif=it.effectif; e.infrastructures=it.infra; n++; } });
+    try{ save('ecoles',state.ecoles); }catch(x){} try{ localStorage.removeItem(AUTO_UNDO_KEY()); }catch(x){}
+    try{ logAction('infra-auto-undo','Annulation du remplissage intelligent ('+n+' école(s))'); }catch(x){}
+    toast('Remplissage annulé ('+n+' école(s))','success'); if(typeof ecRenderPane==='function') ecRenderPane();
+  };
+  UI.autoBtns=function(){
+    if(!(typeof ecCanManage==='function'&&ecCanManage())) return '';
+    return '<button class="btn btn-orange" onclick="eqAutoOpen()" title="Pré-remplit électricité, clôture, points d\'eau, toilettes, effectifs… à partir des fiches statistiques et des élèves — avec aperçu">🪄 Remplir automatiquement</button>'
+      +(aHasUndo()?'<button class="btn btn-ghost" onclick="eqAutoUndo()" title="Revenir à l\'état avant le dernier remplissage">↩️ Annuler le dernier remplissage</button>':'');
+  };
+
+
   /* ---- modale d'édition détaillée ---- */
   UI.form=function(id){
     var e=(state.ecoles||[]).filter(function(x){return x.id===id;})[0]; if(!e) return;
@@ -43047,6 +43279,8 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
 (function(){
   'use strict';
   if(window.__drnPanel || !window.DRN) return; window.__drnPanel=true;
+  /* fenêtres larges : un contenu portant data-wide="1" élargit la modale (sinon largeur d'origine) */
+  (function(){ var _om=window.openModal; if(typeof _om==='function' && !_om.__wide){ var w=function(t,b,f){ _om.apply(this,arguments); try{ var m=document.querySelector('#modal-backdrop .modal'); if(m) m.classList.toggle('wide', String(b).indexOf('data-wide="1"')>=0); }catch(e){} }; w.__wide=1; window.openModal=w; } })();
   var KEY='drenaetList';
   function esc(s){ return escapeHtml(s); }
   function T(s){ return String(s==null?'':s).trim(); }
@@ -43146,7 +43380,7 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
     var tr=function(u){ var r=ROLES[u.role]||{label:u.role};
       return '<tr><td><code>'+esc(u.username)+'</code></td><td class="fw-7">'+esc(u.name||'')+'</td><td>'+esc(r.label)+'</td><td>'+esc(isRegionalRole(u.role)?'— (toute la région)':(u.iepp||'—'))+'</td><td>'+statutBadge(u)+'</td><td style="white-space:nowrap;text-align:right">'+userActionsHtml(u)+'</td></tr>'; };
     var th='<thead><tr><th>Identifiant</th><th>Nom</th><th>Fonction</th><th>IEPP</th><th>État</th><th style="text-align:right">Actions</th></tr></thead>';
-    var tbl=function(a,empty){ return '<div style="overflow:auto;max-height:34vh;border:1px solid var(--line);border-radius:8px;margin-bottom:12px"><table class="table" style="width:100%;font-size:13px">'+th+'<tbody>'+(a.map(tr).join('')||'<tr><td colspan="6" class="table-empty">'+empty+'</td></tr>')+'</tbody></table></div>'; };
+    var tbl=function(a,empty){ return '<div style="overflow:auto;max-height:34vh;border:1px solid var(--line);border-radius:8px;margin-bottom:12px"><table style="width:100%;font-size:13px">'+th+'<tbody>'+(a.map(tr).join('')||'<tr><td colspan="6" class="table-empty">'+empty+'</td></tr>')+'</tbody></table></div>'; };
     return '<div class="fw-7" style="margin:4px 0 6px">Personnel de la DRENAET ('+reg.length+')</div>'+tbl(reg,'Aucun compte — utilisez « + Nouveau compte DRENAET ».')
       +'<div class="fw-7" style="margin:4px 0 6px">Comptes des IEPP rattachées ('+ie.length+')</div>'+tbl(ie,'Aucun compte d\'IEPP rattaché à cette DRENAET.');
   }
@@ -43154,7 +43388,7 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
     if(!guard()) return; var e=DRN.entry(nom); if(!e){ toast('DRENAET introuvable.','error'); return; }
     CUR=e.nom;
     openModal('🧑‍💼 Utilisateurs — '+esc(e.nom),
-      '<div style="min-width:min(900px,88vw)"><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center"><button class="btn btn-orange" onclick="drnNewUser()">+ Nouveau compte DRENAET</button>'
+      '<div data-wide="1"><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center"><button class="btn btn-orange" onclick="drnNewUser()">+ Nouveau compte DRENAET</button>'
       +'<span class="text-xs text-muted" style="margin-right:auto">Fonctions disponibles : directeur, superviseur, coordo, SG, coordo DEPS, coordo DRH, point focal, agent, autres. Ces comptes ne voient que cette DRENAET.</span></div>'
       +'<div id="drn-mgr-body">'+usersBody(e.nom)+'</div></div>',
       '<button class="btn btn-primary" onclick="drnUsersClose()">Fermer</button>');
@@ -43181,6 +43415,711 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
   });
 })();
 
+</script>
+<script id="iepp-foreign-cleanup">
+/* ============================================================================
+   COHÉRENCE DES DONNÉES PAR IEPP — repérage et retrait des écoles d'une AUTRE IEPP (AJOUT)
+   Une école est « étrangère » à l'IEPP active si elle figure dans les référentiels de Tengrela
+   (carte scolaire, effectifs, maternelles) et qu'elle n'appartient pas à la liste propre de l'IEPP active.
+   Aucune suppression sans aperçu + validation ; état d'avant conservé pour annulation.
+   ============================================================================ */
+(function(){
+  'use strict';
+  if(window.__iepForeign) return; window.__iepForeign=true;
+  var REGS=[
+    { key:'ecoles',           label:'Liste des écoles',          f:'nom'   },
+    { key:'effPrescolaire',   label:'Effectifs préscolaire',     f:'nom'   },
+    { key:'effPrimaire',      label:'Effectifs primaire',        f:'nom'   },
+    { key:'recrutementCP1',   label:'Recrutement CP1',           f:'ecole' },
+    { key:'recrutementMater', label:'Recrutement maternelle',    f:'ecole' },
+    { key:'effectifs',        label:'Effectifs par niveau',      f:'ecole' }
+  ];
+  var MAT_REF=['Maternelle Arikokaha','Maternelle Angolokaha','Maternelle Badiokaha','Maternelle Dossoulokaha','Maternelle Folofonkaha','Maternelle Kanawolo','Maternelle Latokaha','Maternelle Les Colombes Tortiya','Maternelle Municipale Tengrela','Maternelle Nambanakaha','Maternelle Nangoniékaha','Maternelle Tengrela 1 B','Maternelle Tengrela 2','Maternelle Tengrela 3','Maternelle Tengrela Château','Maternelle Tengrela Résidentiel','Maternelle Niangbo','Maternelle Niédiékaha','Maternelle Ouéréguékaha'];
+  function ek(x){ return String(x==null?'':x).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,''); }
+  function esc(s){ return escapeHtml(s); }
+  function canUse(){ return state.user && ['superadmin','inspecteur','correspondant'].indexOf(state.user.role)>=0; }
+  function notTengrela(){ var a=String(state.activeIepp||'').toUpperCase(); return a && a!=='IEPP TENGRELA' && a.indexOf('AUCUNE')<0; }
+  function undoKey(){ return (typeof KEY!=='undefined'?KEY:'iepp_')+'foreign_undo_'+activeScope; }
+  var REF=null;
+  function ref(){
+    if(REF) return REF; var o={};
+    var add=function(n){ var k=ek(n); if(k) o[k]=1; };
+    try{ (typeof TENGRELA_ECOLES!=='undefined'?TENGRELA_ECOLES:[]).forEach(function(r){ add(r.nom); }); }catch(e){}
+    try{ (typeof TENGRELA_EFF_PRIMAIRE!=='undefined'?TENGRELA_EFF_PRIMAIRE:[]).forEach(function(r){ add(r.nom); }); }catch(e){}
+    try{ (typeof TENGRELA_EFFECTIFS!=='undefined'?TENGRELA_EFFECTIFS:[]).forEach(function(r){ add(r.ecole); }); }catch(e){}
+    try{ (typeof defaultEffPrescolaire==='function'?defaultEffPrescolaire():[]).forEach(function(r){ add(r.nom); }); }catch(e){}
+    MAT_REF.forEach(add); REF=o; return o;
+  }
+  function own(){
+    var o={}; (state.ecoles||[]).forEach(function(r){ if(!r||!r.nom) return; if(/^ten\d+$/i.test(String(r.id||''))||r._auto) return; o[ek(r.nom)]=1; }); return o;
+  }
+  function hasNumbers(r){ var n=0; Object.keys(r).forEach(function(k){ if(typeof r[k]==='number' && r[k]>0 && k!=='_upd') n++; }); return n>0; }
+  function scan(){
+    var R=ref(), O=own(), out=[];
+    REGS.forEach(function(g){
+      var arr=state[g.key]; if(!Array.isArray(arr)) return;
+      arr.forEach(function(r){ if(!r) return; var nm=r[g.f]; var k=ek(nm); if(k && R[k] && !O[k]) out.push({ g:g, r:r, nom:String(nm), num:hasNumbers(r) }); });
+    });
+    return out;
+  }
+  window.iepForeignCount=function(){ try{ return (canUse()&&notTengrela())?scan().length:0; }catch(e){ return 0; } };
+  window.iepForeignCard=function(){
+    if(!canUse()) return '';
+    return '<div class="card" style="padding:14px;margin-bottom:14px;border-left:4px solid #E63946">'
+      +'<div class="card-title">🧹 Cohérence des données de l\'IEPP</div>'
+      +'<p class="text-xs text-muted" style="margin:2px 0 10px">Chaque IEPP ne doit contenir que ses propres écoles. Cet outil repère les écoles d\'une autre circonscription (ex. Tengrela) qui se sont mélangées aux registres de l\'IEPP active, vous les montre, et les retire après votre validation (annulable).</p>'
+      +'<button class="btn btn-orange" onclick="iepForeignOpen()">🔎 Rechercher les écoles d\'une autre IEPP</button> '
+      +(hasUndo()?'<button class="btn btn-ghost" onclick="iepForeignUndo()">↩️ Annuler le dernier nettoyage</button>':'')+'</div>';
+  };
+  function body(list){
+    if(!list.length) return '<div class="table-empty">✅ Aucune école étrangère détectée pour <strong>'+esc(state.activeIepp||'')+'</strong>.</div>';
+    var by={}; list.forEach(function(x){ by[x.g.key]=(by[x.g.key]||0)+1; });
+    var sum=REGS.filter(function(g){ return by[g.key]; }).map(function(g){ return esc(g.label)+' : <strong>'+by[g.key]+'</strong>'; }).join(' · ');
+    var rows=list.map(function(x,i){
+      return '<tr><td><input type="checkbox" id="ifr-'+i+'" checked onchange="iepForeignCount2()"></td><td class="fw-7">'+esc(x.nom)+'</td><td>'+esc(x.g.label)+'</td><td>'+(x.num?'<span class="badge badge-orange">contient des chiffres</span>':'<span class="text-muted text-xs">vide</span>')+'</td></tr>';
+    }).join('');
+    return '<div class="text-xs" style="margin-bottom:8px"><strong>'+list.length+'</strong> ligne(s) appartenant à une autre IEPP dans <strong>'+esc(state.activeIepp||'')+'</strong> — '+sum+'</div>'
+      +'<div class="card" style="background:#FEF3C7;padding:8px 12px;margin-bottom:8px;border-left:3px solid #D97706"><div class="text-xs">Décochez une ligne pour la <strong>conserver</strong>. Les écoles propres à cette IEPP ne sont jamais touchées. Vous pourrez annuler ce nettoyage juste après.</div></div>'
+      +'<div style="overflow:auto;max-height:50vh;border:1px solid var(--line);border-radius:8px"><table style="width:100%;font-size:12.5px"><thead><tr><th></th><th>École</th><th>Registre</th><th>Contenu</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+      +'<div class="text-xs text-muted" id="ifr-count" style="margin-top:6px">'+list.length+' ligne(s) sélectionnée(s)</div>';
+  }
+  var CUR=[];
+  window.iepForeignCount2=function(){ var n=0; CUR.forEach(function(x,i){ var c=document.getElementById('ifr-'+i); if(c&&c.checked) n++; }); var e=document.getElementById('ifr-count'); if(e) e.textContent=n+' ligne(s) sélectionnée(s)'; };
+  window.iepForeignOpen=function(){
+    if(!canUse()){ toast('Action réservée à la gestion de l\'IEPP.','error'); return; }
+    if(!notTengrela()){ toast('IEPP TENGRELA : aucune école étrangère à retirer (c\'est la base de référence).','info'); return; }
+    CUR=scan();
+    openModal('🧹 Écoles d\'une autre IEPP — '+esc(state.activeIepp||''),'<div data-wide="1">'+body(CUR)+'</div>',
+      '<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>'+(CUR.length?'<button class="btn btn-orange" onclick="iepForeignApply()">🧹 Retirer la sélection</button>':''));
+  };
+  window.iepForeignApply=function(){
+    if(!canUse()||!notTengrela()) return;
+    var sel={}, n=0; CUR.forEach(function(x,i){ var c=document.getElementById('ifr-'+i); if(c&&c.checked){ (sel[x.g.key]=sel[x.g.key]||[]).push(x.r); n++; } });
+    if(!n){ toast('Aucune ligne sélectionnée.','info'); return; }
+    if(!confirm('Retirer '+n+' ligne(s) appartenant à une autre IEPP de « '+state.activeIepp+' » ?\n(Vous pourrez annuler juste après.)')) return;
+    var snap={ at:Date.now(), iepp:state.activeIepp, regs:{} };
+    Object.keys(sel).forEach(function(k){
+      snap.regs[k]=JSON.parse(JSON.stringify(state[k]||[]));
+      var rm=sel[k]; state[k]=(state[k]||[]).filter(function(r){ return rm.indexOf(r)<0; });
+      try{ save(k,state[k]); }catch(e){}
+    });
+    try{ localStorage.setItem(undoKey(),JSON.stringify(snap)); }catch(e){}
+    try{ logAction('iepp-foreign-clean','Retrait de '+n+' ligne(s) d\'une autre IEPP dans '+state.activeIepp); }catch(e){}
+    closeModal(); toast(n+' ligne(s) retirée(s) de '+state.activeIepp,'success');
+    try{ if(state.module) navigate(state.module); }catch(e){}
+  };
+  function hasUndo(){ try{ var o=JSON.parse(localStorage.getItem(undoKey())||'null'); return !!(o&&o.regs); }catch(e){ return false; } }
+  /* bandeau d'alerte (pages concernées) quand des écoles d'une autre IEPP sont détectées */
+  var BAN_MODS={ 'stat-effectifs':1, 'ecoles':1, 'parametres':1, 'stat-situation':1 };
+  function banner(mod){
+    try{
+      if(!BAN_MODS[mod]||!canUse()||!notTengrela()) return;
+      var c=document.getElementById('content'); if(!c||document.getElementById('ifr-banner')) return;
+      var n=window.iepForeignCount(); if(!n) return;
+      c.insertAdjacentHTML('afterbegin','<div id="ifr-banner" class="card" style="background:#FEE2E2;border-left:4px solid #E63946;padding:10px 14px;margin-bottom:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">'
+        +'<div style="flex:1;min-width:220px" class="text-sm">⚠️ <strong>'+n+' ligne(s)</strong> appartenant à une <strong>autre IEPP</strong> (ex. écoles de Tengrela) se trouvent dans la base de <strong>'+esc(state.activeIepp||'')+'</strong>.</div>'
+        +'<button class="btn btn-orange btn-sm" onclick="iepForeignOpen()">🧹 Voir et retirer</button></div>');
+    }catch(e){}
+  }
+  (function(){ var _n=window.navigate; if(typeof _n==='function' && !_n.__ifr){ var w=function(m){ var r=_n.apply(this,arguments); setTimeout(function(){ banner(m); },120); return r; }; w.__ifr=1; window.navigate=w; } })();
+  window.iepForeignUndo=function(){
+    var o=null; try{ o=JSON.parse(localStorage.getItem(undoKey())||'null'); }catch(e){}
+    if(!o||!o.regs){ toast('Rien à annuler.','info'); return; }
+    if(!confirm('Annuler le dernier nettoyage de « '+o.iepp+' » ?')) return;
+    Object.keys(o.regs).forEach(function(k){ state[k]=o.regs[k]; try{ save(k,state[k]); }catch(e){} });
+    try{ localStorage.removeItem(undoKey()); }catch(e){}
+    try{ logAction('iepp-foreign-undo','Annulation du nettoyage dans '+o.iepp); }catch(e){}
+    toast('Nettoyage annulé','success'); try{ if(state.module) navigate(state.module); }catch(e){}
+  };
+})();
+
+</script>
+<script id="iepp-fiches-classe">
+/* Fiche de classe -> Consolidation Directeur -> Validation/application Correspondant stat -> Base */
+(function(){
+  try{
+  try{ if(!Array.isArray(state.fichesClasse)) state.fichesClasse=load('fichesClasse',[]); if(!Array.isArray(state.consoEcoles)) state.consoEcoles=load('consoEcoles',[]); }catch(_){}
+  var NIV=['CP1','CP2','CE1','CE2','CM1','CM2'];
+  var PER={rentree:'Rentrée',T1:'1er trimestre',T2:'2e trimestre',T3:'3e trimestre'};
+  var ST={brouillon:['Brouillon','badge-grey'],soumis:['Soumise au Directeur','badge-orange'],valide_dir:['Validée Directeur · à contrôler','badge-blue'],rejete:['Rejetée · à corriger','badge-red'],applique:['Appliquée à la base','badge-green']};
+  var APPLIERS=['corresp_stat','correspondant','inspecteur','superadmin'];
+  var esc=function(s){ return (typeof escapeHtml==='function')?escapeHtml(String(s==null?'':s)):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
+  var n=function(v){ var x=parseInt(v,10); return isFinite(x)&&x>0?x:0; };
+  var role=function(){ return state&&state.user?state.user.role:''; };
+  function annee(){ var d=new Date(), y=d.getFullYear(), m=d.getMonth(); return m>=7?(y+'-'+(y+1)):((y-1)+'-'+y); }
+  function FC(){ if(!Array.isArray(state.fichesClasse)) state.fichesClasse=[]; return state.fichesClasse; }
+  function CO(){ if(!Array.isArray(state.consoEcoles)) state.consoEcoles=[]; return state.consoEcoles; }
+  function persistFC(){ save('fichesClasse',FC()); }
+  function persistCO(){ save('consoEcoles',CO()); }
+  function ieppNow(){ return (state.user&&state.user.iepp)||state.activeIepp||''; }
+  function findFC(ecole,classe,an,per){ return FC().find(function(f){ return f.ecole===ecole&&f.classe===classe&&f.annee===an&&f.periode===per; }); }
+  function findCO(ecole,an,per){ return CO().find(function(c){ return c.ecole===ecole&&c.annee===an&&c.periode===per; }); }
+  function badge(st){ var b=ST[st]||ST.brouillon; return '<span class="badge '+b[1]+'">'+b[0]+'</span>'; }
+  function eleves(ecole,classe){ return (state.elevesFichier||[]).filter(function(e){ return e.ecole===ecole&&(!classe||e.niveau===classe); }); }
+  function prefill(ecole,classe){ var l=eleves(ecole,classe); return { filles:l.filter(function(e){return e.sexe==='F';}).length, garcons:l.filter(function(e){return e.sexe==='M';}).length }; }
+  function periodSel(id,an,per,fn){
+    var yrs=[]; var y=parseInt(annee(),10); for(var i=-1;i<=1;i++) yrs.push((y+i)+'-'+(y+i+1));
+    return '<select id="'+id+'-an" onchange="'+fn+'()" class="form-control" style="max-width:150px;display:inline-block">'+yrs.map(function(a){return '<option'+(a===an?' selected':'')+'>'+a+'</option>';}).join('')+'</select> '
+      +'<select id="'+id+'-per" onchange="'+fn+'()" class="form-control" style="max-width:190px;display:inline-block">'+Object.keys(PER).map(function(k){return '<option value="'+k+'"'+(k===per?' selected':'')+'>'+PER[k]+'</option>';}).join('')+'</select>';
+  }
+  function sel(id){ var a=document.getElementById(id+'-an'), p=document.getElementById(id+'-per'); return { an:a?a.value:annee(), per:p?p.value:'rentree' }; }
+  var CUR={fc:{an:annee(),per:'rentree'}, co:{an:annee(),per:'rentree'}, vc:{an:annee(),per:'rentree',st:''}};
+  function inp(id,v,type,ro,w){ return '<input id="'+id+'" class="form-control" type="'+(type||'number')+'" min="0" value="'+esc(v==null?'':v)+'"'+(ro?' disabled':'')+' style="'+(w?'max-width:'+w+'px;':'')+'">'; }
+  function fld(label,html){ return '<div class="form-group"><label>'+label+'</label>'+html+'</div>'; }
+  function yn(id,v,ro){ return '<select id="'+id+'" class="form-control"'+(ro?' disabled':'')+'><option value="">—</option><option'+(v==='Oui'?' selected':'')+'>Oui</option><option'+(v==='Non'?' selected':'')+'>Non</option></select>'; }
+  function etat(id,v,ro){ return '<select id="'+id+'" class="form-control"'+(ro?' disabled':'')+'><option value="">—</option>'+['Bon','Passable','Dégradé'].map(function(x){return '<option'+(v===x?' selected':'')+'>'+x+'</option>';}).join('')+'</select>'; }
+  function g(id){ var e=document.getElementById(id); return e?e.value:''; }
+
+  /* ================= 1. FICHE DE MA CLASSE (instituteur) ================= */
+  window.renderFicheClasse=function(){
+    var u=state.user; if(role()!=='instituteur'){ setContent('<div class="card" style="padding:30px;text-align:center">🔒 Espace réservé aux maîtres.</div>'); return; }
+    var an=CUR.fc.an, per=CUR.fc.per, cl=u.classe||'CE1';
+    var f=findFC(u.ecole,cl,an,per); var pf=prefill(u.ecole,cl);
+    var d=f||{filles:pf.filles,garcons:pf.garcons,redF:'',redG:'',tableBancs:'',tbFonct:'',tableau:'',etatSalle:'',elecSalle:'',obs:'',statut:'brouillon'};
+    var ro=f&&(f.statut==='valide_dir'||f.statut==='applique'||f.statut==='soumis');
+    var rr=(state.rapportsRentree||[]).filter(function(r){ return true; }).length;
+    setContent('<div class="hero" style="background:linear-gradient(135deg,#5B1F94 0%,#3D0D70 100%)"><h3>Fiche de ma classe · <em>'+esc(cl)+'</em></h3><p>'+esc(u.ecole)+' — fiche statistique de la classe pour la rentrée et chaque trimestre. Elle est transmise au Directeur qui la consolide pour l\'école, puis le Correspondant statistique contrôle et met à jour la base.</p></div>'
+      +'<div class="toolbar"><div>'+periodSel('fcs',an,per,'fcChange')+'</div><div style="flex:1"></div>'+badge(f?f.statut:'brouillon')
+      +' <button class="btn btn-ghost" onclick="navigate(\'rapports-rentree\')">🏫 Rapports de rentrée & trimestres</button></div>'
+      +'<div class="card" style="padding:18px"><div style="font-family:\'Fraunces\',serif;font-size:18px;font-weight:700;margin-bottom:10px">Effectifs (pré-remplis depuis ma liste d\'élèves : '+(pf.filles+pf.garcons)+')</div>'
+      +(f&&f.statut==='rejete'&&f.motif?'<div class="card" style="background:#FEE2E2;padding:10px;margin-bottom:10px">Motif du retour : '+esc(f.motif)+'</div>':'')
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px">'
+      +fld('Filles',inp('fc-fi',d.filles,'number',ro))+fld('Garçons',inp('fc-ga',d.garcons,'number',ro))
+      +fld('Dont redoublantes (F)',inp('fc-rf',d.redF,'number',ro))+fld('Dont redoublants (G)',inp('fc-rg',d.redG,'number',ro))
+      +fld('Table-bancs de la classe',inp('fc-tb',d.tableBancs,'number',ro))+fld('Dont fonctionnels',inp('fc-tf',d.tbFonct,'number',ro))
+      +fld('Tableau utilisable',yn('fc-tab',d.tableau,ro))+fld('État de la salle',etat('fc-et',d.etatSalle,ro))+fld('Électricité dans la salle',yn('fc-el',d.elecSalle,ro))
+      +'</div>'+fld('Observations',inp('fc-ob',d.obs,'text',ro))
+      +'<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">'
+      +(ro?'':'<button class="btn btn-ghost" onclick="fcRecalc()">🔄 Recalculer depuis mes élèves</button><button class="btn btn-ghost" onclick="fcSave(false)">💾 Enregistrer le brouillon</button><button class="btn btn-orange" onclick="fcSave(true)">📤 Soumettre au Directeur</button>')
+      +(f&&f.statut==='soumis'?'<button class="btn btn-ghost" onclick="fcRetirer()">↩️ Reprendre pour modifier</button>':'')
+      +'</div></div>');
+  };
+  window.fcChange=function(){ CUR.fc=sel('fcs'); renderFicheClasse(); };
+  window.fcRecalc=function(){ var u=state.user, pf=prefill(u.ecole,u.classe||'CE1'); document.getElementById('fc-fi').value=pf.filles; document.getElementById('fc-ga').value=pf.garcons; toast('Effectifs recalculés depuis votre liste d\'élèves','success'); };
+  window.fcSave=function(submit){
+    var u=state.user, cl=u.classe||'CE1', c=CUR.fc;
+    var f=findFC(u.ecole,cl,c.an,c.per);
+    if(f&&(f.statut==='valide_dir'||f.statut==='applique')){ toast('Fiche déjà validée.','error'); return; }
+    var tb=n(g('fc-tb')), tf=n(g('fc-tf'));
+    if(tf>tb){ toast('Les table-bancs fonctionnels dépassent le total.','error'); return; }
+    var fi=n(g('fc-fi')), ga=n(g('fc-ga'));
+    if(n(g('fc-rf'))>fi||n(g('fc-rg'))>ga){ toast('Les redoublants dépassent l\'effectif.','error'); return; }
+    if(submit&&fi+ga===0){ toast('Effectif nul : vérifiez avant de soumettre.','error'); return; }
+    if(!f){ f={id:'fc'+uid(),ecole:u.ecole,classe:cl,annee:c.an,periode:c.per,iepp:ieppNow(),maitre:u.name}; FC().push(f); }
+    Object.assign(f,{filles:fi,garcons:ga,redF:n(g('fc-rf')),redG:n(g('fc-rg')),tableBancs:tb,tbFonct:tf,tableau:g('fc-tab'),etatSalle:g('fc-et'),elecSalle:g('fc-el'),obs:g('fc-ob'),modif:new Date().toISOString(),maitre:u.name});
+    f.statut=submit?'soumis':(f.statut==='rejete'?'brouillon':(f.statut||'brouillon'));
+    persistFC(); logAction('Fiche de classe '+(submit?'soumise':'enregistrée'),u.ecole+' · '+cl+' · '+c.an+' · '+PER[c.per]);
+    toast(submit?'Fiche soumise au Directeur':'Brouillon enregistré','success'); renderFicheClasse();
+  };
+  window.fcRetirer=function(){ var u=state.user,c=CUR.fc,f=findFC(u.ecole,u.classe||'CE1',c.an,c.per); if(f&&f.statut==='soumis'){ f.statut='brouillon'; persistFC(); renderFicheClasse(); } };
+
+  /* ================= 2. CONSOLIDATION (directeur) ================= */
+  function autoConso(ecole,an,per,prev){
+    var lignes=[]; var levels=NIV.slice();
+    eleves(ecole).forEach(function(e){ if(e.niveau&&levels.indexOf(e.niveau)<0&&/^(CP|CE|CM)/.test(e.niveau)) levels.push(e.niveau); });
+    FC().forEach(function(f){ if(f.ecole===ecole&&f.annee===an&&f.periode===per&&levels.indexOf(f.classe)<0) levels.push(f.classe); });
+    var pers=(state.personnel||[]).filter(function(p){ return p.ecole===ecole; });
+    levels.forEach(function(cl){
+      var f=findFC(ecole,cl,an,per), ok=f&&(f.statut==='soumis'||f.statut==='valide_dir'||f.statut==='applique');
+      var pf=prefill(ecole,cl), m=pers.find(function(p){ return p.classe===cl; });
+      var l={classe:cl,maitre:ok?f.maitre:(m?m.nom:''),src:ok?'fiche':(pf.filles+pf.garcons?'élèves':'—'),
+        filles:ok?f.filles:pf.filles,garcons:ok?f.garcons:pf.garcons,redF:ok?n(f.redF):0,redG:ok?n(f.redG):0,tableBancs:ok?n(f.tableBancs):0,tbFonct:ok?n(f.tbFonct):0,statutFiche:f?f.statut:'absente'};
+      if(l.filles+l.garcons+l.tableBancs>0||ok||cl.indexOf('CP')===0||NIV.indexOf(cl)>=0) lignes.push(l);
+    });
+    var ens=pers.filter(function(p){ return /instit|ma[iî]tre|enseignant/i.test(p.fonction||'')&&!/direct/i.test(p.fonction||''); }).length;
+    var adm=pers.filter(function(p){ return !(/instit|ma[iî]tre|enseignant/i.test(p.fonction||''))||/direct/i.test(p.fonction||''); }).length;
+    var e=(state.ecoles||[]).find(function(x){ return x.nom===ecole; })||{}; var inf=e.infrastructures||{};
+    var tb=lignes.reduce(function(a,l){return a+n(l.tableBancs);},0), tf=lignes.reduce(function(a,l){return a+n(l.tbFonct);},0);
+    return {lignes:lignes,ens:ens,adm:adm,infra:{tableBancs:tb||n(inf.tableBancs),tbFonct:tb?tf:n(inf.tbFonct),toilettes:n(inf.toilettes),toiFonct:n(inf.toiFonct),electricite:inf.electricite||'',cloture:inf.cloture||'',clotureType:inf.clotureType||'',tableaux:lignes.filter(function(l){ var f=findFC(ecole,l.classe,an,per); return f&&f.tableau==='Oui'; }).length||n(inf.tableaux),bureauDirecteur:inf.bureauDirecteur||''}};
+  }
+  window.renderConsoEcole=function(){
+    var u=state.user; if(role()!=='directeur'){ setContent('<div class="card" style="padding:30px;text-align:center">🔒 Espace réservé aux Directeurs.</div>'); return; }
+    var an=CUR.co.an, per=CUR.co.per, ecole=u.ecole;
+    var c=findCO(ecole,an,per); var a=autoConso(ecole,an,per);
+    var d=c||{lignes:a.lignes,ens:a.ens,adm:a.adm,infra:a.infra,statut:'brouillon'};
+    var ro=c&&(c.statut==='valide_dir'||c.statut==='applique');
+    var I=d.infra;
+    var rows=d.lignes.map(function(l,i){
+      var tot=n(l.filles)+n(l.garcons);
+      return '<tr><td><span class="badge badge-purple">'+esc(l.classe)+'</span></td><td>'+esc(l.maitre||'—')+'</td>'
+        +'<td><span class="badge '+(l.src==='fiche'?'badge-green':'badge-grey')+'">'+(l.src==='fiche'?'Fiche du maître':l.src==='élèves'?'Liste élèves':'—')+'</span></td>'
+        +['filles','garcons','redF','redG','tableBancs','tbFonct'].map(function(k){ return '<td>'+inp('co-'+k+'-'+i,l[k],'number',ro,80)+'</td>'; }).join('')
+        +'<td class="fw-7" style="text-align:right">'+tot+'</td></tr>';
+    }).join('');
+    var T=function(k){ return d.lignes.reduce(function(s,l){return s+n(l[k]);},0); };
+    setContent('<div class="hero" style="background:linear-gradient(135deg,var(--orange) 0%,var(--orange-deep) 100%)"><h3>Consolidation de l\'école · <em>'+esc(ecole)+'</em></h3><p>Première consolidation des fiches de classe (CP1 → CM2). Les chiffres viennent des fiches soumises par les maîtres (sinon de la liste des élèves) ; vous pouvez les corriger à la main avant de valider. Le Correspondant statistique contrôle ensuite et met la base à jour.</p></div>'
+      +'<div class="toolbar"><div>'+periodSel('cos',an,per,'coChange')+'</div><div style="flex:1"></div>'+badge(c?c.statut:'brouillon')+'</div>'
+      +(c&&c.statut==='rejete'&&c.motif?'<div class="card" style="background:#FEE2E2;padding:10px;margin-bottom:10px">Retour du Correspondant stat : '+esc(c.motif)+'</div>':'')
+      +'<div class="card" style="padding:18px;margin-bottom:14px"><div style="font-family:\'Fraunces\',serif;font-size:18px;font-weight:700;margin-bottom:10px">Classes</div><div class="table-wrap" style="border:none"><table><thead><tr><th>Classe</th><th>Maître</th><th>Source</th><th>Filles</th><th>Garçons</th><th>Red. F</th><th>Red. G</th><th>Table-bancs</th><th>Fonct.</th><th>Total</th></tr></thead><tbody>'+rows
+      +'<tr style="background:var(--bg);font-weight:800"><td colspan="3">TOTAL ÉCOLE</td><td>'+T('filles')+'</td><td>'+T('garcons')+'</td><td>'+T('redF')+'</td><td>'+T('redG')+'</td><td>'+T('tableBancs')+'</td><td>'+T('tbFonct')+'</td><td style="text-align:right">'+(T('filles')+T('garcons'))+'</td></tr></tbody></table></div></div>'
+      +'<div class="card" style="padding:18px"><div style="font-family:\'Fraunces\',serif;font-size:18px;font-weight:700;margin-bottom:10px">Personnel et infrastructures de l\'école</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px">'
+      +fld('Enseignants (auto depuis Personnel)',inp('co-ens',d.ens,'number',ro))+fld('Personnel administratif',inp('co-adm',d.adm,'number',ro))
+      +fld('Table-bancs (total)',inp('co-tb',I.tableBancs,'number',ro))+fld('Table-bancs fonctionnels',inp('co-tf',I.tbFonct,'number',ro))
+      +fld('Toilettes (total)',inp('co-toi',I.toilettes,'number',ro))+fld('Toilettes fonctionnelles',inp('co-toif',I.toiFonct,'number',ro))
+      +fld('Électricité',yn('co-elec',I.electricite,ro))+fld('Clôture',yn('co-clo',I.cloture,ro))+fld('Type de clôture',inp('co-clot',I.clotureType,'text',ro))
+      +fld('Tableaux',inp('co-tab',I.tableaux,'number',ro))+fld('Bureau du directeur',yn('co-bur',I.bureauDirecteur,ro))
+      +'</div><div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">'
+      +(ro?'':'<button class="btn btn-ghost" onclick="coAuto()">🔄 Consolider automatiquement</button><button class="btn btn-ghost" onclick="coSave(false)">💾 Enregistrer le brouillon</button><button class="btn btn-orange" onclick="coSave(true)">✅ Valider et transmettre au Correspondant stat</button>')
+      +'</div></div>');
+  };
+  window.coChange=function(){ CUR.co=sel('cos'); renderConsoEcole(); };
+  window.coAuto=function(){ var c=CUR.co,u=state.user,ex=findCO(u.ecole,c.an,c.per); if(ex&&ex.statut!=='rejete'&&ex.statut!=='brouillon') return; if(ex){ var a=autoConso(u.ecole,c.an,c.per); ex.lignes=a.lignes; ex.ens=a.ens; ex.adm=a.adm; ex.infra=a.infra; persistCO(); } renderConsoEcole(); toast('Consolidation recalculée à partir des fiches de classe','success'); };
+  window.coSave=function(submit){
+    var u=state.user,c=CUR.co, ex=findCO(u.ecole,c.an,c.per);
+    if(ex&&(ex.statut==='valide_dir'||ex.statut==='applique')){ toast('Consolidation déjà validée.','error'); return; }
+    var a=autoConso(u.ecole,c.an,c.per); var lignes=a.lignes.map(function(l,i){ ['filles','garcons','redF','redG','tableBancs','tbFonct'].forEach(function(k){ var el=document.getElementById('co-'+k+'-'+i); if(el) l[k]=n(el.value); }); return l; });
+    var bad=lignes.filter(function(l){ return n(l.tbFonct)>n(l.tableBancs)||n(l.redF)>n(l.filles)||n(l.redG)>n(l.garcons); });
+    if(bad.length){ toast('Incohérence en '+bad[0].classe+' (fonctionnels > total, ou redoublants > effectif).','error'); return; }
+    var I={tableBancs:n(g('co-tb')),tbFonct:n(g('co-tf')),toilettes:n(g('co-toi')),toiFonct:n(g('co-toif')),electricite:g('co-elec'),cloture:g('co-clo'),clotureType:g('co-clot'),tableaux:n(g('co-tab')),bureauDirecteur:g('co-bur')};
+    if(I.tbFonct>I.tableBancs||I.toiFonct>I.toilettes){ toast('Fonctionnels supérieurs au total.','error'); return; }
+    if(submit&&lignes.reduce(function(s,l){return s+n(l.filles)+n(l.garcons);},0)===0){ toast('Effectif total nul.','error'); return; }
+    if(!ex){ ex={id:'co'+uid(),ecole:u.ecole,iepp:ieppNow(),annee:c.an,periode:c.per}; CO().push(ex); }
+    Object.assign(ex,{lignes:lignes,ens:n(g('co-ens')),adm:n(g('co-adm')),infra:I,dir:u.name,modif:new Date().toISOString()});
+    ex.statut=submit?'valide_dir':'brouillon'; if(submit){ ex.dirDate=new Date().toISOString(); ex.motif=''; FC().forEach(function(f){ if(f.ecole===u.ecole&&f.annee===c.an&&f.periode===c.per&&f.statut==='soumis') f.statut='valide_dir'; }); persistFC(); }
+    persistCO(); logAction('Consolidation école '+(submit?'validée par le Directeur':'enregistrée'),u.ecole+' · '+c.an+' · '+PER[c.per]);
+    toast(submit?'Consolidation transmise au Correspondant statistique':'Brouillon enregistré','success'); renderConsoEcole();
+  };
+
+  /* ================= 3. VALIDATION / APPLICATION (correspondant stat) ================= */
+  function canApply(){ return APPLIERS.indexOf(role())>=0; }
+  window.renderValidConso=function(){
+    if(!canApply()&&role()!=='drenaet'){ setContent('<div class="card" style="padding:30px;text-align:center">🔒 Accès réservé.</div>'); return; }
+    var c=CUR.vc, list=CO().filter(function(x){ return x.annee===c.an&&x.periode===c.per&&(!c.st||x.statut===c.st); });
+    var ecoles=(state.ecoles||[]).filter(function(e){ return /^(EPP|EPV|EPC|EPM|EP)/i.test(e.nom)||true; });
+    var rows=list.map(function(x){ var T=x.lignes.reduce(function(s,l){return s+n(l.filles)+n(l.garcons);},0);
+      return '<tr><td class="fw-7">'+esc(x.ecole)+'</td><td>'+esc(x.dir||'')+'</td><td style="text-align:right">'+T+'</td><td>'+badge(x.statut)+'</td><td class="actions-cell"><button class="icon-btn" onclick="vcOpen(\''+x.id+'\')" title="Contrôler">👁️</button></td></tr>'; }).join('');
+    var manquantes=ecoles.filter(function(e){ return !list.some(function(x){ return x.ecole===e.nom; }); }).length;
+    setContent('<div class="hero" style="background:linear-gradient(135deg,#00754A 0%,#004D31 100%)"><h3>Validation des consolidations d\'écoles</h3><p>Contrôlez la consolidation validée par chaque Directeur, puis appliquez-la à la base (effectifs élèves, enseignants, personnel administratif, table-bancs, toilettes, électricité, clôture…). Chaque application est journalisée et annulable.</p></div>'
+      +'<div class="card" style="padding:14px;margin-bottom:12px"><b>Qui met à jour quoi :</b> élèves (filles/garçons, redoublants) → fiche du maître · enseignants, personnel administratif, infrastructures → Directeur (consolidation) · contrôle et mise à jour de la base → Correspondant statistique.</div>'
+      +'<div class="toolbar"><div>'+periodSel('vcs',c.an,c.per,'vcChange')+' <select id="vc-st" class="form-control" style="max-width:220px;display:inline-block" onchange="vcChange()"><option value="">Tous les statuts</option>'+Object.keys(ST).filter(function(k){return k!=='soumis';}).map(function(k){return '<option value="'+k+'"'+(c.st===k?' selected':'')+'>'+ST[k][0]+'</option>';}).join('')+'</select></div><div style="flex:1"></div><span class="text-muted text-sm">'+manquantes+' école(s) sans consolidation pour cette période</span></div>'
+      +'<div class="card" style="padding:18px"><div class="table-wrap" style="border:none"><table><thead><tr><th>École</th><th>Directeur</th><th style="text-align:right">Effectif</th><th>Statut</th><th></th></tr></thead><tbody>'+(rows||'<tr><td colspan="5" class="table-empty">Aucune consolidation pour cette période.</td></tr>')+'</tbody></table></div></div>');
+  };
+  window.vcChange=function(){ var s=sel('vcs'); CUR.vc={an:s.an,per:s.per,st:g('vc-st')}; renderValidConso(); };
+  function baseRow(ecole){ return (state.effPrimaire||[]).find(function(r){ return r.nom===ecole; }); }
+  function diffs(x){
+    var e=(state.ecoles||[]).find(function(y){ return y.nom===x.ecole; })||{}, inf=e.infrastructures||{}, r=baseRow(x.ecole)||{};
+    var T=x.lignes.reduce(function(s,l){return s+n(l.filles)+n(l.garcons);},0);
+    var out=[['Effectif de l\'école',e.effectif,T],['Enseignants',e.enseignants,x.ens],['Personnel administratif',e.personnelAdmin,x.adm],['Table-bancs',inf.tableBancs,x.infra.tableBancs],['Table-bancs fonctionnels',inf.tbFonct,x.infra.tbFonct],['Toilettes',inf.toilettes,x.infra.toilettes],['Toilettes fonctionnelles',inf.toiFonct,x.infra.toiFonct],['Électricité',inf.electricite,x.infra.electricite],['Clôture',inf.cloture,x.infra.cloture],['Tableaux',inf.tableaux,x.infra.tableaux]];
+    x.lignes.forEach(function(l){ var k=String(l.classe).toLowerCase(); if(NIV.indexOf(l.classe)>=0){ out.push(['Effectif '+l.classe+' (G / F)',(r[k+'G']!=null?r[k+'G']:'—')+' / '+(r[k+'F']!=null?r[k+'F']:'—'),n(l.garcons)+' / '+n(l.filles)]); } });
+    return out;
+  }
+  window.vcOpen=function(id){
+    var x=CO().find(function(y){ return y.id===id; }); if(!x) return;
+    var d=diffs(x).map(function(r){ var ch=String(r[1]==null?'':r[1])!==String(r[2]==null?'':r[2]); return '<tr'+(ch?' style="background:#FEF3C7"':'')+'><td>'+esc(r[0])+'</td><td>'+esc(r[1]==null||r[1]===''?'—':r[1])+'</td><td class="fw-7">'+esc(r[2]==null||r[2]===''?'—':r[2])+'</td></tr>'; }).join('');
+    var vide=x.lignes.filter(function(l){ return n(l.filles)+n(l.garcons)===0; }).map(function(l){return l.classe;});
+    var warn=vide.length?'<div class="card" style="background:#FEF3C7;padding:10px;margin-bottom:10px">⚠️ Classes sans effectif : '+esc(vide.join(', '))+'. Elles ne modifient pas les effectifs par classe de la base, mais l\'effectif total de l\'école sera remplacé par la somme des classes renseignées.</div>':'';
+    var body='<div data-wide="1">'+warn+'<p class="text-sm">'+esc(x.ecole)+' · '+esc(x.annee)+' · '+PER[x.periode]+' · '+badge(x.statut)+'</p><table><thead><tr><th>Donnée</th><th>Base actuelle</th><th>Après application</th></tr></thead><tbody>'+d+'</tbody></table>'
+      +(canApply()&&x.statut==='valide_dir'?'<div class="form-group" style="margin-top:10px"><label>Motif (en cas de rejet)</label><input id="vc-motif" class="form-control"></div>':'')+'</div>';
+    var foot='<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>';
+    if(canApply()&&x.statut==='valide_dir') foot+='<button class="btn btn-ghost" onclick="vcReject(\''+id+'\')">↩️ Renvoyer au Directeur</button><button class="btn btn-green" onclick="vcApply(\''+id+'\')">✅ Appliquer à la base</button>';
+    if(canApply()&&x.statut==='applique'&&x.undo) foot+='<button class="btn btn-ghost" onclick="vcUndo(\''+id+'\')">⏪ Annuler l\'application</button>';
+    openModal('Contrôle de la consolidation',body,foot);
+  };
+  window.vcReject=function(id){ var x=CO().find(function(y){return y.id===id;}); if(!x||!canApply()) return; var m=g('vc-motif').trim(); if(!m){ toast('Indiquez le motif du renvoi.','error'); return; } x.statut='rejete'; x.motif=m; persistCO(); logAction('Consolidation renvoyée au Directeur',x.ecole+' · '+m); closeModal(); renderValidConso(); toast('Renvoyée au Directeur','success'); };
+  window.vcApply=function(id){
+    var x=CO().find(function(y){return y.id===id;}); if(!x||!canApply()||x.statut!=='valide_dir') return;
+    var e=(state.ecoles||[]).find(function(y){ return y.nom===x.ecole; });
+    if(!e){ toast('École introuvable dans la base de cet IEPP.','error'); return; }
+    var r=baseRow(x.ecole);
+    x.undo={ecole:JSON.parse(JSON.stringify(e)),row:r?JSON.parse(JSON.stringify(r)):null,hadRow:!!r};
+    var T=x.lignes.reduce(function(s,l){return s+n(l.filles)+n(l.garcons);},0);
+    e.effectif=T; e.enseignants=n(x.ens); e.personnelAdmin=n(x.adm);
+    var nc=x.lignes.filter(function(l){return n(l.filles)+n(l.garcons)>0;}).length; if(nc) e.classes=nc;
+    e.infrastructures=Object.assign({},e.infrastructures||{},{tableBancs:x.infra.tableBancs,tbFonct:x.infra.tbFonct,toilettes:x.infra.toilettes,toiFonct:x.infra.toiFonct,electricite:x.infra.electricite,cloture:x.infra.cloture,clotureType:x.infra.clotureType,tableaux:x.infra.tableaux,bureauDirecteur:x.infra.bureauDirecteur,majConso:x.annee+' '+x.periode});
+    if(!Array.isArray(state.effPrimaire)) state.effPrimaire=[];
+    if(!r){ r={id:'efr'+uid(),nom:x.ecole}; state.effPrimaire.push(r); }
+    x.lignes.forEach(function(l){ if(NIV.indexOf(l.classe)>=0&&(l.src!=='—'||n(l.filles)+n(l.garcons)>0)){ var k=l.classe.toLowerCase(); r[k+'G']=n(l.garcons); r[k+'F']=n(l.filles); } });
+    x.statut='applique'; x.appliqueBy=state.user.name; x.appliqueDate=new Date().toISOString();
+    save('ecoles',state.ecoles); save('effPrimaire',state.effPrimaire); persistCO();
+    FC().forEach(function(f){ if(f.ecole===x.ecole&&f.annee===x.annee&&f.periode===x.periode&&f.statut==='valide_dir') f.statut='applique'; }); persistFC();
+    logAction('Consolidation appliquée à la base',x.ecole+' · '+x.annee+' · '+PER[x.periode]+' · effectif '+T);
+    closeModal(); renderValidConso(); toast('Base mise à jour pour '+x.ecole,'success');
+  };
+  window.vcUndo=function(id){
+    var x=CO().find(function(y){return y.id===id;}); if(!x||!canApply()||x.statut!=='applique'||!x.undo) return;
+    if(!confirm('Annuler l\'application et restaurer les anciennes valeurs de la base ?')) return;
+    var i=(state.ecoles||[]).findIndex(function(y){ return y.nom===x.ecole; }); if(i>=0) state.ecoles[i]=x.undo.ecole;
+    var j=(state.effPrimaire||[]).findIndex(function(y){ return y.nom===x.ecole; });
+    if(x.undo.hadRow){ if(j>=0) state.effPrimaire[j]=x.undo.row; } else if(j>=0) state.effPrimaire.splice(j,1);
+    x.statut='valide_dir'; x.undo=null; save('ecoles',state.ecoles); save('effPrimaire',state.effPrimaire); persistCO();
+    FC().forEach(function(f){ if(f.ecole===x.ecole&&f.annee===x.annee&&f.periode===x.periode&&f.statut==='applique') f.statut='valide_dir'; }); persistFC();
+    logAction('Application de consolidation annulée',x.ecole); closeModal(); renderValidConso(); toast('Application annulée, base restaurée','success');
+  };
+
+  /* ================= intégration ================= */
+  var DEFS=[
+    {m:'fiche-classe',roles:['instituteur'],icon:'📋',label:'Fiche de ma classe',title:'Fiche de ma classe',sub:'Fiche statistique de la classe (rentrée et trimestres)',render:'renderFicheClasse',after:'ma-classe'},
+    {m:'conso-ecole',roles:['directeur'],icon:'📊',label:'Consolidation de l\'école',title:'Consolidation de l\'école',sub:'Fiches des classes, effectifs, personnel, infrastructures',render:'renderConsoEcole',after:'mon-ecole'},
+    {m:'valid-conso',roles:['corresp_stat','correspondant','inspecteur','superadmin','drenaet'],icon:'✅',label:'Validation des consolidations',title:'Validation des consolidations',sub:'Contrôle et mise à jour de la base à partir des écoles',render:'renderValidConso',after:'dashboard'}
+  ];
+  DEFS.forEach(function(D){
+    MODULES[D.m]={title:D.title,sub:D.sub,render:function(){ return window[D.render](); }};
+    D.roles.forEach(function(r){ if(ACL[r]&&ACL[r].indexOf(D.m)<0) ACL[r].push(D.m); });
+  });
+  function pendingValid(){ return CO().filter(function(x){ return x.statut==='valide_dir'; }).length; }
+  function pendingDir(){ var u=state.user; return FC().filter(function(f){ return f.ecole===u.ecole&&f.statut==='soumis'; }).length; }
+  function links(){
+    if(!state||!state.user) return;
+    DEFS.forEach(function(D){
+      var el=document.querySelector('.sb-link[data-module="'+D.m+'"]');
+      if(!el){
+        var anchor=document.querySelector('.sb-link[data-module="'+D.after+'"]')||document.querySelector('.sb-link[data-module="dashboard"]'); if(!anchor) return;
+        el=document.createElement('div'); el.className='sb-link'; el.setAttribute('data-module',D.m); el.setAttribute('onclick',"navigate('"+D.m+"')");
+        el.innerHTML='<span class="sb-icon">'+D.icon+'</span><span>'+D.label+'</span>'; anchor.parentNode.insertBefore(el,anchor.nextSibling);
+        if(typeof applyACL==='function') applyACL();
+      }
+      var sp=el.querySelector('span:not(.sb-icon)'); if(sp){ var k=0; if(D.m==='valid-conso') k=pendingValid(); if(D.m==='conso-ecole') k=pendingDir(); var w=D.label+(k?' ('+k+')':''); if(sp.textContent!==w) sp.textContent=w; }
+    });
+  }
+  setInterval(function(){ try{ links(); }catch(_){} },1500);
+  /* cartes d'accès dans Ma classe / Mon école */
+  function wrap(m,html){ var o=MODULES[m]&&MODULES[m].render; if(!o||o.__fcw) return; var w=function(){ var r=o.apply(this,arguments); try{ var c=document.getElementById('content'); if(c&&state.user) c.insertAdjacentHTML('afterbegin',html()); }catch(_){} return r; }; w.__fcw=1; MODULES[m].render=w; }
+  wrap('ma-classe',function(){ var u=state.user,f=findFC(u.ecole,u.classe||'CE1',annee(),'rentree'); return '<div class="card" style="padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b>📋 Fiche statistique de ma classe</b><span class="text-muted text-sm">'+PER.rentree+' '+annee()+' : </span>'+badge(f?f.statut:'brouillon')+'<div style="flex:1"></div><button class="btn btn-orange" onclick="navigate(\'fiche-classe\')">Remplir ma fiche</button></div>'; });
+  wrap('mon-ecole',function(){ var c=findCO(state.user.ecole,annee(),'rentree'); return '<div class="card" style="padding:12px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b>📊 Consolidation de l\'école</b><span class="text-muted text-sm">'+pendingDir()+' fiche(s) de classe à intégrer · '+PER.rentree+' '+annee()+' : </span>'+badge(c?c.statut:'brouillon')+'<div style="flex:1"></div><button class="btn btn-orange" onclick="navigate(\'conso-ecole\')">Consolider</button></div>'; });
+  window.__fcApi={FC:FC,CO:CO,autoConso:autoConso,annee:annee,CUR:CUR};
+  }catch(e){ console.warn('[fiches-classe]',e); }
+})();
+</script>
+<script id="iepp-permission">
+/* Demande de permission (courte sortie) intégrée au formulaire d'autorisation d'absence */
+(function(){
+  try{
+    if(typeof absRequestForm!=='function'||typeof absRequestFormSave!=='function') return;
+    var _form=absRequestForm, _save=absRequestFormSave;
+    var $=function(id){ return document.getElementById(id); };
+    function row(el){ var r=el&&el.closest('.field'); return r||null; }
+    window.absTypeSwitch=function(t){
+      var perm=(t==='Permission');
+      var mb=$('modal-title'); if(mb) mb.textContent=perm?'Demande de permission':"Demande d'autorisation d'absence";
+      var form=$('abr-nom')&&$('abr-nom').closest('#modal-body'); 
+      ['abr-duree','abr-au','abr-reprise'].forEach(function(id){ var f=row($(id)); if(f) f.style.display=perm?'none':''; });
+      var hs=$('abr-hsortie-wrap'); if(hs) hs.style.display=perm?'':'none';
+      var lab=$('abr-heure')&&$('abr-heure').closest('.field')&&$('abr-heure').closest('.field').querySelector('label'); if(lab) lab.textContent=perm?'Heure de retour prévue *':'Heure de reprise';
+      var ld=$('abr-du')&&$('abr-du').closest('.field')&&$('abr-du').closest('.field').querySelector('label'); if(ld) ld.textContent=perm?'Date de la permission *':'Date début *';
+      var sb=document.querySelector('#modal-footer .btn-orange'); if(sb) sb.textContent=perm?'📤 Soumettre la permission':'📤 Soumettre';
+      var ph=$('abr-lieu'); if(ph&&perm&&!ph.value) ph.placeholder='ex : Banque, hôpital, préfecture…';
+    };
+    window.absRequestForm=function(){
+      var r=_form.apply(this,arguments);
+      try{
+        var body=$('modal-body'); if(!body||!$('abr-nom')) return r;
+        var du=$('abr-du'); var fld=du.closest('.form-row');
+        var wrap=document.createElement('div'); wrap.id='abr-hsortie-wrap'; wrap.className='field'; wrap.style.display='none';
+        wrap.innerHTML='<label>Heure de sortie *</label><input id="abr-hsortie" type="time" value="10:00">';
+        var rep=$('abr-heure').closest('.form-row'); if(rep) rep.parentNode.insertBefore(wrap,rep);
+        var sel=document.createElement('div'); sel.className='field'; sel.innerHTML='<label>Type de demande *</label><select id="abr-type" onchange="absTypeSwitch(this.value)" class="form-control"><option value="Autorisation">Autorisation d\'absence (un jour ou plus)</option><option value="Permission">Permission (courte sortie, quelques heures)</option></select>';
+        body.insertBefore(sel,body.firstChild);
+        if(window.__absPermDefault){ $('abr-type').value='Permission'; absTypeSwitch('Permission'); window.__absPermDefault=false; }
+      }catch(e){ console.warn('permission',e); }
+      return r;
+    };
+    window.absRequestFormSave=function(){
+      var t=$('abr-type')?$('abr-type').value:'Autorisation';
+      if(t!=='Permission') return _save.apply(this,arguments);
+      var d=$('abr-du').value, hs=$('abr-hsortie').value, hr=$('abr-heure').value;
+      if(!d||!hs||!hr){ toast('Date, heure de sortie et heure de retour sont obligatoires','error'); return; }
+      if(hr<=hs){ toast('L\'heure de retour doit suivre l\'heure de sortie','error'); return; }
+      $('abr-au').value=d; $('abr-reprise').value=d; $('abr-duree').value=1;
+      var before=(state.absences||[]).length; var firstId=(state.absences[0]||{}).id;
+      _save.apply(this,arguments);
+      var a=state.absences[0];
+      if(a&&a.id!==firstId&&state.absences.length>before){ a.type='Permission'; a.heureSortie=hs; a.heureRetour=hr; a.motif='[Permission '+hs+'–'+hr+'] '+a.motif; save('absences',state.absences); }
+    };
+    window.absPermissionForm=function(){ window.__absPermDefault=true; window.absRequestForm(); };
+    /* Bouton flottant : libellé, taille réduite, menu court */
+    var fab=$('abs-fab');
+    if(fab){ fab.title="Demande d'autorisation d'absence ou de permission"; }
+  }catch(e){ console.warn('[permission]',e); }
+})();
+</script>
+<script id="iepp-abs-dock">
+/* Dock des boutons flottants (Autorisation d'absence / Permission) : réduire, déplacer, masquer, réafficher */
+(function(){
+  try{
+    var KEY='iepp_abs_dock';
+    function rd(){ try{ return JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){ return {}; } }
+    function wr(o){ try{ localStorage.setItem(KEY,JSON.stringify(o)); }catch(e){} }
+    var st=rd(); /* {mode:'open'|'min'|'hidden', x, y} */
+    var a=document.getElementById('abs-fab'), p=document.getElementById('perm-fab'); if(!a||!p) return;
+    var css=document.createElement('style');
+    css.textContent='#abs-dock{position:fixed;right:22px;bottom:64px;z-index:900;display:flex;flex-direction:column;align-items:flex-end;gap:6px;touch-action:none}'
+      +'#abs-dock #abs-fab,#abs-dock #perm-fab{position:static!important;right:auto!important;bottom:auto!important}'
+      +'#abs-dock .dk-bar{display:flex;gap:4px;align-items:center;background:rgba(15,23,42,.78);color:#fff;border-radius:10px;padding:2px 4px;font-size:11px;cursor:grab;user-select:none;backdrop-filter:blur(3px)}'
+      +'#abs-dock .dk-bar:active{cursor:grabbing}'
+      +'#abs-dock .dk-bar b{font-weight:600;padding:0 4px;opacity:.9}'
+      +'#abs-dock .dk-btn{border:none;background:transparent;color:#fff;cursor:pointer;font-size:13px;line-height:1;padding:3px 5px;border-radius:6px}'
+      +'#abs-dock .dk-btn:hover{background:rgba(255,255,255,.22)}'
+      +'#abs-dock.min #abs-fab,#abs-dock.min #perm-fab,#abs-dock.min .dk-bar{display:none!important}'
+      +'#abs-dock .dk-mini{display:none;width:34px;height:34px;border-radius:50%;border:none;background:linear-gradient(135deg,#1D4ED8,#1E3A8A);color:#fff;font-size:16px;cursor:pointer;box-shadow:0 3px 10px rgba(29,78,216,.4)}'
+      +'#abs-dock.min .dk-mini{display:block}'
+      +'#abs-dock.hidden{display:none!important}'
+      +'#abs-tab{display:none;position:fixed;right:0;bottom:90px;z-index:900;border:none;background:rgba(30,58,138,.85);color:#fff;border-radius:10px 0 0 10px;padding:8px 5px;font-size:13px;cursor:pointer;opacity:.55;transition:opacity .15s,padding .15s}'
+      +'#abs-tab:hover{opacity:1;padding-right:10px}'
+      +'@media print{#abs-dock,#abs-tab{display:none!important}}';
+    document.head.appendChild(css);
+    var dock=document.createElement('div'); dock.id='abs-dock';
+    dock.innerHTML='<div class="dk-bar" title="Glisser pour déplacer · double-clic : position d\'origine"><b>⠿ Demandes</b><button class="dk-btn" data-a="min" title="Réduire">▾</button><button class="dk-btn" data-a="hide" title="Masquer (réapparaît via le petit onglet à droite)">✕</button></div><button class="dk-mini" title="Agrandir : demandes d\'absence / permission" data-a="open">🗓️</button>';
+    a.parentNode.insertBefore(dock,a);
+    dock.insertBefore(p,dock.querySelector('.dk-mini')); dock.insertBefore(a,dock.querySelector('.dk-mini'));
+    var tab=document.createElement('button'); tab.id='abs-tab'; tab.title='Réafficher les demandes d\'absence / permission'; tab.textContent='🗓️ ‹'; document.body.appendChild(tab);
+    function clamp(){ var r=dock.getBoundingClientRect(), W=window.innerWidth, H=window.innerHeight; if(!r.width) return {x:st.x,y:st.y}; var x=r.left, y=r.top; x=Math.max(4,Math.min(W-r.width-4,x)); y=Math.max(4,Math.min(H-r.height-4,y)); dock.style.left=x+'px'; dock.style.top=y+'px'; dock.style.right='auto'; dock.style.bottom='auto'; return {x:x,y:y}; }
+    function mode(m){ st.mode=m; wr(st); dock.classList.toggle('min',m==='min'); dock.classList.toggle('hidden',m==='hidden'); tab.style.display=(m==='hidden'&&!allGone())?'block':'none'; if(st.x!=null&&m!=='hidden') setTimeout(clamp,0); }
+    function allGone(){ return a.style.display==='none'&&p.style.display==='none'; }
+    dock.addEventListener('click',function(e){ var b=e.target.closest&&e.target.closest('[data-a]'); if(!b) return; var k=b.getAttribute('data-a'); if(k==='min') mode('min'); else if(k==='open') mode('open'); else if(k==='hide') mode('hidden'); });
+    tab.addEventListener('click',function(){ mode('open'); });
+    /* glisser */
+    var drag=null, bar=dock.querySelector('.dk-bar'), mini=dock.querySelector('.dk-mini');
+    function down(e){ if(e.target.closest&&e.target.closest('.dk-btn')) return; var r=dock.getBoundingClientRect(); drag={dx:e.clientX-r.left,dy:e.clientY-r.top,moved:false,sx:e.clientX,sy:e.clientY}; try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(_){ } }
+    function move(e){ if(!drag) return; if(Math.abs(e.clientX-drag.sx)+Math.abs(e.clientY-drag.sy)>4) drag.moved=true; if(!drag.moved) return; var r=dock.getBoundingClientRect(); var x=Math.max(4,Math.min(window.innerWidth-r.width-4,e.clientX-drag.dx)), y=Math.max(4,Math.min(window.innerHeight-r.height-4,e.clientY-drag.dy)); dock.style.left=x+'px'; dock.style.top=y+'px'; dock.style.right='auto'; dock.style.bottom='auto'; }
+    function up(e){ if(!drag) return; var m=drag.moved; drag=null; if(m){ var r=dock.getBoundingClientRect(); st.x=Math.round(r.left); st.y=Math.round(r.top); wr(st); if(e.currentTarget===mini) mini.__justDragged=true; } }
+    [bar,mini].forEach(function(el){ el.addEventListener('pointerdown',down); el.addEventListener('pointermove',move); el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up); });
+    mini.addEventListener('click',function(e){ if(mini.__justDragged){ mini.__justDragged=false; e.stopPropagation(); } },true);
+    bar.addEventListener('dblclick',function(){ st.x=st.y=null; wr(st); dock.style.left=dock.style.top=''; dock.style.right='22px'; dock.style.bottom='64px'; });
+    window.addEventListener('resize',function(){ if(st.x!=null) clamp(); });
+    if(st.x!=null){ dock.style.left=st.x+'px'; dock.style.top=st.y+'px'; dock.style.right='auto'; dock.style.bottom='auto'; setTimeout(clamp,50); }
+    mode(st.mode||'open');
+    /* le dock disparaît si aucun bouton n'est autorisé (ex. Inspecteur) */
+    var lastU=null;
+    setInterval(function(){ try{ var u=window.state&&state.user&&state.user.username; if(u&&u!==lastU){ lastU=u; if(st.mode==='hidden'||st.mode==='min') mode('open'); } if(!u) lastU=null; }catch(e){} },700);
+    setInterval(function(){ var g=allGone(); if(g){ dock.style.display='none'; tab.style.display='none'; } else { dock.style.display=''; tab.style.display=(st.mode==='hidden')?'block':'none'; } },800);
+    window.absDockShow=function(){ mode('open'); };
+  }catch(e){ console.warn('[dock]',e); }
+})();
+</script>
+<script id="iepp-rescue-local">
+/* Données locales supprimées en ligne par un autre utilisateur : elles ne disparaissent plus, elles vont à la Corbeille (restaurables, puis remises en ligne) */
+(function(){
+  try{
+    var Q=[], timer=null;
+    function rk(it){ try{ return (typeof genericRecKey==='function')?genericRecKey(it):(it&&it.id); }catch(e){ return it&&it.id; } }
+    function name(it){ return it&&(it.titre||it.nom||it.objet||it.activite||it.theme||it.libelle||it.centre||it.mois||it.intitule)||'Élément'; }
+    window.__rescueLocal=function(key, items, localArr, regKey, subPath){
+      try{
+        var lk={}; (Array.isArray(localArr)?localArr:[]).forEach(function(it){ lk[rk(it)]=1; });
+        (items||[]).forEach(function(it){ if(it&&typeof it==='object'&&lk[rk(it)]) Q.push({key:key,item:JSON.parse(JSON.stringify(it)),regKey:regKey||null,subPath:subPath||null}); });
+        if(Q.length&&!timer) timer=setTimeout(flush,900);
+      }catch(e){ console.warn('rescue',e); }
+    };
+    function flush(){
+      timer=null; var batch=Q.splice(0,Q.length);
+      try{
+        if(typeof trashGeneric!=='function'||!window.state||!state.user) return;
+        batch.forEach(function(q){
+          var cb=state.corbeille||[], id=q.item.id!=null?q.item.id:q.item._id;
+          var dup=cb.some(function(t){ var same=q.regKey?(t.regKey===q.regKey&&t.subPath===q.subPath):(t.parentKey===q.key); return same&&t.data&&(id!=null?(t.data.id===id||t.data._id===id):JSON.stringify(t.data)===JSON.stringify(q.item)); });
+          if(dup) return;
+          var c=q.item; delete c._sub; delete c._ft;
+          trashGeneric({item:c,type:'auto',parentKey:q.regKey?null:q.key,regKey:q.regKey,subPath:q.subPath,moduleLabel:(typeof AUTO_TRASH_LABELS!=='undefined'&&(AUTO_TRASH_LABELS[q.key]||AUTO_TRASH_LABELS[q.regKey]))||q.key,label:name(c)+' · supprimé en ligne par un autre utilisateur'});
+        });
+        if(batch.length&&typeof toast==='function') toast(batch.length+' élément(s) local(aux) supprimé(s) en ligne ont été placés dans la Corbeille (restaurables)','info');
+      }catch(e){ console.warn('rescue flush',e); }
+    }
+    /* fusions par enregistrement : on repère les éléments locaux écartés par une marque de suppression */
+    var _a=window.recordMergeArrays;
+    if(typeof _a==='function') window.recordMergeArrays=function(listKey,cloudArr,localArr,cloudTomb,localTomb){
+      var out=_a.apply(this,arguments);
+      try{ var o={}; out.forEach(function(it){ o[it&&it.id]=1; }); var dropped=(Array.isArray(localArr)?localArr:[]).filter(function(it){ return it&&it.id!=null&&!o[it.id]; }); if(dropped.length) window.__rescueLocal(listKey,dropped,localArr); }catch(e){}
+      return out;
+    };
+    var _o=window.recordMergeObjects;
+    if(typeof _o==='function') window.recordMergeObjects=function(k,cloudObj,localObj,cloudTomb,localTomb){
+      var out=_o.apply(this,arguments);
+      try{ Object.keys(localObj||{}).forEach(function(p){ if(!Array.isArray(localObj[p])) return; var o={}; ((out&&out[p])||[]).forEach(function(it){ o[it&&it.id]=1; }); var dropped=localObj[p].filter(function(it){ return it&&it.id!=null&&!o[it.id]; }); if(dropped.length) window.__rescueLocal(k,dropped,localObj[p],k,p); }); }catch(e){}
+      return out;
+    };
+    /* Bouton manuel : « Récupérer les données locales » (Corbeille) */
+    window.corbeilleScanLocal=function(){
+      var moved=0, keys=[];
+      try{
+        var tombOf=function(tk){ try{ return JSON.parse(localStorage.getItem(storeKey(tk))||'[]')||[]; }catch(e){ return []; } };
+        Object.keys(RECORD_MERGE).forEach(function(k){
+          var tk=RECORD_MERGE[k]&&RECORD_MERGE[k].tomb; if(!tk||!Array.isArray(state[k])) return;
+          var tm={}; tombOf(tk).forEach(function(t){ if(t&&t.id!=null) tm[t.id]=t.at||0; });
+          var gone=state[k].filter(function(it){ return it&&it.id!=null&&tm[it.id]!=null&&tm[it.id]>=(it._upd||0); });
+          if(gone.length){ state[k]=state[k].filter(function(it){ return gone.indexOf(it)<0; }); save(k,state[k]); moved+=gone.length; keys.push(k); }
+        });
+        SCOPED_KEY_LIST.forEach(function(k){
+          if(!Array.isArray(state[k])||!isGenericMergeKey(k)) return;
+          var set={}; tombOf(k+'__gtomb').forEach(function(t){ if(t&&t.k!=null&&gtombActive(t)) set[t.k]=1; });
+          var gone=state[k].filter(function(it){ return it&&typeof it==='object'&&set[rk(it)]; });
+          if(gone.length){ state[k]=state[k].filter(function(it){ return gone.indexOf(it)<0; }); save(k,state[k]); moved+=gone.length; keys.push(k); }
+        });
+      }catch(e){ console.warn('scanLocal',e); }
+      setTimeout(function(){ try{ if(typeof renderCorbeille==='function'&&state.module==='corbeille') renderCorbeille(); }catch(e){} },1500);
+      openModal('Récupération des données locales',
+        moved?('<p><b>'+moved+' élément(s)</b> présent(s) sur cet appareil mais supprimés en ligne par un autre utilisateur ont été placés dans la Corbeille ('+keys.join(', ')+').</p><p>Utilisez « Restaurer » pour les récupérer : ils seront remis à leur place puis renvoyés en ligne.</p>')
+              :'<p>Aucune donnée locale à récupérer : tout est cohérent avec la version en ligne.</p>');
+      return moved;
+    };
+    var M=(typeof MODULES!=='undefined')?MODULES.corbeille:null;
+    if(M&&typeof M.render==='function'&&!M.render.__rs){ var o=M.render; var w=function(){ var r=o.apply(this,arguments); try{ var c=document.getElementById('content'); if(c&&!document.getElementById('cb-scan-local')) c.insertAdjacentHTML('afterbegin','<div class="card" id="cb-scan-local" style="padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span class="text-sm">Données de cet appareil supprimées en ligne par un autre utilisateur ?</span><div style="flex:1"></div><button class="btn btn-ghost" onclick="corbeilleScanLocal()">🔎 Récupérer les données locales</button></div>'); }catch(e){} return r; }; w.__rs=1; M.render=w; }
+  }catch(e){ console.warn('[rescue]',e); }
+})();
+</script>
+<script id="iepp-recovery">
+/* Sauvegarde de récupération : export / diagnostic / import fusionné / instantanés automatiques (IndexedDB) */
+(function(){
+  try{
+  var FMT='iepp-recovery-v1', TARGET_USER='kaegeorgeseri', TARGET_IEPP='IEPP BAGOHOUO';
+  var esc=function(s){ return (typeof escapeHtml==='function')?escapeHtml(String(s==null?'':s)):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
+  var role=function(){ return state&&state.user?state.user.role:''; };
+  function keysSorted(){ return SCOPED_KEY_LIST.slice().sort(function(a,b){ return b.length-a.length; }); }
+  var KS=null;
+  function knownScopes(){ if(KS) return KS; var set={}, ks=keysSorted();
+    try{ for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i)||''; if(k.indexOf(KEY+'c_')!==0) continue; var rest=k.slice(KEY.length); for(var j=0;j<ks.length;j++){ if(rest.length>ks[j].length+1&&rest.slice(-ks[j].length-1)==='_'+ks[j]){ set[rest.slice(0,rest.length-ks[j].length-1).replace(/_ann[A-Za-z]*$/,'')]=1; break; } } } }catch(e){}
+    KS=Object.keys(set); setTimeout(function(){ KS=null; },2000); return KS; }
+  function fixAnn(r){ if(r&&r.scope){ var m=r.scope.match(/^(c_.+?)_(ann[A-Za-z]*)$/); if(m){ r.k=m[2]+'_'+r.k; r.scope=m[1]; } } return r; }
+  function parseKey(full){ return fixAnn(parseKey0(full)); }
+  function parseKey0(full){
+    if(full.indexOf(KEY)!==0) return null; var rest=full.slice(KEY.length);
+    var m=rest.match(/^(c_[a-z0-9_]+?)_(.+)$/); 
+    if(m){ var ks=keysSorted(); for(var i=0;i<ks.length;i++){ if(rest.length>ks[i].length+1&&rest.slice(-ks[i].length-1)==='_'+ks[i]){ return {scope:rest.slice(0,rest.length-ks[i].length-1), k:ks[i], full:full}; } }
+      /* clé annexe hors liste (ex. annSnap_…) : rattachée au plus long IEPP connu qui la préfixe */
+      var kn=knownScopes().sort(function(x,y){ return y.length-x.length; });
+      for(var j=0;j<kn.length;j++){ if(rest.indexOf(kn[j]+'_')===0) return {scope:kn[j], k:rest.slice(kn[j].length+1), full:full}; } }
+    return {scope:'', k:rest, full:full};
+  }
+  function allLocal(){ var o={}; try{ for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k&&k.indexOf(KEY)===0&&k.indexOf('iepp_abs_dock')!==0) o[k]=localStorage.getItem(k); } }catch(e){} return o; }
+  function cnt(raw){ try{ var v=JSON.parse(raw); if(Array.isArray(v)) return v.length; if(v&&typeof v==='object'){ var n=0, arr=false; Object.keys(v).forEach(function(p){ if(Array.isArray(v[p])){ n+=v[p].length; arr=true; } }); return arr?n:Object.keys(v).length; } return 1; }catch(e){ return 0; } }
+  function slugLabel(s){ return (s||'(global)').replace(/^c_/,'').replace(/_/g,' ').toUpperCase(); }
+
+  /* ---------- instantanés automatiques (IndexedDB) ---------- */
+  var DB=null;
+  function idb(cb){ if(DB) return cb(DB); try{ var r=indexedDB.open('iepp_backups',1); r.onupgradeneeded=function(){ r.result.createObjectStore('snaps',{keyPath:'id'}); }; r.onsuccess=function(){ DB=r.result; cb(DB); }; r.onerror=function(){ cb(null); }; }catch(e){ cb(null); } }
+  function sig(o){ var s=0; Object.keys(o).forEach(function(k){ s+=k.length+o[k].length; }); return Object.keys(o).length+':'+s; }
+  function snapshot(reason,force,done){
+    idb(function(db){ if(!db){ done&&done(false); return; }
+      var data=allLocal(), sg=sig(data); if(Object.keys(data).length<3){ done&&done(false); return; }
+      var tx=db.transaction('snaps','readwrite'), st=tx.objectStore('snaps'), rq=st.getAll();
+      rq.onsuccess=function(){ var all=(rq.result||[]).sort(function(a,b){ return b.at-a.at; });
+        if(!force&&all[0]&&all[0].sig===sg){ done&&done(false); return; }
+        var tx2=db.transaction('snaps','readwrite'), s2=tx2.objectStore('snaps');
+        s2.put({id:'s'+Date.now(),at:Date.now(),reason:reason||'auto',sig:sg,n:Object.keys(data).length,data:data});
+        all.slice(11).forEach(function(x){ s2.delete(x.id); });   /* 12 instantanés conservés */
+        tx2.oncomplete=function(){ done&&done(true); }; };
+      rq.onerror=function(){ done&&done(false); }; });
+  }
+  setTimeout(function(){ snapshot('démarrage'); },6000);
+  setInterval(function(){ snapshot('auto'); },15*60*1000);
+  window.addEventListener('pagehide',function(){ try{ snapshot('fermeture'); }catch(e){} });
+
+  /* ---------- export ---------- */
+  function download(name,text){ var b=new Blob([text],{type:'application/json'}); var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500); }
+  window.rcExport=function(only){
+    var data=allLocal(), out={};
+    Object.keys(data).forEach(function(k){ var p=parseKey(k); if(!p) return; if(only==='bagohouo'&&p.scope&&p.scope.indexOf('bagohouo')<0) return; if(['current_user','active_iepp'].indexOf(p.k)>=0) return; if((p.k==='users'||/^usersBackup/.test(p.k))&&role()!=='superadmin') return; out[k]=data[k]; });
+    var pack={format:FMT,createdAt:new Date().toISOString(),by:(state.user&&state.user.username)||'',iepp:(state.user&&state.user.iepp)||'',origin:location.href.slice(0,120),keys:out};
+    var d=new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+    download('recuperation_'+(only==='bagohouo'?'BAGOHOUO':'complete')+'_'+d+'.json',JSON.stringify(pack));
+    toast('Sauvegarde de récupération téléchargée ('+Object.keys(out).length+' blocs de données)','success');
+    try{ logAction('recovery-export',Object.keys(out).length+' blocs'); }catch(e){}
+  };
+
+  /* ---------- diagnostic ---------- */
+  function diagnostic(){
+    var data=allLocal(), scopes={}, hits=[];
+    Object.keys(data).forEach(function(full){ var p=parseKey(full); if(!p) return; var s=scopes[p.scope]=scopes[p.scope]||{n:0,keys:[]}; var c=cnt(data[full]); if(c>0&&!/__gtomb$|__ometa$|Deleted$/.test(p.k)&&p.k!=='audit'){ s.n+=c; s.keys.push(p.k+' ('+c+')'); }
+      if(data[full].toLowerCase().indexOf(TARGET_USER)>=0&&p.k!=='users') hits.push(slugLabel(p.scope)+' · '+p.k); });
+    var audit=[]; Object.keys(data).forEach(function(full){ var p=parseKey(full); if(!p||p.k!=='audit') return; try{ JSON.parse(data[full]).forEach(function(a){ if(a&&(a.user===TARGET_USER||String(a.iepp||'').toUpperCase()===TARGET_IEPP)) audit.push(a); }); }catch(e){} });
+    audit.sort(function(a,b){ return String(b.timestamp).localeCompare(String(a.timestamp)); });
+    var trash=0; Object.keys(data).forEach(function(full){ var p=parseKey(full); if(p&&p.k==='corbeille'&&p.scope.indexOf('bagohouo')>=0) trash+=cnt(data[full]); });
+    return {scopes:scopes,hits:hits,audit:audit,trash:trash};
+  }
+
+  /* ---------- import fusionné (sans jamais écraser) ---------- */
+  function rk(it){ try{ return genericRecKey(it); }catch(e){ return it&&it.id; } }
+  function mergeVal(cur,inc,now,stat){
+    if(Array.isArray(inc)){
+      var base=Array.isArray(cur)?cur.slice():[], have={}; base.forEach(function(it){ have[rk(it)]=1; });
+      inc.forEach(function(it){ if(it==null) return; var kk=(typeof it==='object')?rk(it):JSON.stringify(it); if(have[kk]) return; have[kk]=1; if(typeof it==='object'){ it=JSON.parse(JSON.stringify(it)); it._upd=now; } base.push(it); stat.added++; });
+      return base;
+    }
+    if(inc&&typeof inc==='object'){
+      var o=(cur&&typeof cur==='object'&&!Array.isArray(cur))?JSON.parse(JSON.stringify(cur)):{};
+      Object.keys(inc).forEach(function(p){ if(Array.isArray(inc[p])) o[p]=mergeVal(o[p],inc[p],now,stat); else if(!(p in o)){ o[p]=inc[p]; stat.added++; } });
+      return o;
+    }
+    return cur==null?inc:cur;
+  }
+  var PENDING=null;
+  window.rcFile=function(ev){
+    var f=ev.target.files&&ev.target.files[0]; if(!f) return;
+    var r=new FileReader(); r.onload=function(){ try{ var j=JSON.parse(r.result); if(!j||j.format!==FMT||!j.keys) throw new Error('format'); PENDING=j; rcPreview(); }catch(e){ toast('Fichier non reconnu (attendu : sauvegarde de récupération IEPP).','error'); } }; r.readAsText(f);
+  };
+  function plan(j,targetSlug){
+    var rows=[], cur=allLocal(), now=Date.now();
+    Object.keys(j.keys).forEach(function(full){ var p=parseKey(full); if(!p) return;
+      var gl=GLOBAL_KEYS.has(p.k); if(gl&&p.k!=='users') return; if(p.k==='users'&&role()!=='superadmin') return; if(/^usersBackup/.test(p.k)&&role()!=='superadmin') return;
+      if(!gl&&p.scope.indexOf('bagohouo')<0&&targetSlug.indexOf('bagohouo')>=0&&p.scope!==targetSlug&&p.scope!=='') {/* autres IEPP du fichier : ignorées */ return; }
+      if(!gl&&p.scope!==targetSlug&&p.scope!=='') { if(p.scope.replace(/_/g,'')!==targetSlug.replace(/_/g,'')) return; }
+      if(/__gtomb$|__ometa$|Deleted$|^audit$/.test(p.k)) return;
+      var target=gl?(KEY+p.k):(KEY+targetSlug+'_'+p.k); var curRaw=cur[target], st={added:0};
+      try{ var inc=JSON.parse(j.keys[full]); var merged=mergeVal(curRaw?JSON.parse(curRaw):null,inc,now,st); if(st.added>0) rows.push({key:p.k,target:target,added:st.added,value:merged}); }catch(e){}
+    });
+    return rows;
+  }
+  window.rcPreview=function(){
+    var j=PENDING; if(!j) return; var tgt=document.getElementById('rc-target')?document.getElementById('rc-target').value:activeScope;
+    var rows=plan(j,tgt);
+    var body='<div data-wide="1"><p class="text-sm">Fichier créé le <b>'+esc((j.createdAt||'').slice(0,16).replace('T',' '))+'</b> par <b>'+esc(j.by||'?')+'</b> ('+esc(j.iepp||'')+') — <b>'+Object.keys(j.keys).length+'</b> blocs. Destination : <b>'+esc(slugLabel(tgt))+'</b>.</p>'
+      +(rows.length?'<table><thead><tr><th>Données</th><th style="text-align:right">Éléments à récupérer</th></tr></thead><tbody>'+rows.map(function(r){ return '<tr><td>'+esc(r.key)+'</td><td style="text-align:right"><b>'+r.added+'</b></td></tr>'; }).join('')+'</tbody></table><p class="text-sm text-muted" style="margin-top:8px">Fusion sans écrasement : ce qui existe déjà n\'est pas modifié. Une sauvegarde automatique de l\'état actuel est faite avant.</p>':'<p>Rien de nouveau à récupérer : tout ce que contient ce fichier est déjà présent.</p>')+'</div>';
+    openModal('Récupération — aperçu',body,'<button class="btn btn-ghost" onclick="closeModal()">Annuler</button>'+(rows.length?'<button class="btn btn-green" onclick="rcApply()">♻️ Récupérer maintenant</button>':''));
+  };
+  window.rcApply=function(){
+    var j=PENDING; if(!j) return; var tgt=document.getElementById('rc-target')?document.getElementById('rc-target').value:activeScope;
+    snapshot('avant récupération',true,function(){
+      var rows=plan(j,tgt), n=0;
+      rows.forEach(function(r){ try{ localStorage.setItem(r.target,JSON.stringify(r.value)); n+=r.added; }catch(e){ console.error(e); } });
+      /* lever les marques de suppression des éléments récupérés : ils doivent survivre à la synchronisation */
+      try{ rows.forEach(function(r){ var tk=(typeof RECORD_MERGE!=='undefined'&&RECORD_MERGE[r.key]&&RECORD_MERGE[r.key].tomb)||null; if(tk){ var kk=KEY+tgt+'_'+tk; localStorage.removeItem(kk); } var gk=KEY+tgt+'_'+r.key+'__gtomb'; if(localStorage.getItem(gk)) localStorage.removeItem(gk); }); }catch(e){}
+      if(tgt===activeScope){ try{ reloadScopedState(); rows.forEach(function(r){ if(state[r.key]!==undefined) save(r.key,state[r.key]); }); }catch(e){ console.warn(e); } }
+      try{ logAction('recovery-import',n+' éléments récupérés ('+slugLabel(tgt)+')'); }catch(e){}
+      closeModal(); PENDING=null; toast(n+' élément(s) récupéré(s) et remis en ligne'+(tgt===activeScope?'':' — ouvrez cet IEPP pour les voir'),'success');
+      if(state.module==='recuperation') renderRecuperation();
+    });
+  };
+  window.rcRestoreSnap=function(id){
+    idb(function(db){ if(!db) return; var rq=db.transaction('snaps').objectStore('snaps').get(id); rq.onsuccess=function(){ var s=rq.result; if(!s) return;
+      PENDING={format:FMT,createdAt:new Date(s.at).toISOString(),by:'instantané '+s.reason,iepp:'',keys:s.data}; rcPreview(); }; });
+  };
+  window.rcSnapNow=function(){ snapshot('manuel',true,function(){ toast('Instantané créé','success'); renderRecuperation(); }); };
+  window.rcExportSnap=function(id){ idb(function(db){ if(!db) return; var rq=db.transaction('snaps').objectStore('snaps').get(id); rq.onsuccess=function(){ var s=rq.result; if(!s) return; download('instantane_'+new Date(s.at).toISOString().slice(0,16).replace(/[:T]/g,'-')+'.json',JSON.stringify({format:FMT,createdAt:new Date(s.at).toISOString(),by:'instantané '+s.reason,keys:s.data})); }; }); };
+
+  /* ---------- page ---------- */
+  window.renderRecuperation=function(){
+    var d=diagnostic(), isAdmin=['superadmin','inspecteur'].indexOf(role())>=0;
+    var scRows=Object.keys(d.scopes).sort().map(function(s){ var x=d.scopes[s], b=s.indexOf('bagohouo')>=0; return '<tr'+(b?' style="background:#FEF3C7"':'')+'><td class="fw-7">'+esc(slugLabel(s))+'</td><td style="text-align:right">'+x.n+'</td><td class="text-sm text-muted">'+esc(x.keys.slice(0,8).join(' · '))+(x.keys.length>8?' …':'')+'</td></tr>'; }).join('');
+    var au=d.audit.slice(0,25).map(function(a){ return '<tr><td class="text-sm">'+esc(String(a.timestamp||'').slice(0,16).replace('T',' '))+'</td><td>'+esc(a.user)+'</td><td>'+esc(a.action)+'</td><td class="text-sm">'+esc(String(a.details||'').slice(0,90))+'</td></tr>'; }).join('');
+    var tg=(role()==='superadmin')?'<select id="rc-target" class="form-control" style="max-width:260px;display:inline-block">'+Object.keys(d.scopes).filter(function(s){return s;}).map(function(s){ return '<option value="'+s+'"'+(s===activeScope?' selected':'')+'>'+esc(slugLabel(s))+'</option>'; }).join('')+'</select>':'<input type="hidden" id="rc-target" value="'+activeScope+'"><b>'+esc(slugLabel(activeScope))+'</b>';
+    setContent('<div class="hero" style="background:linear-gradient(135deg,#0F766E 0%,#134E4A 100%)"><h3>🛟 Sauvegarde de récupération</h3><p>Retrouver des données perdues : exporter ce qui reste sur cet appareil, diagnostiquer, puis réinjecter par fusion (sans rien écraser) dans l\'IEPP voulu. Des instantanés automatiques de cet appareil sont aussi conservés.</p></div>'
+      +'<div class="card" style="padding:16px;margin-bottom:12px"><div style="font-weight:700;margin-bottom:8px">1 · Exporter les données de cet appareil</div><p class="text-sm text-muted">À faire sur chaque poste où l\'agent a travaillé (même navigateur et même fichier que d\'habitude). Envoyez le fichier obtenu à l\'administrateur.</p>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-orange" onclick="rcExport(\'bagohouo\')">💾 Exporter IEPP BAGOHOUO</button><button class="btn btn-ghost" onclick="rcExport()">💾 Tout exporter (tous les IEPP)</button></div></div>'
+      +(isAdmin?'<div class="card" style="padding:16px;margin-bottom:12px"><div style="font-weight:700;margin-bottom:8px">2 · Réinjecter une sauvegarde</div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="text-sm">IEPP de destination :</span>'+tg+'<button class="btn btn-green" onclick="document.getElementById(\'rc-file\').click()">📥 Choisir un fichier de récupération…</button><input type="file" id="rc-file" accept=".json" style="display:none" onchange="rcFile(event)"></div></div>':'')
+      +'<div class="card" style="padding:16px;margin-bottom:12px"><div style="font-weight:700;margin-bottom:8px">Diagnostic de cet appareil</div><div class="table-wrap" style="border:none"><table><thead><tr><th>IEPP</th><th style="text-align:right">Éléments</th><th>Contenu</th></tr></thead><tbody>'+(scRows||'<tr><td colspan="3" class="table-empty">Rien trouvé</td></tr>')+'</tbody></table></div>'
+      +'<p class="text-sm" style="margin-top:8px">Éléments dans la Corbeille de BAGOHOUO : <b>'+d.trash+'</b> · Blocs mentionnant <b>'+TARGET_USER+'</b> : <b>'+d.hits.length+'</b> · Actions journalisées (BAGOHOUO / '+TARGET_USER+') : <b>'+d.audit.length+'</b></p></div>'
+      +(d.audit.length?'<div class="card" style="padding:16px;margin-bottom:12px"><div style="font-weight:700;margin-bottom:8px">Journal : dernières actions de '+TARGET_USER+' sur cet appareil</div><div class="table-wrap" style="border:none"><table><thead><tr><th>Date</th><th>Utilisateur</th><th>Action</th><th>Détails</th></tr></thead><tbody>'+au+'</tbody></table></div></div>':'')
+      +'<div class="card" style="padding:16px"><div style="display:flex;align-items:center;gap:10px"><div style="font-weight:700">Instantanés automatiques de cet appareil</div><div style="flex:1"></div><button class="btn btn-ghost" onclick="rcSnapNow()">📸 Créer un instantané</button></div><div id="rc-snaps" class="text-sm text-muted" style="margin-top:8px">Chargement…</div></div>');
+    idb(function(db){ var el=document.getElementById('rc-snaps'); if(!el) return; if(!db){ el.textContent='Instantanés indisponibles dans ce navigateur.'; return; }
+      var rq=db.transaction('snaps').objectStore('snaps').getAll(); rq.onsuccess=function(){ var all=(rq.result||[]).sort(function(a,b){ return b.at-a.at; });
+        el.innerHTML=all.length?'<table><thead><tr><th>Date</th><th>Origine</th><th style="text-align:right">Blocs</th><th></th></tr></thead><tbody>'+all.map(function(s){ return '<tr><td>'+esc(new Date(s.at).toLocaleString('fr-FR'))+'</td><td>'+esc(s.reason)+'</td><td style="text-align:right">'+s.n+'</td><td class="actions-cell">'+(isAdmin?'<button class="btn btn-ghost" onclick="rcRestoreSnap(\''+s.id+'\')">♻️ Récupérer</button> ':'')+'<button class="btn btn-ghost" onclick="rcExportSnap(\''+s.id+'\')">💾</button></td></tr>'; }).join('')+'</tbody></table>':'Aucun instantané pour l\'instant (le premier est créé 6 secondes après l\'ouverture).'; }; });
+  };
+  /* intégration */
+  MODULES.recuperation={title:'Sauvegarde de récupération',sub:'Exporter, diagnostiquer et réinjecter des données perdues',render:function(){ return window.renderRecuperation(); }};
+  Object.keys(ACL).forEach(function(r){ if(ACL[r]&&ACL[r].indexOf('recuperation')<0&&['superadmin','inspecteur','drenaet','correspondant','corresp_stat','cpi','directeur','instituteur'].indexOf(r)>=0) ACL[r].push('recuperation'); });
+  setInterval(function(){ try{ if(!state||!state.user||document.querySelector('.sb-link[data-module="recuperation"]')) return; var a=document.querySelector('.sb-link[data-module="dashboard"]'); if(!a) return;
+    var el=document.createElement('div'); el.className='sb-link'; el.setAttribute('data-module','recuperation'); el.setAttribute('onclick',"navigate('recuperation')"); el.innerHTML='<span class="sb-icon">🛟</span><span>Sauvegarde de récupération</span>'; a.parentNode.insertBefore(el,a.nextSibling); if(typeof applyACL==='function') applyACL(); }catch(e){} },1500);
+  /* onglets d'accès direct aux demandes (tous les rôles sauf l'Inspecteur) */
+  setInterval(function(){ try{ if(!state||!state.user) return; var ins=state.user.role==='inspecteur'; var anchor=document.querySelector('.sb-link[data-module="mes-absences"]'); if(!anchor) return;
+    [['aut','🗓️',"Demande d'autorisation d'absence","absRequestForm()"],['perm','🕑','Demande de permission',"absPermissionForm()"]].forEach(function(d,i,arr){
+      var el=document.querySelector('.sb-link[data-action="'+d[0]+'"]');
+      if(ins){ if(el) el.remove(); return; }
+      if(!el){ el=document.createElement('div'); el.className='sb-link'; el.setAttribute('data-action',d[0]); el.setAttribute('onclick',d[3]); el.innerHTML='<span class="sb-icon">'+d[1]+'</span><span>'+d[2]+'</span>';
+        var prev=i===0?anchor:document.querySelector('.sb-link[data-action="aut"]')||anchor; prev.parentNode.insertBefore(el,prev.nextSibling); }
+    }); }catch(e){} },1500);
+  window.__rcApi={snapshot:snapshot,diagnostic:diagnostic,plan:plan,parseKey:parseKey};
+  }catch(e){ console.warn('[recovery]',e); }
+})();
 </script>
 </body>
 </html>
