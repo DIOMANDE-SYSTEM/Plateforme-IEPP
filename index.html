@@ -36619,6 +36619,24 @@ function userRestoreFromTrash(trashId){
     trashBatch(pairs);
     var n=removeIds(del); toast(n+' doublon(s) supprimé(s) ✅','success'); refresh();
   };
+  /* Nettoyage AUTOMATIQUE des doublons certains (même école) : fusion + Corbeille + verrou anti-retour. Écoles : toujours manuel. */
+  window.dupAutoClean=function(){
+    var tot=0, sv={cur:cur,perim:perim,ecoleSel:ecoleSel,classeSel:classeSel};
+    try{
+      perim='iepp'; ecoleSel=''; classeSel='';
+      ['eleves','enseignants','admin','conseillers','classes'].forEach(function(t){
+        cur=t; cache=null;
+        if(!canSee(t)||!canDelete()) return;
+        var L=detect(t).filter(function(g){ return g.strong&&!g.inter&&!g.ign; });
+        if(!L.length) return;
+        var del=[], pairs=[];
+        L.forEach(function(g){ var keep=g.recs[0], oth=g.recs.slice(1); mergeInto(keep,oth); pairs.push({recs:oth,keeper:keep}); oth.forEach(function(r){ del.push(r.id); }); });
+        trashBatch(pairs); tot+=removeIds(del); save(COLLS[t].key,state[COLLS[t].key]);
+      });
+    }catch(e){ console.warn('[doublons] nettoyage auto',e); }
+    finally{ cur=sv.cur; perim=sv.perim; ecoleSel=sv.ecoleSel; classeSel=sv.classeSel; cache=null; }
+    return tot;
+  };
   function rowsOut(){ var C=COLLS[cur], out=[]; groupsNow().filter(pass).forEach(function(g,gi){ g.recs.forEach(function(r,i){ var o={'Groupe':gi+1,'Niveau':g.strong?'Certain':'À vérifier','Motif':g.reasons.join(' ; '),'À garder':i===0?'OUI':''}; C.fields.forEach(function(f){ o[f[1]]=r[f[0]]==null?'':r[f[0]]; }); out.push(o); }); }); return out; }
   window.dupExport=function(){ var r=rowsOut(); if(!r.length){ toast('Aucun doublon à exporter','error'); return; } exportRowsToExcel(r,'doublons_'+cur,'Doublons'); };
   window.dupPrint=function(){
@@ -44688,9 +44706,11 @@ try{
     var out=[]; for(var j=drop.length-1;j>=0;j--){ out.unshift(arr.splice(drop[j],1)[0]); }
     return out;
   }
-  var NOTIFIED={};
+  var NOTIFIED={}; try{ NOTIFIED=JSON.parse(localStorage.getItem('iepp_dup_notified')||'{}')||{}; }catch(e){ NOTIFIED={}; }
+  function noteKey(r){ if(!r) return ''; var m=ek(r.matricule||r.numExtrait||''); if(m.length>=4) return 'm:'+m; var n=ek((r.nom||r.ecole||'')+(r.prenoms||r.niveau||'')+(r.dateN||'')); return n?('n:'+n):String(r.id||''); }
   function note(d){
-    var fresh=d.filter(function(r){ var k=(r&&r.id!=null)?String(r.id):''; if(NOTIFIED[k]) return false; NOTIFIED[k]=1; return true; });
+    var fresh=d.filter(function(r){ var k=noteKey(r); if(!k||NOTIFIED[k]) return false; NOTIFIED[k]=Date.now(); return true; });
+    try{ var ks=Object.keys(NOTIFIED); if(ks.length>500){ ks.sort(function(a,b){ return NOTIFIED[a]-NOTIFIED[b]; }).slice(0,ks.length-500).forEach(function(k){ delete NOTIFIED[k]; }); } localStorage.setItem('iepp_dup_notified',JSON.stringify(NOTIFIED)); }catch(e){}
     if(!fresh.length) return;
     try{ if(typeof toast==='function') toast('⛔ '+fresh.length+' fiche(s) déjà supprimée(s) comme doublon n\'ont pas été réintégrées. Pour en récupérer une : Corbeille ▸ Restaurer.','info'); }catch(e){}
   }
@@ -45270,7 +45290,7 @@ try{
   }
   function pullNow(){ var m=meta(); m.remoteNew=false; setMeta(m); return syncNow(); }
   function dismissRemote(){ var m=meta(); m.remoteDismissed=true; setMeta(m); refresh(); }
-  function dismissUpdate(){ if(updInfo) updInfo.dismissed=true; refresh(); }
+  function dismissUpdate(){ if(updInfo) updInfo.dismissed=true; var m=meta(); m.updDismissed=Date.now(); setMeta(m); refresh(); }
 
   /* ---------- 4) Avant déconnexion ---------- */
   function wrapLogout(){
@@ -45313,7 +45333,7 @@ try{
   function logoutNow(){ var c = window.__ieppLogoutCtx; if (c) c.real(c.self, c.args); }
 
   /* ---------- 5) Nouvelle version de la plateforme ---------- */
-  function setUpd(why){ if (!updInfo){ updInfo = { why:why, dismissed:false }; refresh(); } }
+  function setUpd(why){ if (!updInfo){ var m0 = meta(); if (m0.updDismissed && Date.now() - m0.updDismissed < 43200000) return; updInfo = { why:why, dismissed:false }; refresh(); } }
   function checkVersion(){
     if (!online() || !/^https?:$/.test(location.protocol)) return;
     var url = location.pathname || 'index.html';
@@ -45736,6 +45756,134 @@ try{
   }
   window.IeppInstall = { show:show, later:later, go:go, close:close, device:device, installed:installed, _setPrompt:function(v){ canPrompt = !!v; } };
   wrapStart();
+})();
+</script>
+<script id="iepp-dup-v2">
+/* DOUBLONS v2 (ajout) : retour bloqué à la source, nettoyage automatique ou manuel, notifications une seule fois */
+(function(){
+  'use strict';
+  if (window.DupV2) return;
+  var MAN = { elevesFichier:1, personnel:1, cppp:1, ecoles:1, effectifs:1 };
+  var AUTO_K = 'iepp_autodup', LAST_K = 'iepp_autodup_last';
+  function ls(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+  function logged(){ try{ return !!(state && state.user); }catch(e){ return false; } }
+  var AR = function(){ return window.DupAntiRetour; };
+
+  /* 1) Verrou à la SOURCE : toute écriture d'une liste surveillée dans le stockage local est filtrée
+        avant d'être enregistrée (synchronisation, import, annuaire, autre appareil, ancienne sauvegarde). */
+  var tPurge = 0;
+  function afterPurge(){ clearTimeout(tPurge); tPurge = setTimeout(function(){ try{ AR().purgeAll(); }catch(e){} }, 400); setTimeout(function(){ try{ AR().purgeAll(); }catch(e){} }, 3500); }
+  try{
+    var _si = Storage.prototype.setItem;
+    if (!_si.__dupv2){
+      var w = function(k, v){
+        try{
+          if (this === window.localStorage && typeof v === 'string' && v.charAt(0) === '[' && AR() && AR().list().length){
+            var base = null; for (var m in MAN){ if (k === storeKey(m)){ base = m; break; } }
+            if (base){
+              var arr = JSON.parse(v), d = AR().purge(base, arr);
+              if (d.length){ v = JSON.stringify(arr); afterPurge(); }
+            }
+          }
+        }catch(e){ console.warn('[doublons v2] filtre', e); }
+        return _si.call(this, k, v);
+      };
+      w.__dupv2 = true; Storage.prototype.setItem = w;
+    }
+  }catch(e){}
+  setInterval(function(){ try{ if (logged() && AR()) AR().purgeAll(); }catch(e){} }, 3000);
+
+  /* 2) Nettoyage automatique (doublons certains, même école) */
+  function autoOn(){ return ls(AUTO_K) !== '0'; }
+  function busy(){
+    var ae = document.activeElement; if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return true;
+    var mb = document.getElementById('modal-backdrop'); return !!(mb && mb.offsetParent !== null);
+  }
+  var running = false;
+  function run(manual){
+    if (running || typeof window.dupAutoClean !== 'function' || !logged()) return 0;
+    if (!manual && (!autoOn() || busy())) return 0;
+    var last = +ls(LAST_K) || 0; if (!manual && Date.now() - last < 60000) return 0;
+    running = true; var n = 0;
+    try{ n = window.dupAutoClean(); }catch(e){ console.warn('[doublons v2] auto', e); }
+    running = false; lsSet(LAST_K, String(Date.now()));
+    if (n > 0){
+      try{ logAction('doublons-auto', 'Nettoyage automatique : ' + n + ' doublon(s) certain(s) envoyé(s) à la Corbeille'); }catch(e){}
+      try{ toast('🧹 ' + n + ' doublon(s) certain(s) retiré(s) automatiquement et envoyé(s) à la Corbeille. Ils ne reviendront plus (Corbeille ▸ Restaurer pour en récupérer un).', 'info'); }catch(e){}
+      try{ if (state.module === 'doublons' && typeof navigate === 'function') navigate('doublons'); }catch(e){}
+    }
+    return n;
+  }
+  var tAuto = 0;
+  function schedule(ms){ clearTimeout(tAuto); tAuto = setTimeout(function(){ run(false); }, ms || 15000); }
+  try{
+    var _sv = window.save;
+    if (typeof _sv === 'function' && !_sv.__dupv2){
+      var ws = function(k){ var r = _sv.apply(this, arguments); try{ if (MAN[k] && autoOn()) schedule(20000); }catch(e){} return r; };
+      ws.__dupv2 = true; window.save = ws;
+    }
+    var _st = window.startApp;
+    if (typeof _st === 'function' && !_st.__dupv2){
+      var wst = function(){ var r = _st.apply(this, arguments); schedule(25000); return r; };
+      wst.__dupv2 = true; window.startApp = wst;
+    }
+    var _ub = window.updateSyncBadge;
+    if (typeof _ub === 'function' && !_ub.__dupv2){
+      var wub = function(txt, color){ var r = _ub.apply(this, arguments); try{ if (color === '#2A9D8F' && /Synchronis/i.test(txt)) schedule(6000); }catch(e){} return r; };
+      wub.__dupv2 = true; window.updateSyncBadge = wub;
+    }
+  }catch(e){}
+  setInterval(function(){ if (logged() && autoOn()) run(false); }, 600000);
+
+  /* 3) Commande dans « Traitement des doublons » : automatique / manuel */
+  function panel(){
+    try{
+      if (!logged() || state.module !== 'doublons') { var o = document.getElementById('dup-auto-box'); if (o) o.remove(); return; }
+      var c = document.getElementById('content'); if (!c) return;
+      var on = autoOn(), html = '<b>🤖 Nettoyage automatique des doublons certains :</b> <span style="color:' + (on ? '#15803D' : '#B91C1C') + ';font-weight:700">' + (on ? 'ACTIVÉ' : 'DÉSACTIVÉ') + '</span> '
+        + '<button class="btn btn-ghost btn-sm" onclick="DupV2.toggle()">' + (on ? 'Désactiver' : 'Activer') + '</button> '
+        + '<button class="btn btn-orange btn-sm" onclick="DupV2.now()">🧹 Nettoyer maintenant</button>'
+        + '<div class="text-xs text-muted" style="margin-top:4px">Les doublons certains d\'une même école sont fusionnés (champs vides complétés), envoyés à la Corbeille et ne reviennent plus (synchronisation, import, autre appareil). Les cas « à vérifier » et les doublons entre écoles restent manuels.</div>';
+      var b = document.getElementById('dup-auto-box');
+      if (b && b.getAttribute('data-h') === html) return;
+      if (!b){ b = document.createElement('div'); b.id = 'dup-auto-box'; b.className = 'card'; b.style.cssText = 'padding:10px 14px;margin:8px 0'; var hero = c.querySelector('.hero'); if (hero && hero.nextSibling) c.insertBefore(b, hero.nextSibling); else c.insertBefore(b, c.firstChild); }
+      b.setAttribute('data-h', html); b.innerHTML = html;
+    }catch(e){}
+  }
+  setInterval(panel, 800);
+
+  /* 4) Notifications : une seule fois. Un message d'arrière-plan (info / avertissement) déjà donné n'est pas répété
+        pendant 12 h, même après rechargement. Les réponses à une action de l'utilisateur s'affichent toujours. */
+  var lastUser = 0;
+  ['pointerdown','keydown','touchstart','click'].forEach(function(ev){ document.addEventListener(ev, function(){ lastUser = Date.now(); }, true); });
+  var seen = {}; try{ seen = JSON.parse(ls('iepp_toast_seen') || '{}') || {}; }catch(e){ seen = {}; }
+  function norm(m){ return String(m == null ? '' : m).replace(/<[^>]*>/g, '').replace(/\d+/g, '#').replace(/\s+/g, ' ').trim().slice(0, 160); }
+  try{
+    var _t = window.toast;
+    if (typeof _t === 'function' && !_t.__dupv2){
+      var wt = function(msg, type){
+        try{
+          var t = type || 'info';
+          if ((t === 'info' || t === 'warn') && Date.now() - lastUser > 2000){
+            var k = norm(msg), now = Date.now();
+            if (seen[k] && now - seen[k] < 43200000) return;
+            seen[k] = now;
+            var ks = Object.keys(seen); if (ks.length > 200){ ks.sort(function(a,b){ return seen[a]-seen[b]; }).slice(0, ks.length-200).forEach(function(x){ delete seen[x]; }); }
+            lsSet('iepp_toast_seen', JSON.stringify(seen));
+          }
+        }catch(e){}
+        return _t.apply(this, arguments);
+      };
+      wt.__dupv2 = true; window.toast = wt;
+    }
+  }catch(e){}
+
+  window.DupV2 = {
+    toggle: function(){ lsSet(AUTO_K, autoOn() ? '0' : '1'); try{ toast(autoOn() ? 'Nettoyage automatique activé' : 'Nettoyage automatique désactivé', 'success'); }catch(e){} panel(); },
+    now: function(){ var n = run(true); if (!n){ try{ toast('Aucun doublon certain dans la même école à nettoyer.', 'info'); }catch(e){} } },
+    run: run, schedule: schedule, panel: panel
+  };
 })();
 </script>
 </body>
