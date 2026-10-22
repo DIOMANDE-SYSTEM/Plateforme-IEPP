@@ -36504,8 +36504,8 @@ function userRestoreFromTrash(trashId){
     return out;
   }
   function filled(r){ var n=0; for(var k in r){ if(k.charAt(0)!=='_'&&r[k]!==''&&r[k]!=null) n++; } return n; }
-  function counts(g){ return { tous:g.filter(function(x){return !x.ign;}).length, forts:g.filter(function(x){return !x.ign&&x.strong;}).length, faibles:g.filter(function(x){return !x.ign&&!x.strong;}).length, meme:g.filter(function(x){return !x.ign&&!x.inter;}).length, inter:g.filter(function(x){return !x.ign&&x.inter;}).length, ign:g.filter(function(x){return x.ign;}).length }; }
-  function pass(g){ switch(view){ case 'forts': return !g.ign&&g.strong; case 'faibles': return !g.ign&&!g.strong; case 'meme': return !g.ign&&!g.inter; case 'inter': return !g.ign&&g.inter; case 'ign': return g.ign; default: return !g.ign; } }
+  function counts(g){ return { tous:g.filter(function(x){return !x.ign;}).length, forts:g.filter(function(x){return !x.ign&&x.strong;}).length, faibles:g.filter(function(x){return !x.ign&&!x.strong;}).length, meme:g.filter(function(x){return !x.ign&&!x.inter;}).length, inter:g.filter(function(x){return !x.ign&&x.inter;}).length, ign:g.filter(function(x){return x.ign;}).length, verif:g.filter(function(x){return !x.ign&&x.recs.some(function(r){return r._dupVerif;});}).length }; }
+  function pass(g){ switch(view){ case 'forts': return !g.ign&&g.strong; case 'faibles': return !g.ign&&!g.strong; case 'meme': return !g.ign&&!g.inter; case 'inter': return !g.ign&&g.inter; case 'verif': return !g.ign&&g.recs.some(function(r){ return r._dupVerif; }); case 'ign': return g.ign; default: return !g.ign; } }
   var cache=null;
   function groupsNow(){ if(!cache) cache=detect(cur); return cache; }
   function refresh(){ cache=null; render(); }
@@ -36516,7 +36516,7 @@ function userRestoreFromTrash(trashId){
     var u=U(), tabs=Object.keys(COLLS).filter(canSee), G=groupsNow(), C=COLLS[cur], N=counts(G);
     var ecoles=(state.ecoles||[]).map(function(e){return e.nom;}).sort();
     var single=(u.role==='directeur'||u.role==='instituteur');
-    var vt=[['tous','Tous ('+N.tous+')'],['forts','🔴 Doublons certains ('+N.forts+')'],['faibles','🟠 Probables / homonymes à vérifier ('+N.faibles+')'],['meme','Dans la même école ('+N.meme+')'],['inter','Entre écoles ('+N.inter+')'],['ign','Ignorés ('+N.ign+')']];
+    var vt=[['tous','Tous ('+N.tous+')'],['forts','🔴 Doublons certains ('+N.forts+')'],['faibles','🟠 Probables / homonymes à vérifier ('+N.faibles+')'],['meme','Dans la même école ('+N.meme+')'],['inter','Entre écoles ('+N.inter+')'],['verif','⚑ Signalés ('+N.verif+')'],['ign','Ignorés ('+N.ign+')']]; vt=vt.filter(function(v){ return v[0]!=='inter'||N.inter>0; });
     var list=G.filter(pass).filter(function(g){ if(!q) return true; var nq=nrm(q); return g.recs.some(function(r){ return nrm(C.fields.map(function(f){return r[f[0]];}).join(' ')).indexOf(nq)>=0; }); });
     var h='<div class="hero" style="background:linear-gradient(135deg,#7C2D12 0%,#C2410C 100%)"><h3>🧹 Traitement des doublons — '+esc(C.label)+'</h3><p>'+(C.help||'Contrôle principal : matricule ou identifiant. Contrôles complémentaires : nom + prénoms + date de naissance + nom de la mère (+ N° de registre d\'extrait, téléphone). Les numéros provisoires (NIA-…) ne suffisent jamais à confirmer un doublon.')+' '+(single?'Périmètre : '+esc(u.role==='instituteur'?('ma classe ('+(u.ecole||'')+')'):('mon école ('+(u.ecole||'')+')')):'Périmètre : '+(perim==='ecole'&&ecoleSel?esc(ecoleSel):'toute l\'IEPP en cours ('+esc(String(state.activeIepp||''))+')'))+'.</p></div>';
     h+='<div class="toolbar" style="margin-top:12px">'+tabs.map(function(t){ return '<button class="btn '+(t===cur?'btn-primary':'btn-ghost')+'" onclick="dupTab(\''+t+'\')">'+COLLS[t].icon+' '+COLLS[t].label+'</button>'; }).join('')+'</div>';
@@ -36528,6 +36528,7 @@ function userRestoreFromTrash(trashId){
       +(canDelete()&&view!=='ign'?'<button class="btn btn-danger btn-sm" onclick="dupAutoAll()" title="Pour chaque groupe affiché, garde l\'enregistrement le plus complet et supprime les autres">🧹 Nettoyer les doublons certains</button>':'')+'</div>';
     h+='<div class="toolbar" style="gap:6px;flex-wrap:wrap;margin:10px 0 0">'+vt.map(function(v){ return '<button class="btn btn-sm '+(v[0]===view?'btn-primary':'btn-ghost')+'" onclick="dupView(\''+v[0]+'\')">'+v[1]+'</button>'; }).join('')+'</div>';
     h+='<p class="text-xs text-muted" style="margin:8px 0 0">'+scoped(cur).length+' enregistrement(s) analysé(s) · '+list.length+' groupe(s) affiché(s). Par défaut, l\'enregistrement le plus complet est conservé ; les champs vides sont complétés à partir des autres lors de la fusion. Un doublon supprimé va à la Corbeille et ne revient plus (import, synchronisation, autre appareil) : seule la restauration depuis la Corbeille le ramène.</p></div>';
+    h+=(window.dupRulesHtml?window.dupRulesHtml(cur,U()):'');
     var part=list.slice(0,shown);
     h+=part.map(function(g,gi){ return groupHtml(g,gi,C); }).join('')||'<div class="card" style="padding:22px;margin-top:12px;text-align:center">✅ Aucun doublon dans cette vue.</div>';
     if(list.length>part.length) h+='<div style="text-align:center;margin:12px"><button class="btn btn-ghost" onclick="dupMore()">Afficher plus ('+(list.length-part.length)+' groupes)</button></div>';
@@ -36537,7 +36538,7 @@ function userRestoreFromTrash(trashId){
     var del=canDelete();
     var head='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><strong>'+(g.strong?'🔴 Doublon certain':g.lvl===1?'🟠 Doublon probable':'🟡 Homonyme à vérifier')+' — groupe de '+g.recs.length+'</strong><span class="text-xs text-muted">'+esc(g.reasons.join(' · '))+(C.of==='nom'?'':(g.inter?' · entre écoles':' · même école'))+'</span><span style="flex:1"></span>'
       +(del&&!g.ign?'<button class="btn btn-ghost btn-sm" onclick="dupMerge(\''+jq(g.key)+'\')">🔀 Fusionner (garder le 1er, compléter, supprimer les autres)</button>':'')
-      +(g.ign?'<button class="btn btn-ghost btn-sm" onclick="dupIgnore(\''+jq(g.key)+'\',0)">↩️ Remettre en doublon</button>':'<button class="btn btn-ghost btn-sm" onclick="dupIgnore(\''+jq(g.key)+'\',1)">✔️ Ce ne sont pas des doublons</button>')+'</div>';
+      +flagBtn(g)+(g.ign?'<button class="btn btn-ghost btn-sm" onclick="dupIgnore(\''+jq(g.key)+'\',0)">↩️ Remettre en doublon</button>':'<button class="btn btn-ghost btn-sm" title="Garder les deux fiches : personnes différentes ou homonymes" onclick="dupIgnore(\''+jq(g.key)+'\',1)">✔️ Conserver les deux (pas des doublons)</button>')+'</div>';
     var t='<div class="table-wrap" style="border:none"><table data-noenh="1"><thead><tr><th>Garder</th>'+C.fields.map(function(f){ return '<th>'+esc(f[1])+'</th>'; }).join('')+'<th></th></tr></thead><tbody>'
       +g.recs.map(function(r,i){
         var diff=C.fields.map(function(f){ var vals=g.recs.map(function(x){ return String(x[f[0]]==null?'':x[f[0]]); }); var d=vals.some(function(v){return v!==vals[0];}); return '<td'+(d?' style="background:#FEF3C7"':'')+'>'+esc(r[f[0]]==null?'':r[f[0]])+'</td>'; }).join('');
@@ -36546,6 +36547,18 @@ function userRestoreFromTrash(trashId){
     return '<div class="card" style="padding:14px;margin-top:12px">'+head+t+'</div>';
   }
   function grp(key){ return groupsNow().filter(function(g){ return g.key===key; })[0]; }
+  /* Action après détection : SIGNALER pour vérification (ouverte à tous les niveaux, y compris ceux qui ne peuvent pas supprimer) */
+  function flagBtn(g){
+    if(g.ign) return '';
+    var f=null; g.recs.forEach(function(r){ if(r._dupVerif) f=r._dupVerif; });
+    if(f) return '<span class="badge badge-orange" title="Signalé le '+esc(String(f.le||'').slice(0,10))+'">⚑ Signalé par '+esc(f.par||'—')+'</span><button class="btn btn-ghost btn-sm" onclick="dupFlag(\''+jq(g.key)+'\',0)">Retirer le signalement</button>';
+    return '<button class="btn btn-ghost btn-sm" title="Marquer ce groupe « à vérifier » pour la personne qui gère ce niveau" onclick="dupFlag(\''+jq(g.key)+'\',1)">⚑ Signaler pour vérification</button>';
+  }
+  window.dupFlag=function(key,on){ var g=grp(key); if(!g) return; var who=U().name||U().username||'', now=new Date().toISOString();
+    g.recs.forEach(function(r){ if(on) r._dupVerif={ par:who, role:U().role||'', le:now }; else delete r._dupVerif; r._upd=Date.now(); });
+    save(COLLS[cur].key,state[COLLS[cur].key]); if(cur==='conseillers'){ try{ save('cppp',state.cppp); }catch(e){} }
+    try{ logAction('doublons-signal',(on?'Signalement':'Retrait du signalement')+' : '+g.recs.length+' fiche(s) — '+COLLS[cur].label); }catch(_){}
+    toast(on?'⚑ Groupe signalé pour vérification (onglet « Signalés »)':'Signalement retiré','success'); refresh(); };
   /* Corbeille IMMÉDIATE + verrou anti-retour (voir <script id="iepp-dup-antiretour">) :
      un doublon supprimé va à la Corbeille et ne peut plus être réintroduit (import, synchro, autre appareil, annuaire)
      — seule la restauration depuis la Corbeille le ramène. pairs = [{recs:[supprimés], keeper:fiche conservée}] */
@@ -44667,6 +44680,7 @@ try{
   function ek(s){ return String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,''); }
   function famOf(cur){ return cur==='eleves'?'eleves':(cur==='ecoles'?'ecoles':(cur==='classes'?'classes':'personnel')); }
   /* Signatures d'identité d'une fiche (mêmes indices que le moteur de détection des doublons) */
+  function spOf(fam,r){ function k(x){ return ek(x); } if(fam==='eleves') return k(r.ecole)+'|'+k(r.niveau); if(fam==='personnel'){ var w=k(r.ecole||r.lieuService||r.service); return (!w||/^IEPP/.test(w))?'IEPP':w; } return ''; }
   function sigsOf(fam,r){
     var s=[]; function add(x){ if(x && s.indexOf(x)<0) s.push(x); }
     try{
@@ -44699,7 +44713,9 @@ try{
       if(L) L.forEach(function(b){ if(r.id!==b.kid && rest<=(b.at||0)) hit=true; });          /* même identifiant revenu (autre appareil / sauvegarde) */
       if(!hit && hasSig && !r._nodupGrp){                                                         /* nouvel identifiant, même identité (import, annuaire, synchro) */
         sigsOf(fam,r).forEach(function(sg){ (bySig[sg]||[]).forEach(function(b){
-          if(hit||r.id===b.kid||b.kid==null||!ids[b.kid]||rest>(b.at||0)) return; hit=true; }); });
+          if(hit||r.id===b.kid||b.kid==null||!ids[b.kid]||rest>(b.at||0)) return;
+          if(b.sp && (function(x,y){ x=x.split('|'); y=y.split('|'); return x.some(function(v,i){ return v&&y[i]&&v!==y[i]; }); })(b.sp,spOf(fam,r))) return;                                                    /* un autre espace de saisie n'est jamais un doublon */
+          hit=true; }); });
       }
       if(hit) drop.push(i);
     }
@@ -44726,7 +44742,7 @@ try{
     pairs.forEach(function(p){ (p.recs||[]).forEach(function(r){
       if(!r||r.id==null) return;
       var e={ id:'blk_'+fam+'_'+r.id, col:fam, rid:r.id, kid:(p.keeper&&p.keeper.id!=null)?p.keeper.id:null,
-        sigs:sigsOf(fam,r).filter(function(sg){ return !live[sg]; }), at:now, by:who,
+        sigs:sigsOf(fam,r).filter(function(sg){ return !live[sg]; }), sp:spOf(fam,r), at:now, by:who,
         label:String((r.nom||r.ecole||'')+' '+(r.prenoms||r.niveau||'')).trim(), _upd:now };
       var ix=-1; list.forEach(function(x,i){ if(x&&x.id===e.id) ix=i; });
       if(ix>=0) list[ix]=e; else list.push(e);
@@ -45112,7 +45128,7 @@ try{
 (function(){
   'use strict';
   if (window.IeppSync) return;
-  var BUILD = '2026.10.21-1';
+  var BUILD = '2026.10.22-1';
   var LEDGER_K = 'iepp_pending_ledger', META_K = 'iepp_sync_meta', AUTO_K = 'iepp_autosync_logout';
   var seq = {}, flushing = false, bypassLogout = false, lastTxt = '', lastColor = '', updInfo = null;
   var ownPush = {}, flushTimer = null;
@@ -45237,6 +45253,7 @@ try{
     var b = box(), out = '';
     if (!logged()){ if (b.innerHTML){ b.innerHTML=''; lastCards=''; } return; }
     var n = pendingCount(), m = meta();
+    if (updInfo && !updInfo.dismissed){ if (!updInfo.shown){ updInfo.shown = true; markNotified(updInfo.id); } }
     if (updInfo && !updInfo.dismissed)
       out += card('upd','#0A4DA6','<b>🆕 Nouvelle version disponible</b><div>Une version plus récente de la plateforme est en ligne. Vos données locales sont conservées.</div>'
         + '<button style="'+btnS+'background:#0A4DA6;color:#fff" onclick="IeppSync.applyUpdate()">Mettre à jour maintenant</button>'
@@ -45290,7 +45307,7 @@ try{
   }
   function pullNow(){ var m=meta(); m.remoteNew=false; setMeta(m); return syncNow(); }
   function dismissRemote(){ var m=meta(); m.remoteDismissed=true; setMeta(m); refresh(); }
-  function dismissUpdate(){ if(updInfo) updInfo.dismissed=true; var m=meta(); m.updDismissed=Date.now(); setMeta(m); refresh(); }
+  function dismissUpdate(){ if(updInfo){ updInfo.dismissed=true; markNotified(updInfo.id); } refresh(); }
 
   /* ---------- 4) Avant déconnexion ---------- */
   function wrapLogout(){
@@ -45332,50 +45349,96 @@ try{
   }
   function logoutNow(){ var c = window.__ieppLogoutCtx; if (c) c.real(c.self, c.args); }
 
-  /* ---------- 5) Nouvelle version de la plateforme ---------- */
-  function setUpd(why){ if (!updInfo){ var m0 = meta(); if (m0.updDismissed && Date.now() - m0.updDismissed < 43200000) return; updInfo = { why:why, dismissed:false }; refresh(); } }
-  function checkVersion(){
-    if (!online() || !/^https?:$/.test(location.protocol)) return;
+  /* ---------- 5) Nouvelle version de la plateforme ----------
+     Chaque version publiée a une identité : « version.json » (champ version) si le fichier existe à côté de index.html,
+     sinon la signature du fichier en ligne (ETag / date de modification / taille). L'utilisateur est informé UNE SEULE FOIS
+     par version : l'identité est mémorisée localement (survit à la déconnexion, à la reconnexion et au redémarrage). */
+  var NOTIF_K = 'iepp_ver_notified';
+  function notifiedList(){ return readJ(NOTIF_K, []); }
+  function wasNotified(id){ return notifiedList().indexOf(id) >= 0; }
+  function markNotified(id){ var a = notifiedList(); if (a.indexOf(id) < 0){ a.push(id); if (a.length > 30) a = a.slice(-30); lsSet(NOTIF_K, JSON.stringify(a)); } }
+  function setUpd(why, id){
+    id = id || ('w:' + why);
+    if (wasNotified(id)) return;                                   /* déjà signalée : jamais de rappel pour cette version */
+    if (updInfo && updInfo.id === id) return;
+    updInfo = { id:id, why:why, dismissed:false, shown:false }; refresh();
+  }
+  function remoteVersion(){
     var url = location.pathname || 'index.html';
-    fetch('version.json?_=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; })
+    return fetch('version.json?_=' + Date.now(), { cache:'no-store' }).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; })
       .then(function(j){
-        if (j && j.version){ if (String(j.version) !== BUILD) setUpd('version.json'); return; }
+        if (j && j.version) return { mode:'json', id:'v:' + String(j.version), version:String(j.version) };
         return fetch(url, { method:'HEAD', cache:'no-store' }).then(function(r){
-          if (!r.ok) return;
+          if (!r.ok) return null;
           var lm = r.headers.get('last-modified'), et = r.headers.get('etag'), cl = r.headers.get('content-length');
           var sig = (et||'') + '|' + (lm||'') + '|' + (cl||'');
-          var m = meta(), fromNet = false;
-          try{ var nav = performance.getEntriesByType('navigation')[0]; fromNet = !!(nav && nav.transferSize > 0); }catch(e){}
-          if (lm && document.lastModified){
-            var d = Math.abs(new Date(lm).getTime() - new Date(document.lastModified).getTime());
-            if (d > 2000 && !isNaN(d)){ setUpd('last-modified'); return; }
-            if (d <= 2000){ m.pageSig = sig; setMeta(m); return; }
-          }
-          if (!m.pageSig || (fromNet && !m.sigChecked)){ m.pageSig = sig; m.sigChecked = true; setMeta(m); return; }
-          if (m.pageSig !== sig) setUpd('signature');
+          return { mode:'sig', id:'s:' + sig, sig:sig, lm:lm };
         });
-      }).catch(function(){});
+      });
+  }
+  function checkVersion(){
+    if (!online() || !/^https?:$/.test(location.protocol)) return;
+    remoteVersion().then(function(R){
+      if (!R) return;
+      if (R.mode === 'json'){ if (R.version !== BUILD) setUpd('json', R.id); return; }
+      var m = meta(), fromNet = false;
+      try{ var nav = performance.getEntriesByType('navigation')[0]; fromNet = !!(nav && nav.transferSize > 0); }catch(e){}
+      if (R.lm && document.lastModified){
+        var d = Math.abs(new Date(R.lm).getTime() - new Date(document.lastModified).getTime());
+        if (!isNaN(d)){
+          if (d > 2000){ setUpd('last-modified', R.id); return; }
+          m.pageSig = R.sig; setMeta(m); return;
+        }
+      }
+      if (!m.pageSig || (fromNet && !m.sigChecked)){ m.pageSig = R.sig; m.sigChecked = true; setMeta(m); return; }
+      if (m.pageSig !== R.sig) setUpd('signature', R.id);
+    }).catch(function(){});
+  }
+  /* Sauvegarde locale (IndexedDB) des données de l'appareil avant d'activer une nouvelle version : rien n'est supprimé */
+  function backupData(){
+    return new Promise(function(res){
+      try{
+        var data = {}; for (var i = 0; i < localStorage.length; i++){ var k = localStorage.key(i); if (/^iepp_/.test(k)) data[k] = localStorage.getItem(k); }
+        var rq = indexedDB.open('iepp_backup', 1);
+        rq.onupgradeneeded = function(){ rq.result.createObjectStore('b'); };
+        rq.onsuccess = function(){ try{ var tx = rq.result.transaction('b', 'readwrite'); tx.objectStore('b').put({ at:Date.now(), build:BUILD, data:data }, 'previous'); tx.oncomplete = function(){ res(true); }; tx.onerror = function(){ res(false); }; }catch(e){ res(false); } };
+        rq.onerror = function(){ res(false); };
+      }catch(e){ res(false); }
+    });
+  }
+  function restoreBackup(){
+    return new Promise(function(res){
+      try{
+        var rq = indexedDB.open('iepp_backup', 1);
+        rq.onsuccess = function(){ try{ var g = rq.result.transaction('b').objectStore('b').get('previous'); g.onsuccess = function(){ var b = g.result; if (!b || !b.data) return res(0); var n = 0; Object.keys(b.data).forEach(function(k){ if (ls(k) == null){ lsSet(k, b.data[k]); n++; } }); res(n); }; g.onerror = function(){ res(0); }; }catch(e){ res(0); } };
+        rq.onerror = function(){ res(0); };
+      }catch(e){ res(0); }
+    });
+  }
+  /* Vérifie que la version en ligne est complète et compatible AVANT de recharger (déploiement interrompu, fichier tronqué…) */
+  function verifyNew(){
+    return fetch(location.pathname || 'index.html', { cache:'reload' }).then(function(r){ if (!r.ok) throw new Error('http'); return r.text(); })
+      .then(function(t){ return t.length > 500000 && t.indexOf("const KEY = 'iepp_'") >= 0 && t.indexOf('SUPABASE_URL') >= 0 && /<\/html>\s*$/.test(t); });
   }
   function applyUpdate(){
     toast('Mise à jour en cours…','info');
-    flushLedger(8000).then(function(){
+    flushLedger(8000).then(function(){ return backupData(); }).then(function(){ return verifyNew().catch(function(){ return false; }); }).then(function(ok){
+      if (!ok){ toast('La version en ligne n\'est pas encore complète : mise à jour reportée. Vos données sont intactes.','warn'); return; }
       var m = meta(); m.pageSig = ''; m.sigChecked = false; setMeta(m);
       var jobs = [];
-      try{ if (window.caches) jobs.push(caches.keys().then(function(ks){ return Promise.all(ks.map(function(k){ return caches.delete(k); })); })); }catch(e){}
+      try{ if (window.caches) jobs.push(caches.keys().then(function(ks){ return Promise.all(ks.map(function(k){ return caches.delete(k); })); })); }catch(e){}   /* fichiers de l'application seulement : localStorage et bases cloud ne sont jamais touchés */
       try{ if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function(rs){ return Promise.all(rs.map(function(r){ try{ if(r.waiting) r.waiting.postMessage('skipWaiting'); }catch(e){} return r.update(); })); })); }catch(e){}
-      return Promise.all(jobs.map(function(p){ return p.catch(function(){}); }));
-    }).then(function(){
-      return fetch(location.href, { cache:'reload' }).catch(function(){});
-    }).then(function(){ location.reload(); });
+      return Promise.all(jobs.map(function(p){ return p.catch(function(){}); })).then(function(){ location.reload(); });
+    });
   }
   try{
     if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistration().then(function(reg){
       if (!reg) return;
       reg.addEventListener('updatefound', function(){
         var nw = reg.installing; if (!nw) return;
-        nw.addEventListener('statechange', function(){ if (nw.state === 'installed' && navigator.serviceWorker.controller) setUpd('sw'); });
+        nw.addEventListener('statechange', function(){ if (nw.state === 'installed' && navigator.serviceWorker.controller) setUpd('sw', 'sw:' + (nw.scriptURL || '') + ':' + Date.now().toString().slice(0, 8)); });
       });
-}).catch(function(){});
+    }).catch(function(){});
   }catch(e){}
 
   /* ---------- 6) Nouvelles données venues d'un autre appareil ---------- */
@@ -45427,7 +45490,7 @@ try{
 
   window.IeppSync = { build:BUILD, pending:pendingCount, ledger:ledger, flush:flushLedger, details:details, syncNow:syncNow, pullNow:pullNow,
     dismissRemote:dismissRemote, dismissUpdate:dismissUpdate, applyUpdate:applyUpdate, logoutSync:logoutSync, logoutNow:logoutNow,
-    checkVersion:checkVersion, checkRemote:checkRemote, refresh:refresh, _label:labelOf, _setUpd:setUpd };
+    checkVersion:checkVersion, checkRemote:checkRemote, refresh:refresh, _label:labelOf, _setUpd:setUpd, restoreBackup:restoreBackup, _notified:notifiedList, _remote:remoteVersion };
 
   wrapPush(); installBadgeWrap(); wrapLogout(); wrapStartApp(); wrapSyncNowTop();
   setInterval(function(){ wrapPush(); refresh(); }, 3000);
@@ -45883,6 +45946,107 @@ try{
     toggle: function(){ lsSet(AUTO_K, autoOn() ? '0' : '1'); try{ toast(autoOn() ? 'Nettoyage automatique activé' : 'Nettoyage automatique désactivé', 'success'); }catch(e){} panel(); },
     now: function(){ var n = run(true); if (!n){ try{ toast('Aucun doublon certain dans la même école à nettoyer.', 'info'); }catch(e){} } },
     run: run, schedule: schedule, panel: panel
+  };
+})();
+</script>
+<script id="iepp-dup-rules">
+/* RÈGLES DE DÉTECTION DES DOUBLONS (ajout) : un doublon n'existe que dans le MÊME espace de saisie
+   - élèves : même école + même classe/niveau
+   - classes : même école + même niveau (+ année)
+   - enseignants / administratifs / conseillers : même lieu de travail + références concordantes
+   - écoles : même circonscription (nom, code, code AGCP)
+   Une simple ressemblance de nom (homonyme) ne suffit jamais. */
+(function(){
+  'use strict';
+  var E = window.DupEngine; if (!E || E.__rules) return;
+  function nk(s){ return E.nrm(s).replace(/ /g, ''); }
+  function lieu(r){ var w = nk(r.ecole || r.lieuService || r.service); return (!w || /^iepp/.test(w)) ? 'iepp' : w; }
+  function space(r, kind){ return kind === 'eleves' ? (nk(r.ecole) + '|' + nk(r.niveau)) : lieu(r); }
+  function g(r, a, b, c){ return r[a] != null && r[a] !== '' ? r[a] : (b && r[b] != null && r[b] !== '' ? r[b] : (c ? r[c] : '')); }
+  /* Références du personnel (comparées seulement quand les DEUX fiches les renseignent) */
+  function refs(r){
+    return { lieuN: nk(g(r,'lieuN','lieuNaissance','lieuNais')), prise: String(g(r,'datePremierService','datePriseService','datePrise') || '').slice(0,10),
+      classe: nk(r.classe), anc: (r.anciennete != null && r.anciennete !== '' && Number(r.anciennete) > 0) ? Number(r.anciennete) : null };
+  }
+  /* Deux fiches du même espace : critères concordants / contradictoires */
+  function compare(a, b){
+    var A = refs(a), B = refs(b), ok = [], ko = [];
+    function cmpf(x, y, label){ if (x && y){ if (x === y) ok.push('même ' + label); else ko.push(label); } }
+    cmpf(A.lieuN, B.lieuN, 'lieu de naissance'); cmpf(A.prise, B.prise, 'date de première prise de service'); cmpf(A.classe, B.classe, 'classe d\'affectation');
+    if (A.anc != null && B.anc != null){ if (A.anc === B.anc) ok.push('même ancienneté'); }
+    return { ok: ok, ko: ko };
+  }
+  function refine(grp, kind){
+    if (grp.lvl === 0) return null;                                   /* homonyme seul : jamais un doublon */
+    if (kind !== 'eleves' && grp.recs.length === 2){
+      var c = compare(grp.recs[0], grp.recs[1]);
+      if (c.ko.length && grp.lvl < 2) return null;                    /* références contradictoires → personnes différentes */
+      c.ok.forEach(function(w){ if (grp.reasons.indexOf(w) < 0) grp.reasons.push(w); });
+    }
+    return grp;
+  }
+  var _scan = E.scan;
+  E.scanLegacy = _scan;
+  E.scan = function(list, kind){
+    var parts = {}, out = [];
+    (list || []).filter(Boolean).forEach(function(r){ var k = space(r, kind); (parts[k] = parts[k] || []).push(r); });
+    Object.keys(parts).forEach(function(k){
+      if (parts[k].length < 2) return;
+      _scan(parts[k], kind).forEach(function(grp){ var x = refine(grp, kind); if (x) out.push(x); });
+    });
+    return out;
+  };
+  if (typeof E.scanClasses === 'function'){
+    var _sc = E.scanClasses;
+    E.scanClasses = function(list){
+      var parts = {}, out = [];
+      (list || []).filter(Boolean).forEach(function(r){ var k = nk(r.ecole) + '|' + nk(r.niveau); (parts[k] = parts[k] || []).push(r); });
+      Object.keys(parts).forEach(function(k){ if (parts[k].length > 1) _sc(parts[k]).forEach(function(x){ out.push(x); }); });
+      return out;
+    };
+  }
+  /* Contrôle à l'enregistrement : même espace uniquement */
+  var _guard = E.guard;
+  E.guard = function(kind, rec, exceptId){
+    var res = [];
+    try{
+      var A = E.prep(rec, kind), sp = space(rec, kind);
+      E.perimeter(kind).forEach(function(r){
+        if (!r || (exceptId && r.id === exceptId) || space(r, kind) !== sp) return;
+        var c = E.cmp(A, E.prep(r, kind), kind); if (!c || c.lvl < 1) return;
+        if (kind !== 'eleves' && c.lvl < 2 && compare(rec, r).ko.length) return;
+        res.push({ rec: r, lvl: c.lvl, why: c.why });
+      });
+    }catch(e){ console.warn('[doublons] règles', e); return true; }
+    if (!res.length) return true;
+    res.sort(function(a, b){ return b.lvl - a.lvl; }); res = res.slice(0, 3);
+    function desc(x){ var r = x.rec; return '• ' + ((r.nom || '') + ' ' + (r.prenoms || '')).trim() + (r.ecole ? ' — ' + r.ecole : '') + (r.niveau ? ' — ' + r.niveau : (r.fonction ? ' — ' + r.fonction : '')) + (r.matricule ? ' — Matricule : ' + r.matricule : '') + '\n   Motif : ' + x.why.join(', '); }
+    return window.confirm((res[0].lvl === 2 ? '⚠️ CETTE PERSONNE EST DÉJÀ DANS LE MÊME ESPACE DE SAISIE :' : '⚠️ Cette personne semble déjà enregistrée dans le même espace de saisie :') + '\n\n' + res.map(desc).join('\n\n') + '\n\nVoulez-vous quand même l\'enregistrer ?');
+  };
+  E.__rules = true; E.space = space;
+
+  /* Carte « Règles et niveaux de gestion » du module */
+  var NIV = {
+    instituteur: ['Classe', 'Vous gérez les élèves de VOTRE classe : détection et signalement. La suppression ou la fusion revient au directeur.'],
+    directeur: ['École', 'Vous gérez votre école : élèves (par classe), classes, enseignants et personnels administratifs de l\'école. Fusion, suppression (Corbeille), signalement.'],
+    inspecteur: ['Circonscription (IEPP)', 'Vous gérez toute l\'IEPP : élèves, classes, enseignants, administratifs, conseillers et écoles. Traitement complet.'],
+    correspondant: ['Circonscription (IEPP)', 'Vous gérez les fichiers de toute l\'IEPP : élèves, classes, personnels, conseillers et écoles. Traitement complet.'],
+    corresp_stat: ['Circonscription (IEPP)', 'Vous traitez les classes et les écoles de l\'IEPP ; les autres listes sont en consultation et signalement.'],
+    superadmin: ['Plateforme', 'Vous voyez toutes les circonscriptions (celle en cours) : traitement complet.'],
+    drenaet: ['Direction régionale', 'Vous consultez et signalez ; la fusion et la suppression se font au niveau de l\'IEPP concernée.']
+  };
+  window.dupRulesHtml = function(cur, u){
+    var n = NIV[u && u.role] || ['Consultation', 'Vous pouvez consulter et signaler les doublons de votre périmètre.'];
+    var regle = { eleves: 'même école ET même classe / niveau', enseignants: 'même lieu de travail + références concordantes (nom et prénoms, matricule, fonction, classe d\'affectation, date et lieu de naissance, date de première prise de service, ancienneté)',
+      admin: 'même lieu de travail + références concordantes (nom et prénoms, matricule, fonction ou emploi, date et lieu de naissance, date de première prise de service, ancienneté)',
+      conseillers: 'même lieu de travail (IEPP) + références concordantes', ecoles: 'même circonscription : nom de l\'école, code, code AGCP', classes: 'même école ET même niveau (et même année scolaire)' }[cur] || 'même espace de saisie';
+    return '<details class="card" style="padding:10px 14px;margin-top:8px"><summary style="cursor:pointer;font-weight:700">📘 Règles de détection et niveaux de gestion — <span style="color:#7C2D12">votre niveau : ' + n[0] + '</span></summary>'
+      + '<div style="font-size:13px;line-height:1.55;margin-top:8px">'
+      + '<p style="margin:0 0 6px"><b>Règle :</b> un doublon n\'existe que dans le <b>même espace de saisie</b> (' + regle + '). Les mêmes noms, fonctions, écoles, matricules, parents ou lieux dans des espaces différents ne sont <b>jamais</b> signalés. Un simple homonyme n\'est pas un doublon.</p>'
+      + '<p style="margin:0 0 6px"><b>Votre niveau de gestion (' + n[0] + ') :</b> ' + n[1] + '</p>'
+      + '<p style="margin:0 0 4px"><b>Niveaux :</b> classe (instituteur) › école (directeur) › circonscription (inspecteur, correspondants) › direction régionale (consultation).</p>'
+      + '<p style="margin:0"><b>Actions après détection :</b> 🔀 Fusionner (garder le plus complet) · ✅ Garder celui-ci / 🗑 Supprimer (envoyé à la Corbeille, ne revient plus) · ✔️ Conserver les deux (pas des doublons) · ⚑ Signaler pour vérification (onglet « Signalés ») · 📊 Exporter / 🖨️ Imprimer · 🧹 Nettoyage automatique des doublons certains.</p>'
+      + '</div></details>';
   };
 })();
 </script>
