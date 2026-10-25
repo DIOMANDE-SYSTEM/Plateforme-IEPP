@@ -45251,9 +45251,20 @@ try{
     }
     return b;
   }
+  /* Alertes : disparaissent seules après 5 s (15 s pour « nouvelle version »), ou à la main avec ✕.
+     Une alerte fermée ne revient pas tant que la situation qui l'a provoquée dure ; elle peut réapparaître si elle cesse puis se reproduit. */
+  var cardSince = {}, cardHidden = {}, cardSeen = {}, TTL = { upd:15000 }, TTL_DEF = 5000;
   function card(id, color, html){
-    return '<div data-nid="'+id+'" style="background:#fff;border-left:5px solid '+color+';border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.22);padding:10px 12px;color:#1A1B25">'+html+'</div>';
+    cardSeen[id] = 1;
+    if (cardHidden[id]) return '';
+    if (!cardSince[id]) cardSince[id] = Date.now();
+    if (Date.now() - cardSince[id] > (TTL[id] || TTL_DEF)){ cardHidden[id] = 1; return ''; }
+    return '<div data-nid="'+id+'" style="position:relative;background:#fff;border-left:5px solid '+color+';border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.22);padding:10px 30px 10px 12px;color:#1A1B25">'
+      + '<button title="Fermer" aria-label="Fermer" onclick="IeppSync.closeCard(\''+id+'\')" style="position:absolute;top:4px;right:6px;border:none;background:transparent;font:700 16px/1 system-ui;color:#6B7280;cursor:pointer;padding:2px 5px">✕</button>'
+      + html + '</div>';
   }
+  function closeCard(id){ cardHidden[id] = 1; if (id === 'upd' && updInfo && !updInfo.dismissed){ dismissUpdate(); return; } refresh(); }
+  function purgeCards(){ Object.keys(cardSince).forEach(function(k){ if (!cardSeen[k]){ delete cardSince[k]; delete cardHidden[k]; } }); cardSeen = {}; }
   var btnS = 'border:none;border-radius:7px;padding:6px 10px;font:600 12px system-ui;cursor:pointer;margin:6px 6px 0 0;';
   var lastCards = '';
   function paintCards(){
@@ -45280,8 +45291,10 @@ try{
         + '<button style="'+btnS+'background:#F4A261;color:#1A1B25" onclick="IeppSync.syncNow()">Synchroniser</button>'
         + '<button style="'+btnS+'background:#E5E7EB;color:#1A1B25" onclick="IeppSync.details()">Détails</button>');
     }
+    purgeCards();
     if (out !== lastCards){ b.innerHTML = out; lastCards = out; }
   }
+  setInterval(function(){ try{ if (logged()) paintCards(); }catch(e){} }, 1000);
   function refresh(){ try{ paintBadge(); paintCards(); }catch(e){} }
 
   /* ---------- 3) Détails + actions ---------- */
@@ -45497,7 +45510,7 @@ try{
 
   window.IeppSync = { build:BUILD, pending:pendingCount, ledger:ledger, flush:flushLedger, details:details, syncNow:syncNow, pullNow:pullNow,
     dismissRemote:dismissRemote, dismissUpdate:dismissUpdate, applyUpdate:applyUpdate, logoutSync:logoutSync, logoutNow:logoutNow,
-    checkVersion:checkVersion, checkRemote:checkRemote, refresh:refresh, _label:labelOf, _setUpd:setUpd, restoreBackup:restoreBackup, _notified:notifiedList, _remote:remoteVersion };
+    checkVersion:checkVersion, checkRemote:checkRemote, refresh:refresh, _label:labelOf, _setUpd:setUpd, restoreBackup:restoreBackup, closeCard:closeCard, _notified:notifiedList, _remote:remoteVersion };
 
   wrapPush(); installBadgeWrap(); wrapLogout(); wrapStartApp(); wrapSyncNowTop();
   setInterval(function(){ wrapPush(); refresh(); }, 3000);
