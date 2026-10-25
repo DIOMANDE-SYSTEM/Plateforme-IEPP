@@ -5877,7 +5877,7 @@ function renderEcoles() {
 function renderEcolesBody() {
   const q = (document.getElementById('ec-search')?.value || '').toLowerCase();
   const list = state.ecoles.filter(e =>
-    e.nom.toLowerCase().includes(q) || e.code.toLowerCase().includes(q) || e.commune.toLowerCase().includes(q) || (e.directeur||'').toLowerCase().includes(q)
+    (e.nom||'').toLowerCase().includes(q) || (e.code||'').toLowerCase().includes(q) || (e.commune||'').toLowerCase().includes(q) || (e.directeur||'').toLowerCase().includes(q)
   );
   const canEdit = ['inspecteur','correspondant','directeur'].includes(state.user.role);
   const tb = document.getElementById('ec-body');
@@ -5888,8 +5888,8 @@ function renderEcolesBody() {
       <td class="fw-7">${escapeHtml(e.nom)}</td>
       <td>${escapeHtml(e.commune)}</td>
       <td>${escapeHtml(e.directeur)}</td>
-      <td style="text-align:right" class="fw-7">${e.effectif.toLocaleString('fr-FR')}</td>
-      <td style="text-align:center">${e.classes}</td>
+      <td style="text-align:right" class="fw-7">${(Number(e.effectif)||0).toLocaleString('fr-FR')}</td>
+      <td style="text-align:center">${e.classes==null?0:e.classes}</td>
       <td>${e.statut==='Communautaire'?'<span class="badge badge-purple">Communautaire</span>':(e.statut==='Privé'?'<span class="badge badge-orange">Privé</span>':'<span class="badge badge-green">Public</span>')}</td>
       <td class="actions-cell">
         <button class="icon-btn" onclick="ecoleView('${e.id}')" title="Voir">👁️</button>
@@ -37496,7 +37496,7 @@ function userRestoreFromTrash(trashId){
   function render(){
     var tabs=[['obj','🎯 Objectifs & périmètre'],['roles','👥 Rôles & droits'],['gar','🛡️ Garanties techniques'],['jrn','📜 Journal']];
     if(!isSuper()) tabs=tabs.filter(function(t){return t[0]==='gar'||t[0]==='jrn';});
-    if(!isAdmin()) tabs=[];
+    if(!isAdmin() || !(window.state&&state.user&&state.user.role==='superadmin')) tabs=[];
     if(!tabs.length){ setContent('<div class="card"><p>Accès non autorisé.</p></div>'); return; }
     if(!tabs.some(function(t){return t[0]===tab;})) tab=tabs[0][0];
     var body=tab==='obj'?tObj():tab==='roles'?tRoles():tab==='gar'?tGar():tJrn();
@@ -37504,7 +37504,7 @@ function userRestoreFromTrash(trashId){
   }
   window.renderCadreTech=render;
   MODULES['cadre-plateforme']={ title:'Cadre & contrôles techniques', sub:'Objectifs, périmètre, rôles et droits, garanties de fiabilité', render:render };
-  Object.keys(ROLES).forEach(function(r){ if(!ACL[r]) return; var i=ACL[r].indexOf('cadre-plateforme'); if(ADMIN.indexOf(r)>=0){ if(i<0) ACL[r].push('cadre-plateforme'); } else if(i>=0) ACL[r].splice(i,1); });
+  Object.keys(ROLES).forEach(function(r){ if(!ACL[r]) return; var i=ACL[r].indexOf('cadre-plateforme'); if(r==='superadmin'){ if(i<0) ACL[r].push('cadre-plateforme'); } else if(i>=0) ACL[r].splice(i,1); });
   var tryLink=function(){
     if(document.querySelector('.sb-link[data-module="cadre-plateforme"]')) return;
     var d=document.querySelector('.sb-link[data-module="dashboard"]'); if(!d) return;
@@ -39852,7 +39852,7 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
     if(!Array.isArray(st.ecoles)) st.ecoles=[];
     var ig=ign(), changed=0, found={}, canonHave={}, canonHaveNom={};
     try{ st.ecoles.forEach(function(e){ if(e&&e.nom&&window.ieppCanonEcole){ var c=window.ieppCanonEcole(e.nom); if(c&&!canonHave[c]){ canonHave[c]=ekey(e.nom); canonHaveNom[c]=e.nom; } } }); }catch(e){}
-    function add(nom,info){ nom=String(nom==null?'':nom).replace(/\s+/g,' ').trim(); if(nom.length<3||/^(—|-|toutes?|aucune?)$/i.test(nom)) return; var k=ekey(nom); if(!k) return; try{ var _c=(window.ieppCanonEcole?window.ieppCanonEcole(nom):''); if(_c&&canonHave[_c]){ k=canonHave[_c]; nom=canonHaveNom[_c]||nom; } }catch(e){} var f=found[k]; if(!f) found[k]=f={nom:nom,info:{}}; Object.keys(info||{}).forEach(function(i){ if(info[i]&&!f.info[i]) f.info[i]=info[i]; }); }
+    function add(nom,info){ nom=String(nom==null?'':nom).replace(/\s+/g,' ').trim(); if(nom.length<3||/^(—|-|toutes?|aucune?)$/i.test(nom)) return; var k=ekey(nom); if(!k) return; try{ var _c=(window.ieppCanonEcole?window.ieppCanonEcole(nom):''); if(_c&&canonHave[_c]){ k=canonHave[_c]; nom=canonHaveNom[_c]||nom; } }catch(e){} try{ if(!canonHave[window.ieppCanonEcole?window.ieppCanonEcole(nom):''] && window.ieppIsForeignEcole && window.ieppIsForeignEcole(nom)) return; }catch(e){} var f=found[k]; if(!f) found[k]=f={nom:nom,info:{}}; Object.keys(info||{}).forEach(function(i){ if(info[i]&&!f.info[i]) f.info[i]=info[i]; }); }
     st.users.forEach(function(u){ if(u&&same(u.iepp,ip)&&!SKIP[u.role]&&u.ecole){ add(u.ecole, u.role==='directeur'?{directeur:u.name}:{}); } });
     (st.personnel||[]).forEach(function(p){ if(p&&p.ecole) add(p.ecole); });
     var nbEl={}; (st.elevesFichier||[]).forEach(function(e){ if(e&&e.ecole){ add(e.ecole); var k=ekey(e.ecole); nbEl[k]=(nbEl[k]||0)+1; } });
@@ -44326,7 +44326,7 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
     var POL={
       'recuperation':['superadmin'],
       'valid-conso':['superadmin','correspondant','inspecteur','corresp_stat','directeur'],
-      'cadre-plateforme':['superadmin','correspondant','inspecteur','directeur'],
+      'cadre-plateforme':['superadmin'],
       'bulletins-peda':['superadmin','correspondant','inspecteur','directeur','cpi'],
       'doublons':['superadmin','correspondant','inspecteur','directeur'],
       'conso-ecole':['directeur'],
@@ -46248,7 +46248,7 @@ try{
 
   /* ---------- carte d'alerte sur le tableau de bord ---------- */
   function alertHtml(){
-    try{ var st=S(); if(!st||!st.user||['superadmin','inspecteur','correspondant','drenaet','corresp_stat'].indexOf(st.user.role)<0) return '';
+    try{ var st=S(); if(!st||!st.user||st.user.role!=='superadmin') return '';
       var off=(st.ecoles||[]).filter(function(e){return e&&!e._auto;}).length, au=(st.ecoles||[]).filter(function(e){return e&&e._auto;}).length, I=effIssues();
       if(!(off&&au)&&!I.bad&&!I.dup.length) return '';
       return '<div id="iepp-repair-card" style="margin:12px 0;padding:10px 14px;border:1px solid #F59E0B;background:#FFFBEB;border-radius:10px;font-size:13px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">⚠️ <span>Contrôle des données : '
@@ -46260,6 +46260,13 @@ try{
     var nd=function(){ var r=_rd.apply(this,arguments); try{ var c=document.getElementById('content'), h=alertHtml(); if(c&&h&&!document.getElementById('iepp-repair-card')){ var g=c.querySelector('.stat-grid'); if(g) g.insertAdjacentHTML('beforebegin',h); } }catch(e){} return r; };
     nd.__repair=true; window.renderDashboard=nd; try{ renderDashboard=nd; }catch(e){} try{ if(MODULES&&MODULES['dashboard']&&MODULES['dashboard'].render===_rd) MODULES['dashboard'].render=nd; }catch(e){}
   }
+  /* fiches écoles incomplètes (champ absent) : valeurs par défaut en mémoire pour que la page ne se vide jamais */
+  function normEcoles(){ var st=S(); if(!st||!Array.isArray(st.ecoles)) return; st.ecoles.forEach(function(e){ if(!e||typeof e!=='object') return;
+    if(e.nom==null) e.nom=''; if(e.code==null) e.code=''; if(e.commune==null) e.commune=''; if(e.directeur==null) e.directeur='';
+    if(typeof e.effectif!=='number'){ e.effectif=Number(e.effectif)||0; } if(typeof e.classes!=='number'){ e.classes=Number(e.classes)||0; } if(!e.statut) e.statut='Public'; }); }
+  window.ieppNormEcoles=normEcoles;
+  try{ var _mr=MODULES&&MODULES['ecoles']&&MODULES['ecoles'].render;
+    if(typeof _mr==='function' && !_mr.__norm){ var nm=function(){ try{ normEcoles(); }catch(e){} return _mr.apply(this,arguments); }; nm.__norm=true; MODULES['ecoles'].render=nm; } }catch(e){}
   /* accès depuis le menu Données / console */
   window.ieppControleDonnees=function(){ IeppRepair.open(); };
 })();
@@ -46309,6 +46316,87 @@ try{
   window.addEventListener('load', all);
   setInterval(clock,1000);
   setInterval(function(){ logos(); fixDate(); },2000);
+})();
+</script>
+
+<script id="iepp-foreign-guard">
+/* ==================================================================
+   CLOISONNEMENT DES IEPP (ajout) — écoles de Tengrela/Niakara dans une autre IEPP
+   1) Prévention : aucune école de la liste de référence de Tengrela n'est créée / conservée dans une autre IEPP
+      (liste des écoles, effectifs, recrutement) tant qu'elle n'a pas de données propres.
+   2) Nettoyage : retire ces écoles (Corbeille, restaurables) ; les lignes contenant des chiffres sont laissées et signalées.
+   ================================================================== */
+(function(){
+  'use strict';
+  var MAT_REF = ['Maternelle Arikokaha','Maternelle Angolokaha','Maternelle Badiokaha','Maternelle Dossoulokaha','Maternelle Folofonkaha','Maternelle Kanawolo','Maternelle Latokaha','Maternelle Les Colombes Tortiya','Maternelle Municipale Tengrela','Maternelle Nambanakaha','Maternelle Nangoniékaha','Maternelle Tengrela 1 B','Maternelle Tengrela 2','Maternelle Tengrela 3','Maternelle Tengrela Château','Maternelle Tengrela Résidentiel','Maternelle Niangbo','Maternelle Niédiékaha','Maternelle Ouéréguékaha'];
+  var REG_KEYS = ['ecoles','effPrescolaire','effPrimaire','recrutementMater','recrutementCP1','effectifs'];
+  var REG_FIELD = { ecoles:'nom', effPrescolaire:'nom', effPrimaire:'nom', recrutementMater:'ecole', recrutementCP1:'ecole', effectifs:'ecole' };
+  function S(){ return window.state||null; }
+  function canon(n){ return (window.ieppCanonEcole?window.ieppCanonEcole(n):String(n||'').toUpperCase().replace(/[^A-Z0-9]/g,'')); }
+  function notTengrela(){ var st=S(); var a=String((st&&st.activeIepp)||'').toUpperCase(); return !!a && a!=='IEPP TENGRELA' && a.indexOf('AUCUNE')<0 && a.indexOf('TOUTES')<0; }
+  var REF=null;
+  function ref(){
+    if(REF) return REF; var o={}; function add(n){ var c=canon(n); if(c) o[c]=1; }
+    MAT_REF.forEach(add);
+    try{ (typeof TENGRELA_ECOLES!=='undefined'?TENGRELA_ECOLES:[]).forEach(function(r){ add(r.nom); }); }catch(e){}
+    try{ (typeof TENGRELA_EFF_PRIMAIRE!=='undefined'?TENGRELA_EFF_PRIMAIRE:[]).forEach(function(r){ add(r.nom); }); }catch(e){}
+    try{ (typeof TENGRELA_EFFECTIFS!=='undefined'?TENGRELA_EFFECTIFS:[]).forEach(function(r){ add(r.ecole); }); }catch(e){}
+    try{ defaultEffPrescolaire().forEach(function(r){ add(r.nom); }); }catch(e){}
+    try{ defaultEffPrimaire().forEach(function(r){ add(r.nom); }); }catch(e){}
+    try{ defaultEcoles().forEach(function(r){ add(r.nom); }); }catch(e){}
+    try{ defaultCarteScolaire().forEach(function(r){ add(r.denomination); }); }catch(e){}
+    REF=o; return o;
+  }
+  function isForeignName(nom){
+    var c=canon(nom); if(!c) return false; var R=ref(); if(R[c]) return true;
+    if(c.length>=12){ for(var k in R){ if(Math.abs(k.length-c.length)<=2 && k.length>=12 && lev(c,k)<=2) return true; } }
+    return false;
+  }
+  function lev(a,b){ var m=a.length,n=b.length,p=[],i,j; for(j=0;j<=n;j++) p[j]=j; for(i=1;i<=m;i++){ var c=[i]; for(j=1;j<=n;j++) c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a.charAt(i-1)===b.charAt(j-1)?0:1)); p=c; } return p[n]; }
+  function hasNumbers(r){ var n=0; Object.keys(r).forEach(function(k){ if(typeof r[k]==='number' && r[k]>0 && k!=='_upd' && k!=='effectif' && k!=='classes') n++; }); return n>0; }
+  /* une ligne « étrangère » : école de référence Tengrela, ajoutée automatiquement ou sans aucune donnée propre */
+  function isForeignRow(key,r){
+    if(!r||typeof r!=='object') return false; var nom=r[REG_FIELD[key]]; if(!nom||!isForeignName(nom)) return false;
+    if(key==='ecoles') return !!r._auto || /^ec_/.test(String(r.id||'')) || /^e\d+$/.test(String(r.id||'')) || /^ten\d+$/i.test(String(r.id||''));
+    return !hasNumbers(r);
+  }
+  window.ieppForeignScan=function(){
+    var st=S(), out={ rows:{}, withData:0, total:0 }; if(!st||!notTengrela()) return out;
+    REG_KEYS.forEach(function(k){ var arr=st[k]; if(!Array.isArray(arr)) return;
+      arr.forEach(function(r){ if(!r||typeof r!=='object') return; var nom=r[REG_FIELD[k]]; if(!nom||!isForeignName(nom)) return;
+        if(isForeignRow(k,r)){ (out.rows[k]=out.rows[k]||[]).push(r); out.total++; } else out.withData++; }); });
+    return out;
+  };
+  window.ieppForeignClean=function(silent){
+    var st=S(); if(!st||!st.user||!notTengrela()) return 0; var n=0;
+    REG_KEYS.forEach(function(k){ var arr=st[k]; if(!Array.isArray(arr)) return;
+      var keep=arr.filter(function(r){ return !isForeignRow(k,r); });
+      if(keep.length!==arr.length){ n+=arr.length-keep.length; st[k]=keep; try{ save(k,keep); }catch(e){} } });
+    if(n&&!silent){ try{ toast(n+' ligne(s) d\'une autre IEPP retirée(s) (Corbeille)','success'); }catch(e){} }
+    return n;
+  };
+  /* 1) prévention à la source : la synchronisation ne crée plus ces écoles hors Tengrela */
+  window.ieppIsForeignEcole=function(nom){ return notTengrela() && isForeignName(nom); };
+  /* 1 bis) prévention au point d'écriture : jamais de ligne étrangère enregistrée dans une IEPP autre que Tengrela */
+  try{
+    var _set=Storage.prototype.setItem;
+    if(!_set.__foreign){
+      var f=function(k,v){
+        try{
+          var m=/^iepp_(c_[a-z0-9_]+?)_(ecoles|effPrescolaire|effPrimaire|recrutementMater|recrutementCP1|effectifs)$/.exec(String(k));
+          if(m && m[1]!=='c_iepp_tengrela' && typeof v==='string' && v.charAt(0)==='['){
+            var arr=JSON.parse(v), key=m[2], keep=arr.filter(function(r){ return !isForeignRow(key,r); });
+            if(keep.length!==arr.length) v=JSON.stringify(keep);
+          }
+        }catch(e){}
+        return _set.call(this,k,v);
+      };
+      f.__foreign=true; Storage.prototype.setItem=f;
+    }
+  }catch(e){}
+  /* 2) nettoyage automatique (sans risque : Corbeille) pour les profils de gestion */
+  function auto(){ try{ var st=S(); if(st&&st.user&&['superadmin','inspecteur','correspondant'].indexOf(st.user.role)>=0&&notTengrela()) window.ieppForeignClean(false); }catch(e){} }
+  setInterval(auto,6000); setTimeout(auto,2500);
 })();
 </script>
 </body>
