@@ -4963,6 +4963,7 @@ function navigate(mod) {
   document.getElementById('page-title').firstChild.textContent = def.title;
   document.getElementById('page-sub').textContent = def.sub;
   document.getElementById('content').innerHTML = '';
+  try { if (window.__ieppGuardRender) window.__ieppGuardRender(mod); } catch(e) {}
   def.render();
   document.getElementById('sidebar').classList.remove('open');
   window.scrollTo(0,0);
@@ -44727,6 +44728,7 @@ try{
       if(hit) drop.push(i);
     }
     var out=[]; for(var j=drop.length-1;j>=0;j--){ out.unshift(arr.splice(drop[j],1)[0]); }
+    try{ if(out.length){ var Q=JSON.parse(localStorage.getItem('iepp_quarantine')||'[]')||[]; out.forEach(function(r){ Q.push({ col:key, at:Date.now(), rec:r }); }); if(Q.length>300) Q=Q.slice(-300); localStorage.setItem('iepp_quarantine',JSON.stringify(Q)); } }catch(e){}
     return out;
   }
   var NOTIFIED={}; try{ NOTIFIED=JSON.parse(localStorage.getItem('iepp_dup_notified')||'{}')||{}; }catch(e){ NOTIFIED={}; }
@@ -45878,7 +45880,7 @@ try{
   setInterval(function(){ try{ if (logged() && AR()) AR().purgeAll(); }catch(e){} }, 3000);
 
   /* 2) Nettoyage automatique (doublons certains, même école) */
-  function autoOn(){ return ls(AUTO_K) !== '0'; }
+  function autoOn(){ return ls(AUTO_K) === '1'; }   /* DÉSACTIVÉ par défaut : aucune suppression sans action volontaire */
   function busy(){
     var ae = document.activeElement; if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return true;
     var mb = document.getElementById('modal-backdrop'); return !!(mb && mb.offsetParent !== null);
@@ -45926,7 +45928,8 @@ try{
       var c = document.getElementById('content'); if (!c) return;
       var on = autoOn(), html = '<b>🤖 Nettoyage automatique des doublons certains :</b> <span style="color:' + (on ? '#15803D' : '#B91C1C') + ';font-weight:700">' + (on ? 'ACTIVÉ' : 'DÉSACTIVÉ') + '</span> '
         + '<button class="btn btn-ghost btn-sm" onclick="DupV2.toggle()">' + (on ? 'Désactiver' : 'Activer') + '</button> '
-        + '<button class="btn btn-orange btn-sm" onclick="DupV2.now()">🧹 Nettoyer maintenant</button>'
+        + '<button class="btn btn-orange btn-sm" onclick="DupV2.now()">🧹 Nettoyer maintenant</button> '
+        + '<button class="btn btn-ghost btn-sm" onclick="IeppSafety.restoreAutoDup()">↩ Remettre les fiches supprimées comme doublons</button>'
         + '<div class="text-xs text-muted" style="margin-top:4px">Les doublons certains d\'une même école sont fusionnés (champs vides complétés), envoyés à la Corbeille et ne reviennent plus (synchronisation, import, autre appareil). Les cas « à vérifier » et les doublons entre écoles restent manuels.</div>';
       var b = document.getElementById('dup-auto-box');
       if (b && b.getAttribute('data-h') === html) return;
@@ -46454,6 +46457,188 @@ try{
   /* 2) nettoyage automatique (sans risque : Corbeille) pour les profils de gestion */
   function auto(){ try{ var st=S(); if(st&&st.user&&['superadmin','inspecteur','correspondant'].indexOf(st.user.role)>=0&&notTengrela()) window.ieppForeignClean(false); }catch(e){} }
   setInterval(auto,6000); setTimeout(auto,2500);
+})();
+</script>
+
+<script id="iepp-stability">
+/* ==================================================================
+   STABILITÉ (ajout, aucune fonctionnalité retirée)
+   1) Aucune page blanche : si l'affichage d'une page échoue, un message clair + « Réessayer » + détail copiable s'affichent.
+   2) Stockage durable : demande au navigateur de ne jamais effacer les données de la plateforme.
+   3) Sauvegarde automatique (IndexedDB, plusieurs copies : récente, horaires, journalières) et RESTAURATION AUTOMATIQUE
+      de toute fiche qui disparaît sans avoir été supprimée volontairement (ni Corbeille, ni suppression enregistrée).
+   4) Suppressions en masse détectées (≥ 8 fiches d'un coup) : proposition de restauration.
+   ================================================================== */
+(function(){
+  'use strict';
+  if (window.IeppSafety) return;
+  var DB='iepp_safety', ST='s';
+  var DATA_KEYS=['elevesFichier','personnel','effectifs','absences','visites','examens','fichesClasse','consoEcoles','notesCompos','notesComposRem','notesComposDfa','notesMat','absEleves','pnapasClasse','aserEleves','recrutementCP1','recrutementMater','effPrescolaire','effPrimaire','cppp','cpppBulletins','fichesPeda','rapportsAuto','ecoles'];
+  function ls(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+  function S(){ return window.state||null; }
+  function logged(){ var s=S(); return !!(s&&s.user); }
+  function esc(x){ return (typeof escapeHtml==='function')?escapeHtml(x):String(x==null?'':x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function tst(m,t){ try{ toast(m,t||'info'); }catch(e){} }
+
+  /* ---------- 1) journal d'erreurs + pages protégées ---------- */
+  var ERR=[]; window.__ieppErrors=ERR;
+  function logErr(w,e){ try{ ERR.push({ at:new Date().toISOString(), where:w, msg:String(e&&e.message||e), stack:String(e&&e.stack||'').split('\n').slice(0,4).join(' | '), ua:navigator.userAgent.slice(0,90) }); if(ERR.length>30) ERR.shift(); }catch(x){} }
+  window.addEventListener('error', function(ev){ logErr('window', ev.error||ev.message); });
+  window.addEventListener('unhandledrejection', function(ev){ logErr('promise', ev.reason); });
+  function errorPanel(mod,e){
+    var d=esc(String(e&&e.message||e)+'\n'+String(e&&e.stack||'').split('\n').slice(0,4).join('\n')+'\nNavigateur: '+navigator.userAgent.slice(0,120)+'\nModule: '+mod);
+    return '<div class="card" style="padding:16px;border-left:4px solid #E63946"><div class="card-title">⚠️ Cette page n\'a pas pu s\'afficher complètement</div>'
+      +'<p style="font-size:13px;margin:6px 0 10px">Vos données sont <b>intactes</b> (rien n\'a été supprimé). Cliquez sur « Réessayer » ; si le problème persiste, copiez le détail et envoyez-le au support.</p>'
+      +'<button class="btn btn-primary" onclick="navigate(\''+String(mod).replace(/'/g,'')+'\')">🔄 Réessayer</button> '
+      +'<button class="btn btn-ghost" onclick="IeppSafety.copyErr()">📋 Copier le détail</button>'
+      +'<pre id="iepp-err-detail" style="margin-top:10px;white-space:pre-wrap;font-size:11px;background:#F8FAFC;padding:8px;border-radius:8px;max-height:140px;overflow:auto">'+d+'</pre></div>';
+  }
+  function safeEcoles(){
+    try{
+      var L=(S().ecoles||[]).filter(function(e){ return e&&typeof e==='object'; });
+      return '<div class="card" style="padding:12px;margin-top:10px"><div class="card-title">🏫 Liste des écoles (affichage simplifié)</div><div style="overflow:auto"><table style="width:100%;font-size:13px"><thead><tr><th>Nom</th><th>Commune</th><th>Directeur</th><th style="text-align:right">Effectif</th><th>Statut</th></tr></thead><tbody>'
+        +L.map(function(e){ return '<tr><td>'+esc(e.nom)+'</td><td>'+esc(e.commune)+'</td><td>'+esc(e.directeur)+'</td><td style="text-align:right">'+esc(Number(e.effectif)||0)+'</td><td>'+esc(e.statut||'Public')+'</td></tr>'; }).join('')+'</tbody></table></div></div>';
+    }catch(x){ return ''; }
+  }
+  window.__ieppGuardRender=function(m){ guardRender(m); };
+  function guardRender(mod){
+    try{
+      var d=(typeof MODULES!=='undefined')?MODULES[mod]:null; if(!d||typeof d.render!=='function'||d.render.__safe) return;
+      var o=d.render;
+      var g=function(){
+        try{ return o.apply(this,arguments); }
+        catch(e){
+          logErr('render:'+mod,e); try{ console.error('[page '+mod+']',e); }catch(x){}
+          try{ var c=document.getElementById('content'); if(c){ c.innerHTML=errorPanel(mod,e)+(mod==='ecoles'?safeEcoles():''); } }catch(x){}
+        }
+      };
+      g.__safe=true; d.render=g;
+    }catch(e){}
+  }
+  try{
+    var _nav=window.navigate;
+    if(typeof _nav==='function' && !_nav.__safe){
+      var nn=function(mod){ try{ guardRender(mod); }catch(e){} return _nav.apply(this,arguments); };
+      nn.__safe=true; window.navigate=nn; try{ navigate=nn; }catch(e){}
+    }
+  }catch(e){}
+
+  /* ---------- 2) stockage durable ---------- */
+  function askPersist(){
+    try{ if(navigator.storage&&navigator.storage.persist){ navigator.storage.persisted().then(function(p){ if(!p) navigator.storage.persist().then(function(ok){ lsSet('iepp_persist', ok?'1':'0'); }); else lsSet('iepp_persist','1'); }).catch(function(){}); } }catch(e){}
+  }
+
+  /* ---------- 3) sauvegarde automatique ---------- */
+  function idb(){
+    return new Promise(function(res,rej){
+      try{ var q=indexedDB.open(DB,1); q.onupgradeneeded=function(){ try{ q.result.createObjectStore(ST); }catch(e){} }; q.onsuccess=function(){ res(q.result); }; q.onerror=function(){ rej(q.error); }; }catch(e){ rej(e); }
+    });
+  }
+  function put(k,v){ return idb().then(function(db){ return new Promise(function(res){ try{ var tx=db.transaction(ST,'readwrite'); tx.objectStore(ST).put(v,k); tx.oncomplete=function(){ res(true); }; tx.onerror=function(){ res(false); }; }catch(e){ res(false); } }); }).catch(function(){ return false; }); }
+  function getAll(){
+    return idb().then(function(db){ return new Promise(function(res){ try{ var tx=db.transaction(ST); var os=tx.objectStore(ST), out={}; var cur=os.openCursor(); cur.onsuccess=function(){ var c=cur.result; if(c){ out[c.key]=c.value; c.continue(); } else res(out); }; cur.onerror=function(){ res(out); }; }catch(e){ res({}); } }); }).catch(function(){ return {}; });
+  }
+  function collect(){
+    var data={}, n=0, len=0;
+    try{ for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(!/^iepp_/.test(k)) continue; if(/(toast_seen|pending_ledger|sync_meta|ver_notified|safety|autodup_last|_audit$|_notifications$|persist)/.test(k)) continue; var v=localStorage.getItem(k); if(v==null) continue; data[k]=v; n++; len+=v.length; } }catch(e){}
+    return { data:data, n:n, len:len };
+  }
+  var lastSig='';
+  function snapshot(force){
+    if(!logged()) return Promise.resolve(false);
+    var c=collect(), sig=c.n+':'+c.len; if(!force && sig===lastSig) return Promise.resolve(false);
+    lastSig=sig; var now=Date.now(), snap={ at:now, build:(window.IeppSync&&IeppSync.build)||'', data:c.data };
+    var m={}; try{ m=JSON.parse(ls('iepp_safety_meta')||'{}')||{}; }catch(e){ m={}; }
+    var jobs=[ put('latest',snap) ];
+    if(!m.h||now-m.h>3600000){ var hi=((m.hi||0)+1)%3; m.h=now; m.hi=hi; jobs.push(put('h'+hi,snap)); }
+    if(!m.d||now-m.d>86400000){ var di=((m.di||0)+1)%3; m.d=now; m.di=di; jobs.push(put('d'+di,snap)); }
+    lsSet('iepp_safety_meta',JSON.stringify(m));
+    return Promise.all(jobs).then(function(r){ return r[0]; });
+  }
+  /* identifiants supprimés volontairement : tombstones + Corbeille de cette IEPP */
+  function deletedIds(base){
+    var out={};
+    try{ var tk=(window.RECORD_MERGE&&RECORD_MERGE[base]&&RECORD_MERGE[base].tomb)||(base+'Deleted'); (JSON.parse(ls(storeKey(tk))||'[]')||[]).forEach(function(t){ if(t&&t.id!=null) out[t.id]=1; }); }catch(e){}
+    try{ (JSON.parse(ls(storeKey(base+'__gtomb'))||'[]')||[]).forEach(function(t){ if(t&&t.k!=null&&(t.at||0)>(t.r||0)){ var m=String(t.k); if(m.indexOf('id:')===0) out[m.slice(3)]=1; } }); }catch(e){}
+    try{ ((S().corbeille)||[]).forEach(function(t){ if(!t||t.parentKey!==base) return; if(t.matchVal!=null) out[t.matchVal]=1; if(t.data&&t.data.id!=null) out[t.data.id]=1; }); }catch(e){}
+    return out;
+  }
+  var restoring=false;
+  function restoreLost(silent){
+    if(restoring||!logged()) return Promise.resolve(0);
+    restoring=true;
+    return getAll().then(function(all){
+      var snaps=Object.keys(all).map(function(k){ return all[k]; }).filter(function(s){ return s&&s.data; }).sort(function(a,b){ return b.at-a.at; });
+      if(!snaps.length) return 0;
+      var scope=activeScope, pre='iepp_'+scope+'_', total=0, detail=[];
+      DATA_KEYS.forEach(function(base){
+        var fk=pre+base, curRaw=ls(fk), cur=[]; try{ cur=JSON.parse(curRaw||'[]'); }catch(e){ cur=[]; } if(!Array.isArray(cur)) return;
+        var have={}; cur.forEach(function(r){ if(r&&r.id!=null) have[r.id]=1; });
+        var del=null, add=[];
+        snaps.forEach(function(s){
+          var raw=s.data[fk]; if(!raw) return; var arr; try{ arr=JSON.parse(raw); }catch(e){ return; } if(!Array.isArray(arr)) return;
+          arr.forEach(function(r){ if(!r||typeof r!=='object'||r.id==null||have[r.id]) return; if(del===null) del=deletedIds(base); if(del[r.id]) return; have[r.id]=1; add.push(r); });
+        });
+        if(!add.length) return;
+        try{ if(window.DupAntiRetour){ var tmp=add.slice(); DupAntiRetour.purge(base,tmp); add=tmp; } }catch(e){}
+        if(!add.length) return;
+        var merged=cur.concat(add);
+        try{ if(window.state) state[base]=merged; if(typeof save==='function') save(base,merged); else lsSet(fk,JSON.stringify(merged)); }catch(e){ lsSet(fk,JSON.stringify(merged)); }
+        total+=add.length; detail.push(base+' +'+add.length);
+      });
+      if(total){ try{ if(typeof logAction==='function') logAction('restauration-auto','Fiches retrouvées dans la sauvegarde automatique : '+detail.join(', ')); }catch(e){}
+        if(!silent) tst('🛟 '+total+' fiche(s) disparue(s) sans suppression volontaire ont été retrouvées et remises en place ('+detail.join(', ')+').','success');
+        try{ var s=S(); if(s&&s.module&&typeof navigate==='function') navigate(s.module); }catch(e){} }
+      return total;
+    }).catch(function(){ return 0; }).then(function(t){ restoring=false; return t; });
+  }
+
+  /* ---------- 4) suppressions en masse ---------- */
+  function massBatches(){
+    var cb=(S()&&S().corbeille)||[], by={};
+    cb.forEach(function(t){ if(!t||!t.deletedAt) return; var at=Date.parse(t.deletedAt)||0; if(Date.now()-at>7*86400000) return; var k=(t.parentKey||'')+'|'+Math.floor(at/10000); (by[k]=by[k]||[]).push(t); });
+    return Object.keys(by).map(function(k){ return by[k]; }).filter(function(l){ return l.length>=8; });
+  }
+  function checkMass(){
+    try{
+      if(!logged()) return; var B=massBatches(); if(!B.length) return;
+      var seen={}; try{ seen=JSON.parse(ls('iepp_mass_seen')||'{}')||{}; }catch(e){ seen={}; }
+      var fresh=B.filter(function(l){ return !seen[l[0].id]; }); if(!fresh.length) return;
+      fresh.forEach(function(l){ seen[l[0].id]=1; }); lsSet('iepp_mass_seen',JSON.stringify(seen));
+      var n=fresh.reduce(function(a,l){ return a+l.length; },0);
+      tst('⚠️ '+n+' fiche(s) ont été supprimées en une seule fois. Si ce n\'est pas voulu : Corbeille ▸ Restaurer (ou « Restaurer tout »).','warn');
+    }catch(e){}
+  }
+  /* doublons supprimés automatiquement : tout remettre d'un clic */
+  function restoreAutoDup(){
+    var s=S(); if(!s) return 0; var L=(s.corbeille||[]).filter(function(t){ return t&&/Traitement des doublons/.test(t.moduleLabel||''); }), n=0;
+    L.forEach(function(t){ try{ if(typeof corbeilleRestore==='function'){ corbeilleRestore(t.id); n++; } }catch(e){ logErr('restoreAutoDup',e); } });
+    tst(n?(n+' fiche(s) supprimée(s) comme doublon remise(s) en place.'):'Aucune fiche supprimée comme doublon dans la Corbeille.','success'); return n;
+  }
+
+  window.IeppSafety={
+    snapshotNow:function(){ return snapshot(true); }, restoreNow:function(){ return restoreLost(false); }, list:getAll,
+    restoreAutoDup:restoreAutoDup, copyErr:function(){ try{ var t=(document.getElementById('iepp-err-detail')||{}).textContent||JSON.stringify(ERR.slice(-5)); if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t); else { var a=document.createElement('textarea'); a.value=t; document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove(); } tst('Détail copié','success'); }catch(e){} },
+    errors:function(){ return ERR.slice(); }, persisted:function(){ return ls('iepp_persist')==='1'; }
+  };
+
+  askPersist();
+  var started=false;
+  function start(){
+    if(started||!logged()) return; started=true;
+    setTimeout(function(){ restoreLost(false).then(function(){ snapshot(false); }); },3500);
+    setInterval(function(){ snapshot(false); },45000);
+    setInterval(function(){ restoreLost(true); },600000);
+    setTimeout(checkMass,6000); setInterval(checkMass,120000);
+  }
+  setInterval(start,1500);
+  /* nouvelle IEPP activée : revérifier */
+  try{ var _sa=window.setActiveIepp; if(typeof _sa==='function' && !_sa.__safety){ var f=function(){ var r=_sa.apply(this,arguments); setTimeout(function(){ restoreLost(false); },3000); return r; }; f.__safety=true; window.setActiveIepp=f; try{ setActiveIepp=f; }catch(e){} } }catch(e){}
+  /* après une synchronisation réussie : les fiches tirées du cloud ont pu en retirer */
+  try{ var _ub=window.updateSyncBadge; if(typeof _ub==='function' && !_ub.__safety){ var g=function(txt,color){ var r=_ub.apply(this,arguments); try{ if(color==='#2A9D8F'&&/Synchronis/i.test(txt)) setTimeout(function(){ restoreLost(true); },4000); }catch(e){} return r; }; g.__safety=true; window.updateSyncBadge=g; } }catch(e){}
+  document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='hidden') snapshot(false); });
+  window.addEventListener('pagehide', function(){ snapshot(false); });
 })();
 </script>
 </body>
