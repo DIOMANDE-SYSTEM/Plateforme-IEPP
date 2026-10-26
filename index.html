@@ -46201,7 +46201,23 @@ try{
     });
   }
   function ensKey(e){ return e.id?('id:'+e.id):('n:'+ek(e.nom)+'|'+ek(e.matricule)); }
-  function collectSec(bk){
+  /* lecture directe de la copie en ligne (Supabase) : une liste perdue sur cet appareil peut y être encore présente */
+  function fetchCloud(fullKey){
+    return new Promise(function(res){
+      try{
+        if(navigator.onLine===false || typeof window.__cloudRestFetch!=='function' || typeof SUPABASE_URL==='undefined') return res(null);
+        var url=SUPABASE_URL+'/rest/v1/app_data?select=json&key=eq.'+encodeURIComponent(fullKey);
+        window.__cloudRestFetch(url,{headers:{}}).then(function(r){ return r.ok?r.json():null; }).then(function(a){
+          var v=(Array.isArray(a)&&a[0])?a[0].json:null; if(typeof v==='string'){ try{ v=JSON.parse(v); }catch(e){ v=null; } } res(Array.isArray(v)?v:null);
+        }).catch(function(){ res(null); });
+      }catch(e){ res(null); }
+    });
+  }
+  function sources(){
+    return Promise.all([readBackup(), fetchCloud(storeKey('secteurs')), fetchCloud(storeKey('personnel'))]).then(function(a){ return { bk:a[0], cloudSec:a[1], cloudPers:a[2] }; });
+  }
+  function collectSec(src){
+    var bk=src&&src.bk, cloudSec=src&&src.cloudSec, cloudPers=src&&src.cloudPers;
     var st=S(), secs=(load('secteurs',[])||[]), have={}, cand={};   /* cand[secteurId] = [{e, src}] */
     secs.forEach(function(t){ have[t.id]={}; (t.enseignants||[]).forEach(function(e){ have[t.id][ensKey(e)]=1; if(e.matricule) have[t.id]['m:'+ek(e.matricule)]=1; have[t.id]['n:'+ek(e.nom)+'|'+ek(e.matricule)]=1; }); });
     var trashed={}; (st.corbeille||[]).forEach(function(t){ if(t&&t.type==='sec-enseignant'&&t.data&&t.data.ens) trashed[t.data.ens.id]=1; });
@@ -46209,23 +46225,28 @@ try{
     function add(t,e,src){ if(!e||!String(e.nom||'').trim()) return; if(e.id&&trashed[e.id]) return; var h=have[t.id]; if(h[ensKey(e)]||(e.matricule&&h['m:'+ek(e.matricule)])||h['n:'+ek(e.nom)+'|'+ek(e.matricule)]) return;
       cand[t.id]=cand[t.id]||[]; if(cand[t.id].some(function(x){return ensKey(x.e)===ensKey(e);})) return; cand[t.id].push({e:e,src:src}); }
     /* a) Personnel issu des secteurs (secRef) */
-    (st.personnel||[]).forEach(function(p){ if(!p||!p.secRef||!p.secteur||ignS['S:'+p.secRef]) return;
+    ((st.personnel||[]).concat(Array.isArray(cloudPers)?cloudPers:[])).forEach(function(p){ if(!p||!p.secRef||!p.secteur||ignS['S:'+p.secRef]) return;
       var t=secs.find(function(x){ return ek(x.nom)===ek(p.secteur); }); if(!t) return;
       add(t,{id:p.secRef,nom:p.nom,matricule:p.matricule||'',ecole:p.ecole||'',contact:p.tel||'',anciennete:p.anciennete||''},'Personnel'); });
     /* b) copies de secteurs : sauvegarde locale + clé courante de ce poste (même circonscription) */
     function fromArr(arr,src){ (Array.isArray(arr)?arr:[]).forEach(function(b){ if(!b) return; var t=secs.find(function(x){ return x.id===b.id; })||secs.find(function(x){ return ek(x.nom)===ek(b.nom); }); if(!t) return; (b.enseignants||[]).forEach(function(e){ add(t,e,src); }); }); }
     if(bk&&bk.data){ try{ fromArr(JSON.parse(bk.data[storeKey('secteurs')]||'[]'),'Sauvegarde locale'); }catch(e){} }
+    if(Array.isArray(cloudSec)) fromArr(cloudSec,'Copie en ligne');
     /* c) élément annulé par erreur : _sub marqué supprimé mais présent dans une copie → traité ci-dessus */
     return { secs:secs, cand:cand };
   }
-  IeppRepair._collect=function(){ return readBackup().then(collectSec); };
-  IeppRepair.restoreSec=function(){
-    readBackup().then(function(bk){
+  IeppRepair._collect=function(){ return sources().then(collectSec); };
+  IeppRepair.restoreSec=function(quiet){
+    if(quiet!==true) quiet=false;
+    return sources().then(function(bk){
       var C=collectSec(bk), n=0, secs=C.secs;
       secs.forEach(function(t){ var L=C.cand[t.id]||[]; if(!L.length) return; t.enseignants=t.enseignants||[]; L.forEach(function(x){ t.enseignants.push(x.e); n++; }); t._upd=Date.now(); });
-      if(!n){ toastM('Aucun enseignant à récupérer sur ce poste. Appuyez sur 🔄 sur le poste du conseiller de secteur pour envoyer sa copie.','info'); return; }
+      if(!n){ if(!quiet) toastM('Aucun enseignant à récupérer (ni sur cet appareil, ni dans la copie en ligne). Appuyez sur 🔄 sur le poste du conseiller de secteur pour envoyer sa copie.','info'); return 0; }
       save('secteurs',secs); try{ state.secteurs=secs; }catch(e){}
-      toastM(n+' enseignant(s) récupéré(s) dans les secteurs ✅'); IeppRepair.open();
+      toastM(n+' enseignant(s) récupéré(s) dans les secteurs ✅');
+      if(!quiet) IeppRepair.open();
+      try{ if(state.module==='secteurs' && typeof navigate==='function') navigate('secteurs'); }catch(e){}
+      return n;
     });
   };
 
@@ -46233,7 +46254,7 @@ try{
   function badge(txt,col){ return '<span style="display:inline-block;font-size:11px;padding:2px 7px;border-radius:99px;background:'+col+';margin-right:4px">'+txt+'</span>'; }
   IeppRepair.open=function(){
     var st=S(); if(!st||!st.user) return;
-    readBackup().then(function(bk){
+    sources().then(function(bk){
       var R=ecoleStats(), I=effIssues(), C=collectSec(bk), nCand=0; Object.keys(C.cand).forEach(function(k){ nCand+=C.cand[k].length; });
       var body='<div style="max-height:68vh;overflow:auto;font-size:13px">';
       body+='<div style="padding:10px;border:1px solid var(--line);border-radius:10px;margin-bottom:10px"><b>🏫 Écoles</b> — '+R.off.length+' école(s) officielle(s), <b>'+R.auto.length+'</b> ajoutée(s) automatiquement à valider';
@@ -46253,7 +46274,7 @@ try{
         +(nCand?'<div style="margin:6px 0;color:#92400E">'+nCand+' enseignant(s) retrouvé(s) sur ce poste (Personnel / sauvegarde) et absent(s) des secteurs :<br>'
           +C.secs.filter(function(t){return (C.cand[t.id]||[]).length;}).map(function(t){ return '• '+esc(t.nom||'')+' : '+C.cand[t.id].map(function(x){return esc(x.e.nom)+' <i>('+x.src+')</i>';}).join(', '); }).join('<br>')
           +'</div><button class="btn btn-primary btn-sm" onclick="IeppRepair.restoreSec()">Récupérer dans les secteurs</button>'
-          :'<div style="margin-top:6px;color:var(--ink-soft)">Rien à récupérer sur ce poste. Si les listes ont été saisies sur un autre appareil, appuyez sur 🔄 sur cet appareil (celui du conseiller) pour envoyer sa copie, puis rouvrez cette fenêtre. Les éléments supprimés volontairement sont dans la Corbeille.</div>')
+          :'<div style="margin-top:6px;color:var(--ink-soft)">Rien à récupérer sur cet appareil ni dans la copie en ligne. Si les listes ont été saisies sur un autre appareil, appuyez sur 🔄 sur cet appareil (celui du conseiller) pour envoyer sa copie, puis rouvrez cette fenêtre. Les éléments supprimés volontairement sont dans la Corbeille.</div>')
         +'</div></div>';
       openModal('🛠 Contrôle des données — '+esc(st.activeIepp||''),body,'<button class="btn" onclick="closeModal()">Fermer</button>');
     });
@@ -46280,6 +46301,29 @@ try{
   window.ieppNormEcoles=normEcoles;
   try{ var _mr=MODULES&&MODULES['ecoles']&&MODULES['ecoles'].render;
     if(typeof _mr==='function' && !_mr.__norm){ var nm=function(){ try{ normEcoles(); }catch(e){} return _mr.apply(this,arguments); }; nm.__norm=true; MODULES['ecoles'].render=nm; } }catch(e){}
+  /* page Secteurs : bouton de récupération + récupération automatique quand aucun enseignant n'apparaît */
+  function canRecover(){ var st=S(); return !!(st&&st.user&&['superadmin','inspecteur','correspondant','cpppp','cppp','cps','cpi'].indexOf(String(st.user.role).toLowerCase())>=0) || !!(st&&st.user&&/conseiller|cpp|cps|inspect|admin|correspond/i.test(String(st.user.role||'')+' '+String(st.user.fonction||''))); }
+  function injectRecupBtn(){
+    try{
+      var c=document.getElementById('content'); if(!c||!canRecover()||document.getElementById('sec-recup-btn')) return;
+      var ref=c.querySelector('button[onclick*="cpsMettreEnLigne"]'); if(!ref) return;
+      var b=document.createElement('button'); b.id='sec-recup-btn'; b.className='btn'; b.type='button'; b.textContent='🔁 Récupérer les enseignants';
+      b.style.cssText='background:#F59E0B;color:#fff;border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;margin-right:8px';
+      b.onclick=function(){ IeppRepair.restoreSec(false).then(function(n){ if(n===0){ IeppRepair.open(); } }); };
+      ref.parentNode.insertBefore(b,ref);
+    }catch(e){}
+  }
+  var lastAuto=0;
+  function autoRecover(){
+    try{
+      var st=S(); if(!st||!st.user||!canRecover()||st.module!=='secteurs') return;
+      var secs=load('secteurs',[])||[]; if(!secs.length) return;
+      var n=secs.reduce(function(a,t){ return a+((t&&t.enseignants)||[]).length; },0);
+      if(n>0||Date.now()-lastAuto<120000) return; lastAuto=Date.now();
+      IeppRepair.restoreSec(true);
+    }catch(e){}
+  }
+  setInterval(function(){ injectRecupBtn(); autoRecover(); },1500);
   /* accès depuis le menu Données / console */
   window.ieppControleDonnees=function(){ IeppRepair.open(); };
 })();
