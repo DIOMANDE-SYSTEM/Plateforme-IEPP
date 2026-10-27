@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script id="iepp-boot-errors">(function(){ try{ window.__ieppBoot=[]; window.addEventListener('error',function(ev){ try{ if(window.__ieppBoot.length<8) window.__ieppBoot.push(String(ev.message||ev.error)+' @'+String(ev.filename||'').split('/').pop().slice(0,40)+':'+ev.lineno+':'+ev.colno); }catch(e){} }); }catch(e){} })();</script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' data: blob: https://nyqwvirrafxvzeqzende.supabase.co wss://nyqwvirrafxvzeqzende.supabase.co https://api.openai.com https://api.mistral.ai https://generativelanguage.googleapis.com; frame-src 'self' blob: data: https://diomande-system.github.io https://www.openstreetmap.org https://www.google.com https://www.youtube.com https://player.vimeo.com; object-src 'none'; base-uri 'self'; form-action 'self'">
@@ -1972,7 +1974,7 @@ const SCOPED_KEY_LIST = ['fichesClasse','consoEcoles','fichesPeda','rapportsAuto
 function scopeSlug(iepp){
   return 'c_' + String(iepp||'IEPP TENGRELA').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 }
-let activeScope = scopeSlug('IEPP TENGRELA');
+var activeScope = scopeSlug('IEPP TENGRELA');
 /* Libellé de l'IEPP active pour l'affichage (jamais de doublon « IEPP IEPP ») */
 function activeIeppLabel(){
   var n = (typeof state!=='undefined' && state && state.activeIepp) ? String(state.activeIepp).trim() : '';
@@ -7570,9 +7572,9 @@ const CPPP_CRITERES = [
 const CPPP_DECISIONS = ['Très satisfaisant', 'Satisfaisant', 'À améliorer', 'Insuffisant'];
 try { window.CPPP_CRITERES = CPPP_CRITERES; window.CPPP_DECISIONS = CPPP_DECISIONS; } catch(e){}
 
-let cpiTab = 'visites';
-let vieTab = 'dashboard';
-let rhTab = 'personnel';
+var cpiTab = 'visites';
+var vieTab = 'dashboard';
+var rhTab = 'personnel';
 function cpiCanManageVisite() { return ['superadmin','inspecteur','correspondant','cpi'].includes(state.user.role); }
 function cpiCanManageCPPP()   { return ['superadmin','inspecteur','correspondant','cpi'].includes(state.user.role); }
 
@@ -8594,7 +8596,7 @@ function bulletinExportPDF() {
    Données : utilise state.elevesFichier (filtré niveau='CM2')
             + state.examens (centres) pour la synthèse.
    ================================================================== */
-let examTab = 'synthese';
+var examTab = 'synthese';
 function examCanManage(){ return ['superadmin','drenaet','inspecteur','correspondant','cpi','examens'].includes(state.user.role); }
 /* Édition des notes CM2 : ouverte AUSSI aux instituteurs et directeurs (saisie des
    notes de leurs élèves), en plus des rôles de gestion. */
@@ -9494,7 +9496,7 @@ function examSaisieSave(eId, evKey) {
 }
 
 /* ===== Onglet Convocations (Examens blancs / Entrée en 6ème) ===== */
-let convocationConfig = { evKey:'blanc1', date:'', heure:'08:00', centre:'', salle:'', selected:{} };
+var convocationConfig = { evKey:'blanc1', date:'', heure:'08:00', centre:'', salle:'', selected:{} };
 function examConvocationsHtml() {
   const centres = (state.examens||[]).map(c=>c.centre).filter(Boolean);
   const ecoles = [...new Set(cm2Eleves().map(e=>e.ecole).filter(Boolean))].sort();
@@ -10176,9 +10178,9 @@ function rhMatriceImport(ev) {
    Relié aux autorisations d'absence validées. Stats anneau + barres +
    tableau. CRUD + import/export Excel/CSV + impression.
    =================================================================== */
-let rhPointDate = new Date().toISOString().slice(0,10);
-let rhPointEcole = '';
-let rhPointFonction = '';
+var rhPointDate = new Date().toISOString().slice(0,10);
+var rhPointEcole = '';
+var rhPointFonction = '';
 
 const RH_POINT_STATUTS = [
   { key:'present',  label:'Présent',          color:'#16a34a' },
@@ -12960,8 +12962,8 @@ function vieMatriceUpdateField(id, field, value) {
    Arborescence  aire → feuilles ; moteur CRUD générique par feuille.
    Données : state.cogesReg[path] (scopé par IEPP via la clé 'cogesReg').
    ================================================================== */
-let cogesArea = 'dashboard';
-let cogesLeaf = '';
+var cogesArea = 'dashboard';
+var cogesLeaf = '';
 
 const COGES_TREE = [
   { id:'dashboard', icon:'🏠', label:'Tableau de bord', children:[
@@ -13622,8 +13624,8 @@ function cogesProfilHtml(){
    Arborescence  aire → feuilles ; moteur CRUD + matrice d'action.
    Données : state.economatReg[path] (scopé par IEPP via la clé 'economatReg').
    ================================================================== */
-let economatArea = 'dashboard';
-let economatLeaf = '';
+var economatArea = 'dashboard';
+var economatLeaf = '';
 
 const ECONOMAT_TREE = [
   { id:'dashboard', icon:'📊', label:'Tableau de bord', children:[
@@ -14333,7 +14335,7 @@ function economatExport(path) {
 
 
 /* ---------- COURRIER (M08) ---------- */
-let courrierTab = 'recus';
+var courrierTab = 'recus';
 function renderCourrier() {
   const me = state.user?.username || '';
   const isAdmin = ['superadmin'].includes(state.user?.role);
@@ -14515,7 +14517,7 @@ function courrierDelete(id) {
 }
 
 /* ===== REGISTRE COURRIER (Entrant/Sortant) — CRUD + numérotation auto/manuelle ===== */
-let courrierRegType = 'Entrant';
+var courrierRegType = 'Entrant';
 function courrierCanManage() {
   return ['superadmin','drenaet','inspecteur','correspondant','courrier'].includes(state.user.role);
 }
@@ -15238,8 +15240,8 @@ function renderCourrierTable(type) {
 /* ==================================================================
    ESPACE ARCHIVISTE — navigation à 2 niveaux (modèle Économat)
    ================================================================== */
-let archivisteArea = 'dashboard';
-let archivisteLeaf = '';
+var archivisteArea = 'dashboard';
+var archivisteLeaf = '';
 const ARCHIVISTE_TREE = [
   { id:'dashboard', icon:'📊', label:'Tableau de bord', children:[
     { id:'apercu', label:'Vue d\'ensemble', kind:'overview' },
@@ -15328,8 +15330,8 @@ function archivisteFmt(f, v) {
 /* ==================================================================
    ESPACE SECRÉTARIAT — navigation à 2 niveaux (modèle Économat/Archiviste)
    ================================================================== */
-let secretariatArea = 'dashboard';
-let secretariatLeaf = '';
+var secretariatArea = 'dashboard';
+var secretariatLeaf = '';
 const SECRETARIAT_TREE = [
   { id:'dashboard', icon:'🏠', label:'Tableau de bord', children:[
     { id:'apercu', label:'Accueil', kind:'overview' },
@@ -15440,8 +15442,8 @@ function secretariatFmt(f, v) {
 /* ==================================================================
    SERVICE COMMUNICATION — navigation à 2 niveaux (modèle Espace Secrétariat)
    ================================================================== */
-let communicationArea = 'dashboard';
-let communicationLeaf = '';
+var communicationArea = 'dashboard';
+var communicationLeaf = '';
 const COMMUNICATION_TREE = [
   { id:'dashboard', icon:'🏠', label:'Tableau de bord', children:[
     { id:'apercu', label:'Accueil', kind:'overview' },
@@ -15534,8 +15536,8 @@ function communicationFmt(f, v) {
 /* ==================================================================
    ESPACE CONSEILLER CANTINE — navigation à 2 niveaux
    ================================================================== */
-let cantineArea = 'dashboard';
-let cantineLeaf = '';
+var cantineArea = 'dashboard';
+var cantineLeaf = '';
 const CANTINE_TREE = [
   { id:'dashboard', icon:'📊', label:'Tableau de bord', children:[
     { id:'apercu', label:'Vue d\'ensemble', kind:'overview' },
@@ -15643,8 +15645,8 @@ function cantineFmt(f, v) {
 /* ==================================================================
    ESPACE SMOSS — navigation à 2 niveaux (modèle Économat)
    ================================================================== */
-let smossArea = 'dashboard';
-let smossLeaf = '';
+var smossArea = 'dashboard';
+var smossLeaf = '';
 const SMOSS_TREE = [
   { id:'dashboard', icon:'📊', label:'Tableau de bord', children:[
     { id:'apercu', label:'Vue d\'ensemble', kind:'overview' },
@@ -16476,8 +16478,8 @@ function defaultBiblioReg() {
   };
 }
 
-let biblioArea = 'dashboard';
-let biblioLeaf = '';
+var biblioArea = 'dashboard';
+var biblioLeaf = '';
 const BIBLIO_TREE = [
   { id:'dashboard', icon:'📊', label:'Tableau de bord', children:[
     { id:'apercu', label:'Vue d\'ensemble', kind:'overview' },
@@ -18789,7 +18791,7 @@ function archivisteClassesForm(id) {
     </div>`;
   openModal((id?'Modifier':'Ajouter')+' — Document classé', body, `<button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="archivisteClassesSave('${id||''}')">${id?'Enregistrer':'Ajouter'}</button>`);
 }
-let _arxClasseDraft = null;
+var _arxClasseDraft = null;
 function archivisteClassesFilePick(ev) {
   const file = ev.target.files && ev.target.files[0]; if (!file) return;
   const info = document.getElementById('arx-cl-fileinfo');
@@ -18868,7 +18870,7 @@ function archivisteClassesPrint() {
 }
 
 /* ===== SCANNER / NUMÉRISATION (appareil photo + import PDF/Word/image) ===== */
-let _arxScanDraft = null;
+var _arxScanDraft = null;
 function archivisteFmtSize(bytes) {
   bytes = Number(bytes)||0;
   if (bytes < 1024) return bytes+' o';
@@ -19809,14 +19811,14 @@ const SERVICES = {
 function defaultSvcMat() {
   const o = {};
   Object.keys(SERVICES).forEach(k => {
-    o[k] = SERVICES[k].matrice.map((r,i) => Object.assign({ id: k+'-m'+(i+1) }, r));
+    o[k] = (SERVICES[k].matrice||[]).map((r,i) => Object.assign({ id: k+'-m'+(i+1) }, r));
   });
   return o;
 }
 function defaultSvcPerm() {
   const o = {};
   Object.keys(SERVICES).forEach(k => {
-    o[k] = SERVICES[k].permanentes.map((t,i) => ({ id: k+'-p'+(i+1), activite: t }));
+    o[k] = (SERVICES[k].permanentes||[]).map((t,i) => ({ id: k+'-p'+(i+1), activite: t }));
   });
   return o;
 }
@@ -20166,7 +20168,7 @@ function perroquetReload() {
 /* ==================================================================
    MODULE : État des compositions (ajout · Suivi évaluation)
    ================================================================== */
-let compoCur = '1';
+var compoCur = '1';
 function compoCanEdit(){ return ['superadmin','drenaet','inspecteur','correspondant','corresp_stat','suivi_eval'].includes(state.user.role); }
 function cint(v){ const n=parseInt(String(v).replace(/[^0-9-]/g,''),10); return isNaN(n)?0:n; }
 function pct(n,d){ return d>0 ? Math.round((n/d)*1000)/10 : 0; }
@@ -24198,7 +24200,7 @@ function ficheCanManage(){ return ['superadmin','inspecteur','correspondant','co
 function ficheReponses(key){ const r=state.fichesReponses||{}; return Array.isArray(r[key])?r[key]:[]; }
 function ficheSaveReponses(key,rows){ if(!state.fichesReponses)state.fichesReponses={}; state.fichesReponses[key]=rows; save('fichesReponses',state.fichesReponses); }
 
-let _ficheTab = {};
+var _ficheTab = {};
 function renderFiche(key) {
   const def = ficheDef(key);
   if(!def){ setContent('<div class="card" style="padding:20px">Questionnaire introuvable.</div>'); return; }
@@ -24633,7 +24635,7 @@ function fgFromFile(ev){
     document.getElementById('fg-local-preview').innerHTML=fgPreviewHtml(_fgDraft);
   });
 }
-let _fgDraft=null;
+var _fgDraft=null;
 function fgPreviewHtml(def){
   return `<div class="card" style="padding:14px;border:2px dashed ${def.color}">
     <div style="font-weight:700;margin-bottom:6px">${def.icon} ${escapeHtml(def.titre)} — ${def.nbQuestions} question(s)</div>
@@ -25402,7 +25404,7 @@ const PNAPAS_EVIDS = ()=> (state.pnapasForm.questions||[]).filter(q=>q.type==='e
 function pnapasMaxScore(){ return PNAPAS_QIDS().reduce((a,q)=>a+(q.points||0),0); }
 
 /* ---------------- Module principal (onglets) ---------------- */
-let pnapasTab = 'activites';
+var pnapasTab = 'activites';
 function renderPNAPAS() {
   if (!state.pnapasForm || !state.pnapasForm.questions) state.pnapasForm = load('pnapasForm', defaultPnapasForm());
   const canEdit = ['superadmin','drenaet','inspecteur','correspondant','corresp_stat','cpi'].includes(state.user.role);
@@ -27282,8 +27284,9 @@ function corbeilleRestoreAll() {
   renderCorbeille();
 }
 
-let corbeilleFilter = 'all';
+var corbeilleFilter = 'all';
 function renderCorbeille() {
+  if (!corbeilleFilter) corbeilleFilter = 'all';
   if (!['superadmin','drenaet','inspecteur','cpi','correspondant'].includes(state.user.role)) {
     setContent('<div class="card"><div class="table-empty">Accès réservé aux administrateurs.</div></div>');
     return;
@@ -27952,7 +27955,7 @@ function examMatriceUpdateField(id, field, value) {
    5. Infrastructures (table-bancs, toilettes, clôture, tableaux, …)
    6. Ouverture / Fermeture d'école (statut ouverte/fermée)
    ================================================================== */
-let ecoleTab = 'liste';
+var ecoleTab = 'liste';   /* var : évite l'erreur « before initialization » sur certains navigateurs */
 function ecCanManage() { return ['superadmin','drenaet','inspecteur','correspondant','directeur'].includes(state.user.role); }
 function ecCanCreateEcole() { return ['superadmin','drenaet','inspecteur','correspondant'].includes(state.user.role); }
 function ecCanToggleStatus() { return ['superadmin','drenaet','inspecteur'].includes(state.user.role); }
@@ -27960,6 +27963,7 @@ function ecRatio(infra, eff) {
   return EQ.ui.ratio(infra, eff);   // calcul aligné sur les normes (module équipements)
 }
 function renderEcoles() {
+  if (!ecoleTab) ecoleTab = 'liste';
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,#2E75B6 0%,#1F4E79 100%)">
       <h3>🏫 Gestion des Écoles</h3>
@@ -44328,6 +44332,7 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
       'recuperation':['superadmin'],
       'valid-conso':['superadmin','correspondant','inspecteur','corresp_stat','directeur'],
       'cadre-plateforme':['superadmin'],
+      'ecoles':['superadmin'],
       'bulletins-peda':['superadmin','correspondant','inspecteur','directeur','cpi'],
       'doublons':['superadmin','correspondant','inspecteur','directeur'],
       'conso-ecole':['directeur'],
@@ -46487,7 +46492,9 @@ try{
   window.addEventListener('error', function(ev){ logErr('window', ev.error||ev.message); });
   window.addEventListener('unhandledrejection', function(ev){ logErr('promise', ev.reason); });
   function errorPanel(mod,e){
-    var d=esc(String(e&&e.message||e)+'\n'+String(e&&e.stack||'').split('\n').slice(0,4).join('\n')+'\nNavigateur: '+navigator.userAgent.slice(0,120)+'\nModule: '+mod);
+    var isSA=false; try{ isSA=!!(window.state&&state.user&&state.user.role==='superadmin'); }catch(x){}
+    if(!isSA){ return '<div class="card" style="padding:16px"><p style="font-size:13px;margin:0 0 10px">Cette page se charge. Si elle reste vide, cliquez sur « Réessayer ».</p><button class="btn btn-primary" onclick="navigate(\''+String(mod).replace(/'/g,'')+'\')">🔄 Réessayer</button></div>'; }
+    var d=esc(String(e&&e.message||e)+'\n'+String(e&&e.stack||'').split('\n').slice(0,4).join('\n')+'\nNavigateur: '+navigator.userAgent.slice(0,120)+'\nModule: '+mod+((window.__ieppBoot&&window.__ieppBoot.length)?'\nErreurs au chargement: '+window.__ieppBoot.join(' | '):''));
     return '<div class="card" style="padding:16px;border-left:4px solid #E63946"><div class="card-title">⚠️ Cette page n\'a pas pu s\'afficher complètement</div>'
       +'<p style="font-size:13px;margin:6px 0 10px">Vos données sont <b>intactes</b> (rien n\'a été supprimé). Cliquez sur « Réessayer » ; si le problème persiste, copiez le détail et envoyez-le au support.</p>'
       +'<button class="btn btn-primary" onclick="navigate(\''+String(mod).replace(/'/g,'')+'\')">🔄 Réessayer</button> '
@@ -46502,6 +46509,7 @@ try{
     }catch(x){ return ''; }
   }
   window.__ieppGuardRender=function(m){ guardRender(m); };
+  try{ var DEF={"cpiTab": "'visites'", "vieTab": "'dashboard'", "rhTab": "'personnel'", "examTab": "'synthese'", "rhPointEcole": "''", "rhPointFonction": "''", "cogesArea": "'dashboard'", "cogesLeaf": "''", "economatArea": "'dashboard'", "economatLeaf": "''", "courrierTab": "'recus'", "courrierRegType": "'Entrant'", "archivisteArea": "'dashboard'", "archivisteLeaf": "''", "secretariatArea": "'dashboard'", "secretariatLeaf": "''", "communicationArea": "'dashboard'", "communicationLeaf": "''", "cantineArea": "'dashboard'", "cantineLeaf": "''", "smossArea": "'dashboard'", "smossLeaf": "''", "biblioArea": "'dashboard'", "biblioLeaf": "''", "_arxClasseDraft": "null", "_arxScanDraft": "null", "compoCur": "'1'", "_ficheTab": "{}", "_fgDraft": "null", "pnapasTab": "'activites'", "corbeilleFilter": "'all'"}; Object.keys(DEF).forEach(function(k){ try{ if(typeof window[k]==='undefined'){ window[k]=JSON.parse(DEF[k].replace(/^'|'$/g,'"').replace(/^"(.*)"$/,'"$1"')); } }catch(e){} }); }catch(e){}
   function guardRender(mod){
     try{
       var d=(typeof MODULES!=='undefined')?MODULES[mod]:null; if(!d||typeof d.render!=='function'||d.render.__safe) return;
@@ -46639,6 +46647,209 @@ try{
   try{ var _ub=window.updateSyncBadge; if(typeof _ub==='function' && !_ub.__safety){ var g=function(txt,color){ var r=_ub.apply(this,arguments); try{ if(color==='#2A9D8F'&&/Synchronis/i.test(txt)) setTimeout(function(){ restoreLost(true); },4000); }catch(e){} return r; }; g.__safety=true; window.updateSyncBadge=g; } }catch(e){}
   document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='hidden') snapshot(false); });
   window.addEventListener('pagehide', function(){ snapshot(false); });
+})();
+</script>
+<script id="iepp-data-shield">
+/* Bouclier de données : état visible pour tous, sauvegarde/restauration en un clic, rappels, alerte stockage plein et double onglet */
+(function(){
+  try{
+    function ls(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+    function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+    function logged(){ try{ return !!(window.state&&state.user&&state.user.role); }catch(e){ return false; } }
+    function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+    function ago(t){ if(!t) return 'jamais'; var m=Math.round((Date.now()-t)/60000); if(m<1) return 'à l\'instant'; if(m<60) return 'il y a '+m+' min'; var h=Math.round(m/60); if(h<48) return 'il y a '+h+' h'; return 'il y a '+Math.round(h/24)+' jours'; }
+    function usedChars(){ var n=0; try{ for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); n+=k.length+(localStorage.getItem(k)||'').length; } }catch(e){} return n; }
+    function pending(){ try{ var o=JSON.parse(ls('iepp_pending_ledger')||'{}'); return Array.isArray(o)?o.length:Object.keys(o||{}).length; }catch(e){ return 0; } }
+    function lastSync(){ try{ return (JSON.parse(ls('iepp_sync_meta')||'{}')||{}).lastSync||0; }catch(e){ return 0; } }
+    function lastExport(){ return +ls('iepp_last_export')||0; }
+    var snapAt=0, otherTab=0, TAB=Math.random().toString(36).slice(2), bc=null;
+
+    /* mémoriser les téléchargements de sauvegarde */
+    function hookExport(){
+      if(typeof window.persistExport==='function' && !window.persistExport.__sh){
+        var o=window.persistExport; window.persistExport=function(){ var r=o.apply(this,arguments); lsSet('iepp_last_export',String(Date.now())); return r; }; window.persistExport.__sh=true;
+      }
+    }
+    function refreshSnap(){ try{ if(window.IeppSafety&&IeppSafety.list) IeppSafety.list().then(function(a){ var l=a&&a.latest; if(l&&l.at) snapAt=l.at; }); }catch(e){} }
+
+    function status(){
+      var pct=Math.round(usedChars()/5000000*100), pend=pending(), warn=[];
+      if(pct>=80) warn.push('Espace de stockage du navigateur presque plein ('+pct+' %)');
+      if(otherTab && Date.now()-otherTab<120000) warn.push('La plateforme est ouverte dans un autre onglet');
+      if(pend>0 && lastSync() && Date.now()-lastSync()>3600000) warn.push(pend+' modification(s) pas encore envoyée(s) en ligne');
+      return { pct:pct, pend:pend, warn:warn, ok:!warn.length };
+    }
+    function chip(){
+      var s=document.getElementById('sync-badge'); if(!s||!logged()) return;
+      var c=document.getElementById('shield-chip');
+      if(!c){ c=document.createElement('span'); c.id='shield-chip'; c.className='badge'; c.style.cssText='cursor:pointer;margin-left:6px'; c.onclick=function(){ window.IeppShield.open(); }; s.parentNode.insertBefore(c,s.nextSibling); }
+      var st=status(); c.className='badge '+(st.ok?'badge-green':'badge-orange'); c.textContent=st.ok?'💾 Données protégées':'⚠️ Données à protéger';
+      c.title=st.ok?'Cliquez pour voir l\'état de protection de vos données':st.warn.join(' · ');
+    }
+    function row(l,v,bad){ return '<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #E5E7EB;font-size:13px"><div style="flex:1;color:#475569">'+l+'</div><div style="font-weight:600;color:'+(bad?'#B45309':'#0F172A')+'">'+v+'</div></div>'; }
+    function open(){
+      refreshSnap(); var st=status(), persisted=false; try{ persisted=ls('iepp_persist')==='1'; }catch(e){}
+      var boot=(window.__ieppBoot||[]).length;
+      var h='<div style="margin-bottom:10px;font-size:13px">Vos données sont enregistrées dans ce navigateur, copiées automatiquement dans une sauvegarde interne et envoyées en ligne. Pour une sécurité maximale, téléchargez aussi régulièrement un fichier de sauvegarde.</div>'
+        +row('Dernière copie automatique sur cet appareil',ago(snapAt))
+        +row('Dernière synchronisation en ligne',ago(lastSync()),!lastSync())
+        +row('Modifications en attente d\'envoi',String(st.pend),st.pend>0)
+        +row('Dernier fichier de sauvegarde téléchargé',ago(lastExport()),!lastExport()||Date.now()-lastExport()>14*86400000)
+        +row('Stockage durable accordé par le navigateur',persisted?'Oui':'Non / inconnu',!persisted)
+        +row('Espace de stockage utilisé',st.pct+' %',st.pct>=80)
+        +row('Autre onglet ouvert',(otherTab&&Date.now()-otherTab<120000)?'Oui — fermez-en un':'Non',otherTab&&Date.now()-otherTab<120000)
+        +(boot?row('Erreurs au chargement',String(boot),true):'')
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">'
+        +'<button class="btn btn-orange" onclick="persistExport()">⬇️ Télécharger une sauvegarde maintenant</button>'
+        +'<label class="btn btn-ghost" style="cursor:pointer">⬆️ Importer une sauvegarde<input type="file" accept=".json" style="display:none" onchange="persistImport(this)"></label>'
+        +'<button class="btn btn-ghost" onclick="IeppSafety.restoreNow()">♻️ Récupérer les données disparues</button>'
+        +((['superadmin','inspecteur','correspondant','drenaet'].indexOf((state.user||{}).role)>=0)?'<button class="btn btn-orange" onclick="closeModal();IeppRecup.open()">🔎 Retrouver les données d\'une IEPP</button>':'')
+        +'</div><div class="text-sm text-muted" style="margin-top:10px">Importer ou récupérer n\'écrase rien : seuls les éléments absents sont ajoutés, et ce qui a été supprimé volontairement n\'est jamais remis.</div>';
+      openModal('🛡️ Protection de vos données',h,'<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
+    }
+    window.IeppShield={ open:open, status:status };
+
+    /* double onglet : deux onglets ouverts s'écrasent mutuellement */
+    try{
+      if('BroadcastChannel' in window){
+        bc=new BroadcastChannel('iepp-tabs');
+        bc.onmessage=function(ev){ var d=ev.data||{}; if(d.id===TAB) return; otherTab=Date.now(); if(d.t==='hello'){ try{ bc.postMessage({t:'here',id:TAB}); }catch(e){} if(logged()&&!window.__shTabWarned){ window.__shTabWarned=1; try{ toast('⚠️ La plateforme est ouverte dans un autre onglet : fermez-en un pour éviter de perdre des saisies.','warning'); }catch(e){} } } };
+        bc.postMessage({t:'hello',id:TAB});
+        setInterval(function(){ try{ bc.postMessage({t:'here',id:TAB}); }catch(e){} },30000);
+      }
+    }catch(e){}
+
+    /* rappels : sauvegarde fichier (hebdomadaire) et stockage presque plein (quotidien) */
+    function remind(){
+      if(!logged()) return; var day=new Date().toISOString().slice(0,10);
+      if(ls('iepp_shield_remind')===day) return;
+      var st=status(), msg='';
+      if(st.pct>=80) msg='⚠️ Espace de stockage du navigateur presque plein ('+st.pct+' %). Téléchargez une sauvegarde (bouton 💾 en haut).';
+      else if(!lastExport()||Date.now()-lastExport()>7*86400000) msg='💾 Pensez à télécharger une sauvegarde de vos données (bouton 💾 en haut de l\'écran).';
+      if(msg){ lsSet('iepp_shield_remind',day); try{ toast(msg,'info'); }catch(e){} }
+    }
+    /* avant fermeture : copie interne immédiate */
+    window.addEventListener('beforeunload',function(){ try{ if(window.IeppSafety) IeppSafety.snapshotNow(); }catch(e){} });
+
+    setInterval(function(){ try{ hookExport(); chip(); }catch(e){} },5000);
+    setInterval(refreshSnap,30000); setTimeout(refreshSnap,8000);
+    setTimeout(function(){ try{ remind(); }catch(e){} },60000);
+    setInterval(function(){ try{ remind(); }catch(e){} },3600000);
+  }catch(e){ console.warn('[shield]',e); }
+})();
+</script>
+<script id="iepp-recup-iepp">
+/* Récupération des données perdues d'UNE IEPP (n'importe laquelle) : cherche dans toutes les copies disponibles, fusionne sans rien écraser */
+(function(){
+  try{
+    var KEYS_LABEL={ecoles:'Écoles',effectifs:'Effectifs',effPrimaire:'Effectifs primaire',effPrescolaire:'Effectifs préscolaire',personnel:'Personnel (enseignants et administratifs)',elevesFichier:'Élèves (fichier)',secteurs:'Secteurs (CPPP)',cppp:'CPPP',visites:'Visites',absences:'Absences',examens:'Examens',recrutementCP1:'Recrutement CP1',recrutementMater:'Recrutement maternelle',classes:'Classes',carteScolaire:'Carte scolaire'};
+    var SKIP=/__gtomb$|__ometa$|Deleted$|^audit$|^notifications$|^corbeille$|^users|^current_user$|^active_iepp$/;
+    function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+    function role(){ try{ return state.user.role; }catch(e){ return ''; } }
+    function allowed(){ return ['superadmin','inspecteur','correspondant','drenaet'].indexOf(role())>=0; }
+    function core(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/^c_/,'').replace(/^iepp[_\s-]*/,'').replace(/[^a-z0-9]/g,''); }
+    function ks(){ return SCOPED_KEY_LIST.slice().sort(function(a,b){ return b.length-a.length; }); }
+    function parse(full){ /* « iepp_c_iepp_korhogo_est_ecoles » → {core, k} */
+      if(full.indexOf('iepp_c_')!==0) return null; var rest=full.slice(5), K=ks();
+      for(var i=0;i<K.length;i++){ var s='_'+K[i]; if(rest.length>s.length && rest.slice(-s.length)===s){ return {scope:rest.slice(0,rest.length-s.length), k:K[i]}; } }
+      return null;
+    }
+    function rk(it){ try{ return genericRecKey(it); }catch(e){ return it&&it.id; } }
+    function openDb(name,store){ return new Promise(function(res){ try{ var r=indexedDB.open(name,1); r.onupgradeneeded=function(){ try{ r.transaction.abort(); }catch(e){} }; r.onsuccess=function(){ var db=r.result; try{ if(!db.objectStoreNames.contains(store)){ res(null); return; } res(db); }catch(e){ res(null); } }; r.onerror=function(){ res(null); }; }catch(e){ res(null); } }); }
+    function allOf(name,store){ return openDb(name,store).then(function(db){ return new Promise(function(res){ if(!db) return res([]); try{ var out=[], c=db.transaction(store).objectStore(store).openCursor(); c.onsuccess=function(){ var cur=c.result; if(cur){ out.push({key:cur.key,value:cur.value}); cur.continue(); } else res(out); }; c.onerror=function(){ res(out); }; }catch(e){ res([]); } }); }); }
+    /* sources locales : retourne [{name, map:{fullKey:rawString}}] */
+    function localSources(){
+      var jobs=[
+        allOf('iepp_safety','s').then(function(a){ return a.map(function(e){ return {name:'Copie automatique '+(e.key==='latest'?'récente':e.key), at:e.value&&e.value.at, map:(e.value&&e.value.data)||{}}; }); }),
+        allOf('iepp_backups','snaps').then(function(a){ return a.map(function(e){ return {name:'Instantané '+(e.value&&e.value.reason||''), at:e.value&&e.value.at, map:(e.value&&e.value.data)||{}}; }); }),
+        allOf('iepp_backup','b').then(function(a){ return a.map(function(e){ return {name:'Sauvegarde avant mise à jour', at:e.value&&e.value.at, map:(e.value&&e.value.data)||{}}; }); }),
+        allOf('iepp-miroir','kv').then(function(a){ var m={}; a.forEach(function(e){ if(typeof e.value==='string') m[e.key]=e.value; }); return [{name:'Miroir de sauvegarde de cet appareil', map:m}]; })
+      ];
+      return Promise.all(jobs).then(function(r){ var cur={}; try{ for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k&&k.indexOf('iepp_c_')===0) cur[k]=localStorage.getItem(k); } }catch(e){} var out=[{name:'Données actuelles (autres écritures du nom)',map:cur,current:true}]; r.forEach(function(x){ out=out.concat(x); }); return out; });
+    }
+    function cloudSource(c){
+      return new Promise(function(res){
+        try{
+          if(navigator.onLine===false||typeof window.__cloudRestFetch!=='function') return res({name:'Copie en ligne',map:{},offline:true});
+          var url=SUPABASE_URL+'/rest/v1/app_data?select=key,json&key=ilike.'+encodeURIComponent('iepp_c_*'+(c.length>=4?c.slice(0,4):c)+'*');
+          window.__cloudRestFetch(url,{headers:{}}).then(function(r){ return r.ok?r.json():null; }).then(function(a){
+            var m={}; (Array.isArray(a)?a:[]).forEach(function(row){ var v=row.json; if(v==null) return; m[row.key]=(typeof v==='string')?v:JSON.stringify(v); });
+            res({name:'Copie en ligne',map:m,failed:!Array.isArray(a)});
+          }).catch(function(){ res({name:'Copie en ligne',map:{},failed:true}); });
+        }catch(e){ res({name:'Copie en ligne',map:{},failed:true}); }
+      });
+    }
+    function goneSet(scopeSlug_){
+      var g={};
+      try{ for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i)||''; if(k.indexOf('iepp_'+scopeSlug_+'_')!==0) continue; var rest=k.slice(('iepp_'+scopeSlug_+'_').length);
+        if(/(Deleted|__gtomb)$/.test(rest)||rest==='corbeille'){ var v; try{ v=JSON.parse(localStorage.getItem(k)); }catch(e){ continue; }
+          (function walk(x,d){ if(x==null||d>4) return; if(typeof x==='string'){ g[x.replace(/^id:/,'')]=1; return; } if(Array.isArray(x)){ x.forEach(function(y){ walk(y,d+1); }); return; } if(typeof x==='object'){ if(x.id) g[x.id]=1; if(x.matchVal!=null) g[x.matchVal]=1; if(x.k&&typeof x.k==='string') g[x.k.replace(/^id:/,'')]=1; if(x.data) walk(x.data,d+1); } })(v,0); } }
+      }catch(e){}
+      return g;
+    }
+    function scan(iepp){
+      var target=scopeSlug(iepp), want=core(iepp), gone=goneSet(target);
+      return Promise.all([localSources(), cloudSource(want)]).then(function(r){
+        var srcs=r[0].concat([r[1]]), perKey={}, used={}, cloudInfo=r[1];
+        var curCache={}; function cur(k){ if(curCache[k]===undefined){ try{ curCache[k]=JSON.parse(localStorage.getItem('iepp_'+target+'_'+k)||'null'); }catch(e){ curCache[k]=null; } } return curCache[k]; }
+        srcs.forEach(function(s){
+          Object.keys(s.map).forEach(function(full){ var p=parse(full); if(!p||core(p.scope)!==want||SKIP.test(p.k)) return;
+            if(s.current && p.scope===target) return;   /* clé actuelle exacte : c'est la base */
+            var v; try{ v=JSON.parse(s.map[full]); }catch(e){ return; }
+            var have={}; (function(){ var c=cur(p.k); var arr=Array.isArray(c)?c:(c&&typeof c==='object'?[].concat.apply([],Object.keys(c).map(function(q){ return Array.isArray(c[q])?c[q]:[]; })):[]); arr.forEach(function(it){ if(it&&typeof it==='object'){ have[rk(it)]=1; if(it.id) have[it.id]=1; } }); })();
+            var list=Array.isArray(v)?v:(v&&typeof v==='object'?[].concat.apply([],Object.keys(v).map(function(q){ return Array.isArray(v[q])?v[q]:[]; })):[]);
+            var pk=perKey[p.k]=perKey[p.k]||{add:{},shape:null,n:0,from:{}};
+            list.forEach(function(it){ if(!it||typeof it!=='object') return; var key=rk(it); if(have[key]||(it.id&&have[it.id])||(it.id&&gone[it.id])||gone[key]) return; if(pk.add[key]) return; pk.add[key]=it; pk.n++; pk.from[s.name]=(pk.from[s.name]||0)+1; used[s.name]=1; });
+            if(!pk.shape) pk.shape=Array.isArray(v)?'array':'object';
+          });
+        });
+        var rows=Object.keys(perKey).filter(function(k){ return perKey[k].n>0; }).map(function(k){ return {k:k,n:perKey[k].n,items:Object.keys(perKey[k].add).map(function(x){ return perKey[k].add[x]; }),from:perKey[k].from,shape:perKey[k].shape}; });
+        return {iepp:iepp,target:target,rows:rows,cloud:cloudInfo,sources:srcs.filter(function(s){ return !s.current; }).map(function(s){ return s.name; })};
+      });
+    }
+    var LAST=null;
+    function show(res){
+      LAST=res; var h='';
+      h+='<div style="font-size:13px;margin-bottom:8px">Recherche terminée pour <b>'+esc(res.iepp)+'</b> dans les copies de cet appareil et en ligne'+(res.cloud&&res.cloud.failed?' <span style="color:#B45309">(copie en ligne inaccessible pour le moment)</span>':(res.cloud&&res.cloud.offline?' <span style="color:#B45309">(hors connexion : copie en ligne non consultée)</span>':''))+'.</div>';
+      if(!res.rows.length){
+        h+='<div class="card" style="padding:12px;background:#F8FAFC;font-size:13px">Aucune donnée manquante n\'a été trouvée. Soit tout est déjà présent, soit les données ne sont plus sur cet appareil ni en ligne.<br><br>Essayez : (1) ouvrir la plateforme sur l\'ordinateur qui a servi à saisir ces données, avec le même navigateur, puis relancer cette recherche ; (2) importer un fichier de sauvegarde (menu 🛟 ▸ Importer).</div>';
+        openModal('🔎 Récupération des données — '+esc(res.iepp),h,'<button class="btn btn-ghost" onclick="closeModal()">Fermer</button>'); return;
+      }
+      h+='<table><thead><tr><th>Données</th><th style="text-align:right">À récupérer</th><th>Trouvé dans</th></tr></thead><tbody>'+res.rows.map(function(r){ return '<tr><td>'+esc(KEYS_LABEL[r.k]||r.k)+'</td><td style="text-align:right"><b>'+r.n+'</b></td><td class="text-sm">'+esc(Object.keys(r.from).join(', '))+'</td></tr>'; }).join('')+'</tbody></table>';
+      h+='<div class="text-sm text-muted" style="margin-top:8px">Seuls les éléments absents sont ajoutés. Rien n\'est écrasé et ce qui a été supprimé volontairement (Corbeille) n\'est pas remis. Une copie de sécurité est faite avant.</div>';
+      openModal('🔎 Récupération des données — '+esc(res.iepp),h,'<button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-green" onclick="IeppRecup.apply()">♻️ Récupérer maintenant</button>');
+    }
+    function apply(){
+      var res=LAST; if(!res) return; var n=0;
+      try{ if(window.IeppSafety) IeppSafety.snapshotNow(); }catch(e){}
+      res.rows.forEach(function(r){
+        var lk='iepp_'+res.target+'_'+r.k, curv=null; try{ curv=JSON.parse(localStorage.getItem(lk)||'null'); }catch(e){}
+        var now=Date.now(), items=r.items.map(function(it){ var c=JSON.parse(JSON.stringify(it)); c._upd=now; return c; }), out;
+        if(Array.isArray(curv)||curv==null) out=(curv||[]).concat(items);
+        else { out=curv; var first=Object.keys(curv).filter(function(q){ return Array.isArray(curv[q]); })[0]; if(first){ out[first]=curv[first].concat(items); } else { return; } }
+        try{ localStorage.setItem(lk,JSON.stringify(out)); n+=items.length; }catch(e){ console.warn(e); }
+      });
+      try{ if(res.target===activeScope){ reloadScopedState(); res.rows.forEach(function(r){ if(state[r.k]!==undefined) save(r.k,state[r.k]); }); } }catch(e){ console.warn(e); }
+      try{ logAction('recup-iepp',n+' éléments récupérés ('+res.iepp+')'); }catch(e){}
+      closeModal(); try{ toast(n+' élément(s) récupéré(s) pour '+res.iepp+(res.target===activeScope?'':' — ouvrez cette IEPP pour les voir'),'success'); }catch(e){}
+      try{ if(state.module&&typeof navigate==='function') navigate(state.module); }catch(e){}
+    }
+    function pick(){
+      if(!allowed()){ try{ toast('Réservé à l\'inspecteur, au correspondant, à la DRENAET et au super administrateur.','error'); }catch(e){} return; }
+      var list=[]; try{ list=accessibleIepps(); }catch(e){}
+      var act=state.activeIepp||''; if(act&&list.indexOf(act)<0) list.unshift(act);
+      var opts=list.map(function(n){ return '<option value="'+esc(n)+'"'+(n===act?' selected':'')+'>'+esc(n)+'</option>'; }).join('');
+      var h='<div style="font-size:13px;margin-bottom:10px">Cherche les données disparues (écoles, effectifs, élèves, personnel…) dans toutes les copies disponibles : copies automatiques, sauvegardes de cet appareil et copie en ligne. Rien n\'est supprimé ni écrasé.</div>'
+        +'<label class="text-sm">IEPP à récupérer :</label> <select id="rcp-iepp" class="form-control" style="max-width:320px;display:inline-block"'+(role()==='superadmin'?'':' disabled')+'>'+opts+'</select>';
+      openModal('🔎 Récupérer les données d\'une IEPP',h,'<button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-orange" onclick="IeppRecup.run()">Lancer la recherche</button>');
+    }
+    function run(){
+      var el=document.getElementById('rcp-iepp'), iepp=el?el.value:(state.activeIepp||'');
+      openModal('🔎 Recherche en cours…','<div style="padding:14px;font-size:14px">Recherche des données de <b>'+esc(iepp)+'</b>…</div>','');
+      scan(iepp).then(show).catch(function(e){ try{ closeModal(); toast('La recherche a échoué : '+(e&&e.message||e),'error'); }catch(x){} });
+    }
+    window.IeppRecup={ open:pick, run:run, apply:apply, scan:scan };
+  }catch(e){ console.warn('[recup-iepp]',e); }
 })();
 </script>
 </body>
