@@ -1256,7 +1256,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#16a34a!import
 
     <div class="field">
       <label>Identifiant</label>
-      <input type="text" id="login-user" autocomplete="username" placeholder="ex : inspecteur" value="">
+      <input type="text" id="login-user" autocomplete="username" placeholder="ex : ieppkorhogoest" value="" autocapitalize="off" spellcheck="false">
     </div>
     <div class="field">
       <label>Mot de passe</label>
@@ -4739,7 +4739,8 @@ function prefillLogin(){
     var cEl = document.getElementById('login-remember');
     if (!raw){ if (cEl) cEl.checked = false; return; }
     var r = JSON.parse(raw);
-    if (uEl && r.u) uEl.value = r.u;
+    /* champ identifiant volontairement laissé vide (le nom d'une IEPP est montré en exemple) */
+    if (uEl) uEl.value = '';
     if (pEl) pEl.value = '';
     if (cEl) cEl.checked = true;
   } catch(e){}
@@ -44332,7 +44333,6 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
       'recuperation':['superadmin'],
       'valid-conso':['superadmin','correspondant','inspecteur','corresp_stat','directeur'],
       'cadre-plateforme':['superadmin'],
-      'ecoles':['superadmin'],
       'bulletins-peda':['superadmin','correspondant','inspecteur','directeur','cpi'],
       'doublons':['superadmin','correspondant','inspecteur','directeur'],
       'conso-ecole':['directeur'],
