@@ -5881,7 +5881,7 @@ function renderEcoles() {
 function renderEcolesBody() {
   const q = (document.getElementById('ec-search')?.value || '').toLowerCase();
   const list = state.ecoles.filter(e =>
-    (e.nom||'').toLowerCase().includes(q) || (e.code||'').toLowerCase().includes(q) || (e.commune||'').toLowerCase().includes(q) || (e.directeur||'').toLowerCase().includes(q)
+    (e.nom||'').toLowerCase().includes(q) || (e.code||'').toLowerCase().includes(q) || (window.EcoleId&&EcoleId.matchQ(e,q)) || (e.commune||'').toLowerCase().includes(q) || (e.directeur||'').toLowerCase().includes(q)
   );
   const canEdit = ['inspecteur','correspondant','directeur'].includes(state.user.role);
   const tb = document.getElementById('ec-body');
@@ -5889,8 +5889,8 @@ function renderEcolesBody() {
   tb.innerHTML = list.map(e => `
     <tr>
       <td><span class="badge badge-blue">${escapeHtml(e.code)}</span></td>
-      <td class="fw-7">${escapeHtml(e.nom)}</td>
-      <td>${escapeHtml(e.commune)}</td>
+      <td class="fw-7">${e.typeEtab?'<span class="badge badge-grey" style="margin-right:6px">'+escapeHtml(e.typeEtab)+'</span>':''}${escapeHtml(e.nom)}</td>
+      <td>${escapeHtml(e.commune||e.localite||'')}</td>
       <td>${escapeHtml(e.directeur)}</td>
       <td style="text-align:right" class="fw-7">${(Number(e.effectif)||0).toLocaleString('fr-FR')}</td>
       <td style="text-align:center">${e.classes==null?0:e.classes}</td>
@@ -21723,8 +21723,8 @@ function renderFichierEcolesBody() {
     <tr>
       <td style="text-align:center"><input type="checkbox" class="fec-check" value="${e.id}"></td>
       <td><span class="badge badge-blue">${escapeHtml(e.code)}</span></td>
-      <td class="fw-7">${escapeHtml(e.nom)}</td>
-      <td>${escapeHtml(e.commune)}</td>
+      <td class="fw-7">${e.typeEtab?'<span class="badge badge-grey" style="margin-right:6px">'+escapeHtml(e.typeEtab)+'</span>':''}${escapeHtml(e.nom)}</td>
+      <td>${escapeHtml(e.commune||e.localite||'')}</td>
       <td>${escapeHtml(e.directeur)}</td>
       <td style="text-align:right" class="fw-7">${(+e.effectif||0).toLocaleString('fr-FR')}</td>
       <td style="text-align:center">${e.classes}</td>
@@ -39858,7 +39858,7 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
     if(!Array.isArray(st.ecoles)) st.ecoles=[];
     var ig=ign(), changed=0, found={}, canonHave={}, canonHaveNom={};
     try{ st.ecoles.forEach(function(e){ if(e&&e.nom&&window.ieppCanonEcole){ var c=window.ieppCanonEcole(e.nom); if(c&&!canonHave[c]){ canonHave[c]=ekey(e.nom); canonHaveNom[c]=e.nom; } } }); }catch(e){}
-    function add(nom,info){ nom=String(nom==null?'':nom).replace(/\s+/g,' ').trim(); if(nom.length<3||/^(—|-|toutes?|aucune?)$/i.test(nom)) return; var k=ekey(nom); if(!k) return; try{ var _c=(window.ieppCanonEcole?window.ieppCanonEcole(nom):''); if(_c&&canonHave[_c]){ k=canonHave[_c]; nom=canonHaveNom[_c]||nom; } }catch(e){} try{ if(!canonHave[window.ieppCanonEcole?window.ieppCanonEcole(nom):''] && window.ieppIsForeignEcole && window.ieppIsForeignEcole(nom)) return; }catch(e){} var f=found[k]; if(!f) found[k]=f={nom:nom,info:{}}; Object.keys(info||{}).forEach(function(i){ if(info[i]&&!f.info[i]) f.info[i]=info[i]; }); }
+    function add(nom,info){ nom=String(nom==null?'':nom).replace(/\s+/g,' ').trim(); if(nom.length<3||/^(—|-|toutes?|aucune?)$/i.test(nom)) return; try{ if(window.EcoleId&&EcoleId.isNotSchool(nom)) return; if(info&&info.code&&window.EcoleId){ var _cc=EcoleId.codeCore(info.code); if(_cc){ var _ex=st.ecoles.find(function(x){ return x&&EcoleId.codeCore(x.code)===_cc; }); if(_ex&&_ex.nom) nom=_ex.nom; } } }catch(e){} var k=ekey(nom); if(!k) return; try{ var _c=(window.ieppCanonEcole?window.ieppCanonEcole(nom):''); if(_c&&canonHave[_c]){ k=canonHave[_c]; nom=canonHaveNom[_c]||nom; } }catch(e){} try{ if(!canonHave[window.ieppCanonEcole?window.ieppCanonEcole(nom):''] && window.ieppIsForeignEcole && window.ieppIsForeignEcole(nom)) return; }catch(e){} var f=found[k]; if(!f) found[k]=f={nom:nom,info:{}}; Object.keys(info||{}).forEach(function(i){ if(info[i]&&!f.info[i]) f.info[i]=info[i]; }); }
     st.users.forEach(function(u){ if(u&&same(u.iepp,ip)&&!SKIP[u.role]&&u.ecole){ add(u.ecole, u.role==='directeur'?{directeur:u.name}:{}); } });
     (st.personnel||[]).forEach(function(p){ if(p&&p.ecole) add(p.ecole); });
     var nbEl={}; (st.elevesFichier||[]).forEach(function(e){ if(e&&e.ecole){ add(e.ecole); var k=ekey(e.ecole); nbEl[k]=(nbEl[k]||0)+1; } });
@@ -39868,7 +39868,7 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
     (st.recrutementCP1||[]).forEach(function(r){ if(r&&r.ecole) add(r.ecole); });
     (st.recrutementMater||[]).forEach(function(r){ if(r&&r.ecole) add(r.ecole); });
     (st.effectifs||[]).forEach(function(r){ if(r&&r.ecole) add(r.ecole); });
-    (st.carteScolaire||[]).forEach(function(c){ if(c&&c.denomination&&/^(prescolaire|primaire)$/i.test(c.niveau||'')){ add(c.denomination,{commune:c.localite,statut:c.statut,effectif:parseInt(c.effectif,10)||0,classes:parseInt(c.classes,10)||0}); } });
+    (st.carteScolaire||[]).forEach(function(c){ if(c&&c.denomination&&/^(prescolaire|primaire)$/i.test(c.niveau||'')){ add(c.denomination,{code:c.code||c.codeEcole||c.code_ecole||'',commune:c.localite,statut:c.statut,effectif:parseInt(c.effectif,10)||0,classes:parseInt(c.classes,10)||0}); } });
     var have={}; st.ecoles.forEach(function(e){ if(e&&e.nom) have[ekey(e.nom)]=e; });
     Object.keys(found).forEach(function(k){
       var f=found[k], ex=have[k];
@@ -39877,11 +39877,12 @@ body.iepp-guest .sb-link:not([data-module="rapports-rentree"]),body.iepp-guest .
         var ch=false;
         if(!ex.directeur&&f.info.directeur){ ex.directeur=f.info.directeur; ch=true; }
         if(!ex.commune&&f.info.commune){ ex.commune=f.info.commune; ch=true; }
+        if(!ex.code&&f.info.code){ ex.code=f.info.code; ch=true; }
         if(ch){ ex._upd=Date.now(); changed++; }
         return;
       }
       var eff=nbEl[k]||f.info.effectif||0;
-      st.ecoles.push({id:'ec_'+k.toLowerCase().slice(0,24),nom:f.nom,code:'',commune:f.info.commune||'',directeur:f.info.directeur||'',effectif:eff,classes:f.info.classes||0,statut:f.info.statut||'Public',_auto:true,_upd:Date.now()});
+      st.ecoles.push({id:'ec_'+k.toLowerCase().slice(0,24),nom:f.nom,code:f.info.code||'',commune:f.info.commune||'',directeur:f.info.directeur||'',effectif:eff,classes:f.info.classes||0,statut:f.info.statut||'Public',_auto:true,_upd:Date.now()});
       changed++;
     });
     if(changed){ try{ save('ecoles',st.ecoles); }catch(e){} }
@@ -46850,6 +46851,261 @@ try{
     }
     window.IeppRecup={ open:pick, run:run, apply:apply, scan:scan };
   }catch(e){ console.warn('[recup-iepp]',e); }
+})();
+</script>
+<script id="iepp-ecole-id">
+/* Identification fiable des écoles : code (prioritaire) + type (EPP/EPV/EC/EPC) + nom + statut + localité ; séparation écoles / personnes et fonctions */
+(function(){
+  try{
+    var TYPES={EPP:'École primaire publique',EPV:'École primaire privée',EC:'École communautaire',EPC:'École primaire catholique ou islamique'};
+    var STATUT_ATTENDU={EPP:'Public',EPV:'Privé',EC:'Communautaire',EPC:'Privé'};
+    function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+    function up(s){ return String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase(); }
+    function role(){ try{ return state.user.role; }catch(e){ return ''; } }
+    function msg(t,k){ try{ toast(t,k||'info'); }catch(e){} }
+
+    /* ---------- code ---------- */
+    function codeClean(c){ return up(c).replace(/[\s.\-\/_]+/g,''); }
+    function codeOfficial(c){ return /^E?\d{3,8}$/.test(codeClean(c)); }
+    function codeCore(c){ var t=codeClean(c); if(!codeOfficial(t)) return ''; return t.replace(/^E/,'').replace(/^0+/,'')||'0'; }
+
+    /* ---------- type ---------- */
+    function detectType(nom){
+      var t=up(nom).replace(/[.']/g,' ').replace(/\s+/g,' ').trim();
+      if(/^(EPV|ECOLE PRIMAIRE PRIVEE|EPRIV|EP PRIVEE)\b/.test(t)) return 'EPV';
+      if(/^(EPC|EPPC|ECOLE PRIMAIRE (CATHOLIQUE|ISLAMIQUE|CONFESSIONNELLE))\b/.test(t)) return 'EPC';
+      if(/^(EC|ECOLE COMMUNAUTAIRE)\b/.test(t)) return 'EC';
+      if(/^(EPP|EPPUB|EPPU|ECOLE PRIMAIRE PUBLIQUE|ECOLE PRIMAIRE)\b/.test(t)) return 'EPP';
+      return '';
+    }
+    function typeOf(e){ var t=String((e&&e.typeEtab)||'').toUpperCase(); return TYPES[t]?t:detectType(e&&e.nom); }
+
+    /* ---------- nom ---------- */
+    function nameCore(nom){
+      var t=up(nom).replace(/[.']/g,' ').replace(/\s+/g,' ').trim();
+      t=t.replace(/^(ECOLE PRIMAIRE (PUBLIQUE|PRIVEE|CATHOLIQUE|ISLAMIQUE|CONFESSIONNELLE)|ECOLE COMMUNAUTAIRE|ECOLE PRIMAIRE|EPPUB|EPPU|EPPC|EPP|EPV|EPC|EPRIV|EC)\s+/,'');
+      var c=(typeof window.ieppCanonEcole==='function')?window.ieppCanonEcole('EPP '+t):('EPP'+t.replace(/[^A-Z0-9]/g,''));
+      return c.replace(/^EPP/,'');
+    }
+    function localite(e){ return up((e&&(e.localite||e.commune||e.village))||'').replace(/[^A-Z0-9]/g,''); }
+
+    /* ---------- personnes / fonctions (jamais des écoles) ---------- */
+    var SCHOOL_WORD=/\b(ECOLE|MATERNELLE|PRESCOLAIRE|GROUPE SCOLAIRE|COLLEGE|LYCEE|JARDIN D ENFANTS|CRECHE|CENTRE D ALPHABETISATION)\b/;
+    var ROLES=[
+      [/^(MC)\b/,'Maître de classe'],
+      [/^(DIRECTEUR|DIRECTRICE)\b/,'Directeur / directrice'],
+      [/^(DIRECTION)\b/,'Direction (fonction)'],
+      [/^(CPPP)\b/,'CPPP (conseiller pédagogique)'],
+      [/^(CPI)\b/,'CPI'],
+      [/^(CIEPA|CAENF|DEP)\b/,'CIEPA / CAENF / DEP'],
+      [/^(CRAIE)\b|\bCRAIE EN MAIN\b/,'Enseignant craie en main'],
+      [/^(ENSEIGNANT|ENSEIGNANTE|INSTITUTEUR|INSTITUTRICE|MAITRE|MAITRESSE)\b/,'Enseignant / maître'],
+      [/^(ADMINISTRATIF|ADMINISTRATIVE|SECRETAIRE|COMPTABLE|ECONOME|ARCHIVISTE|BIBLIOTHECAIRE|COORDONNATEUR|COORDONNATRICE|CORRESPONDANT|CHARGE)\b/,'Personnel administratif'],
+      [/^(AGENT|AGENTS|GARDIEN|SURVEILLANT|CHAUFFEUR|CUISINIER|CUISINIERE|INFIRMIER|INFIRMIERE|STAGIAIRE|EDUCATEUR|EDUCATRICE|ANIMATEUR|ANIMATRICE)\b/,'Agent / autre personnel'],
+      [/^(INSPECTEUR|INSPECTRICE|IEPP|DRENAET|DRENA|CONSEILLER|CONSEILLERE|PERSONNEL)\b/,'Personnel de l\'IEPP'],
+      [/^(MME|MLLE|MR|MONSIEUR|MADAME|DR|M)\s+[A-Z]/,'Personne']
+    ];
+    function classify(nom){
+      var t=up(nom).replace(/[.']/g,' ').replace(/\s+/g,' ').trim();
+      if(!t) return {kind:'inconnu'};
+      if(detectType(nom)) return {kind:'ecole'};
+      if(SCHOOL_WORD.test(t)) return {kind:'ecole'};
+      for(var i=0;i<ROLES.length;i++){ if(ROLES[i][0].test(t)) return {kind:'personne',role:ROLES[i][1]}; }
+      return {kind:'inconnu'};
+    }
+    function isNotSchool(nom){ return classify(nom).kind==='personne'; }
+
+    /* ---------- identité ---------- */
+    function key(e){ var c=codeCore(e&&e.code); if(c) return 'C:'+c; return 'N:'+typeOf(e)+'|'+nameCore(e&&e.nom)+'|'+localite(e); }
+    function same(a,b){
+      if(!a||!b) return false;
+      var ca=codeCore(a.code), cb=codeCore(b.code);
+      if(ca&&cb) return ca===cb;                       /* le code l'emporte toujours */
+      if(!nameCore(a.nom)||nameCore(a.nom)!==nameCore(b.nom)) return false;
+      var ta=typeOf(a), tb=typeOf(b); if(ta&&tb&&ta!==tb) return false;   /* EPP ≠ EPV ≠ EC ≠ EPC */
+      var la=localite(a), lb=localite(b); if(la&&lb&&la!==lb) return false;
+      return true;
+    }
+    function matchQ(e,q){ q=up(q).replace(/[^A-Z0-9 ]/g,'').trim(); if(!q) return true;
+      var qc=q.replace(/\s+/g,''); var cc=codeClean(e.code);
+      return (cc&&(cc.indexOf(qc)>=0||(codeCore(e.code)&&codeCore(e.code)===codeCore(q))))||up(e.typeEtab||'').indexOf(q)>=0||up(e.localite||'').indexOf(q)>=0; }
+
+    /* ---------- normalisation douce (sans rien supprimer) ---------- */
+    function normalizeAll(){
+      try{
+        if(!window.state||!state.user||!Array.isArray(state.ecoles)) return 0;
+        var n=0;
+        state.ecoles.forEach(function(e){
+          if(!e||!e.nom||classify(e.nom).kind==='personne') return;
+          var ch=false, t=typeOf(e);
+          if(t&&e.typeEtab!==t){ e.typeEtab=t; ch=true; }
+          if(e.entite!=='ecole'){ e.entite='ecole'; ch=true; }
+          if(e.localite==null&&e.commune){ e.localite=e.commune; ch=true; }
+          if(e.code){ var c=String(e.code).trim().toUpperCase(); if(c!==e.code){ e.code=c; ch=true; } }
+          if(ch){ n++; }   /* donnée dérivée : pas de nouvelle date de modification (sinon une école supprimée ailleurs reviendrait) */
+        });
+        if(n){ try{ localStorage.setItem(storeKey('ecoles'),JSON.stringify(state.ecoles)); }catch(x){} }
+        return n;
+      }catch(x){ return 0; }
+    }
+
+    /* ---------- audit ---------- */
+    function audit(){
+      var L=(window.state&&state.ecoles)||[], R={personnes:[],doublons:[],sansCode:[],incoherences:[],ecolesPersonnel:[]};
+      L.forEach(function(e){ if(!e||!e.nom) return; var c=classify(e.nom); if(c.kind==='personne') R.personnes.push({e:e,role:c.role}); });
+      var sch=L.filter(function(e){ return e&&e.nom&&classify(e.nom).kind!=='personne'; }), used={};
+      for(var i=0;i<sch.length;i++){ if(used[sch[i].id]) continue; var g=[sch[i]];
+        for(var j=i+1;j<sch.length;j++){ if(!used[sch[j].id]&&same(sch[i],sch[j])){ g.push(sch[j]); used[sch[j].id]=1; } }
+        if(g.length>1) R.doublons.push(g); }
+      sch.forEach(function(e){
+        if(!codeOfficial(e.code)) R.sansCode.push(e);
+        var t=typeOf(e), d=detectType(e.nom), pb=[];
+        if(e.typeEtab&&d&&e.typeEtab!==d) pb.push('type « '+e.typeEtab+' » ≠ nom « '+d+' »');
+        if(t&&e.statut&&STATUT_ATTENDU[t]&&e.statut!==STATUT_ATTENDU[t]) pb.push('statut « '+e.statut+' » inhabituel pour '+t+' (attendu : '+STATUT_ATTENDU[t]+')');
+        if(!t) pb.push('type d\'établissement non renseigné');
+        if(pb.length) R.incoherences.push({e:e,pb:pb});
+      });
+      try{ (state.personnel||[]).forEach(function(p){ if(p&&p.nom&&detectType(p.nom)) R.ecolesPersonnel.push(p); }); }catch(e){}
+      return R;
+    }
+    function panel(){
+      var R=audit(), h='<div data-wide="1" style="font-size:13px">';
+      h+='<p>Une école est reconnue par son <b>code</b> (prioritaire), puis par la combinaison <b>type + nom + localité</b>. Les personnes et fonctions (enseignants, maîtres de classe, CPPP, CPI, CIEPA, personnel administratif, agents…) ne sont jamais des écoles.</p>';
+      function sec(t,n,body,okMsg){ return '<div class="card" style="padding:12px;margin:10px 0"><div style="font-weight:700;margin-bottom:6px">'+t+' <span class="badge '+(n?'badge-orange':'badge-green')+'">'+n+'</span></div>'+(n?body:'<div class="text-muted">'+okMsg+'</div>')+'</div>'; }
+      h+=sec('🚫 Entrées de la liste des écoles qui sont des personnes ou des fonctions',R.personnes.length,
+        '<table><thead><tr><th>Nom</th><th>Nature détectée</th><th></th></tr></thead><tbody>'+R.personnes.map(function(x){ return '<tr><td>'+esc(x.e.nom)+'</td><td>'+esc(x.role)+'</td><td><button class="btn btn-sm btn-ghost" onclick="EcoleId.retirer(\''+esc(x.e.id)+'\')">Retirer de la liste des écoles</button></td></tr>'; }).join('')+'</tbody></table><div class="text-sm text-muted" style="margin-top:6px">« Retirer » place l\'entrée dans la Corbeille (récupérable).</div>','Aucune.');
+      h+=sec('👥 Écoles en double (même code, ou même type + nom + localité)',R.doublons.length,
+        R.doublons.map(function(g){ return '<div style="margin-bottom:8px"><b>'+g.map(function(e){ return esc(e.nom)+(e.code?' ['+esc(e.code)+']':''); }).join('  ⇄  ')+'</b> '+g.slice(1).map(function(e){ return '<button class="btn btn-sm" onclick="EcoleId.fusion(\''+esc(e.id)+'\',\''+esc(g[0].id)+'\')">Fusionner « '+esc(e.nom)+' » → « '+esc(g[0].nom)+' »</button>'; }).join(' ')+'</div>'; }).join(''),'Aucun doublon.');
+      h+=sec('🏷️ Incohérences d\'identification',R.incoherences.length,
+        '<table><thead><tr><th>École</th><th>Problème</th><th></th></tr></thead><tbody>'+R.incoherences.slice(0,60).map(function(x){ return '<tr><td>'+esc(x.e.nom)+'</td><td class="text-sm">'+esc(x.pb.join(' ; '))+'</td><td><button class="btn btn-sm btn-ghost" onclick="closeModal();ecoleForm(\''+esc(x.e.id)+'\')">Corriger</button></td></tr>'; }).join('')+'</tbody></table>'+(R.incoherences.length>60?'<div class="text-sm text-muted">… et '+(R.incoherences.length-60)+' autres.</div>':''),'Aucune.');
+      h+=sec('🔢 Écoles sans code officiel (ex. E00256 ou 0002356)',R.sansCode.length,
+        '<div class="text-sm">'+R.sansCode.slice(0,40).map(function(e){ return '<a href="#" onclick="closeModal();ecoleForm(\''+esc(e.id)+'\');return false">'+esc(e.nom)+'</a>'; }).join(' · ')+(R.sansCode.length>40?' …':'')+'</div><div class="text-sm text-muted" style="margin-top:6px">Elles restent reconnues par type + nom + localité en attendant que le code soit renseigné.</div>','Toutes les écoles ont un code officiel.');
+      if(R.ecolesPersonnel.length) h+=sec('📋 Écoles saisies comme personnel',R.ecolesPersonnel.length,'<div class="text-sm">'+R.ecolesPersonnel.slice(0,30).map(function(p){ return esc(p.nom); }).join(' · ')+'</div>','');
+      h+='</div>';
+      openModal('🆔 Identification des écoles',h,'<button class="btn btn-ghost" onclick="closeModal()">Fermer</button><button class="btn btn-orange" onclick="EcoleId.completer()">Renseigner automatiquement les types</button>');
+    }
+    function retirer(id){
+      var e=(state.ecoles||[]).find(function(x){ return x.id===id; }); if(!e) return;
+      if(!confirm('Retirer « '+e.nom+' » de la liste des écoles ? (il reste récupérable dans la Corbeille)')) return;
+      state.ecoles=state.ecoles.filter(function(x){ return x.id!==id; }); save('ecoles',state.ecoles);
+      try{ logAction('ecole-id','Entrée non-école retirée : '+e.nom); }catch(x){} msg('Retiré (Corbeille).','success'); panel(); try{ if(document.getElementById('ec-body')) renderEcolesBody(); }catch(x){}
+    }
+    function fusion(id,toId){ try{ if(window.IeppRepair&&IeppRepair.mergeEcole){ IeppRepair.mergeEcole(id,toId); setTimeout(panel,300); } }catch(e){ console.warn(e); } }
+    function completer(){ var n=normalizeAll(); msg(n+' école(s) mise(s) à jour (type détecté à partir du nom).','success'); panel(); try{ if(document.getElementById('ec-body')) renderEcolesBody(); }catch(e){} }
+
+    /* ---------- création / modification ---------- */
+    (function(){
+      var of=window.ecoleForm;
+      if(typeof of==='function' && !of.__eid){
+        window.ecoleForm=function(id){
+          var r=of.apply(this,arguments);
+          try{
+            var ec=id?(state.ecoles||[]).find(function(x){ return x.id===id; }):null, cur=(ec&&typeOf(ec))||'';
+            var fn=document.getElementById('f-nom'); if(!fn||document.getElementById('f-type')) return r;
+            var box=fn.closest?fn.closest('.field'):fn.parentNode;
+            var opts='<option value="">— choisir —</option>'+Object.keys(TYPES).map(function(k){ return '<option value="'+k+'"'+(k===cur?' selected':'')+'>'+k+' — '+TYPES[k]+'</option>'; }).join('');
+            box.insertAdjacentHTML('beforebegin','<div class="form-row"><div class="field"><label>Type d\'établissement</label><select id="f-type">'+opts+'</select></div><div class="field"><label>Localité</label><input id="f-localite" value="'+esc((ec&&(ec.localite||ec.commune))||'')+'" placeholder="village / quartier"></div></div>');
+            var fc=document.getElementById('f-code'); if(fc){ fc.placeholder='E00256 ou 0002356'; }
+            fn.addEventListener('blur',function(){ var t=document.getElementById('f-type'); if(t&&!t.value){ var d=detectType(fn.value); if(d) t.value=d; } });
+          }catch(e){}
+          return r;
+        };
+        window.ecoleForm.__eid=true;
+      }
+      var os=window.ecoleSave;
+      if(typeof os==='function' && !os.__eid){
+        window.ecoleSave=function(id){
+          var g=function(k){ var el=document.getElementById(k); return el?String(el.value||'').trim():null; };
+          var nom=g('f-nom');
+          if(nom===null) return os.apply(this,arguments);
+          try{
+            var code=g('f-code')||'', tsel=g('f-type')||'', loc=g('f-localite')||g('f-commune')||'', statut=g('f-statut')||'';
+            var c=classify(nom);
+            if(nom&&c.kind==='personne'){ msg('« '+nom+' » est une personne ou une fonction ('+c.role+'), pas une école. Les personnels se saisissent dans le Personnel, pas dans la liste des écoles.','error'); return; }
+            var dt=detectType(nom);
+            if(tsel&&dt&&tsel!==dt){ msg('Le nom commence par « '+dt+' » mais le type choisi est « '+tsel+' ». Corrigez l\'un des deux.','error'); return; }
+            var type=tsel||dt;
+            if(code&&!codeOfficial(code)) msg('Le code « '+code+' » n\'a pas le format officiel (ex. E00256 ou 0002356). Il est accepté mais pensez à le corriger.','warning');
+            var cand={code:code,nom:nom,typeEtab:type,commune:loc,localite:loc};
+            var dup=(state.ecoles||[]).find(function(x){ return x&&x.id!==id&&same(x,cand); });
+            if(dup){ var byCode=codeCore(code)&&codeCore(code)===codeCore(dup.code); msg('Cette école existe déjà : « '+dup.nom+' »'+(dup.code?' (code '+dup.code+')':'')+(byCode?' — même code.':' — même type, nom et localité.')+' Modifiez l\'école existante au lieu d\'en créer une autre.','error'); return; }
+            if(type&&statut&&STATUT_ATTENDU[type]&&statut!==STATUT_ATTENDU[type]) msg('Attention : le statut « '+statut+' » est inhabituel pour une école de type '+type+' (attendu : '+STATUT_ATTENDU[type]+').','warning');
+            var before=(state.ecoles||[]).length;
+            var r=os.apply(this,arguments);
+            try{
+              var rec=id?state.ecoles.find(function(x){ return x.id===id; }):(state.ecoles.length>before?state.ecoles[state.ecoles.length-1]:null);
+              if(rec){ if(type) rec.typeEtab=type; rec.entite='ecole'; if(loc) rec.localite=loc; if(rec.code) rec.code=String(rec.code).trim().toUpperCase(); rec._upd=Date.now(); save('ecoles',state.ecoles); }
+            }catch(e){}
+            return r;
+          }catch(e){ console.warn('[ecole-id]',e); return os.apply(this,arguments); }
+        };
+        window.ecoleSave.__eid=true;
+      }
+      /* bouton d'accès dans la liste des écoles */
+      var lh=window.ecListeHtml;
+      if(typeof lh==='function' && !lh.__eid){
+        window.ecListeHtml=function(){
+          var h=lh.apply(this,arguments);
+          try{ var b='<button class="btn btn-ghost" onclick="EcoleId.panel()" title="Contrôler l\'identification des écoles">🆔 Identification</button>'; var m='<button class="btn btn-orange" onclick="ecoleForm()">'; h=(h.indexOf(m)>=0)?h.replace(m,b+m):h.replace('</div>',b+'</div>'); }catch(e){}
+          return h;
+        };
+        window.ecListeHtml.__eid=true;
+      }
+      /* imports Excel : normalisation et contrôle après import */
+      ['ecImport','importEcolesExcel'].forEach(function(fn){
+        var o=window[fn]; if(typeof o!=='function'||o.__eid) return;
+        window[fn]=function(){ var r=o.apply(this,arguments); setTimeout(function(){ try{ normalizeAll(); var R=audit(); if(R.personnes.length||R.doublons.length) msg('Import terminé : '+R.personnes.length+' entrée(s) ressemblent à des personnes et '+R.doublons.length+' doublon(s) possible(s). Ouvrez « 🆔 Identification » pour les traiter.','warning'); }catch(e){} },2500); return r; };
+        window[fn].__eid=true;
+      });
+    })();
+
+    window.EcoleId={ TYPES:TYPES, detectType:detectType, typeOf:typeOf, codeCore:codeCore, codeOfficial:codeOfficial, nameCore:nameCore, key:key, same:same, classify:classify, isNotSchool:isNotSchool, matchQ:matchQ, normalizeAll:normalizeAll, audit:audit, panel:panel, retirer:retirer, fusion:fusion, completer:completer };
+    /* synchronisation : normalisation silencieuse après connexion, puis périodique */
+    setInterval(function(){ try{ if(state&&state.user) normalizeAll(); }catch(e){} },600000);
+    setTimeout(function wait(){ try{ if(state&&state.user&&Array.isArray(state.ecoles)){ normalizeAll(); return; } }catch(e){} setTimeout(wait,4000); },6000);
+  }catch(e){ console.warn('[ecole-id]',e); }
+})();
+</script>
+<script id="iepp-no-return">
+/* Règle de cohérence : un élément qui est dans la Corbeille ne peut pas rester (ou revenir) dans la liste active.
+   Il revient souvent d'un autre appareil qui détient encore une ancienne copie. Une restauration volontaire (Corbeille ▸ Restaurer) reste prioritaire. */
+(function(){
+  try{
+    var EXCL=['corbeille','audit','notifications','users','usersDeleted','ieppRegistry','drenaet','customServices'];
+    function logged(){ try{ return !!(window.state&&state.user&&Array.isArray(state.corbeille)); }catch(e){ return false; } }
+    var busy=false;
+    function reconcile(){
+      if(busy||!logged()||!state.corbeille.length) return 0; busy=true; var total=0;
+      try{
+        var flat={}, reg={};
+        state.corbeille.forEach(function(t){
+          if(!t||typeof t!=='object') return;
+          var id=(t.matchVal!=null)?t.matchVal:(t.data&&t.data.id); if(id==null) return;
+          var at=Date.parse(t.deletedAt||'')||0; if(!at) return; var rec={at:at,data:t.data};
+          if(t.regKey&&t.subPath){ var rk=t.regKey+'\u0001'+t.subPath; (reg[rk]=reg[rk]||{})[String(id)]=rec; }
+          else if(t.parentKey&&EXCL.indexOf(t.parentKey)<0){ (flat[t.parentKey]=flat[t.parentKey]||{})[String(id)]=rec; }
+        });
+        function unchanged(x,d){ if(!d||typeof d!=='object') return false; var ks=Object.keys(d).filter(function(k){ return k.charAt(0)!=='_'; }); if(!ks.length) return false; try{ return ks.every(function(k){ return JSON.stringify(x[k])===JSON.stringify(d[k]); }); }catch(e){ return false; } }
+        function stale(x,del){ if(!x||x.id==null) return false; var r=del[String(x.id)]; if(!r) return false; return (+x._upd||0)<=r.at+2000 || unchanged(x,r.data); }   /* ancienne copie, ou copie identique à celle de la Corbeille (aucune modification depuis) */
+        Object.keys(flat).forEach(function(k){
+          var live=state[k]; if(!Array.isArray(live)) return; var del=flat[k];
+          var keep=live.filter(function(x){ return !stale(x,del); }), n=live.length-keep.length;
+          if(n>0){ state[k]=keep; try{ save(k,keep); }catch(e){} total+=n; }
+        });
+        Object.keys(reg).forEach(function(rk){
+          var p=rk.split('\u0001'), o=state[p[0]]; if(!o||!Array.isArray(o[p[1]])) return; var del=reg[rk];
+          var keep=o[p[1]].filter(function(x){ return !stale(x,del); }), n=o[p[1]].length-keep.length;
+          if(n>0){ o[p[1]]=keep; try{ save(p[0],o); }catch(e){} total+=n; }
+        });
+        if(total){ try{ logAction('no-return',total+' élément(s) supprimés qui étaient revenus (synchronisation) ont été retirés à nouveau'); }catch(e){} if(window.__ieppNoReturnN==null) window.__ieppNoReturnN=0; window.__ieppNoReturnN+=total;
+          try{ if(state.module&&document.getElementById('content')&&typeof navigate==='function'&&!document.querySelector('#modal-backdrop.open,#modal-backdrop.show')) { var a=document.activeElement; if(!a||!/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) navigate(state.module); } }catch(e){} }
+      }catch(e){ console.warn('[no-return]',e); }
+      busy=false; return total;
+    }
+    window.IeppNoReturn={ run:reconcile };
+    setInterval(reconcile,4000);
+    document.addEventListener('visibilitychange',function(){ if(!document.hidden) setTimeout(reconcile,500); });
+  }catch(e){ console.warn('[no-return]',e); }
 })();
 </script>
 </body>
