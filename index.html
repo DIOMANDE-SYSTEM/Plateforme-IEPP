@@ -1647,7 +1647,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#16a34a!import
           <span style="font-size:11px;color:var(--muted);font-weight:700">📍 Circonscription</span>
           <select id="scope-select" onchange="onScopeChange()" style="padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--white);font-size:12.5px;font-weight:600;max-width:200px"></select>
         </span>
-        <span class="badge badge-green" id="sync-badge" onclick="syncNowTop()" title="État de la synchronisation — cliquez pour synchroniser maintenant" style="cursor:pointer">● Synchronisé</span>
+        <span class="badge badge-green" id="sync-badge" onclick="window.IeppSyncPanel?IeppSyncPanel.open():syncNowTop()" title="État de la synchronisation — cliquez pour voir le détail (opérations en attente, journal) et synchroniser" style="cursor:pointer">● Synchronisé</span>
         <button id="sync-now-top" onclick="syncNowTop()" title="Synchroniser maintenant" style="border:none;background:#0A4DA6;color:#fff;border-radius:9px;padding:6px 11px;font-size:14px;cursor:pointer;line-height:1;display:inline-flex;align-items:center">🔄</button>
         <span id="courrier-counters" onclick="navigate('courrier')" title="Courrier — cliquez pour ouvrir" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:#F1F5F9;border:1px solid var(--line);border-radius:9px;padding:5px 10px;font-size:12px;font-weight:700">
           <span style="display:inline-flex;align-items:center;gap:3px" title="Courriers reçus">📥<span id="ctr-recus" style="color:#1F6FB2">0</span></span>
@@ -2742,13 +2742,29 @@ function usersIsDead(username, userUpd){
   return at > (+userUpd||0);   /* suppression postérieure à la dernière (re)création -> supprimé */
 }
 
+/* CORRECTIF §3.2 : tout enregistrement des collections fusionnées par id reçoit un identifiant à la création
+   (jamais d'identité fondée sur le contenu). Les ids existants ne sont jamais modifiés. */
+function ieppEnsureIds(k, val){
+  if (typeof RECORD_MERGE !== 'undefined' && RECORD_MERGE[k] && Array.isArray(val)) {
+    val.forEach(function(it){ if (it && typeof it === 'object' && !Array.isArray(it) && (it.id == null || it.id === '')) it.id = 'r' + uid(); });
+  }
+  return val;
+}
+/* CORRECTIF §2.4 : une écriture locale refusée (quota ~5 Mo) ne doit plus rester visible seulement dans la console */
+var __ieppQuotaTs = 0;
+function ieppStorageError(k, e){
+  try { if (window.IeppSyncCore) IeppSyncCore.log('err', storeKey(k), 'écriture locale impossible (' + ((e && e.name) || 'erreur') + ') — la donnée reste en mémoire et part vers le serveur'); } catch(_){}
+  var t = Date.now(); if (t - __ieppQuotaTs < 30000) return; __ieppQuotaTs = t;
+  try { if (typeof toast === 'function') toast('⚠ Stockage du navigateur saturé ou indisponible : « ' + k + ' » n\'a pas pu être enregistré localement. Faites une sauvegarde (Corbeille ▸ Sauvegarder) et libérez de l\'espace. L\'envoi au serveur continue.', 'error'); } catch(_){}
+}
 function save(k, val) {
+  try { val = ieppEnsureIds(k, val); } catch(e){ console.warn('ieppEnsureIds', e); }
   try { if (typeof recordMergeTrack === 'function') val = recordMergeTrack(k, val); } catch(e){ console.warn('recordMergeTrack', e); }
   try { if (typeof genericStampUpd === 'function') genericStampUpd(k, val); } catch(e){ console.warn('genericStampUpd', e); }
   try { if (typeof genericTombTrack === 'function') genericTombTrack(k, val); } catch(e){ console.warn('genericTombTrack', e); }
   try { if (typeof objMetaTrack === 'function') objMetaTrack(k, val); } catch(e){ console.warn('objMetaTrack', e); }
   try { if (typeof autoTrashTrack === 'function') autoTrashTrack(k, val); } catch(e){ console.warn('autoTrashTrack', e); }
-  try { localStorage.setItem(storeKey(k), JSON.stringify(val)); } catch(e){ console.error('save fail', e); }
+  try { localStorage.setItem(storeKey(k), JSON.stringify(val)); } catch(e){ console.error('save fail', e); try { ieppStorageError(k, e); } catch(_){} }
   try { delete __PREV[storeKey(k)]; } catch(e){}
   try { if ((k==='ecoles'||k==='effectifs'||k==='elevesFichier') && typeof publishIeppStats==='function') publishIeppStats(); } catch(e){}
   try { if (window.__cloudPush) return window.__cloudPush(storeKey(k), val); } catch(e){}
@@ -2893,6 +2909,266 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
    Modèle clé-valeur : table public.app_data (key text pk, json text, updated_at).
    Toute la logique de FUSION par enregistrement (RECORD_MERGE) est conservée.
    ================================================================== */
+/* ======================================================================
+   CORRECTIFS « Diagnostic consolidé » — 1er novembre 2026
+   NOYAU DE SUIVI DE SYNCHRONISATION (additif — aucune donnée touchée)
+   ----------------------------------------------------------------------
+   • File d'opérations PERSISTANTE (IndexedDB + copie localStorage) :
+     une clé modifiée mais non confirmée par le serveur survit à la
+     fermeture de l'onglet et est renvoyée à la réouverture / au retour réseau.
+   • operation_id unique par modification (conservé lors des réessais).
+   • Statut exact : « Synchronisé » seulement si plus rien n'est en attente,
+     en échec ou en conflit.
+   • Journal de synchronisation lisible (panneau : clic sur le badge).
+   • Décalage d'horloge appareil/serveur mesuré et corrigé (Date.now()).
+   ====================================================================== */
+window.IeppSyncCore = (function(){
+  var DBN = 'iepp_sync_v1', LSK = 'iepp_sync_queue_v1';
+  var Q = {};                 /* fullKey -> {op, ver, ts, tries, state, kind, err, recovered} */
+  var JOURNAL = [];           /* {t, lv, k, m} */
+  var CLOUDLOG = [];          /* copie des messages console « [Cloud] » (rapport d'incident) */
+  var skew = 0, skewRtt = 1e9, skewApplied = false, skewTs = 0;
+  var lastOk = 0, isBusy = false, inflight = 0;
+  var db = null, persistTimer = null, retryTimer = null, retryDelay = 60000, ready = null;
+  var origNow = Date.now.bind(Date);
+
+  function nowMs(){ return origNow() + (skewApplied ? skew : 0); }
+  function opId(){ return 'op_' + origNow().toString(36) + '_' + Math.random().toString(36).slice(2, 8); }
+  function cnt(){
+    var c = { pending:0, failed:0, conflict:0, deferred:0, total:0 };
+    Object.keys(Q).forEach(function(k){ var s = Q[k].state || 'pending'; if (c[s] != null) c[s]++; c.total++; });
+    return c;
+  }
+
+  /* ---------- journal ---------- */
+  function log(lv, k, m){
+    try {
+      JOURNAL.push({ t: nowMs(), lv: lv, k: k || '', m: String(m || '').slice(0, 240) });
+      if (JOURNAL.length > 300) JOURNAL.splice(0, JOURNAL.length - 300);
+      schedulePersist();
+    } catch(e){}
+  }
+  try {
+    ['log', 'warn', 'error'].forEach(function(m){
+      var o = console[m]; if (typeof o !== 'function') return;
+      console[m] = function(){
+        try {
+          var a = arguments[0];
+          if (typeof a === 'string' && a.indexOf('[Cloud]') >= 0) {
+            var rest = Array.prototype.slice.call(arguments, 1).map(function(x){ try { return (x && x.message) ? x.message : String(x); } catch(e){ return ''; } }).join(' ');
+            CLOUDLOG.push(new Date(origNow()).toISOString().slice(11, 19) + ' ' + m + ' ' + a.replace(/%c/g, '').slice(0, 160) + (rest ? ' ' + rest.slice(0, 120) : ''));
+            if (CLOUDLOG.length > 80) CLOUDLOG.shift();
+          }
+        } catch(e){}
+        return o.apply(this, arguments);
+      };
+    });
+  } catch(e){}
+
+  /* ---------- persistance : IndexedDB (principal) + localStorage (secours léger) ---------- */
+  function idbOpen(){
+    return new Promise(function(res){
+      try {
+        if (!window.indexedDB) return res(null);
+        var rq = indexedDB.open(DBN, 1);
+        rq.onupgradeneeded = function(){ try { rq.result.createObjectStore('kv'); } catch(e){} };
+        rq.onsuccess = function(){ res(rq.result); };
+        rq.onerror = function(){ res(null); };
+        rq.onblocked = function(){ res(null); };
+      } catch(e){ res(null); }
+    });
+  }
+  function idbGet(k){
+    return new Promise(function(res){
+      if (!db) return res(null);
+      try { var r = db.transaction('kv', 'readonly').objectStore('kv').get(k); r.onsuccess = function(){ res(r.result == null ? null : r.result); }; r.onerror = function(){ res(null); }; }
+      catch(e){ res(null); }
+    });
+  }
+  function idbPut(k, v){
+    try { if (db) db.transaction('kv', 'readwrite').objectStore('kv').put(v, k); } catch(e){}
+  }
+  function persistNow(){
+    persistTimer = null;
+    try { idbPut('queue', Q); idbPut('journal', JOURNAL); } catch(e){}
+    try { localStorage.setItem(LSK, JSON.stringify(Q)); } catch(e){}
+  }
+  function schedulePersist(){ if (!persistTimer) persistTimer = setTimeout(persistNow, 250); }
+  function mergeLoaded(src, recovered){
+    if (!src || typeof src !== 'object') return;
+    Object.keys(src).forEach(function(k){
+      var e = src[k]; if (!e || typeof e !== 'object') return;
+      if (!Q[k]) { Q[k] = Object.assign({}, e, { recovered: !!recovered, state: (e.state === 'conflict' || e.state === 'failed') ? e.state : 'pending' }); }
+    });
+  }
+  ready = idbOpen().then(function(d){
+    db = d;
+    return Promise.all([idbGet('queue'), idbGet('journal')]);
+  }).then(function(r){
+    mergeLoaded(r && r[0], true);
+    try { mergeLoaded(JSON.parse(localStorage.getItem(LSK) || 'null'), true); } catch(e){}
+    if (r && Array.isArray(r[1]) && r[1].length) JOURNAL = r[1].concat(JOURNAL).slice(-300);
+    var c = cnt();
+    if (c.total) log('info', '', c.total + ' opération(s) non confirmée(s) récupérée(s) de la session précédente');
+    notify();
+  }).catch(function(){});
+
+  window.addEventListener('pagehide', function(){ persistNow(); });
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) persistNow(); });
+
+  /* ---------- statut ---------- */
+  function statusInfo(label){
+    var c = cnt(), off = (typeof navigator !== 'undefined' && navigator.onLine === false);
+    if (c.failed + c.conflict > 0) return { ok:false, txt:'⚠ ' + (c.failed + c.conflict) + ' non synchronisé(s)' + (c.pending + c.deferred ? ' · ' + (c.pending + c.deferred) + ' en attente' : ''), color:'#E63946' };
+    if (off && c.total) return { ok:false, txt:'Hors ligne — ' + c.total + ' en attente', color:'#E63946' };
+    if (c.pending + c.deferred > 0) return { ok:false, txt:c.pending + c.deferred + ' en attente d\'envoi', color:'#F4A261' };
+    return { ok:true, txt:label || 'Synchronisé', color:'#2A9D8F' };
+  }
+  function notify(){
+    try {
+      if (isBusy) return;
+      var s = statusInfo();
+      if (typeof window.updateSyncBadge === 'function') window.updateSyncBadge(s.txt, s.color);
+      document.dispatchEvent(new CustomEvent('iepp-sync-change'));
+    } catch(e){}
+  }
+
+  /* ---------- cycle de vie d'une opération ---------- */
+  var retrying = null;
+  function touch(fullKey){
+    var e = Q[fullKey];
+    if (!e) e = Q[fullKey] = { ver:0, tries:0 };
+    e.ver = (e.ver || 0) + 1; e.ts = nowMs(); e.kind = 'push'; e.recovered = false;
+    if (retrying !== fullKey || !e.op) e.op = opId();     /* un réessai conserve son operation_id */
+    e.state = 'pending'; delete e.err;
+    schedulePersist(); notify();
+    return e.op;
+  }
+  function ver(fullKey){ return Q[fullKey] ? (Q[fullKey].ver || 0) : 0; }
+  function okPush(fullKey, v0){
+    var e = Q[fullKey]; lastOk = nowMs();
+    if (!e) { notify(); return; }
+    if ((e.ver || 0) !== (v0 || 0)) return;               /* une modification plus récente attend encore son envoi */
+    delete Q[fullKey]; retryDelay = 60000;
+    log('ok', fullKey, 'confirmé par le serveur');
+    schedulePersist(); notify();
+  }
+  function fail(fullKey, err, kind){
+    var msg = String((err && (err.message || err.code)) || err || 'erreur').slice(0, 200);
+    var conflict = !!(err && err.code === 'IEPP_CONFLICT');
+    var e = Q[fullKey];
+    if (!e) e = Q[fullKey] = { ver:0, op:opId(), ts:nowMs(), kind: kind || 'pull', tries:0 };
+    e.state = conflict ? 'conflict' : 'failed'; e.err = msg; e.tries = (e.tries || 0) + 1; e.lastTry = nowMs();
+    log(conflict ? 'conflict' : 'err', fullKey, msg);
+    schedulePersist(); notify(); scheduleRetry();
+  }
+  function defer(fullKey){
+    var e = Q[fullKey];
+    if (!e) e = Q[fullKey] = { ver:0, op:opId(), ts:nowMs(), kind:'pull', tries:0 };
+    if (e.state === 'pending' || !e.state) { /* déjà en attente d'envoi */ } else if (e.state !== 'failed' && e.state !== 'conflict') e.state = 'deferred';
+    if (!e.state) e.state = 'deferred';
+    e.err = 'modifiée pendant la synchronisation — fusion reportée';
+    log('warn', fullKey, e.err);
+    schedulePersist(); notify(); scheduleRetry(20000);
+  }
+  function pullBegin(fullKey){
+    var e = Q[fullKey];
+    if (e && e.kind === 'pull' && !(e.ver > 0)) { delete Q[fullKey]; }
+  }
+
+  /* ---------- réessais automatiques (ouverture, retour réseau, minuterie) ---------- */
+  function scheduleRetry(ms){
+    if (retryTimer) return;
+    retryTimer = setTimeout(function(){ retryTimer = null; retryAll(); }, ms || retryDelay);
+    retryDelay = Math.min(retryDelay * 2, 300000);
+  }
+  function retryKey(fullKey){
+    var e = Q[fullKey]; if (!e) return false;
+    try {
+      if (e.kind === 'pull' && !(e.ver > 0)) { if (window.__cloudResyncScope) window.__cloudResyncScope(); return true; }
+      var raw = localStorage.getItem(fullKey);
+      if (raw == null) { /* plus de valeur locale : rien à envoyer */ delete Q[fullKey]; schedulePersist(); notify(); return false; }
+      retrying = fullKey;
+      try { window.__cloudPush(fullKey, JSON.parse(raw)); } finally { retrying = null; }
+      return true;
+    } catch(x){ log('err', fullKey, 'réessai impossible : ' + x.message); return false; }
+  }
+  function retryAll(){
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) { scheduleRetry(); return; }
+    if (typeof window.__cloudPush !== 'function' || !window.__iepCloudReady || !window.__iepCloudReady()) { scheduleRetry(15000); return; }
+    var pullNeeded = false;
+    Object.keys(Q).forEach(function(k){
+      var e = Q[k]; if (!e || (e.state === 'pending' && !e.recovered && !(e.tries > 0))) return;
+      if (e.kind === 'pull' && !(e.ver > 0)) pullNeeded = true; else retryKey(k);
+    });
+    if (pullNeeded && window.__cloudResyncScope) { try { window.__cloudResyncScope(); } catch(x){} }
+  }
+  window.addEventListener('online', function(){ setTimeout(retryAll, 2500); });
+
+  /* reprise des opérations de la session précédente, une fois le cloud prêt */
+  function resume(){
+    ready.then(function(){
+      var n = 0;
+      Object.keys(Q).forEach(function(k){
+        var e = Q[k]; if (!e || !e.recovered) return;
+        e.recovered = false;
+        if (e.kind === 'push' || e.ver > 0) { if (retryKey(k)) n++; }
+      });
+      if (n) { log('info', '', n + ' opération(s) reprise(s) automatiquement'); try { if (typeof toast === 'function') toast(n + ' modification(s) non envoyée(s) reprise(s) automatiquement', 'info'); } catch(e){} }
+    });
+  }
+
+  /* déconnexion : laisse aux envois en cours le temps d'aboutir AVANT de fermer la session */
+  function beforeLogout(cb){
+    var t0 = origNow(), done = false;
+    function fin(){ if (done) return; done = true; try { cb(); } catch(e){} }
+    try { retryAll(); } catch(e){}
+    (function wait(){
+      var c = cnt();
+      if ((inflight <= 0 && c.pending + c.failed + c.conflict + c.deferred === 0) || origNow() - t0 > 6000) {
+        if (c.total) log('warn', '', 'déconnexion avec ' + c.total + ' opération(s) non confirmée(s) — conservées dans la file');
+        return fin();
+      }
+      setTimeout(wait, 200);
+    })();
+  }
+  function track(p){ inflight++; var d = function(){ inflight--; }; Promise.resolve(p).then(d, d); return p; }
+
+  /* ---------- horloge : heure du serveur (en-tête HTTP Date) ---------- */
+  function noteServerDate(h, t0, t1){
+    try {
+      if (!h) return;
+      var s = Date.parse(h); if (isNaN(s)) return;
+      var rtt = t1 - t0; if (rtt < 0 || rtt >= skewRtt) return;
+      skewRtt = rtt; skewTs = origNow();
+      skew = (s + 500) - (t0 + rtt / 2);
+      if (Math.abs(skew) > 60000 && !skewApplied) {
+        skewApplied = true;
+        Date.now = function(){ return origNow() + skew; };
+        log('warn', '', 'horloge de l\'appareil décalée de ' + Math.round(skew / 1000) + ' s par rapport au serveur — corrigée pour les horodatages');
+        try { if (typeof toast === 'function') toast('L\'heure de cet appareil est décalée de ' + Math.round(Math.abs(skew) / 60000) + ' min. Les horodatages sont corrigés automatiquement ; réglez tout de même l\'heure de l\'appareil.', 'error'); } catch(e){}
+      } else if (skewApplied) { /* mise à jour douce */ }
+    } catch(e){}
+  }
+
+  return {
+    touch: touch, ver: ver, okPush: okPush, fail: fail, defer: defer, pullBegin: pullBegin,
+    resume: resume, retryAll: retryAll, retryKey: retryKey, beforeLogout: beforeLogout, track: track,
+    statusInfo: statusInfo, notify: notify, log: log, noteServerDate: noteServerDate,
+    busy: function(b){ isBusy = !!b; if (!b) notify(); },
+    isClean: function(){ return cnt().total === 0; },
+    counts: cnt,
+    queue: function(){ return Object.keys(Q).map(function(k){ return Object.assign({ key:k }, Q[k]); }); },
+    journal: function(){ return JOURNAL.slice(); },
+    cloudLog: function(){ return CLOUDLOG.slice(); },
+    clock: function(){ return { skew: skew, applied: skewApplied, measured: skewRtt < 1e9 }; },
+    lastOk: function(){ return lastOk; },
+    ready: ready,
+    now: nowMs
+  };
+})();
+
+
 (function initCloudSync(){
   if (!SUPABASE_URL || !SUPABASE_KEY || SUPABASE_URL.indexOf('supabase.co')<0) {
     console.warn('[Cloud] Supabase non configuré — mode local uniquement.');
@@ -2931,6 +3207,13 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
     el.style.opacity = '1';
     el.innerHTML = '<span style="width:9px;height:9px;border-radius:50%;background:'+color+'"></span>'+txt;
     try { if (window.updateSyncBadge) window.updateSyncBadge(txt, color); } catch(e){}
+  }
+
+  /* CORRECTIF §2.3 : « Synchronisé » n'est affiché que si TOUT est confirmé (rien en attente / échec / conflit) */
+  function syncDone(label){
+    var s = IeppSyncCore.statusInfo(label);
+    setStatus(s.txt, s.color);
+    if (!s.ok) setTimeout(function(){ var el = document.getElementById('cloud-status'); if (el && !IeppSyncCore.isClean()) el.style.opacity = '1'; }, 3400);
   }
 
   function keysForCurrentScope(){
@@ -2979,7 +3262,9 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
       else if (isJwt) { h['Authorization'] = 'Bearer ' + SUPABASE_KEY; }
       return h;
     }
+    var _t0 = new Date().getTime();
     var res = await fetch(url, Object.assign({}, opts, { headers: _hdr(true) }));
+    try { IeppSyncCore.noteServerDate(res.headers.get('Date'), _t0, new Date().getTime()); } catch(_){}
     /* 401 avec session : le jeton a pu expirer -> on le rafraîchit puis on réessaie une fois */
     if (res.status === 401 && __sbAccess){
       var _ref = await __authRefresh();
@@ -3082,18 +3367,55 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
   }
   window.__cloudAuthUpdatePassword = cloudAuthUpdatePassword;
 
+  /* CORRECTIF §2.1 — CONTRÔLE DE VERSION (écriture conditionnelle).
+     Chaque lecture mémorise le « jeton » de version de la ligne (updated_at). Chaque écriture n'est acceptée que si la ligne
+     n'a pas changé depuis (PATCH ... updated_at=eq.<jeton>). Sinon : conflit détecté, rien n'est écrasé, la clé est
+     relue, refusionnée et renvoyée. Plus jamais d'écriture « à l'aveugle » par-dessus un autre appareil. */
+  var __tok = {};
+  function __ieppConflict(fullKey){ var e = new Error('Conflit de version : la donnée a été modifiée ailleurs (' + fullKey + ')'); e.code = 'IEPP_CONFLICT'; return e; }
   async function restSet(fullKey, jsonStr){
-    var url = SUPABASE_URL + '/rest/v1/' + CLOUD_TABLE + '?on_conflict=key';
-    var res = await restFetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({ key: fullKey, json: jsonStr, updated_at: new Date().toISOString() })
-    });
+    var base = SUPABASE_URL + '/rest/v1/' + CLOUD_TABLE;
+    var stamp = new Date(Date.now()).toISOString();
+    if (window.__ieppNoCAS) {   /* interrupteur de secours : ancien comportement (upsert) */
+      var url0 = base + '?on_conflict=key';
+      var res0 = await restFetch(url0, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ key: fullKey, json: jsonStr, updated_at: stamp }) });
+      if (!res0.ok){ var t0=''; try{ t0 = await res0.text(); }catch(e){} throw new Error('REST ' + res0.status + (t0?(' '+t0.slice(0,140)):'')); }
+      return true;
+    }
+    var tok = __tok[fullKey];
+    if (tok === undefined) { await restGet(fullKey); tok = __tok[fullKey]; }   /* jamais d'écriture sans avoir lu l'état courant */
+    var res;
+    if (tok === '__absent__') {
+      res = await restFetch(base + '?on_conflict=key&select=updated_at', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Prefer': 'resolution=ignore-duplicates,return=representation' },
+        body: JSON.stringify({ key: fullKey, json: jsonStr, updated_at: stamp }) });
+    } else {
+      var flt = (tok === '__null__') ? 'updated_at=is.null' : 'updated_at=eq.' + encodeURIComponent(tok);
+      res = await restFetch(base + '?key=eq.' + encodeURIComponent(fullKey) + '&' + flt + '&select=updated_at', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+        body: JSON.stringify({ json: jsonStr, updated_at: stamp }) });
+    }
     if (!res.ok){ var t=''; try{ t = await res.text(); }catch(e){} throw new Error('REST ' + res.status + (t?(' '+t.slice(0,140)):'')); }
+    var arr = null; try { arr = await res.json(); } catch(e){}
+    if (!Array.isArray(arr) || !arr.length) {
+      /* Aucune ligne modifiée : soit un autre appareil est passé avant nous (conflit), soit une règle RLS refuse la mise à jour */
+      var before = tok;
+      try { await restGet(fullKey); } catch(e){}
+      if (__tok[fullKey] === before && before !== '__absent__') throw new Error('REST 403 permission denied (RLS : mise à jour refusée)');
+      throw __ieppConflict(fullKey);
+    }
+    __tok[fullKey] = (arr[0].updated_at == null) ? '__null__' : String(arr[0].updated_at);
     return true;
   }
   var _keyIsJwt = /^eyJ/.test(SUPABASE_KEY);   /* true = ancienne clé JWT ; false = clé publiable sb_... */
   async function sbSet(fullKey, jsonStr){
+    var v0 = IeppSyncCore.ver(fullKey);
+    try {
+      var p = sbSetRaw(fullKey, jsonStr); IeppSyncCore.track(p); await p;
+      IeppSyncCore.okPush(fullKey, v0);
+    } catch(e){ IeppSyncCore.fail(fullKey, e, 'push'); throw e; }
+  }
+  async function sbSetRaw(fullKey, jsonStr){
     /* Clé publiable (sb_...) : on passe DIRECTEMENT par REST (accès fiable via apikey).
        Clé JWT : on utilise le SDK, avec repli REST en cas d'échec. */
     if (sb && _keyIsJwt) {
@@ -3192,7 +3514,10 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
     } catch(e){
       /* Secours réseau : on ne détruit jamais la copie locale, mais le résultat
          doit rester observable par l'appelant pour pouvoir confirmer une création. */
-      try { return await realPush(fullKey, val); } catch(_) { return false; }
+      /* CORRECTIF : lecture impossible ou conflit -> on N'ÉCRASE PAS le cloud avec la copie locale ;
+         l'opération reste dans la file persistante et sera rejouée avec une nouvelle fusion. */
+      try { IeppSyncCore.fail(fullKey, e, 'push'); } catch(_){}
+      return false;
     }
   }
   function isUsersKey(fullKey){ return fullKey === usersFullKey() || fullKey === usersDelFullKey(); }
@@ -3225,7 +3550,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
       }
       await sbSet(fullKey, JSON.stringify(merged));
       try{ localStorage.setItem(fullKey, JSON.stringify(merged)); }catch(e){}
-    } catch(e){ realPush(fullKey, val); }
+    } catch(e){ try { IeppSyncCore.fail(fullKey, e, 'push'); } catch(_){} }
   }
   window.__cloudFetchRegistry = async function(){
     try {
@@ -3325,12 +3650,22 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
           var v = st.next; st.next = null; var ws = st.waiters; st.waiters = [];
           var ok = false;
           try{
-            var merged = await mergedValueFor(fullKey, base, v);
-            await sbSet(fullKey, JSON.stringify(merged));
+            var _att = 0;
+            for (;;) {
+              try {
+                var merged = await mergedValueFor(fullKey, base, v);
+                await sbSet(fullKey, JSON.stringify(merged));
+                break;
+              } catch(ce) {
+                /* écriture simultanée d'un autre appareil : on relit, on refusionne, on renvoie (aucune perte) */
+                if (ce && ce.code === 'IEPP_CONFLICT' && ++_att < 5) { IeppSyncCore.log('conflict', fullKey, 'écriture simultanée détectée — nouvelle fusion (' + _att + ')'); continue; }
+                throw ce;
+              }
+            }
             console.log('[Cloud] ✔ poussé (fusionné)', fullKey);
             ok = true;
           }catch(e){
-            console.warn('[Cloud] envoi fusionné reporté (réessai auto)', fullKey, e);
+            console.warn('[Cloud] envoi fusionné reporté (réessai auto)', fullKey, e); try { IeppSyncCore.fail(fullKey, e, 'push'); } catch(_){}
             setTimeout(function(){ try{ var raw=localStorage.getItem(fullKey); if(raw!=null) window.__cloudPush(fullKey, JSON.parse(raw)); }catch(_){} }, 20000);
           }
           ws.forEach(function(r){ r(ok); });
@@ -3341,7 +3676,9 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
   }
   window.__cpsMergedPush = function(fullKey, val){ return mergedPush(fullKey, val); };
   window.__cloudMergedPush = window.__cpsMergedPush;
+  window.__iepCloudReady = function(){ return cloudReady; };
   window.__cloudPush = function(fullKey, val){
+    try { IeppSyncCore.touch(fullKey); } catch(_){}   /* opération datée + operation_id, persistée tant que le serveur n'a pas confirmé */
     if (!cloudReady){
       pendingPushes.set(fullKey, val);
       return Promise.resolve({queued:true, ok:false});
@@ -3375,14 +3712,19 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
      (sinon la suppression « revient » et l'ajout « disparaît ») : la clé sera refusionnée à la synchro suivante. */
   function lsGuardSet(fullKey, snapshot, value){
     var cur = localStorage.getItem(fullKey);
-    if (cur !== snapshot){ console.log('[Cloud] clé modifiée pendant la synchro, fusion reportée :', fullKey); return false; }
+    if (cur !== snapshot){ console.log('[Cloud] clé modifiée pendant la synchro, fusion reportée :', fullKey); try { IeppSyncCore.defer(fullKey); } catch(_){} return false; }
     localStorage.setItem(fullKey, value); return true;
   }
   async function pullAll(){
+    IeppSyncCore.busy(true);
+    try { return await __pullAllCore(); } finally { IeppSyncCore.busy(false); }
+  }
+  async function __pullAllCore(){
     setStatus('Synchronisation…', '#F4A261');
     const keys = keysForCurrentScope();
     await Promise.allSettled(keys.map(async function(k){
       const fullKey = storeKey(k);
+      try { IeppSyncCore.pullBegin(fullKey); } catch(_){}
       try {
         if (isUsersKey(fullKey)) { try { await usersPushChain; } catch(e){} }
         const cloudJson = await withTimeout(sbGet(fullKey), 15000, fullKey);
@@ -3467,7 +3809,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
         } else {
           if (localRaw !== null){ await withTimeout(sbSet(fullKey, localRaw), 15000, fullKey); }   /* amorçage */
         }
-      } catch(e){ console.warn('[Cloud] sync clé échouée', fullKey, e); }
+      } catch(e){ console.warn('[Cloud] sync clé échouée', fullKey, e); try { IeppSyncCore.fail(fullKey, e, 'pull'); } catch(_){} }
     }));
   }
 
@@ -3501,8 +3843,9 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
       await pullAll();
       cloudReady = true;
       flushPending();
+      try { IeppSyncCore.resume(); } catch(_){}
       refreshAfterPull();
-      setStatus('Synchronisé', '#2A9D8F');
+      syncDone();
       console.log('%c[Cloud] ✔ Supabase actif (cloudReady=true)', 'color:#2A9D8F;font-weight:bold');
       setTimeout(function(){ const el=document.getElementById('cloud-status'); if(el) el.style.opacity='0'; }, 3200);
     } catch(e){
@@ -3515,8 +3858,9 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
         await pullAll();          /* sbGet/sbSet basculent automatiquement en REST */
         cloudReady = true;
         flushPending();
+        try { IeppSyncCore.resume(); } catch(_){}
         refreshAfterPull();
-        setStatus('Synchronisé (mode direct)', '#2A9D8F');
+        syncDone('Synchronisé (mode direct)');
         console.log('%c[Cloud] ✔ Actif en mode REST direct', 'color:#2A9D8F;font-weight:bold');
         setTimeout(function(){ const el=document.getElementById('cloud-status'); if(el) el.style.opacity='0'; }, 3200);
       } catch(e2){
@@ -3585,7 +3929,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
     setStatus('Synchronisation…', '#F4A261');
     try { await pullAll(); } catch(e){}
     refreshAfterPull();
-    setStatus('Synchronisé', '#2A9D8F');
+    syncDone();
     setTimeout(function(){ const el=document.getElementById('cloud-status'); if(el) el.style.opacity='0'; }, 2800);
   };
 
@@ -3594,7 +3938,7 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
     setStatus('Synchronisation…', '#F4A261');
     try { await pullAll(); } catch(e){}
     refreshAfterPull();
-    setStatus('Synchronisé', '#2A9D8F');
+    syncDone();
     setTimeout(function(){ const el=document.getElementById('cloud-status'); if(el) el.style.opacity='0'; }, 2800);
   };
 
@@ -3622,14 +3966,18 @@ const CLOUD_COLLECTION = CLOUD_TABLE;
      si le SDK ne charge pas — ex. un navigateur qui bloque le CDN. Nécessite seulement
      que le domaine Supabase soit joignable et la policy de lecture ouverte. */
   async function restGet(fullKey){
-    try {
-      var url = SUPABASE_URL + '/rest/v1/app_data?select=json&key=eq.' + encodeURIComponent(fullKey);
-      var res = await restFetch(url, { headers: {} });
-      if (!res.ok) return null;
-      var arr = await res.json();
-      if (Array.isArray(arr) && arr.length && arr[0] && arr[0].json != null) return arr[0].json;
-      return null;
-    } catch(e){ return null; }
+    /* CORRECTIF : une lecture en erreur (réseau, 401, 500…) LÈVE une exception au lieu de renvoyer « null »
+       (qui était interprété comme « le cloud est vide » et déclenchait une réécriture par la copie locale). */
+    var url = SUPABASE_URL + '/rest/v1/app_data?select=json,updated_at&key=eq.' + encodeURIComponent(fullKey);
+    var res = await restFetch(url, { headers: {} });
+    if (!res.ok) { var t = ''; try { t = (await res.text()).slice(0, 120); } catch(e){} throw new Error('REST GET ' + res.status + (t ? ' ' + t : '')); }
+    var arr = await res.json();
+    if (Array.isArray(arr) && arr.length && arr[0]) {
+      __tok[fullKey] = (arr[0].updated_at == null) ? '__null__' : String(arr[0].updated_at);
+      return arr[0].json != null ? arr[0].json : null;
+    }
+    __tok[fullKey] = '__absent__';
+    return null;
   }
 
   /* Vérifie un compte précis dans Supabase après sa sauvegarde.
@@ -4719,7 +5067,9 @@ async function doLogin() {
 }
 function logout() {
   logAction('logout', 'Déconnexion');
-  try { if (typeof window.__cloudAuthSignOut === 'function') window.__cloudAuthSignOut(); } catch(e){}
+  /* CORRECTIF §8 : on laisse les envois en cours aboutir AVANT de fermer la session cloud ; sinon la file reste conservée */
+  try { IeppSyncCore.beforeLogout(function(){ try { if (typeof window.__cloudAuthSignOut === 'function') window.__cloudAuthSignOut(); } catch(e){} }); }
+  catch(e){ try { if (typeof window.__cloudAuthSignOut === 'function') window.__cloudAuthSignOut(); } catch(_){} }
   state.user = null;
   localStorage.removeItem(KEY+'current_user');
   document.getElementById('app').classList.remove('active');
@@ -5962,6 +6312,8 @@ function ecoleSave(id) {
     logAction('update-school', `Modification école : ${data.nom}`);
     toast('École modifiée', 'success');
   } else {
+    const _dupE = (typeof window.ieppFindEcole === 'function') ? window.ieppFindEcole(data.nom) : null;
+    if (_dupE && !confirm('Une école très proche existe déjà : « ' + _dupE.nom + ' ».\n\nOK = créer quand même une NOUVELLE école\nAnnuler = ne rien créer')) { toast('Création annulée (doublon évité)', 'info'); return; }
     state.ecoles.push({ id:'e'+uid(), ...data });
     logAction('create-school', `Création école : ${data.nom}`);
     toast('École créée', 'success');
@@ -21102,6 +21454,42 @@ function exportRowsToExcel(rows, baseName, sheetName) {
   toast('Export CSV (compatible Excel) téléchargé','success');
 }
 
+/* ===== CORRECTIF §10 — Import : aperçu et confirmation AVANT toute écriture ; jamais de remplacement d'une collection entière ===== */
+function __iepNorm(s){ return String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,' ').trim().toLowerCase(); }
+function __iepImportGate(file, rows, onRows){
+  try {
+    if (!Array.isArray(rows) || !rows.length || typeof openModal !== 'function') { onRows(rows); return; }
+    var first = (rows[0] && typeof rows[0] === 'object') ? rows[0] : {};
+    var allCols = Object.keys(first), cols = allCols.slice(0, 10);
+    var seen = {}, dup = 0;
+    rows.forEach(function(r){ var s = ''; try { s = JSON.stringify(r); } catch(e){} if (s) { if (seen[s]) dup++; else seen[s] = 1; } });
+    var head = cols.map(function(c){ return '<th>' + escapeHtml(c) + '</th>'; }).join('');
+    var body = rows.slice(0, 5).map(function(r){ return '<tr>' + cols.map(function(c){ var v = r[c]; return '<td style="font-size:11px">' + escapeHtml(String(v == null ? '' : v).slice(0, 40)) + '</td>'; }).join('') + '</tr>'; }).join('');
+    window.__iepImportPending = { rows: rows, onRows: onRows };
+    openModal('Aperçu avant import',
+      '<p style="font-size:13px;margin:0 0 8px"><b>' + escapeHtml((file && file.name) || 'fichier') + '</b> — <b>' + rows.length + '</b> ligne(s), <b>' + allCols.length + '</b> colonne(s)'
+      + (dup ? ' · <span style="color:#B45309">' + dup + ' ligne(s) identique(s) dans le fichier</span>' : '') + '</p>'
+      + '<p style="font-size:12px;color:#555;margin:0 0 8px">Colonnes détectées : ' + escapeHtml(allCols.join(' · ').slice(0, 400)) + '</p>'
+      + '<div class="table-wrap" style="max-height:200px;overflow:auto"><table><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table></div>'
+      + '<p style="font-size:12px;color:#555;margin:10px 0 0">Rien n\'est enregistré tant que vous n\'avez pas confirmé. Les fiches déjà présentes sont mises à jour (jamais écrasées en bloc) et les cas ambigus vous sont soumis.</p>',
+      '<button class="btn btn-ghost" onclick="__iepImportCancel()">Annuler</button><button class="btn btn-primary" onclick="__iepImportGo()">✔ Importer ' + rows.length + ' ligne(s)</button>');
+  } catch(e) { console.warn('import gate', e); onRows(rows); }
+}
+function __iepImportGo(){
+  var p = window.__iepImportPending; window.__iepImportPending = null;
+  try { closeModal(); } catch(e){}
+  if (p) { try { p.onRows(p.rows); } catch(e){ console.error(e); toast('Erreur pendant l\'import','error'); } }
+}
+function __iepImportCancel(){ window.__iepImportPending = null; try { closeModal(); } catch(e){} toast('Import annulé — aucune donnée modifiée','info'); }
+function __iepImportReport(title, st){
+  var li = function(label, n, col){ return n ? '<li style="color:' + (col || '#111') + '"><b>' + n + '</b> ' + label + '</li>' : ''; };
+  var html = '<ul style="font-size:13px;line-height:1.8;margin:0 0 8px 18px">'
+    + li('ligne(s) ajoutée(s)', st.added, '#2A9D8F') + li('fiche(s) existante(s) mise(s) à jour', st.updated, '#1F6FB2')
+    + li('ligne(s) déjà à jour (aucun changement)', st.unchanged) + li('cas ambigu(s) ignoré(s) — à vérifier manuellement', st.skipped, '#B45309')
+    + li('ligne(s) rejetée(s)', (st.errors || []).length, '#B91C1C') + '</ul>';
+  if (st.errors && st.errors.length) html += '<div style="font-size:11px;color:#B91C1C;max-height:140px;overflow:auto">' + st.errors.slice(0, 30).map(function(x){ return '• ' + escapeHtml(x); }).join('<br>') + (st.errors.length > 30 ? '<br>… ' + (st.errors.length - 30) + ' autre(s)' : '') + '</div>';
+  if (typeof openModal === 'function') openModal(title, html, '<button class="btn btn-primary" onclick="closeModal()">Fermer</button>');
+}
 function importRowsFromFile(ev, onRows) {
   const file = ev.target.files && ev.target.files[0];
   if (!file) return;
@@ -21120,7 +21508,7 @@ function importRowsFromFile(ev, onRows) {
         const wb = XLSX.read(e.target.result, {type:'array'});
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
-        onRows(rows);
+        __iepImportGate(file, rows, onRows);
       } catch(err) { console.error(err); toast('Erreur de lecture du fichier Excel','error'); }
       reset();
     };
@@ -21134,7 +21522,7 @@ function importRowsFromFile(ev, onRows) {
     reader.onload = (e) => {
       try {
         const rows = parseCSV(e.target.result);
-        onRows(rows);
+        __iepImportGate(file, rows, onRows);
       } catch(err) { console.error(err); toast('Erreur de lecture du CSV','error'); }
       reset();
     };
@@ -21801,25 +22189,38 @@ function fecPdfView() {
 }
 function importEcolesExcel(ev) {
   importRowsFromFile(ev, (rows) => {
-    let n = 0;
-    rows.forEach(r => {
+    const norm = __iepNorm, byCode = {}, byNom = {};
+    state.ecoles.forEach(e => { if (norm(e.code)) byCode[norm(e.code)] = e; if (norm(e.nom)) byNom[norm(e.nom)] = e; });
+    const st = { added:0, updated:0, unchanged:0, skipped:0, errors:[] };
+    rows.forEach((r, i) => {
       const nom = r['Nom'] || r['nom'] || r['NOM'];
-      if (!nom) return;
-      state.ecoles.push({
-        id: 'e'+Date.now()+'_'+(n++),
-        code: r['Code'] || r['code'] || r['Code école'] || '',
-        nom: nom,
-        commune: r['Commune'] || r['commune'] || '',
-        directeur: r['Directeur'] || r['directeur'] || '',
-        effectif: +(r['Effectif'] || r['effectif'] || 0),
-        classes: +(r['Classes'] || r['classes'] || 0),
-        statut: r['Statut'] || r['statut'] || 'Public'
-      });
+      if (!nom) { st.errors.push('Ligne ' + (i + 2) + ' : nom de l\'école manquant'); return; }
+      const rec = {
+        code: String(r['Code'] || r['code'] || r['Code école'] || '').trim(), nom: String(nom).trim(),
+        commune: String(r['Commune'] || r['commune'] || '').trim(), directeur: String(r['Directeur'] || r['directeur'] || '').trim(),
+        statut: String(r['Statut'] || r['statut'] || '').trim()
+      };
+      const ef = r['Effectif'] || r['effectif'], cl = r['Classes'] || r['classes'];
+      if (ef !== undefined && ef !== '' && !isNaN(+ef)) rec.effectif = +ef;
+      if (cl !== undefined && cl !== '' && !isNaN(+cl)) rec.classes = +cl;
+      /* correspondance CERTAINE : même code école, sinon même nom normalisé -> on met à jour la fiche existante */
+      const target = (rec.code && byCode[norm(rec.code)]) || byNom[norm(rec.nom)] || null;
+      if (target) {
+        let ch = false;
+        Object.keys(rec).forEach(k => { const v = rec[k]; if (v === '' || v == null) return; if (String(target[k] == null ? '' : target[k]) !== String(v)) { target[k] = v; ch = true; } });
+        if (ch) { target._upd = Date.now(); st.updated++; } else st.unchanged++;
+        return;
+      }
+      const o = { id: 'e' + uid(), code: rec.code, nom: rec.nom, commune: rec.commune, directeur: rec.directeur, effectif: rec.effectif || 0, classes: rec.classes || 0, statut: rec.statut || 'Public' };
+      state.ecoles.push(o);
+      if (norm(o.code)) byCode[norm(o.code)] = o; byNom[norm(o.nom)] = o;
+      st.added++;
     });
     save('ecoles', state.ecoles);
-    logAction('import-ecoles', `Importation de ${n} écoles`);
-    toast(`${n} école(s) importée(s)`,'success');
+    logAction('import-ecoles', `Import écoles : ${st.added} ajoutée(s), ${st.updated} mise(s) à jour, ${st.errors.length} rejetée(s)`);
+    toast(`${st.added} école(s) ajoutée(s) · ${st.updated} mise(s) à jour`, 'success');
     renderFichierEcolesBody();
+    __iepImportReport('Rapport d\'import — écoles', st);
   });
 }
 
@@ -21839,7 +22240,7 @@ function importEffectifsExcel(ev){
              || wb.SheetNames[0];
       var rows=XLSX.utils.sheet_to_json(wb.Sheets[shE],{defval:''});
       var annee=(typeof statAnneeCourante==='function'?statAnneeCourante():'2026-2027');
-      var out=[], n=0;
+      var norm=__iepNorm, parsed=[];
       rows.forEach(function(r){
         var ecole=String(r['École']||r['Ecole']||r['ecole']||r['ECOLE']||r['Nom']||'').trim();
         var niveau=String(r['Niveau']||r['niveau']||'').trim();
@@ -21847,25 +22248,42 @@ function importEffectifsExcel(ev){
         var f=parseInt(r['Filles']||r['filles']||0,10)||0;
         if(!ecole||!niveau) return;
         if(g+f<=0) return;
-        out.push({id:'ef'+Date.now()+'_'+(n++),ecole:ecole,niveau:niveau,garcons:g,filles:f,total:g+f,annee:annee});
+        parsed.push({ecole:ecole,niveau:niveau,garcons:g,filles:f,total:g+f,annee:annee});
       });
-      if(!out.length){ toast("Aucune ligne valide. Colonnes attendues : École, Niveau, Garçons, Filles.",'error'); reset(); return; }
-      state.effectifs = out; save('effectifs', state.effectifs);
-      // Onglet CEPE éventuel -> examens
+      if(!parsed.length){ toast("Aucune ligne valide. Colonnes attendues : École, Niveau, Garçons, Filles.",'error'); reset(); return; }
+      /* CORRECTIF §10 : plus de remplacement de la collection entière — mise à jour par (école, niveau, année) + ajout du reste */
+      if(!confirm(parsed.length+" ligne(s) d'effectifs détectée(s).\n\nLes effectifs déjà présents NE SONT PAS remplacés : une ligne existante (même école, même niveau, même année) est mise à jour, les autres sont ajoutées.\n\nContinuer ?")){ toast('Import annulé — aucune donnée modifiée','info'); reset(); return; }
+      state.effectifs = state.effectifs || [];
+      var key=function(o){ return norm(o.ecole)+'|'+norm(o.niveau)+'|'+norm(o.annee); };
+      var cur={}; state.effectifs.forEach(function(o){ cur[key(o)]=o; });
+      var st={added:0,updated:0,unchanged:0,skipped:0,errors:[]};
+      parsed.forEach(function(rec){
+        var t=cur[key(rec)];
+        if(t){ if(+t.garcons!==rec.garcons||+t.filles!==rec.filles){ t.garcons=rec.garcons; t.filles=rec.filles; t.total=rec.total; t._upd=Date.now(); st.updated++; } else st.unchanged++; }
+        else { var o=Object.assign({id:'ef'+uid()},rec); state.effectifs.push(o); cur[key(o)]=o; st.added++; }
+      });
+      save('effectifs', state.effectifs);
+      // Onglet CEPE éventuel -> examens (mise à jour par session + centre)
       var shC = wb.SheetNames.find(function(n){return /cepe/i.test(n);});
       if(shC){
-        var rc=XLSX.utils.sheet_to_json(wb.Sheets[shC],{defval:''}); var exo=[], m=0;
+        var rc=XLSX.utils.sheet_to_json(wb.Sheets[shC],{defval:''}); var nEx=0, uEx=0;
+        state.examens = state.examens || [];
+        var exCur={}; state.examens.forEach(function(o){ exCur[norm(o.session)+'|'+norm(o.centre)]=o; });
         rc.forEach(function(r){
           var ecole=String(r['École']||r['Ecole']||r['ecole']||r['Nom']||'').trim();
           var ins=parseInt(r['Inscrits CEPE']||r['Inscrits']||r['inscrits']||0,10)||0;
           var adm=parseInt(r['Admis CEPE']||r['Admis']||r['admis']||0,10)||0;
           if(!ecole||ins<=0) return;
-          exo.push({id:'ex'+Date.now()+'_'+(m++),session:'CEPE '+(new Date().getFullYear()),centre:ecole,inscrits:ins,presents:ins,admis:adm,taux:Math.round(adm/ins*1000)/10});
+          var rec={session:'CEPE '+(new Date().getFullYear()),centre:ecole,inscrits:ins,presents:ins,admis:adm,taux:Math.round(adm/ins*1000)/10};
+          var t=exCur[norm(rec.session)+'|'+norm(rec.centre)];
+          if(t){ Object.assign(t,rec); t._upd=Date.now(); uEx++; }
+          else { var o=Object.assign({id:'ex'+uid()},rec); state.examens.push(o); exCur[norm(rec.session)+'|'+norm(rec.centre)]=o; nEx++; }
         });
-        if(exo.length){ state.examens=exo; save('examens',state.examens); }
+        if(nEx||uEx){ save('examens',state.examens); }
       }
-      if(typeof logAction==='function') logAction('import-effectifs','Import de '+out.length+' lignes d effectifs');
-      toast(out.length+" ligne(s) d'effectifs importée(s). Statistiques mises à jour.",'success');
+      if(typeof logAction==='function') logAction('import-effectifs','Import effectifs : '+st.added+' ajoutée(s), '+st.updated+' mise(s) à jour');
+      toast(st.added+" ligne(s) ajoutée(s), "+st.updated+" mise(s) à jour. Statistiques mises à jour.",'success');
+      try{ __iepImportReport("Rapport d'import — effectifs", st); }catch(_){}
       if(typeof navigate==='function') navigate('stats'); else if(typeof renderStats==='function') renderStats();
     }catch(err){ console.error(err); toast('Erreur de lecture du fichier Excel','error'); }
     reset();
@@ -22149,43 +22567,74 @@ function exportElevesExcel() {
 function importElevesExcel(event) {
   importRowsFromFile(event, (rows) => {
     if (!rows.length) { toast('Fichier vide','error'); return; }
-    let added = 0, errors = 0;
-    const existingMat = new Set(state.elevesFichier.map(e => e.matricule));
+    const norm = __iepNorm;
+    const pick = (r, keys) => { for (const k of keys) { if (r[k] != null && String(r[k]).trim() !== '') return r[k]; } return ''; };
+    const idKey = (o) => norm(o.nom) + '|' + norm(o.prenoms) + '|' + norm(o.dateN) + '|' + norm(o.ecole);
+    const npKey = (o) => norm(o.nom) + '|' + norm(o.prenoms);
+    const byMat = {}, byIdent = {}, byNP = {};
+    state.elevesFichier.forEach(e => {
+      if (norm(e.matricule)) byMat[norm(e.matricule)] = e;
+      if (norm(e.dateN)) byIdent[idKey(e)] = e;
+      (byNP[npKey(e)] = byNP[npKey(e)] || []).push(e);
+    });
     const lastNum = state.elevesFichier
       .map(e => parseInt((e.matricule||'').replace('NIA-2026-',''))||0)
       .reduce((a,b)=>Math.max(a,b), 0);
     let nextNum = lastNum;
-    rows.forEach(r => {
-      const nom = r['Nom'] || r['nom'] || r['NOM'];
-      const prenoms = r['Prenoms'] || r['Prénoms'] || r['prenoms'] || r['PRENOMS'];
-      if (!nom || !prenoms) { errors++; return; }
-      let matricule = r['Matricule'] || r['matricule'] || '';
-      if (!matricule || existingMat.has(matricule)) {
-        nextNum++;
-        matricule = `NIA-2026-${String(nextNum).padStart(5,'0')}`;
+    const st = { added:0, updated:0, unchanged:0, skipped:0, errors:[] };
+    const toAdd = [], ambiguous = [];
+    rows.forEach((r, i) => {
+      const nom = pick(r, ['Nom','nom','NOM']);
+      const prenoms = pick(r, ['Prenoms','Prénoms','prenoms','PRENOMS']);
+      if (!nom || !prenoms) { st.errors.push('Ligne ' + (i + 2) + ' : nom ou prénoms manquant'); return; }
+      const rec = {
+        matricule: String(pick(r, ['Matricule','matricule'])).trim(),
+        nom: String(nom).trim().toUpperCase(), prenoms: String(prenoms).trim(),
+        sexe: String(pick(r, ['Sexe','sexe'])).toUpperCase().charAt(0),
+        dateN: pick(r, ['Date naissance','DateN','dateN']), lieuN: pick(r, ['Lieu naissance','LieuN','lieuN']),
+        ecole: pick(r, ['École','Ecole','ecole']), niveau: pick(r, ['Niveau','niveau']),
+        pere: pick(r, ['Père','Pere','pere']), mere: pick(r, ['Mère','Mere','mere']),
+        tel: pick(r, ['Téléphone','Telephone','tel']), extrait: String(pick(r, ['Extrait','extrait'])).toUpperCase()
+      };
+      /* CORRECTIF §3/§10 — correspondance CERTAINE (même matricule, ou même nom + prénoms + date de naissance + école) :
+         la fiche existante est mise à jour, jamais dupliquée ni re-matriculée. */
+      let target = null;
+      if (rec.matricule && byMat[norm(rec.matricule)]) target = byMat[norm(rec.matricule)];
+      else if (norm(rec.dateN) && byIdent[idKey(rec)]) target = byIdent[idKey(rec)];
+      if (target) {
+        let ch = false;
+        Object.keys(rec).forEach(k => { const v = rec[k]; if (v === '' || v == null) return; if (String(target[k] == null ? '' : target[k]) !== String(v)) { target[k] = v; ch = true; } });
+        if (ch) { if (state.elevesFichier.indexOf(target) >= 0) target._upd = Date.now(); st.updated++; } else st.unchanged++;
+        return;
       }
-      existingMat.add(matricule);
+      /* cas AMBIGU (même nom et prénoms, mais ni matricule ni date de naissance concordants) : soumis à validation, jamais fusionné sur le seul nom */
+      if (byNP[npKey(rec)]) { ambiguous.push(rec); return; }
+      toAdd.push(rec);
+      if (rec.matricule) byMat[norm(rec.matricule)] = rec;
+      if (norm(rec.dateN)) byIdent[idKey(rec)] = rec;
+    });
+    let addAmb = false;
+    if (ambiguous.length) {
+      addAmb = confirm(ambiguous.length + ' ligne(s) ressemblent à des élèves déjà présents (même nom et prénoms, mais matricule ou date de naissance différents ou absents).\n\nOK = les AJOUTER quand même comme nouveaux élèves\nAnnuler = les IGNORER (à vérifier manuellement)');
+      if (!addAmb) st.skipped = ambiguous.length;
+    }
+    toAdd.concat(addAmb ? ambiguous : []).forEach(rec => {
+      let matricule = rec.matricule;
+      if (!matricule) { nextNum++; matricule = `NIA-2026-${String(nextNum).padStart(5,'0')}`; }
       state.elevesFichier.push({
-        id: 'el' + Date.now() + '-' + added,
-        matricule: matricule,
-        nom: String(nom).trim().toUpperCase(),
-        prenoms: String(prenoms).trim(),
-        sexe: (r['Sexe']||r['sexe']||'M').toString().toUpperCase().charAt(0),
-        dateN: r['Date naissance'] || r['DateN'] || r['dateN'] || '',
-        lieuN: r['Lieu naissance'] || r['LieuN'] || r['lieuN'] || '',
-        ecole: r['École'] || r['Ecole'] || r['ecole'] || '',
-        niveau: r['Niveau'] || r['niveau'] || 'CP1',
-        pere: r['Père'] || r['Pere'] || r['pere'] || '',
-        mere: r['Mère'] || r['Mere'] || r['mere'] || '',
-        tel: r['Téléphone'] || r['Telephone'] || r['tel'] || '',
-        extrait: (r['Extrait'] || r['extrait'] || 'NON').toString().toUpperCase()
+        id: 'el' + uid(),
+        matricule: matricule, nom: rec.nom, prenoms: rec.prenoms,
+        sexe: rec.sexe || 'M', dateN: rec.dateN, lieuN: rec.lieuN,
+        ecole: rec.ecole, niveau: rec.niveau || 'CP1',
+        pere: rec.pere, mere: rec.mere, tel: rec.tel, extrait: rec.extrait || 'NON'
       });
-      added++;
+      st.added++;
     });
     save('elevesFichier', state.elevesFichier);
-    logAction('import-eleves', `Importation de ${added} élève(s)`);
-    toast(`${added} élève(s) importé(s)${errors?` · ${errors} ignoré(s)`:''}`,'success');
+    logAction('import-eleves', `Import élèves : ${st.added} ajouté(s), ${st.updated} mis à jour, ${st.skipped} ambigu(s) ignoré(s), ${st.errors.length} rejeté(s)`);
+    toast(`${st.added} élève(s) ajouté(s) · ${st.updated} mis à jour${st.errors.length?` · ${st.errors.length} rejeté(s)`:''}`,'success');
     renderFichierEleves();
+    __iepImportReport('Rapport d\'import — élèves', st);
   });
 }
 
@@ -27161,9 +27610,21 @@ function trashGeneric(opts) {
 function trashReg(regKey, subPath, item, moduleLabel, label) {
   trashGeneric({ item, type:'document', regKey, subPath, moduleLabel, label });
 }
+/* CORRECTIF §7 — CORBEILLE STRICTEMENT PRIVÉE : chacun ne voit, ne restaure et ne purge que SES propres suppressions
+   (deletedBy = compte connecté). Les anciennes entrées sans auteur ne sont visibles que du superadministrateur.
+   NB : tant que la base ne filtre pas par RLS (voir supabase_securite_IEPP.sql), ce filtre protège l'interface, pas l'API. */
+function corbeilleMine(tr){
+  try {
+    if (!tr || !state.user) return false;
+    if (tr.deletedBy != null && tr.deletedBy !== '') return String(tr.deletedBy) === String(state.user.username);
+    return state.user.role === 'superadmin';
+  } catch(e){ return false; }
+}
+function corbeilleOwn(){ return (state.corbeille || []).filter(corbeilleMine); }
 function corbeilleRestore(trashId) {
   const tr = (state.corbeille||[]).find(x => x.id === trashId);
   if (!tr) return;
+  if (!corbeilleMine(tr)) { toast('Cet élément appartient à la corbeille d\'un autre compte', 'error'); return; }
   // 1) Restauration dans un registre imbriqué (modules documentaires)
   if (tr.regKey) {
     state[tr.regKey] = state[tr.regKey] || {};
@@ -27230,6 +27691,7 @@ function corbeilleRestore_OLD_UNUSED(trashId) {
 function corbeilleDelete(trashId) {
   const tr = (state.corbeille||[]).find(x => x.id === trashId);
   if (!tr) return;
+  if (!corbeilleMine(tr)) { toast('Cet élément appartient à la corbeille d\'un autre compte', 'error'); return; }
   if (!confirm(`Supprimer DÉFINITIVEMENT « ${tr.label} » ? Cette action est irréversible.`)) return;
   state.corbeille = state.corbeille.filter(x => x.id !== trashId);
   save('corbeille', state.corbeille);
@@ -27238,23 +27700,25 @@ function corbeilleDelete(trashId) {
   renderCorbeille();
 }
 function corbeilleEmpty() {
-  if (!(state.corbeille||[]).length) { toast('La corbeille est déjà vide','info'); return; }
-  if (!confirm(`Vider la corbeille (${state.corbeille.length} élément(s)) ? Cette action est irréversible.`)) return;
-  const n = state.corbeille.length;
-  state.corbeille = [];
+  const mine = corbeilleOwn();
+  if (!mine.length) { toast('Votre corbeille est déjà vide','info'); return; }
+  if (!confirm(`Vider VOTRE corbeille (${mine.length} élément(s)) ? Cette action est irréversible. Les corbeilles des autres comptes ne sont pas touchées.`)) return;
+  const n = mine.length;
+  const ids = new Set(mine.map(x => x.id));
+  state.corbeille = (state.corbeille || []).filter(x => !ids.has(x.id));
   save('corbeille', state.corbeille);
-  logAction('trash-empty', `Corbeille vidée (${n} éléments)`);
+  logAction('trash-empty', `Corbeille personnelle vidée (${n} éléments)`);
   toast(`Corbeille vidée (${n})`, 'success');
   renderCorbeille();
 }
 function corbeilleRestoreAll() {
-  if (!(state.corbeille||[]).length) { toast('La corbeille est vide','info'); return; }
-  if (!confirm(`Restaurer les ${state.corbeille.length} élément(s) de la corbeille ?`)) return;
+  if (!corbeilleOwn().length) { toast('Votre corbeille est vide','info'); return; }
+  if (!confirm(`Restaurer les ${corbeilleOwn().length} élément(s) de VOTRE corbeille ?`)) return;
   let restored = 0;
   const touchedReg = new Set();
   const touchedFlat = new Set();
   // Iterate over a copy because we mutate state.corbeille
-  [...state.corbeille].forEach(tr => {
+  [...corbeilleOwn()].forEach(tr => {
     if (tr.regKey) {
       // Registre imbriqué : state[regKey][subPath] = [...]
       state[tr.regKey] = state[tr.regKey] || {};
@@ -27288,11 +27752,7 @@ function corbeilleRestoreAll() {
 var corbeilleFilter = 'all';
 function renderCorbeille() {
   if (!corbeilleFilter) corbeilleFilter = 'all';
-  if (!['superadmin','drenaet','inspecteur','cpi','correspondant'].includes(state.user.role)) {
-    setContent('<div class="card"><div class="table-empty">Accès réservé aux administrateurs.</div></div>');
-    return;
-  }
-  const all = state.corbeille || [];
+  const all = corbeilleOwn();   /* corbeille privée : uniquement mes suppressions */
   const list = corbeilleFilter==='all' ? all : all.filter(x => x.type===corbeilleFilter);
   const counts = {};
   all.forEach(x => counts[x.type] = (counts[x.type]||0)+1);
@@ -27319,7 +27779,7 @@ function renderCorbeille() {
   setContent(`
     <div class="hero" style="background:linear-gradient(135deg,#A11A4D 0%,#5B0E2A 100%)">
       <h3>🗑️ Corbeille</h3>
-      <p>Tous les éléments et documents supprimés du site (comptes, élèves, centres d'examen, immatriculations, fiches ASER, services, et tous les documents des espaces : Bibliothèque, SMOSS, COGES, Économat, Cantine, Communication, Secrétariat, Archives, Courrier, RH, Vie scolaire…) sont conservés ici. Vous pouvez les <strong>restaurer</strong> à tout moment ou les <strong>supprimer définitivement</strong>. Les éléments sont propres à votre circonscription.</p>
+      <p>Les éléments et documents <strong>que vous avez supprimés</strong> (comptes, élèves, centres d'examen, immatriculations, fiches ASER, services, et tous les documents des espaces : Bibliothèque, SMOSS, COGES, Économat, Cantine, Communication, Secrétariat, Archives, Courrier, RH, Vie scolaire…) sont conservés ici. Vous pouvez les <strong>restaurer</strong> à tout moment ou les <strong>supprimer définitivement</strong>. <strong>Votre corbeille est strictement privée</strong> : collègues, inspecteur, DRENAET et Cabinet ne voient pas vos suppressions, et vous ne voyez pas les leurs.</p>
     </div>
     <div class="toolbar" style="flex-wrap:wrap">
       ${filterBtn('all','Tous')}
@@ -28027,7 +28487,7 @@ function ecImport(ev) {
       const code = g(['code']);
       const nom = g(['nom']);
       if (!nom && !code) return;
-      let e = code ? state.ecoles.find(x=>x.code===code) : null;
+      let e = (code ? state.ecoles.find(x=>x.code===code) : null) || ((nom && typeof window.ieppFindEcole === 'function') ? window.ieppFindEcole(nom) : null);   /* CORRECTIF : rapprochement par code OU par nom équivalent */
       if (!e) {
         e = { id:'ec_'+uid(), code:code || ('AUTO-'+String(state.ecoles.length+1).padStart(3,'0')),
           nom, commune:'', directeur:'', effectif:0, classes:0, statut:'Public',
@@ -29557,7 +30017,8 @@ window.importBackup = function(){
       var data = (obj && obj.data) ? obj.data : obj;
       var keys = Object.keys(data||{}).filter(function(k){ return typeof data[k]==='string'; });
       if (!keys.length){ alert('Aucune donnée exploitable dans ce fichier.'); return; }
-      if (!confirm(keys.length + ' bloc(s) vont REMPLACER les données de cet appareil, puis être envoyés au cloud. Continuer ?')) return;
+      if (!confirm(keys.length + ' bloc(s) vont REMPLACER les données de cet appareil, puis être fusionnés avec le cloud.\n\nUne sauvegarde de l\'état ACTUEL de cet appareil sera téléchargée juste avant. Continuer ?')) return;
+      try { window.exportBackup(); } catch(e){}
       keys.forEach(function(fk){ try { localStorage.setItem(fk, data[fk]); } catch(e){} });
       try { if (window.__cloudPush){ keys.forEach(function(fk){ try { window.__cloudPush(fk, JSON.parse(data[fk])); } catch(e){} }); } } catch(e){}
       alert('Restauration effectuée (' + keys.length + ' blocs). La page va se recharger.');
@@ -29577,7 +30038,8 @@ window.syncNowMerge = function(){
 window.cloudForcePush = function(){
   if (!window.__cloudPush){ alert('La synchronisation cloud n\'est pas disponible.'); return; }
   var nEc = 0; try { nEc = (state.ecoles||[]).length; } catch(e){}
-  if (!confirm('Envoyer TOUTES les données de cet appareil vers le cloud ?\n\nLa version en ligne sera REMPLACÉE par celle-ci (' + nEc + ' école(s) sur cet appareil).\nÀ lancer depuis l\'appareil qui a les BONNES données.')) return;
+if (!state.user || state.user.role !== 'superadmin') { if (typeof toast === 'function') toast('Envoi global réservé à l\'administrateur. Utilisez « Synchroniser » (fusion sécurisée).', 'error'); return; }
+  if (!confirm('Renvoyer toutes les données de cet appareil vers le cloud ?\n\nLes données sont FUSIONNÉES avec la version en ligne (' + nEc + ' école(s) sur cet appareil) ; aucun bloc n\'est remplacé à l\'aveugle.\nVérifiez ensuite le panneau de synchronisation (clic sur le badge).')) return;
   var n = 0;
   backupKeyList().forEach(function(k){
     var fk = storeKey(k), v = localStorage.getItem(fk);
@@ -29699,7 +30161,7 @@ function autoSyncTick(){
     Promise.resolve(window.__cloudResyncScope()).finally(function(){ window.__autoSyncSilent = false; });
   } catch(e){ window.__autoSyncSilent = false; }
 }
-setInterval(autoSyncTick, 1800000);                                     /* toutes les 30 minutes (+ à la déconnexion et à la fermeture) */
+setInterval(autoSyncTick, 600000);                                      /* toutes les 10 minutes (diagnostic §8) + au retour réseau, à l'ouverture et à la déconnexion */
 window.addEventListener('online',  function(){ if (window.updateSyncBadge) window.updateSyncBadge('Reconnexion…','#F4A261'); setTimeout(autoSyncTick, 1500); });
 window.addEventListener('offline', function(){ if (window.updateSyncBadge) window.updateSyncBadge('Hors ligne (local)','#E63946'); });
 
@@ -37480,7 +37942,7 @@ function userRestoreFromTrash(trashId){
   }
   function tGar(){
     var p=checkPersist(), d=checkData(), sb=$('#sync-badge'), sy=sb?sb.textContent.trim():'—';
-    var cor=(state.corbeille||[]).length, au=(state.audit||[]).length;
+    var cor=(typeof corbeilleOwn==='function'?corbeilleOwn():(state.corbeille||[])).length, au=(state.audit||[]).length;
     var dups=d.dupEl+d.dupPe;
     var row=function(t,res,det,btn){ return '<tr><td style="padding:8px;border-bottom:1px solid #e2e8f0;width:30%"><b>'+t+'</b></td><td style="padding:8px;border-bottom:1px solid #e2e8f0;width:16%">'+res+'</td><td style="padding:8px;border-bottom:1px solid #e2e8f0;font-size:12.5px;color:#334155">'+det+'</td><td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:right">'+(btn||'')+'</td></tr>'; };
     return card('🛡️ Garanties techniques — contrôle en direct','<table style="width:100%;border-collapse:collapse">'+
@@ -47108,5 +47570,369 @@ try{
   }catch(e){ console.warn('[no-return]',e); }
 })();
 </script>
+<script id="iepp-correctifs-diagnostic-2026-11">
+/* ======================================================================
+   CORRECTIFS « Diagnostic consolidé » — 1er novembre 2026
+   PARTIE INTERFACE : panneau de synchronisation, rapport d'incident,
+   contrôle des doublons (lecture seule), corbeille privée pour tous les profils.
+   Additif : n'altère aucune donnée existante.
+   ====================================================================== */
+(function(){
+  'use strict';
+  function esc(s){
+    s = String(s == null ? '' : s);
+    if (typeof escapeHtml === 'function') return escapeHtml(s);
+    return s.replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; });
+  }
+  function hhmm(t){ try { return new Date(t).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' }); } catch(e){ return ''; } }
+  function shortKey(k){ return String(k || '').replace(/^iepp_/, ''); }
+  var STATE_LBL = { pending:'En attente d\'envoi', failed:'Échec', conflict:'Conflit de version', deferred:'Fusion reportée' };
+  var STATE_COL = { pending:'#B45309', failed:'#B91C1C', conflict:'#B91C1C', deferred:'#B45309' };
+
+  /* ---------------- rapport d'incident (§14 du diagnostic) ---------------- */
+  function incidentReport(){
+    var u = (window.state && state.user) || {}, c = IeppSyncCore.counts(), ck = IeppSyncCore.clock(), au = {};
+    try { au = window.__cloudAuthState ? window.__cloudAuthState() : {}; } catch(e){}
+    var L = [];
+    L.push('RAPPORT D\'INCIDENT — Plateforme IEPP');
+    L.push('Date (heure appareil) : ' + new Date().toLocaleString('fr-FR'));
+    L.push('Profil : ' + (u.role || '—') + ' · compte : ' + (u.username || '—') + ' · IEPP actif : ' + ((window.state && state.activeIepp) || '—'));
+    L.push('Module affiché : ' + ((window.state && state.module) || '—'));
+    L.push('Appareil / navigateur : ' + navigator.userAgent);
+    L.push('En ligne : ' + (navigator.onLine ? 'oui' : 'non') + ' · session Supabase authentifiée : ' + (au.authenticated ? 'oui' : 'NON'));
+    L.push('Décalage d\'horloge appareil/serveur : ' + (ck.measured ? Math.round(ck.skew / 1000) + ' s' + (ck.applied ? ' (corrigé)' : '') : 'non mesuré'));
+    L.push('File d\'opérations : ' + c.pending + ' en attente · ' + c.deferred + ' reportée(s) · ' + c.failed + ' en échec · ' + c.conflict + ' en conflit');
+    IeppSyncCore.queue().forEach(function(e){ L.push('  - ' + shortKey(e.key) + ' [' + (e.state || '') + '] op=' + (e.op || '') + ' essais=' + (e.tries || 0) + (e.err ? ' · ' + e.err : '')); });
+    L.push('');
+    L.push('Messages « [Cloud] » récents :');
+    var cl = IeppSyncCore.cloudLog(); if (!cl.length) L.push('  (aucun)'); cl.slice(-30).forEach(function(x){ L.push('  ' + x); });
+    L.push('');
+    L.push('Exemple anonymisé de doublon / perte (à compléter) : personne concernée, école, classe, dates de création des fiches : …');
+    return L.join('\n');
+  }
+  function copyText(txt){
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { return navigator.clipboard.writeText(txt).then(function(){ return true; }, function(){ return false; }); } } catch(e){}
+    return Promise.resolve(false);
+  }
+
+  /* ---------------- panneau de synchronisation ---------------- */
+  function panelHtml(){
+    var s = IeppSyncCore.statusInfo(), c = IeppSyncCore.counts(), ck = IeppSyncCore.clock(), au = {};
+    try { au = window.__cloudAuthState ? window.__cloudAuthState() : {}; } catch(e){}
+    var q = IeppSyncCore.queue();
+    var rows = q.length ? q.map(function(e){
+      return '<tr><td style="font-size:11.5px;word-break:break-all">' + esc(shortKey(e.key)) + '</td>'
+        + '<td><span style="color:' + (STATE_COL[e.state] || '#444') + ';font-weight:700;font-size:12px">' + esc(STATE_LBL[e.state] || e.state) + '</span></td>'
+        + '<td style="text-align:center">' + (e.tries || 0) + '</td>'
+        + '<td style="font-size:11px;color:#555">' + esc(e.err || '') + '<div style="color:#999">' + esc(e.op || '') + '</div></td>'
+        + '<td><button class="btn btn-ghost btn-sm" onclick="IeppSyncPanel.retry(\'' + esc(e.key).replace(/'/g, '\\\'') + '\')">Réessayer</button></td></tr>';
+    }).join('') : '<tr><td colspan="5" style="text-align:center;color:#2A9D8F;padding:14px">✔ Aucune opération en attente, en échec ou en conflit.</td></tr>';
+    var jr = IeppSyncCore.journal().slice(-40).reverse().map(function(j){
+      var col = j.lv === 'err' || j.lv === 'conflict' ? '#B91C1C' : (j.lv === 'warn' ? '#B45309' : (j.lv === 'ok' ? '#2A9D8F' : '#555'));
+      return '<tr><td style="white-space:nowrap;font-size:11px;color:#777">' + esc(hhmm(j.t)) + '</td><td style="font-size:11px;color:' + col + '">' + esc(j.m) + (j.k ? '<div style="color:#999;word-break:break-all">' + esc(shortKey(j.k)) + '</div>' : '') + '</td></tr>';
+    }).join('') || '<tr><td colspan="2" style="color:#888;text-align:center">Journal vide.</td></tr>';
+    var authLine = au.authenticated
+      ? '<span style="color:#2A9D8F">session Supabase ouverte</span>'
+      : '<span style="color:#B91C1C;font-weight:700">aucune session Supabase : la protection des données repose uniquement sur les règles RLS du serveur</span>';
+    return '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">'
+      + '<div style="flex:1;min-width:200px;padding:10px 12px;border-radius:10px;background:#F8FAFC;border-left:4px solid ' + s.color + '"><div style="font-size:11px;color:#667">Statut</div><div style="font-weight:800;color:' + s.color + '">' + esc(s.txt) + '</div></div>'
+      + '<div style="flex:1;min-width:200px;padding:10px 12px;border-radius:10px;background:#F8FAFC"><div style="font-size:11px;color:#667">Dernière confirmation serveur</div><div style="font-weight:700">' + (IeppSyncCore.lastOk() ? esc(hhmm(IeppSyncCore.lastOk())) : '—') + '</div></div>'
+      + '<div style="flex:1;min-width:200px;padding:10px 12px;border-radius:10px;background:#F8FAFC"><div style="font-size:11px;color:#667">Horloge</div><div style="font-weight:700">' + (ck.measured ? (Math.abs(ck.skew) < 60000 ? 'alignée sur le serveur' : 'décalée de ' + Math.round(ck.skew / 1000) + ' s' + (ck.applied ? ' (corrigée)' : '')) : 'non mesurée') + '</div></div>'
+      + '</div>'
+      + '<p style="font-size:12px;margin:0 0 10px">Compte cloud : ' + authLine + ' · Réseau : <b>' + (navigator.onLine ? 'connecté' : 'hors ligne') + '</b></p>'
+      + '<p style="font-size:12px;color:#555;margin:0 0 10px">« Synchronisé » n\'est affiché que lorsque <b>toutes</b> les modifications ont été confirmées par le serveur. Une modification non confirmée reste enregistrée sur cet appareil (même si vous fermez la page) et est renvoyée automatiquement.</p>'
+      + '<h4 style="margin:12px 0 6px">Opérations non confirmées (' + c.total + ')</h4>'
+      + '<div class="table-wrap" style="max-height:220px;overflow:auto"><table><thead><tr><th>Donnée</th><th>État</th><th>Essais</th><th>Détail · operation_id</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>'
+      + '<h4 style="margin:14px 0 6px">Journal de synchronisation (40 derniers évènements)</h4>'
+      + '<div class="table-wrap" style="max-height:200px;overflow:auto"><table><tbody>' + jr + '</tbody></table></div>';
+  }
+  function footerHtml(){
+    return '<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;width:100%">'
+      + '<button class="btn btn-ghost" onclick="IeppSyncPanel.report()">📋 Rapport d\'incident</button>'
+      + '<button class="btn btn-ghost" onclick="IeppSyncPanel.dups()">🔎 Contrôle des doublons</button>'
+      + '<button class="btn btn-ghost" onclick="IeppSyncPanel.retryAll()">↻ Réessayer tout</button>'
+      + '<button class="btn btn-primary" onclick="IeppSyncPanel.syncNow()">🔄 Synchroniser maintenant</button>'
+      + '<button class="btn btn-ghost" onclick="closeModal()">Fermer</button></div>';
+  }
+  var openFlag = false;
+  function open(){
+    if (typeof openModal !== 'function') { if (window.syncNowTop) syncNowTop(); return; }
+    openModal('Synchronisation et journal', panelHtml(), footerHtml());
+    openFlag = true;
+  }
+  function refresh(){
+    if (!openFlag) return;
+    var mb = document.getElementById('modal-backdrop'), t = document.getElementById('modal-title');
+    if (!mb || !mb.classList.contains('show') || !t || t.textContent !== 'Synchronisation et journal') { openFlag = false; return; }
+    var body = document.getElementById('modal-body'); if (body) body.innerHTML = panelHtml();
+  }
+  document.addEventListener('iepp-sync-change', function(){ clearTimeout(refresh._t); refresh._t = setTimeout(refresh, 400); });
+
+  /* ---------------- contrôle des doublons (signalement seul, jamais de fusion automatique) ---------------- */
+  function norm(s){ return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, ' ').trim().toLowerCase(); }
+  var SCANS = [
+    { key:'elevesFichier', label:'Fichier élèves', rules:function(r){ var o = [];
+        if (norm(r.matricule)) o.push(['Même matricule', 'm:' + norm(r.matricule)]);
+        if (norm(r.nom) && norm(r.prenoms) && norm(r.dateN)) o.push(['Même nom, prénoms et date de naissance', 'i:' + norm(r.nom) + '|' + norm(r.prenoms) + '|' + norm(r.dateN)]);
+        return o; }, show:function(r){ return (r.nom || '') + ' ' + (r.prenoms || '') + ' · ' + (r.dateN || '?') + ' · ' + (r.ecole || '?') + ' · ' + (r.niveau || '') + ' · mat. ' + (r.matricule || '—'); } },
+    { key:'personnel', label:'Personnel', rules:function(r){ var o = [];
+        if (norm(r.matricule)) o.push(['Même matricule', 'm:' + norm(r.matricule)]);
+        if (!norm(r.matricule) && window.IeppStaff) { var sk = IeppStaff.key(r); if (sk.indexOf('n: |') !== 0 && sk !== 'n:|') o.push(['Même nom et prénoms (ordre indifférent) dans la même école', sk]); }
+        return o; }, show:function(r){ return (r.nom || '') + ' · ' + (r.fonction || '') + ' · ' + (r.ecole || '?') + ' · mat. ' + (r.matricule || '—'); } },
+    { key:'ecoles', label:'Écoles', rules:function(r){ var o = [];
+        var cc = norm(r.code).replace(/ /g, '');
+        if (cc && !/^auto\d*$/.test(cc)) o.push(['Même code école', 'c:' + cc]);
+        var nk = window.ieppEcoleKey ? ieppEcoleKey(r.nom) : norm(r.nom);
+        if (nk) o.push(['Même école (nom équivalent : EPP/E.P.P., accents, chiffres romains…)', 'n:' + nk]);
+        return o; }, show:function(r){ return (r.nom || '') + ' · code ' + (r.code || '—') + ' · ' + (r.commune || ''); } },
+    { key:'users', label:'Comptes', rules:function(r){ var o = [];
+        if (norm(r.username)) o.push(['Même identifiant (hors casse)', 'u:' + norm(r.username)]);
+        if (norm(r.name) && norm(r.iepp)) o.push(['Même nom dans la même IEPP', 'n:' + norm(r.name) + '|' + norm(r.iepp)]);
+        return o; }, show:function(r){ return (r.name || '') + ' · ' + (r.username || '') + ' · ' + (r.role || '') + ' · ' + (r.iepp || ''); }, admin:true }
+  ];
+  function scanDups(){
+    var out = [], role = (window.state && state.user && state.user.role) || '';
+    var isAdm = ['superadmin', 'drenaet', 'inspecteur', 'cpi', 'correspondant'].indexOf(role) >= 0;
+    SCANS.forEach(function(sc){
+      if (sc.admin && !isAdm) return;
+      var arr = (window.state && Array.isArray(state[sc.key])) ? state[sc.key] : [];
+      var groups = {};
+      arr.forEach(function(r){ if (!r || typeof r !== 'object') return; sc.rules(r).forEach(function(x){ var g = groups[x[1]] || (groups[x[1]] = { why:x[0], rows:[] }); if (g.rows.indexOf(r) < 0) g.rows.push(r); }); });
+      var res = Object.keys(groups).map(function(k){ return groups[k]; }).filter(function(g){ return g.rows.length > 1; });
+      out.push({ sc:sc, total:arr.length, groups:res });
+    });
+    return out;
+  }
+  var DUPG = [];
+  function dups(){
+    DUPG = [];
+    var res = scanDups(), html = '<p style="font-size:12px;color:#555;margin:0 0 10px">Contrôle en <b>lecture seule</b> : rien n\'est fusionné ni supprimé automatiquement. Deux personnes ne sont jamais fusionnées sur le seul nom ; vérifiez chaque cas avant toute suppression.</p>';
+    res.forEach(function(r){
+      html += '<h4 style="margin:12px 0 6px">' + esc(r.sc.label) + ' <span style="font-weight:400;color:#777">(' + r.total + ' fiche(s) · ' + r.groups.length + ' cas à vérifier' + (r.sc.key === 'ecoles' && window.ieppOfficialEcoles ? ' · ' + ieppOfficialEcoles(state.ecoles).length + ' école(s) comptée(s) après regroupement' : '') + ')</span></h4>';
+      if (!r.groups.length) { html += '<div style="color:#2A9D8F;font-size:12px">✔ Aucun doublon probable détecté.</div>'; return; }
+      var canMerge = ['ecoles', 'personnel', 'elevesFichier'].indexOf(r.sc.key) >= 0 && typeof window.ieppMergeGroup === 'function';
+      html += r.groups.slice(0, 40).map(function(g){
+        var gi = DUPG.push({ key: r.sc.key, rows: g.rows }) - 1;
+        return '<div style="border:1px solid #E5E7EB;border-radius:8px;padding:8px 10px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><div style="font-size:11px;font-weight:700;color:#B45309">' + esc(g.why) + ' — ' + g.rows.length + ' fiches</div>'
+          + (canMerge ? '<button class="btn btn-ghost btn-sm" onclick="IeppSyncPanel.merge(' + gi + ')">🔀 Fusionner</button>' : '') + '</div>'
+          + g.rows.map(function(x){ return '<div style="font-size:12px">• ' + esc(r.sc.show(x)) + '</div>'; }).join('') + '</div>';
+      }).join('') + (r.groups.length > 40 ? '<div style="font-size:11px;color:#777">… ' + (r.groups.length - 40) + ' autre(s) cas non affichés.</div>' : '');
+    });
+    if (typeof openModal === 'function') openModal('Contrôle des doublons', html, '<button class="btn btn-ghost" onclick="IeppSyncPanel.open()">← Retour</button><button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
+    openFlag = false;
+  }
+
+  window.IeppSyncPanel = {
+    open: open,
+    retry: function(k){ IeppSyncCore.retryKey(k); setTimeout(refresh, 600); },
+    retryAll: function(){ IeppSyncCore.retryAll(); if (typeof toast === 'function') toast('Réessai lancé', 'info'); setTimeout(refresh, 800); },
+    syncNow: function(){ if (window.syncNowTop) syncNowTop(); setTimeout(refresh, 1500); },
+    report: function(){
+      var txt = incidentReport();
+      copyText(txt).then(function(ok){
+        if (typeof openModal === 'function') openModal('Rapport d\'incident', (ok ? '<p style="color:#2A9D8F;font-size:12px">✔ Copié dans le presse-papiers.</p>' : '<p style="color:#B45309;font-size:12px">Copiez le texte ci-dessous.</p>') + '<textarea readonly style="width:100%;height:300px;font:11px/1.4 monospace" onfocus="this.select()">' + esc(txt) + '</textarea>', '<button class="btn btn-ghost" onclick="IeppSyncPanel.open()">← Retour</button><button class="btn btn-ghost" onclick="closeModal()">Fermer</button>');
+        openFlag = false;
+      });
+    },
+    dups: dups,
+    merge: function(i){
+      var g = DUPG[i]; if (!g) return;
+      if (!confirm('Fusionner ces ' + g.rows.length + ' fiches en une seule ?\n\nLa fiche la plus complète est conservée et complétée par les autres ; les fiches en trop sont envoyées à VOTRE Corbeille (restaurables).')) return;
+      var n = window.ieppMergeGroup(g.key, g.rows);
+      if (typeof toast === 'function') toast(n + ' fiche(s) fusionnée(s)', 'success');
+      try { if (state.module && typeof navigate === 'function') navigate(state.module); } catch(e){}
+      dups();
+    },
+    scanDups: scanDups,
+    incidentReport: incidentReport
+  };
+
+  /* ---------------- corbeille PRIVÉE : chaque profil dispose de la sienne ---------------- */
+  try {
+    if (typeof ACL !== 'undefined') {
+      Object.keys(ACL).forEach(function(r){ if (Array.isArray(ACL[r]) && ACL[r].indexOf('corbeille') < 0) ACL[r].push('corbeille'); });
+    }
+  } catch(e){ console.warn('[corbeille privée] ACL', e); }
+
+  /* le badge du haut ouvre le panneau (la synchro manuelle reste disponible dans le panneau) */
+  document.addEventListener('DOMContentLoaded', function(){ try { IeppSyncCore.notify(); } catch(e){} });
+})();
+</script>
+
+<script id="iepp-correctifs-coherence-2026-11">
+/* ======================================================================
+   CORRECTIFS v2 — COHÉRENCE TABLEAU DE BORD = STATISTIQUES, ÉCOLES ET PERSONNEL SANS DOUBLONS
+   ----------------------------------------------------------------------
+   Cause : le tableau de bord (EQ.staffCounts) et les statistiques (statVentilationPersonnel)
+   comptaient le personnel avec deux règles différentes (« même nom » d'un côté, « même nom
+   + même école » de l'autre). Les écoles étaient dédoublonnées sur le seul nom exact.
+   Correction : UNE seule règle, utilisée par les deux écrans. Additif : aucune donnée supprimée
+   sans confirmation ; toute fusion envoie les fiches retirées à la Corbeille.
+   ====================================================================== */
+(function(){
+  'use strict';
+  function S(){ return window.state || null; }
+  function nrm(s){ return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim(); }
+  var ROM = { I:'1', II:'2', III:'3', IV:'4', V:'5', VI:'6' };
+
+  /* ---------------- ÉCOLES : clé d'identité ---------------- */
+  var TYPE_P = /^(ECOLE PRIMAIRE PUBLIQUE|ECOLE PRIMAIRE|EPPUB|EPPU|EPP|EPC|EPV|EPS|EP|ECOLE)\s+/;
+  var TYPE_M = /^(ECOLE MATERNELLE|MATERNELLE|PRESCOLAIRE|MAT|CPC)\s+/;
+  var STOP = { DE:1, DU:1, DES:1, LA:1, LE:1, LES:1, L:1, D:1, ET:1 };
+  /* « EPP Yezimala 1 », « E.P.P. YEZIMALA I », « Ecole primaire publique de Yezimala 1 » -> même clé ;
+     « EPP Yezimala 1 (bis) » et « EPP Yezimala 1 » restent DEUX écoles (le qualificatif compte). */
+  function ecoleKey(nom){
+    var t = nrm(String(nom == null ? '' : nom).replace(/[.']/g, ''));
+    if (!t) return '';
+    var type = 'P';
+    if (TYPE_M.test(t)) { type = 'M'; t = t.replace(TYPE_M, ''); }
+    else t = t.replace(TYPE_P, '');
+    var w = t.split(' ').filter(function(x){ return x && !STOP[x]; }).map(function(x){ return ROM[x] || x; });
+    return type + ':' + w.join('');
+  }
+  function realCode(c){ var v = nrm(c).replace(/ /g, ''); return (!v || /^AUTO\d*$/.test(v)) ? '' : v; }
+  function complet(e){ var n = 0; ['code','nom','commune','directeur','effectif','classes','statut'].forEach(function(k){ if (e && e[k] != null && String(e[k]).trim() !== '' && String(e[k]) !== '0') n++; }); return n + (e && !e._auto ? 1 : 0); }
+
+  /* regroupe les fiches qui désignent la MÊME école (même code réel, ou même clé de nom) */
+  function groupEcoles(list){
+    var arr = (list || []).filter(function(e){ return e && e.nom; });
+    var parent = arr.map(function(_, i){ return i; });
+    function find(i){ while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; } return i; }
+    function uni(a, b){ a = find(a); b = find(b); if (a !== b) parent[b] = a; }
+    var byCode = {}, byName = {};
+    arr.forEach(function(e, i){
+      var c = realCode(e.code), k = ecoleKey(e.nom);
+      if (c) { if (byCode[c] != null) uni(i, byCode[c]); else byCode[c] = i; }
+      if (k) { if (byName[k] != null) uni(i, byName[k]); else byName[k] = i; }
+    });
+    var groups = {};
+    arr.forEach(function(e, i){ var r = find(i); (groups[r] = groups[r] || []).push(e); });
+    return Object.keys(groups).map(function(r){ return groups[r]; });
+  }
+  /* écoles « officielles » comptées : on ignore les fiches créées automatiquement quand des fiches saisies existent, puis on fusionne les variantes */
+  function officialEcoles(ec){
+    ec = (ec || []).filter(function(e){ return e && e.nom; });
+    var off = ec.filter(function(e){ return !e._auto; }), list = off.length ? off : ec;
+    return groupEcoles(list).map(function(g){ return g.slice().sort(function(a, b){ return complet(b) - complet(a); })[0]; });
+  }
+  window.ieppEcoleKey = ecoleKey;
+  window.ieppGroupEcoles = groupEcoles;
+  window.ieppOfficialEcoles = officialEcoles;
+  window.ieppFindEcole = function(nom, list){
+    var k = ecoleKey(nom); if (!k) return null;
+    var L = list || (S() && S().ecoles) || [];
+    for (var i = 0; i < L.length; i++) { if (L[i] && ecoleKey(L[i].nom) === k) return L[i]; }
+    return null;
+  };
+
+  /* ---------------- PERSONNEL : une seule règle pour tous les écrans ---------------- */
+  function matOf(p){
+    var m = String(p && p.matricule || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!m) return '';
+    try { if (typeof window.matVide === 'function' && window.matVide(p.matricule)) return ''; } catch(e){}
+    return m;
+  }
+  function nameTok(p){ return nrm((p.nom || '') + ' ' + (p.prenoms || '')).split(' ').filter(Boolean).sort().join(' '); }
+  function schoolOf(p){ return ecoleKey(p && p.ecole) || nrm(p && p.ecole); }
+  function isCraie(p){ try { return statEstCraieEnMain(p); } catch(e){ return !!(p && p.classe); } }
+  /* Même agent = même matricule ; sans matricule : mêmes nom+prénoms (ordre indifférent) DANS LA MÊME ÉCOLE.
+     Le nom seul ne fusionne jamais deux personnes (diagnostic §3.1). Un agent sans matricule rejoint un agent avec matricule
+     seulement si nom et école concordent et que la correspondance est unique. */
+  function groupStaff(list){
+    var groups = [], byMat = {}, byName = {}, nameIdx = {};
+    var withMat = [], without = [];
+    (list || []).forEach(function(p){ if (!p || typeof p !== 'object') return; (matOf(p) ? withMat : without).push(p); });
+    withMat.forEach(function(p){
+      var m = matOf(p), g = byMat[m];
+      if (!g) { g = byMat[m] = { recs: [] }; groups.push(g); }
+      g.recs.push(p);
+      var nk = nameTok(p) && (nameTok(p) + '|' + schoolOf(p));
+      if (nk) { if (nameIdx[nk] === undefined) nameIdx[nk] = g; else if (nameIdx[nk] !== g) nameIdx[nk] = null; }   /* null = ambigu */
+    });
+    without.forEach(function(p){
+      var nt = nameTok(p), nk = nt && (nt + '|' + schoolOf(p)), g = null;
+      if (nk) {
+        if (nameIdx[nk]) g = nameIdx[nk];
+        else if (byName[nk]) g = byName[nk];
+      }
+      if (!g) { g = { recs: [] }; groups.push(g); if (nk) byName[nk] = g; }
+      g.recs.push(p);
+    });
+    groups.forEach(function(g){
+      g.craie = g.recs.some(isCraie);
+      g.rep = (g.craie ? g.recs.filter(isCraie)[0] : g.recs[0]) || g.recs[0];
+      var sx = g.recs.map(function(r){ return String(r.sexe || '').trim().toUpperCase(); }).filter(function(s){ return s === 'M' || s === 'H' || s === 'F'; })[0];
+      g.sexe = sx || '';
+    });
+    return groups;
+  }
+  window.IeppStaff = { groups: groupStaff, key: function(p){ return matOf(p) ? 'm:' + matOf(p) : 'n:' + nameTok(p) + '|' + schoolOf(p); } };
+  window.ieppUniquePersonnel = function(P){ return groupStaff(P).map(function(g){ return g.rep; }); };
+
+  /* Ventilation du personnel (écran Statistiques) : mêmes groupes que le tableau de bord */
+  window.statVentilationPersonnel = function(){
+    var z = function(){ return { h: 0, f: 0, n: 0, t: 0 }; };
+    var r = { admin: z(), craiePub: z(), craiePriv: z(), total: z() };
+    var add = function(b, sexe){ var s = String(sexe || '').trim().toUpperCase(); if (s === 'M' || s === 'H') b.h++; else if (s === 'F') b.f++; else b.n++; b.t++; };
+    groupStaff((S() && S().personnel) || []).forEach(function(g){
+      add(r.total, g.sexe);
+      if (!g.craie) { add(r.admin, g.sexe); return; }
+      var st = 'Public'; try { st = statStatutEcole(g.rep.ecole); } catch(e){}
+      add(st === 'Privé' ? r.craiePriv : r.craiePub, g.sexe);
+    });
+    return r;
+  };
+  /* Tableau de bord : même calcul */
+  function patchEQ(){
+    if (!window.EQ) return false;
+    EQ.staffCounts = function(list){
+      var gs = groupStaff(list || []), c = 0, a = 0;
+      gs.forEach(function(g){ if (g.craie) c++; else a++; });
+      return { craie: c, admin: a, total: gs.length };
+    };
+    return true;
+  }
+  if (!patchEQ()) { var _t = setInterval(function(){ if (patchEQ()) clearInterval(_t); }, 300); setTimeout(function(){ clearInterval(_t); }, 15000); }
+
+  /* Tableau de bord : le nombre d'écoles vient de la même règle que Statistiques */
+  function patchDash(){
+    if (typeof window.ieppDashNums !== 'function' || window.ieppDashNums.__v2) return typeof window.ieppDashNums === 'function';
+    var o = window.ieppDashNums;
+    var f = function(d){ var n = o(d); try { n.totalEcoles = officialEcoles(d.ecoles).length; } catch(e){} return n; };
+    f.__v2 = true; window.ieppDashNums = f; return true;
+  }
+  if (!patchDash()) { var _t2 = setInterval(function(){ if (patchDash()) clearInterval(_t2); }, 300); setTimeout(function(){ clearInterval(_t2); }, 15000); }
+
+  /* ---------------- FUSION D'ÉCOLES / PERSONNEL / ÉLÈVES (confirmée, avec Corbeille) ---------------- */
+  var NAME_REFS = [['personnel', 'ecole'], ['elevesFichier', 'ecole'], ['effectifs', 'ecole'], ['absences', 'ecole'], ['visites', 'ecole'], ['examens', 'centre']];
+  function mergeGroup(key, rows){
+    var st = S(); if (!st || !Array.isArray(st[key]) || rows.length < 2) return 0;
+    var keeper = rows.slice().sort(function(a, b){ return complet(b) - complet(a); })[0];
+    var others = rows.filter(function(r){ return r !== keeper; });
+    others.forEach(function(o){
+      Object.keys(o).forEach(function(k){
+        if (k === 'id' || k.charAt(0) === '_') return;
+        var v = o[k]; if (v == null || v === '' || v === 0) return;
+        var cur = keeper[k]; if (cur == null || cur === '' || cur === 0) keeper[k] = v;
+      });
+      if (key === 'ecoles' && o.nom && keeper.nom && o.nom !== keeper.nom) {
+        NAME_REFS.forEach(function(ref){ (st[ref[0]] || []).forEach(function(r){ if (r && r[ref[1]] === o.nom) { r[ref[1]] = keeper.nom; r._upd = Date.now(); } }); });
+      }
+      try { trashGeneric({ item: o, type: 'document', parentKey: key, moduleLabel: 'Fusion de doublons', label: (o.nom || '') + (o.prenoms ? ' ' + o.prenoms : '') }); } catch(e){}
+    });
+    st[key] = st[key].filter(function(r){ return others.indexOf(r) < 0; });
+    keeper._upd = Date.now();
+    save(key, st[key]);
+    if (key === 'ecoles') NAME_REFS.forEach(function(ref){ try { save(ref[0], st[ref[0]]); } catch(e){} });
+    try { logAction('fusion-doublons', '[' + key + '] ' + others.length + ' fiche(s) fusionnée(s) dans « ' + (keeper.nom || keeper.id) + ' »'); } catch(e){}
+    return others.length;
+  }
+  window.ieppMergeGroup = mergeGroup;
+
+  /* ---------------- gardes anti-doublon à la création ---------------- */
+  /* (l'import Excel des écoles et la création manuelle appellent ieppFindEcole — voir correctifs index) */
+})();
+</script>
+
 </body>
 </html>
