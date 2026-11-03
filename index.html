@@ -48042,6 +48042,82 @@ try{
     };
     wm.__stableV1 = true; window.openModal = wm;
   }
+
+  /* 4) ANTI-RETOUR DES SUPPRESSIONS : une donnée envoyée à la Corbeille ne peut plus revenir (synchronisation, fusion,
+        autre appareil, import) tant qu'elle est dans la Corbeille. Seule la RESTAURATION la ramène (elle porte une date
+        de modification plus récente que la suppression). S'applique à toutes les listes et registres de la plateforme. */
+  (function(){
+    try{
+      var _set = Storage.prototype.setItem;
+      if (_set.__trashGuard) return;
+      var cacheRaw = {}, cacheMap = {}, splitC = {};
+      var SKIP = /^(corbeille|users|usersDeleted|audit|notifications|current_user|active_iepp|ieppRegistry|drenaet|customServices)$|(Deleted|__gtomb|__ometa)$/;
+      function trashMap(ck){
+        var raw = null; try{ raw = localStorage.getItem(ck); }catch(e){}
+        if (!raw) return null;
+        if (cacheRaw[ck] === raw) return cacheMap[ck];
+        var m = { flat:{}, reg:{} };
+        try{
+          JSON.parse(raw).forEach(function(t){
+            if (!t || typeof t !== 'object') return;
+            var at = Date.parse(t.deletedAt || '') || 0, id = (t.matchVal != null) ? t.matchVal : (t.data && t.data.id != null ? t.data.id : null);
+            if (id == null) return;
+            if (t.regKey){ var r = (m.reg[t.regKey] = m.reg[t.regKey] || {}); var sp = (r[t.subPath] = r[t.subPath] || {}); sp[id] = Math.max(sp[id] || 0, at); }
+            else if (t.parentKey && t.matchKey !== 'username'){ var f = (m.flat[t.parentKey] = m.flat[t.parentKey] || {}); f[id] = Math.max(f[id] || 0, at); }
+          });
+        }catch(e){ m = null; }
+        cacheRaw[ck] = raw; cacheMap[ck] = m; return m;
+      }
+      function splitKey(key){
+        if (splitC[key]) return splitC[key];
+        for (var i = key.length - 1; i > 4; i--){
+          if (key.charAt(i) === '_'){ var ck = key.slice(0, i + 1) + 'corbeille'; try{ if (localStorage.getItem(ck)){ return (splitC[key] = [ck, key.slice(i + 1), key.slice(0, i + 1)]); } }catch(e){} }
+        }
+        return null;
+      }
+      function guard(key, v){
+        if (typeof v !== 'string' || key.indexOf('iepp_') !== 0) return v;
+        var c0 = v.charAt(0); if (c0 !== '[' && c0 !== '{') return v;
+        var sp = splitKey(key); if (!sp || SKIP.test(sp[1])) return v;
+        var m = trashMap(sp[0]); if (!m) return v;
+        var name = sp[1];
+        function dead(r, tab){ var id = r && (r.id != null ? r.id : r._id); return id != null && tab[id] != null && (r._upd || 0) <= tab[id]; }
+        try{
+          if (c0 === '[' && m.flat[name]){
+            var arr = JSON.parse(v), tab = m.flat[name], keep = arr.filter(function(r){ return !dead(r, tab); });
+            if (keep.length !== arr.length) return JSON.stringify(keep);
+          } else if (c0 === '{' && m.reg[name]){
+            var obj = JSON.parse(v), ch = false;
+            Object.keys(m.reg[name]).forEach(function(subp){
+              if (Array.isArray(obj[subp])){ var t2 = m.reg[name][subp], k2 = obj[subp].filter(function(r){ return !dead(r, t2); }); if (k2.length !== obj[subp].length){ obj[subp] = k2; ch = true; } }
+            });
+            if (ch) return JSON.stringify(obj);
+          }
+        }catch(e){}
+        return v;
+      }
+      var busy = false;
+      function refilterScope(prefix){
+        if (busy) return; busy = true;
+        try{
+          var m = trashMap(prefix + 'corbeille'); if (!m) return;
+          var names = Object.keys(m.flat).concat(Object.keys(m.reg));
+          names.forEach(function(n){
+            if (SKIP.test(n)) return; var k = prefix + n, raw = null; try{ raw = localStorage.getItem(k); }catch(e){}
+            if (!raw) return; var nv = guard(k, raw); if (nv !== raw) _set.call(localStorage, k, nv);
+          });
+        }catch(e){} finally { busy = false; }
+      }
+      var g = function(key, v){
+        var isLS = (this === window.localStorage), kk = String(key);
+        if (isLS && !busy) { try{ v = guard(kk, v); }catch(e){} }
+        var r = _set.call(this, key, v);
+        if (isLS && !busy && /^iepp_.*_corbeille$/.test(kk)) { try{ refilterScope(kk.slice(0, -'corbeille'.length)); }catch(e){} }
+        return r;
+      };
+      g.__trashGuard = true; Storage.prototype.setItem = g;
+    }catch(e){ console.warn('[stable-v1] anti-retour', e); }
+  })();
 })();
 </script>
 
