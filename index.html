@@ -1268,7 +1268,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#16a34a!import
     <button id="btn-se-connecter" class="btn btn-primary btn-block" onclick="doLogin()">Se connecter →</button>
 
     <div class="login-footer">
-      <strong id="login-version">Plateforme IEPP v1.2</strong><br>
+      <strong id="login-version">Plateforme IEPP v1.3</strong><br>
       <span id="login-ref">Référence : CDC-IEPP-2026-001</span><br>
       Ministère de l'Éducation Nationale, de l'Alphabétisation et de l'Enseignement Technique<br>
       <span class="text-xs">République de Côte d'Ivoire</span>
@@ -1628,7 +1628,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#16a34a!import
       <button class="icon-btn" onclick="logout()" title="Déconnexion">↩</button>
     </div>
     <div class="sb-footer" style="padding:12px 14px;margin-top:8px;border-top:1px solid var(--line);font-size:10px;line-height:1.55;color:#607089;text-align:center">
-      © EPLUS 2026 - Tous droits réservés &nbsp;|&nbsp; Dernière mise à jour le dimanche 25 octobre 2026 &nbsp;|&nbsp; Conception et design DIOM-2YA — contact : <a href="tel:+2250172710337" style="color:inherit;font-weight:600;text-decoration:underline">+225 01-72-710-337</a> / <a href="tel:+2250505154169" style="color:inherit;font-weight:600;text-decoration:underline">05-05-154-169</a>. Email: <a href="mailto:diomyaya28@yahoo.fr" style="color:inherit;font-weight:600;text-decoration:underline">diomyaya28@yahoo.fr</a> / <a href="mailto:eplus2026@gmail.com" style="color:inherit;font-weight:600;text-decoration:underline">eplus2026@gmail.com</a>
+      © EPLUS 2026 - Tous droits réservés &nbsp;|&nbsp; Dernière mise à jour le lundi 02 novembre 2026 &nbsp;|&nbsp; Conception et design DIOM-2YA — contact : <a href="tel:+2250172710337" style="color:inherit;font-weight:600;text-decoration:underline">+225 01-72-710-337</a> / <a href="tel:+2250505154169" style="color:inherit;font-weight:600;text-decoration:underline">05-05-154-169</a>. Email: <a href="mailto:diomyaya28@yahoo.fr" style="color:inherit;font-weight:600;text-decoration:underline">diomyaya28@yahoo.fr</a> / <a href="mailto:eplus2026@gmail.com" style="color:inherit;font-weight:600;text-decoration:underline">eplus2026@gmail.com</a>
     </div>
   </aside>
 
@@ -1661,7 +1661,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#16a34a!import
       <!-- Page content injected here -->
     </div>
     <footer id="app-footer" style="padding:14px 24px;margin-top:8px;border-top:1px solid var(--line);text-align:center;font-size:12px;color:#607089;line-height:1.6">
-      © EPLUS 2026 - Tous droits réservés &nbsp;|&nbsp; Dernière mise à jour le dimanche 25 octobre 2026 &nbsp;|&nbsp; Conception et design DIOM-2YA — contact : <a href="tel:+2250172710337" style="color:inherit;font-weight:600;text-decoration:underline">+225 01-72-710-337</a> / <a href="tel:+2250505154169" style="color:inherit;font-weight:600;text-decoration:underline">05-05-154-169</a>. Email: <a href="mailto:diomyaya28@yahoo.fr" style="color:inherit;font-weight:600;text-decoration:underline">diomyaya28@yahoo.fr</a> / <a href="mailto:eplus2026@gmail.com" style="color:inherit;font-weight:600;text-decoration:underline">eplus2026@gmail.com</a>
+      © EPLUS 2026 - Tous droits réservés &nbsp;|&nbsp; Dernière mise à jour le lundi 02 novembre 2026 &nbsp;|&nbsp; Conception et design DIOM-2YA — contact : <a href="tel:+2250172710337" style="color:inherit;font-weight:600;text-decoration:underline">+225 01-72-710-337</a> / <a href="tel:+2250505154169" style="color:inherit;font-weight:600;text-decoration:underline">05-05-154-169</a>. Email: <a href="mailto:diomyaya28@yahoo.fr" style="color:inherit;font-weight:600;text-decoration:underline">diomyaya28@yahoo.fr</a> / <a href="mailto:eplus2026@gmail.com" style="color:inherit;font-weight:600;text-decoration:underline">eplus2026@gmail.com</a>
     </footer>
   </main>
   <!-- Bouton flottant universel : Demande d'autorisation d'absence (tous les services) -->
@@ -2854,7 +2854,7 @@ function setActiveIepp(iepp) {
   state.activeIepp = iepp;
   activeScope = scopeSlug(iepp);
   reloadScopedState();
-  try { if (window.__cloudResyncScope) window.__cloudResyncScope(); } catch(e){}
+  try { if (window.__cloudResyncScope && !(state.user && state.user.role === 'superadmin')) window.__cloudResyncScope(); } catch(e){}   /* STABLE V1 : super administrateur = synchro manuelle */
 }
 function onScopeChange() {
   const sel = document.getElementById('scope-select');
@@ -3041,6 +3041,7 @@ window.IeppSyncCore = (function(){
     e.ver = (e.ver || 0) + 1; e.ts = nowMs(); e.kind = 'push'; e.recovered = false;
     if (retrying !== fullKey || !e.op) e.op = opId();     /* un réessai conserve son operation_id */
     e.state = 'pending'; delete e.err;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) e.offline = true; else delete e.offline;   /* STABLE V1 : sans Internet, l'enregistrement attend dans la file */
     schedulePersist(); notify();
     return e.op;
   }
@@ -3079,6 +3080,7 @@ window.IeppSyncCore = (function(){
   /* ---------- réessais automatiques (ouverture, retour réseau, minuterie) ---------- */
   function scheduleRetry(ms){
     if (retryTimer) return;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;   /* STABLE V1 : hors ligne, aucun réessai en boucle — reprise par l'événement « online » */
     retryTimer = setTimeout(function(){ retryTimer = null; retryAll(); }, ms || retryDelay);
     retryDelay = Math.min(retryDelay * 2, 300000);
   }
@@ -3098,7 +3100,7 @@ window.IeppSyncCore = (function(){
     if (typeof window.__cloudPush !== 'function' || !window.__iepCloudReady || !window.__iepCloudReady()) { scheduleRetry(15000); return; }
     var pullNeeded = false;
     Object.keys(Q).forEach(function(k){
-      var e = Q[k]; if (!e || (e.state === 'pending' && !e.recovered && !(e.tries > 0))) return;
+      var e = Q[k]; if (!e || (e.state === 'pending' && !e.recovered && !(e.tries > 0) && !e.offline)) return;
       if (e.kind === 'pull' && !(e.ver > 0)) pullNeeded = true; else retryKey(k);
     });
     if (pullNeeded && window.__cloudResyncScope) { try { window.__cloudResyncScope(); } catch(x){} }
@@ -3372,6 +3374,8 @@ window.IeppSyncCore = (function(){
      n'a pas changé depuis (PATCH ... updated_at=eq.<jeton>). Sinon : conflit détecté, rien n'est écrasé, la clé est
      relue, refusionnée et renvoyée. Plus jamais d'écriture « à l'aveugle » par-dessus un autre appareil. */
   var __tok = {};
+  /* STABLE V1 : dernière valeur connue de chaque ligne du cloud — évite de RÉÉCRIRE (E/S disque Supabase) une valeur identique */
+  var __lastCloud = {};
   function __ieppConflict(fullKey){ var e = new Error('Conflit de version : la donnée a été modifiée ailleurs (' + fullKey + ')'); e.code = 'IEPP_CONFLICT'; return e; }
   async function restSet(fullKey, jsonStr){
     var base = SUPABASE_URL + '/rest/v1/' + CLOUD_TABLE;
@@ -3410,8 +3414,11 @@ window.IeppSyncCore = (function(){
   var _keyIsJwt = /^eyJ/.test(SUPABASE_KEY);   /* true = ancienne clé JWT ; false = clé publiable sb_... */
   async function sbSet(fullKey, jsonStr){
     var v0 = IeppSyncCore.ver(fullKey);
+    var _lc = __lastCloud[fullKey];
+    if (_lc && _lc.j === jsonStr && Date.now() - _lc.t < 120000){ try { IeppSyncCore.okPush(fullKey, v0); } catch(_){} return; }   /* valeur identique à celle du cloud : aucune écriture */
     try {
       var p = sbSetRaw(fullKey, jsonStr); IeppSyncCore.track(p); await p;
+      __lastCloud[fullKey] = { j: jsonStr, t: Date.now() };
       IeppSyncCore.okPush(fullKey, v0);
     } catch(e){ IeppSyncCore.fail(fullKey, e, 'push'); throw e; }
   }
@@ -3429,6 +3436,11 @@ window.IeppSyncCore = (function(){
     await restSet(fullKey, jsonStr);
   }
   async function sbGet(fullKey){
+    var r = await sbGetRaw(fullKey);
+    if (typeof r === 'string') __lastCloud[fullKey] = { j: r, t: Date.now() }; else delete __lastCloud[fullKey];
+    return r;
+  }
+  async function sbGetRaw(fullKey){
     if (sb && _keyIsJwt) {
       try {
         const { data, error } = await sb.from(CLOUD_TABLE).select('json').eq('key', fullKey).maybeSingle();
@@ -3666,7 +3678,7 @@ window.IeppSyncCore = (function(){
             ok = true;
           }catch(e){
             console.warn('[Cloud] envoi fusionné reporté (réessai auto)', fullKey, e); try { IeppSyncCore.fail(fullKey, e, 'push'); } catch(_){}
-            setTimeout(function(){ try{ var raw=localStorage.getItem(fullKey); if(raw!=null) window.__cloudPush(fullKey, JSON.parse(raw)); }catch(_){} }, 20000);
+            setTimeout(function(){ try{ var raw=localStorage.getItem(fullKey); if(raw!=null && navigator.onLine!==false) window.__cloudPush(fullKey, JSON.parse(raw)); }catch(_){} }, 20000);
           }
           ws.forEach(function(r){ r(ok); });
         }
@@ -3679,6 +3691,10 @@ window.IeppSyncCore = (function(){
   window.__iepCloudReady = function(){ return cloudReady; };
   window.__cloudPush = function(fullKey, val){
     try { IeppSyncCore.touch(fullKey); } catch(_){}   /* opération datée + operation_id, persistée tant que le serveur n'a pas confirmé */
+    if (typeof navigator !== 'undefined' && navigator.onLine === false){
+      /* STABLE V1 : pas d'Internet → la donnée reste enregistrée sur l'appareil et dans la file d'attente ; envoi dès le retour d'Internet */
+      return Promise.resolve({queued:true, ok:false, offline:true});
+    }
     if (!cloudReady){
       pendingPushes.set(fullKey, val);
       return Promise.resolve({queued:true, ok:false});
@@ -4955,7 +4971,7 @@ async function doLogin() {
           window.__cloudFetchUsers(),
           (typeof window.__cloudFetchRegistry==='function' ? window.__cloudFetchRegistry() : Promise.resolve())
         ]),
-        new Promise(function(res){ setTimeout(res, 12000); })
+        new Promise(function(res){ setTimeout(res, 6000); })
       ]);
     } catch(e){}
     if (btn){ btn.disabled = false; btn.textContent = _prevTxt || 'Se connecter →'; }
@@ -5054,7 +5070,8 @@ async function doLogin() {
      (le compte Supabase est créé automatiquement au tout premier login). Le jeton
      obtenu protège ensuite la synchro. N'empêche JAMAIS la connexion locale :
      en cas d'échec (hors ligne, réglage manquant), on continue normalement. */
-  try { if (typeof window.__cloudAuthSignIn === 'function') { await window.__cloudAuthSignIn(found.username, p); } } catch(e){ console.warn('[Auth]', e); }
+  /* STABLE V1 : si Supabase répond lentement (budget E/S épuisé…), la connexion ne reste plus bloquée — on poursuit après 4 s, la session cloud s'ouvre en arrière-plan */
+  try { if (typeof window.__cloudAuthSignIn === 'function') { await Promise.race([ Promise.resolve(window.__cloudAuthSignIn(found.username, p)).catch(function(e){ console.warn('[Auth]', e); }), new Promise(function(res){ setTimeout(res, 4000); }) ]); } } catch(e){ console.warn('[Auth]', e); }
   /* « Se souvenir de moi » : mémorise UNIQUEMENT l'identifiant sur cet appareil.
      Aucun mot de passe n'est désormais stocké dans localStorage. */
   try {
@@ -5654,7 +5671,7 @@ function ieppActivImport(ev){
 }
 function ieppActivationPanelHtml(){
   if(!state.user || state.user.role!=='superadmin') return '';
-  dedupeIeppData();
+  /* STABLE V1 : fusion automatique des IEPP en double supprimée (dedupeIeppData() reste disponible à la demande) */
   var reg = ieppActivationList();
   if(!reg.length) return '';
   var _iepNbTot = (state.users||[]).filter(function(u){ var i=String((u.iepp)||'').trim().toUpperCase(); return u.role!=='superadmin' && i && i!=='TOUTES'; }).length;
@@ -30149,19 +30166,17 @@ window.syncNowTop = function(){
 };
 /* Synchro AUTOMATIQUE : au retour du réseau, et périodiquement — sans déranger une saisie en cours */
 function autoSyncTick(){
+  /* PLATEFORME STABLE V1 : plus aucune synchronisation périodique ni relecture générale.
+     Au retour d'Internet, on ENVOIE seulement les enregistrements restés en attente (file persistante). */
   try {
     if (!navigator.onLine) return;
-    if (!window.__cloudResyncScope) return;
     if (!state.user) return;                                          /* jamais sur l'écran de connexion */
-    var ae = document.activeElement;
-    if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return;   /* on ne coupe pas une saisie */
-    var mb = document.getElementById('modal-backdrop');
-    if (mb && mb.offsetParent !== null) return;                        /* pas pendant une fenêtre ouverte */
-    window.__autoSyncSilent = true;                                    /* fusion en fond, sans redessiner l'écran */
-    Promise.resolve(window.__cloudResyncScope()).finally(function(){ window.__autoSyncSilent = false; });
-  } catch(e){ window.__autoSyncSilent = false; }
+    if (state.user.role === 'superadmin') return;                     /* STABLE V1 : aucune synchro automatique chez le super administrateur (bouton manuel uniquement) */
+    if (window.IeppSyncCore && IeppSyncCore.retryAll) IeppSyncCore.retryAll();
+    if (window.IeppSync && IeppSync.flush) IeppSync.flush();
+  } catch(e){}
 }
-setInterval(autoSyncTick, 600000);                                      /* toutes les 10 minutes (diagnostic §8) + au retour réseau, à l'ouverture et à la déconnexion */
+/* (minuterie de 10 minutes supprimée — STABLE V1) */
 window.addEventListener('online',  function(){ if (window.updateSyncBadge) window.updateSyncBadge('Reconnexion…','#F4A261'); setTimeout(autoSyncTick, 1500); });
 window.addEventListener('offline', function(){ if (window.updateSyncBadge) window.updateSyncBadge('Hors ligne (local)','#E63946'); });
 
@@ -30431,7 +30446,7 @@ function vieResetAllData() {
     if(!card || document.getElementById('login-contact')) return;
     var c=document.createElement('div'); c.id='login-contact';
     c.style.cssText='margin-top:14px;padding-top:12px;border-top:1px solid #E5E7EB;text-align:center;font-size:11.5px;line-height:1.7;color:#6b7280';
-    c.innerHTML=(window.__linkifyContacts||function(x){return x;})('\u00A9 EPLUS 2026 - Tous droits r\u00e9serv\u00e9s | Derni\u00e8re mise \u00e0 jour le dimanche 25 octobre 2026 | Conception et design DIOM-2YA \u2014 contact : +225 01-72-710-337 / 05-05-154-169. Email: diomyaya28@yahoo.fr / eplus2026@gmail.com');
+    c.innerHTML=(window.__linkifyContacts||function(x){return x;})('\u00A9 EPLUS 2026 - Tous droits r\u00e9serv\u00e9s | Derni\u00e8re mise \u00e0 jour le lundi 02 novembre 2026 | Conception et design DIOM-2YA \u2014 contact : +225 01-72-710-337 / 05-05-154-169. Email: diomyaya28@yahoo.fr / eplus2026@gmail.com');
     card.appendChild(c);
   }
   function addLoginExtras(){ try{ addBtn(); }catch(e){} try{ addContact(); }catch(e){} }
@@ -32035,7 +32050,7 @@ window.caBackupImport = function(ev){
 };
 
 /* 9. PARAMÈTRES & MAINTENANCE */
-var CA_DEFAULT_FOOTER = '© EPLUS 2026 - Tous droits réservés  |  Dernière mise à jour le dimanche 25 octobre 2026  |  Conception et design DIOM-2YA — contact : +225 01-72-710-337 / 05-05-154-169. Email: diomyaya28@yahoo.fr / eplus2026@gmail.com';
+var CA_DEFAULT_FOOTER = '© EPLUS 2026 - Tous droits réservés  |  Dernière mise à jour le lundi 02 novembre 2026  |  Conception et design DIOM-2YA — contact : +225 01-72-710-337 / 05-05-154-169. Email: diomyaya28@yahoo.fr / eplus2026@gmail.com';
 function caMeta(){
   if(!state.platformMeta){
     var saved=null; try{ saved=load('platformMeta', null); }catch(e){}
@@ -32043,15 +32058,17 @@ function caMeta(){
   }
   var m = state.platformMeta;
   var _verMig = false;
-  if(!m.version)   m.version   = '1.2';
+  if(!m.version)   m.version   = '1.3';
   /* Montée de version 1.0 -> 1.1 appliquée une seule fois (n'écrase pas une version personnalisée) */
   if(!m._v11 && m.version === '1.0'){ m.version = '1.1'; m._v11 = 1; _verMig = true; }
   /* Montée de version 1.1 -> 1.2 appliquée une seule fois */
   if(!m._v12 && (m.version === '1.1' || m.version === '1.0')){ m.version = '1.2'; m._v12 = 1; _verMig = true; }
+  /* Montée de version 1.2 -> 1.3 (lundi 02 novembre 2026) appliquée une seule fois : une version personnalisée n'est pas écrasée, aucune donnée touchée */
+  if(!m._v13 && (m.version === '1.2' || m.version === '1.1' || m.version === '1.0')){ m.version = '1.3'; m._v13 = 1; _verMig = true; }
   if(!m.reference) m.reference = 'CDC-IEPP-2026-001';
   if(!m.footer)    m.footer    = CA_DEFAULT_FOOTER;
   if(/10 septembre 2026/.test(m.footer) && /DIOM-2YA/.test(m.footer)){ m.footer = CA_DEFAULT_FOOTER; _verMig = true; }
-  if(/DIOM-2YA/.test(m.footer) && /Dernière mise à jour le [^|]*?\d{4}/.test(m.footer) && m.footer.indexOf('dimanche 25 octobre 2026')<0){ m.footer = m.footer.replace(/Dernière mise à jour le [^|]*?\d{4}/, 'Dernière mise à jour le dimanche 25 octobre 2026'); _verMig = true; }
+  if(/DIOM-2YA/.test(m.footer) && /Dernière mise à jour le [^|]*?\d{4}/.test(m.footer) && m.footer.indexOf('lundi 02 novembre 2026')<0){ m.footer = m.footer.replace(/Dernière mise à jour le [^|]*?\d{4}/, 'Dernière mise à jour le lundi 02 novembre 2026'); _verMig = true; }
   if(_verMig){ try{ save('platformMeta', m); }catch(e){} }
   return m;
 }
@@ -33020,7 +33037,7 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
   var PREF='iepp_cps_autosync_mode';          /* 'auto' (défaut) | 'manuel' — propre au poste */
   var busy=false, lastOk=0;
 
-  function mode(){ try{ return localStorage.getItem(PREF)==='manuel' ? 'manuel' : 'auto'; }catch(e){ return 'auto'; } }
+  function mode(){ try{ if (window.state && state.user && state.user.role==='superadmin') return 'manuel'; return localStorage.getItem(PREF)==='auto' ? 'auto' : 'manuel'; }catch(e){ return 'manuel'; } }   /* STABLE V1 : manuel par défaut ; jamais automatique chez le super administrateur */
   window.cpsAutoSyncMode = mode;
   function hhmm(t){ try{ var d=new Date(t); return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }catch(e){ return ''; } }
 
@@ -33074,7 +33091,7 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
   try{ window.addEventListener('online', function(){ setTimeout(kick, 2500); }); }catch(e){}
   try{ window.addEventListener('offline', refreshInfo); }catch(e){}
   setTimeout(kick, 8000);
-  setInterval(kick, 60000);
+  /* (envoi périodique CPPP supprimé — STABLE V1 : envoi à l'enregistrement et au retour d'Internet) */
   /* Après chaque navigation vers l'espace CPPP / Secteurs, envoi rapide */
   try{
     var _nav=window.navigate;
@@ -33744,7 +33761,7 @@ function userRestoreFromTrash(trashId){
   var recBusy=false;
   window.ncRecSync = function(manual){
     try{
-      if(recBusy) return; if(!window.__cloudResyncScope || !navigator.onLine){ if(manual) toast('Synchronisation indisponible (hors ligne) — affichage des données de cet appareil.','error'); return; }
+      if(recBusy) return; if(!manual && window.state && state.user && state.user.role==='superadmin') return; if(!window.__cloudResyncScope || !navigator.onLine){ if(manual) toast('Synchronisation indisponible (hors ligne) — affichage des données de cet appareil.','error'); return; }
       recBusy=true; if(manual) toast('Réception des remontées en cours…','info');
       var prevSilent=window.__autoSyncSilent; window.__autoSyncSilent=true;
       Promise.resolve(window.__cloudResyncScope()).then(function(){
@@ -36923,15 +36940,15 @@ function userRestoreFromTrash(trashId){
   var COLLS={
     eleves:{ label:'Élèves', icon:'🎒', key:'elevesFichier',
       all:function(){ return state.elevesFichier||[]; },
-      fields:[['matricule','Matricule'],['nom','Nom'],['prenoms','Prénoms'],['sexe','Sexe'],['dateN','Date naiss.'],['pere','Père'],['mere','Mère'],['numExtrait','N° reg. extrait'],['tel','Téléphone'],['ecole','École'],['niveau','Classe']],
+      fields:[['matricule','Matricule'],['nom','Nom'],['prenoms','Prénoms'],['sexe','Sexe'],['dateN','Date naiss.'],['pere','Père'],['mere','Mère'],['numExtrait','N° reg. extrait'],['tel','Téléphone'],['ecole','École'],['niveau','Classe'],['_creePar','Saisi par']],
       fullname:function(r){ return (r.nom||'')+' '+(r.prenoms||''); }, scopeClass:true },
     enseignants:{ label:'Enseignants', icon:'👩‍🏫', key:'personnel',
       all:function(){ return (state.personnel||[]).filter(function(p){ try{ return statEstCraieEnMain(p); }catch(e){ return true; } }); },
-      fields:[['matricule','Matricule'],['nom','Nom et prénoms'],['sexe','Sexe'],['dateN','Date naiss.'],['mere','Mère'],['fonction','Fonction'],['grade','Grade'],['ecole','École'],['classe','Classe'],['tel','Téléphone']],
+      fields:[['matricule','Matricule'],['nom','Nom et prénoms'],['sexe','Sexe'],['dateN','Date naiss.'],['mere','Mère'],['fonction','Fonction'],['grade','Grade'],['ecole','École'],['classe','Classe'],['tel','Téléphone'],['_creePar','Saisi par']],
       fullname:function(r){ return (r.nom||'')+' '+(r.prenoms||''); } },
     admin:{ label:'Administratifs', icon:'🗂️', key:'personnel',
       all:function(){ return (state.personnel||[]).filter(function(p){ try{ return !statEstCraieEnMain(p); }catch(e){ return false; } }); },
-      fields:[['matricule','Matricule'],['nom','Nom et prénoms'],['sexe','Sexe'],['dateN','Date naiss.'],['mere','Mère'],['fonction','Fonction'],['grade','Grade'],['ecole','École / Service'],['tel','Téléphone']],
+      fields:[['matricule','Matricule'],['nom','Nom et prénoms'],['sexe','Sexe'],['dateN','Date naiss.'],['mere','Mère'],['fonction','Fonction'],['grade','Grade'],['ecole','École / Service'],['tel','Téléphone'],['_creePar','Saisi par']],
       fullname:function(r){ return (r.nom||'')+' '+(r.prenoms||''); } },
     conseillers:{ label:'Conseillers & encadrement', icon:'🎓', key:'personnel',
       help:'CPPP (conseillers pédagogiques du préscolaire et du primaire), CPI (conseiller principal d\'inspection), CPS (conseillers pédagogiques de secteur) et conseillers extrascolaires. Mêmes contrôles que le personnel : matricule, code IEPP, identité, grade, emploi, fonction, expérience et date de naissance. Un changement de fonction, de grade ou d\'affectation n\'écarte pas un doublon si l\'identité concorde.',
@@ -37012,7 +37029,7 @@ function userRestoreFromTrash(trashId){
     var del=canDelete();
     var head='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><strong>'+(g.strong?'🔴 Doublon certain':g.lvl===1?'🟠 Doublon probable':'🟡 Homonyme à vérifier')+' — groupe de '+g.recs.length+'</strong><span class="text-xs text-muted">'+esc(g.reasons.join(' · '))+(C.of==='nom'?'':(g.inter?' · entre écoles':' · même école'))+'</span><span style="flex:1"></span>'
       +(del&&!g.ign?'<button class="btn btn-ghost btn-sm" onclick="dupMerge(\''+jq(g.key)+'\')">🔀 Fusionner (garder le 1er, compléter, supprimer les autres)</button>':'')
-      +flagBtn(g)+(g.ign?'<button class="btn btn-ghost btn-sm" onclick="dupIgnore(\''+jq(g.key)+'\',0)">↩️ Remettre en doublon</button>':'<button class="btn btn-ghost btn-sm" title="Garder les deux fiches : personnes différentes ou homonymes" onclick="dupIgnore(\''+jq(g.key)+'\',1)">✔️ Conserver les deux (pas des doublons)</button>')+'</div>';
+      +flagBtn(g)+(!del?'':g.ign?'<button class="btn btn-ghost btn-sm" onclick="dupIgnore(\''+jq(g.key)+'\',0)">↩️ Remettre en doublon</button>':'<button class="btn btn-ghost btn-sm" title="Garder les deux fiches : personnes différentes ou homonymes" onclick="dupIgnore(\''+jq(g.key)+'\',1)">✔️ Conserver les deux (pas des doublons)</button>')+'</div>';
     var t='<div class="table-wrap" style="border:none"><table data-noenh="1"><thead><tr><th>Garder</th>'+C.fields.map(function(f){ return '<th>'+esc(f[1])+'</th>'; }).join('')+'<th></th></tr></thead><tbody>'
       +g.recs.map(function(r,i){
         var diff=C.fields.map(function(f){ var vals=g.recs.map(function(x){ return String(x[f[0]]==null?'':x[f[0]]); }); var d=vals.some(function(v){return v!==vals[0];}); return '<td'+(d?' style="background:#FEF3C7"':'')+'>'+esc(r[f[0]]==null?'':r[f[0]])+'</td>'; }).join('');
@@ -37083,15 +37100,18 @@ function userRestoreFromTrash(trashId){
   window.dupQ=function(v){ q=v; shown=pageSz; clearTimeout(window.__dupT); window.__dupT=setTimeout(function(){ render(); var i=document.querySelector('input[oninput^="dupQ"]'); if(i){ i.focus(); i.setSelectionRange(v.length,v.length); } },250); };
   window.dupMore=function(){ shown+=pageSz; render(); };
   window.dupRefresh=function(){ refresh(); toast('Analyse relancée','info'); };
-  window.dupIgnore=function(key,on){ var g=grp(key); if(!g) return; g.recs.forEach(function(r){ if(on) r._nodupGrp=key; else delete r._nodupGrp; r._upd=Date.now(); }); save(COLLS[cur].key,state[COLLS[cur].key]); refresh(); };
-  window.dupDel=function(id){ if(!canDelete()) return;
+  /* STABLE V1 : chacun n'agit que dans son espace et selon son pouvoir (instituteur : détecter / signaler ; directeur : son école ; inspecteur, correspondant fichier, super admin : leur périmètre) */
+  function dupMine(ids){ var u=U(); if(u.role!=='directeur'&&u.role!=='instituteur') return true; var ok={}; scoped(cur).forEach(function(r){ ok[r.id]=1; }); return ids.every(function(i){ return ok[i]; }); }
+  function dupRefuse(){ try{ toast('Action réservée au Directeur (son école), à l\'Inspecteur, au Correspondant fichier ou au Super administrateur, dans leur périmètre.','error'); }catch(e){} }
+  window.dupIgnore=function(key,on){ if(!canDelete()){ dupRefuse(); return; } var g=grp(key); if(!g) return; g.recs.forEach(function(r){ if(on) r._nodupGrp=key; else delete r._nodupGrp; r._upd=Date.now(); }); save(COLLS[cur].key,state[COLLS[cur].key]); refresh(); };
+  window.dupDel=function(id){ if(!canDelete()||!dupMine([id])){ dupRefuse(); return; }
     if(!confirm('Supprimer cet enregistrement ?\n\nIl sera envoyé à la Corbeille et ne reviendra plus (import, synchronisation, autre appareil), sauf si vous le restaurez depuis la Corbeille.')) return;
     var g=groupsNow().filter(function(x){ return x.recs.some(function(r){ return r.id===id; }); })[0];
     var rec=g?g.recs.filter(function(r){ return r.id===id; })[0]:COLLS[cur].all().filter(function(r){ return r.id===id; })[0];
     var keeper=g?(g.recs.filter(function(r){ return r.id!==id; })[0]||null):null;
     if(rec) trashBatch([{recs:[rec],keeper:keeper}]);
     removeIds([id]); toast('Enregistrement supprimé — envoyé à la Corbeille, il ne reviendra plus','success'); refresh(); };
-  window.dupKeep=function(key,id){ if(!canDelete()) return; var g=grp(key); if(!g) return; var keep=g.recs.filter(function(r){return r.id===id;})[0], others=g.recs.filter(function(r){return r.id!==id;});
+  window.dupKeep=function(key,id){ if(!canDelete()){ dupRefuse(); return; } var g=grp(key); if(!g) return; if(!dupMine(g.recs.map(function(r){return r.id;}))){ dupRefuse(); return; } var keep=g.recs.filter(function(r){return r.id===id;})[0], others=g.recs.filter(function(r){return r.id!==id;});
     var extra=(cur==='ecoles')?'\n\nLes élèves, enseignants et effectifs rattachés (par nom) aux écoles supprimées seront rattachés à l\'école conservée. Les comptes utilisateurs ne sont pas modifiés.':'';
     if(!confirm('Garder cet enregistrement et supprimer les '+others.length+' autre(s) ? (les champs vides seront complétés ; l\'historique de fusion est conservé ; envoyés à la Corbeille, ils ne reviendront plus sauf restauration depuis la Corbeille)'+extra)) return;
     var rp=(cur==='ecoles')?repointEcoles(keep,others):0;
@@ -38701,7 +38721,7 @@ function userRestoreFromTrash(trashId){
 
      { t:"22. Année scolaire, version et mise à jour", icon:"📅", html:'<ul><li>L\'<strong>année scolaire en cours est 2026-2027</strong> ; elle apparaît dans les entêtes de tous les documents.</li>'
        +'<li>Pour la modifier : sélecteur « Année scolaire » de l\'en-tête, ou menu Ressources humaines → Paramètres → <em>Mettre à jour</em> (format AAAA-AAAA).</li>'
-       +'<li>La <strong>version de la plateforme</strong> (v1.2) s\'affiche sur l\'écran de connexion ; le super administrateur peut la modifier dans les Paramètres système.</li>'
+       +'<li>La <strong>version de la plateforme</strong> (v1.3) s\'affiche sur l\'écran de connexion ; le super administrateur peut la modifier dans les Paramètres système.</li>'
        +'<li>Après chaque mise à jour du fichier, rechargez avec <strong>Ctrl+Maj+R</strong>.</li></ul>' }
     ];
     window.guideCourse=function(){
@@ -42596,7 +42616,7 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
       var done=false;
       function finish(){ if(done) return; done=true; window.__autoSyncSilent=false; loggingOut=false; try{ _lo.apply(self,args); }catch(e){ console.warn(e); } }
       Promise.race([
-        flushDirty().then(function(){ return window.__cloudResyncScope(); }),
+        flushDirty(),   /* STABLE V1 : on envoie seulement ce qui est en attente, sans relecture générale */
         new Promise(function(r){ setTimeout(r,10000); })
       ]).then(finish,finish);
     };
@@ -42604,7 +42624,7 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
   }
 
   /* 5) info-bulle du badge de synchro */
-  function badge(){ var b=document.getElementById('sync-badge'); if(b) b.title='Synchronisation automatique toutes les 30 min, à la déconnexion et à la fermeture — cliquez pour synchroniser maintenant'; }
+  function badge(){ var b=document.getElementById('sync-badge'); if(b) b.title='Envoi à chaque enregistrement lorsque Internet est disponible, sinon dès le retour d\'Internet — cliquez pour synchroniser maintenant'; }
   badge(); setInterval(badge,60000);
 })();
 </script>
@@ -45710,7 +45730,7 @@ try{
       b.textContent = '● Synchronisé'; b.style.color = '#2A9D8F'; b.style.background = '#DCFCE7';
     }
     b.title = n ? (n+' rubrique(s) enregistrée(s) sur cet appareil, pas encore confirmée(s) par la base centrale — cliquez pour voir le détail')
-                : 'Toutes les données sont synchronisées avec la base centrale. Synchronisation automatique toutes les 30 min, à la déconnexion et à la fermeture — cliquez pour synchroniser maintenant';
+                : 'Toutes les données sont synchronisées avec la base centrale. Envoi à chaque enregistrement lorsque Internet est disponible, sinon dès le retour d\'Internet — cliquez pour synchroniser maintenant';
   }
   function box(){
     var b = document.getElementById('iepp-notif');
@@ -45961,7 +45981,7 @@ try{
       setTimeout(function(){
         refresh();
         if (!online()) toast('Mode hors ligne : vos saisies restent enregistrées sur l\'appareil. Les données ajoutées sur vos autres appareils nécessitent une connexion Internet.','warn');
-        else { flushLedger(); checkVersion(); setTimeout(checkRemote, 15000); }
+        else { if (!(state.user && state.user.role === 'superadmin')) flushLedger(); checkVersion(); if (!(state.user && state.user.role === 'superadmin')) setTimeout(checkRemote, 15000); }
       }, 1500);
       return r;
     };
@@ -45984,12 +46004,11 @@ try{
 
   wrapPush(); installBadgeWrap(); wrapLogout(); wrapStartApp(); wrapSyncNowTop();
   setInterval(function(){ wrapPush(); refresh(); }, 3000);
-  setInterval(function(){ if (logged() && online() && pendingCount()) flushLedger(); }, 60000);
-  setInterval(function(){ if (logged()) checkRemote(); }, 300000);
+  /* STABLE V1 : plus de relance périodique du registre ni de sonde réseau toutes les 5 min (reprise au retour d'Internet, à l'ouverture et à l'enregistrement) */
   setInterval(checkVersion, 900000);
   window.addEventListener('online', function(){ refresh(); setTimeout(function(){ flushLedger(); checkRemote(); checkVersion(); }, 2000); });
   window.addEventListener('offline', function(){ refresh(); if (logged()) toast('Hors ligne : vos saisies restent enregistrées sur l\'appareil.','warn'); });
-  document.addEventListener('visibilitychange', function(){ if (!document.hidden && logged() && online()){ checkRemote(); } });
+  /* (sonde « nouvelles données » à chaque retour sur l'onglet supprimée — STABLE V1) */
   setTimeout(checkVersion, 8000);
 })();
 </script>
@@ -46348,7 +46367,8 @@ try{
   setInterval(function(){ try{ if (logged() && AR()) AR().purgeAll(); }catch(e){} }, 3000);
 
   /* 2) Nettoyage automatique (doublons certains, même école) */
-  function autoOn(){ return ls(AUTO_K) === '1'; }   /* DÉSACTIVÉ par défaut : aucune suppression sans action volontaire */
+  function autoOn(){ return false; }   /* STABLE V1 : plus aucune suppression automatique de doublons — traitement MANUEL uniquement */
+  try{ lsSet(AUTO_K, '0'); }catch(e){}   /* DÉSACTIVÉ par défaut : aucune suppression sans action volontaire */
   function busy(){
     var ae = document.activeElement; if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return true;
     var mb = document.getElementById('modal-backdrop'); return !!(mb && mb.offsetParent !== null);
@@ -46394,11 +46414,10 @@ try{
     try{
       if (!logged() || state.module !== 'doublons') { var o = document.getElementById('dup-auto-box'); if (o) o.remove(); return; }
       var c = document.getElementById('content'); if (!c) return;
-      var on = autoOn(), html = '<b>🤖 Nettoyage automatique des doublons certains :</b> <span style="color:' + (on ? '#15803D' : '#B91C1C') + ';font-weight:700">' + (on ? 'ACTIVÉ' : 'DÉSACTIVÉ') + '</span> '
-        + '<button class="btn btn-ghost btn-sm" onclick="DupV2.toggle()">' + (on ? 'Désactiver' : 'Activer') + '</button> '
+      var on = autoOn(), html = '<b>🖐️ Traitement des doublons :</b> <span style="color:#15803D;font-weight:700">MANUEL</span> (aucune suppression automatique) '
         + '<button class="btn btn-orange btn-sm" onclick="DupV2.now()">🧹 Nettoyer maintenant</button> '
         + '<button class="btn btn-ghost btn-sm" onclick="IeppSafety.restoreAutoDup()">↩ Remettre les fiches supprimées comme doublons</button>'
-        + '<div class="text-xs text-muted" style="margin-top:4px">Les doublons certains d\'une même école sont fusionnés (champs vides complétés), envoyés à la Corbeille et ne reviennent plus (synchronisation, import, autre appareil). Les cas « à vérifier » et les doublons entre écoles restent manuels.</div>';
+        + '<div class="text-xs text-muted" style="margin-top:4px">Rien n\'est supprimé sans votre action : vous choisissez vous-même, groupe par groupe, de garder, fusionner ou supprimer. « Nettoyer maintenant » ne s\'exécute que lorsque vous cliquez dessus ; les fiches supprimées vont à la Corbeille et ne reviennent plus (synchronisation, import, autre appareil).</div>';
       var b = document.getElementById('dup-auto-box');
       if (b && b.getAttribute('data-h') === html) return;
       if (!b){ b = document.createElement('div'); b.id = 'dup-auto-box'; b.className = 'card'; b.style.cssText = 'padding:10px 14px;margin:8px 0'; var hero = c.querySelector('.hero'); if (hero && hero.nextSibling) c.insertBefore(b, hero.nextSibling); else c.insertBefore(b, c.firstChild); }
@@ -46434,7 +46453,7 @@ try{
   }catch(e){}
 
   window.DupV2 = {
-    toggle: function(){ lsSet(AUTO_K, autoOn() ? '0' : '1'); try{ toast(autoOn() ? 'Nettoyage automatique activé' : 'Nettoyage automatique désactivé', 'success'); }catch(e){} panel(); },
+    toggle: function(){ try{ lsSet(AUTO_K, '0'); toast('Le traitement des doublons est manuel : aucune suppression automatique.', 'info'); }catch(e){} panel(); },
     now: function(){ var n = run(true); if (!n){ try{ toast('Aucun doublon certain dans la même école à nettoyer.', 'info'); }catch(e){} } },
     run: run, schedule: schedule, panel: panel
   };
@@ -46809,7 +46828,7 @@ try{
    ================================================================== */
 (function(){
   'use strict';
-  var BUILD_DATE_TXT = 'dimanche 25 octobre 2026';
+  var BUILD_DATE_TXT = 'lundi 02 novembre 2026';
   var ARMOIRIES = 'data:image/jpeg;base64,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';
   function pad(n){ return n<10?'0'+n:''+n; }
   function ok(img){ return img && img.complete && img.naturalWidth>0; }
@@ -46919,12 +46938,12 @@ try{
         }catch(e){}
         return _set.call(this,k,v);
       };
-      f.__foreign=true; Storage.prototype.setItem=f;
+      /* STABLE V1 : filtre d'écriture désactivé (il retirait silencieusement des lignes) */
+      /* f.__foreign=true; Storage.prototype.setItem=f; */
     }
   }catch(e){}
   /* 2) nettoyage automatique (sans risque : Corbeille) pour les profils de gestion */
-  function auto(){ try{ var st=S(); if(st&&st.user&&['superadmin','inspecteur','correspondant'].indexOf(st.user.role)>=0&&notTengrela()) window.ieppForeignClean(false); }catch(e){} }
-  setInterval(auto,6000); setTimeout(auto,2500);
+  /* STABLE V1 : nettoyage automatique SUPPRIMÉ — plus aucune ligne n'est retirée sans action volontaire (ieppForeignClean reste disponible à la demande) */
 })();
 </script>
 
@@ -47931,6 +47950,98 @@ try{
 
   /* ---------------- gardes anti-doublon à la création ---------------- */
   /* (l'import Excel des écoles et la création manuelle appellent ieppFindEcole — voir correctifs index) */
+})();
+</script>
+
+<script id="iepp-stable-v1">
+/* ============================================================================
+   PLATEFORME IEPP STABLE V1 (ajout — rien n'est remplacé)
+   1) Les pastilles « en attente d'envoi » et « Données à protéger » (barre du haut) ne
+      s'affichent que pour le Super administrateur ; elles sont retirées des espaces
+      Inspecteur et Correspondant fichier (la synchronisation continue de fonctionner).
+   2) Provenance : chaque NOUVELLE fiche (élèves, personnel, écoles, effectifs) garde
+      l'auteur de la saisie (_creePar, _creeRole, _creeLe) pour que les doublons restent
+      rattachés à l'espace de celui qui les a saisis.
+   ============================================================================ */
+(function(){
+  'use strict';
+  if (window.__ieppStableV1) return; window.__ieppStableV1 = true;
+  function U(){ try{ return (window.state && state.user) || {}; }catch(e){ return {}; } }
+
+  var css = document.createElement('style'); css.id = 'iepp-stable-v1-css';
+  css.textContent = 'body.iepp-hide-syncchips #sync-badge, body.iepp-hide-syncchips #shield-chip{display:none!important}';
+  document.head.appendChild(css);
+  var HIDE = { inspecteur:1, correspondant:1 };
+  function applyChips(){
+    try{
+      var h = !!HIDE[U().role], b = document.body;
+      if (b.classList.contains('iepp-hide-syncchips') !== h) b.classList.toggle('iepp-hide-syncchips', h);
+    }catch(e){}
+  }
+  applyChips(); setInterval(applyChips, 1000);
+
+  var STAMP = { elevesFichier:1, personnel:1, ecoles:1, effectifs:1 };
+  function stampNew(k, val){
+    try{
+      if (!STAMP[k] || !Array.isArray(val) || !window.state || !state.user) return;
+      var prev = {};
+      try{ var p = JSON.parse(localStorage.getItem(storeKey(k)) || '[]'); if (Array.isArray(p)) p.forEach(function(r){ if (r && r.id != null) prev[r.id] = 1; }); }catch(e){}
+      var u = state.user, who = u.username || u.name || '', now = new Date().toISOString();
+      val.forEach(function(r){
+        if (r && typeof r === 'object' && !Array.isArray(r) && !r._creePar && (r.id == null || !prev[r.id])){ r._creePar = who; r._creeRole = u.role || ''; r._creeLe = now; }
+      });
+    }catch(e){}
+  }
+  if (typeof window.save === 'function' && !window.save.__stableV1){
+    var _save = window.save;
+    var w = function(k, val){ stampNew(k, val); return _save.apply(this, arguments); };
+    w.__stableV1 = true; window.save = w;
+  }
+
+  /* 3) NOTIFICATIONS DE SYNCHRONISATION : supprimées pour tous les profils ;
+        le Super administrateur ne les voit qu'UNE FOIS au démarrage (10 s après la connexion)
+        et à la fermeture (déconnexion). */
+  var css2 = document.createElement('style'); css2.id = 'iepp-stable-v1-notif-css';
+  css2.textContent = 'body:not(.iepp-sync-show) #cloud-status, body:not(.iepp-sync-show) #iepp-notif{display:none!important}';
+  document.head.appendChild(css2);
+  var showUntil = 0, closing = false, lastUser = null;
+  function isSuper(){ return U().role === 'superadmin'; }
+  function showNow(){ return isSuper() && (closing || Date.now() < showUntil); }
+  function tickNotif(){
+    try{
+      var u = (window.state && state.user) ? (state.user.username || state.user.role || '1') : null;
+      if (u && u !== lastUser){ closing = false; if (isSuper()) showUntil = Date.now() + 10000; }
+      if (!u) closing = false;
+      lastUser = u;
+      var on = showNow(); if (document.body.classList.contains('iepp-sync-show') !== on) document.body.classList.toggle('iepp-sync-show', on);
+    }catch(e){}
+  }
+  tickNotif(); setInterval(tickNotif, 700);
+  var SYNCMSG = /hors ligne|non synchronis|en attente|reprise|avant déconnexion|connexion internet|pas de connexion|pas encore (envoy|synchron)|cet appareil/i;
+  if (typeof window.toast === 'function' && !window.toast.__stableV1){
+    var _toast = window.toast;
+    var wt = function(msg){ try{ if (SYNCMSG.test(String(msg)) && !showNow()) return; }catch(e){} return _toast.apply(this, arguments); };
+    wt.__stableV1 = true; window.toast = wt;
+  }
+  /* déconnexion : les autres profils ne voient plus la fenêtre « Données en attente » (l'envoi se fait en arrière-plan,
+     les données restent dans la file d'attente) ; le Super administrateur la voit à la fermeture. */
+  if (typeof window.logout === 'function' && !window.logout.__stableV1){
+    var _lo = window.logout;
+    var wl = function(){ if (isSuper()){ closing = true; tickNotif(); } return _lo.apply(this, arguments); };
+    wl.__stableV1 = true; window.logout = wl;
+  }
+  if (typeof window.openModal === 'function' && !window.openModal.__stableV1){
+    var _om = window.openModal;
+    var wm = function(title){
+      try{
+        if (!isSuper() && /^(Données en attente de synchronisation|Synchronisation incomplète)$/.test(String(title||''))){
+          var c = window.__ieppLogoutCtx; if (c && c.real){ c.real(c.self, c.args); return; }
+        }
+      }catch(e){}
+      return _om.apply(this, arguments);
+    };
+    wm.__stableV1 = true; window.openModal = wm;
+  }
 })();
 </script>
 
