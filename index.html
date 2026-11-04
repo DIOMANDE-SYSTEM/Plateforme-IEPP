@@ -2148,7 +2148,7 @@ function recordMergeTrack(k, val){
     if (!it || it.id==null) return;
     var before = prevById[it.id];
     var strip = function(o){ var c=Object.assign({},o); delete c._upd; delete c._sub; delete c._ft; return JSON.stringify(c); };
-    if (!before) { if(it._upd==null) it._upd = now; }            /* nouvel enregistrement */
+    if (!before) { it._upd = now; }            /* nouvel enregistrement (ex. import Excel) : toujours daté d'aujourd'hui, pour ne jamais être écarté par une ancienne suppression */
     else if (strip(before) !== strip(it)) { it._upd = now; try{ cpsTrackSub(before, it, now); }catch(e){} }      /* modifié → nouveau tampon */
     else if (it._upd==null) { it._upd = before._upd || now; }     /* inchangé → on garde le tampon */
   });
@@ -2525,7 +2525,8 @@ function objMerge(c, l, cMeta, lMeta){
         else if (x&&typeof x==='object'&&x.id!=null&&map[k]&&typeof map[k]==='object') map[k]=cpsDeepMerge(x, map[k]);
       }); });
       var sf=sub[p]||{};
-      out[p]=order.filter(function(k){ var st=sf[k]; return !(st && (st.d||0)>(st.a||0)); }).map(function(k){ return map[k]; });
+      var __ls={}; (Array.isArray(lv)?lv:[]).forEach(function(x){ __ls[cpsSubKey(x)]=x; });   /* STABLE V1 : suppression manuelle appliquée aux copies périmées seulement */
+      out[p]=order.filter(function(k){ var st=sf[k]; return !(st && (st.d||0)>(st.a||0)) || (__ls[k] && ((__ls[k]._upd||0) > (st.d||0))); }).map(function(k){ return map[k]; });
     } else if (isPlainObj(nv) && isPlainObj(ov)){
       var o={}; Object.keys(ov).forEach(function(x){ o[x]=ov[x]; }); Object.keys(nv).forEach(function(x){ o[x]=nv[x]; }); out[p]=o;
     } else out[p]=nv;
@@ -3634,8 +3635,11 @@ window.IeppSyncCore = (function(){
         try{ cG=(await sbGetJson(gk))||[]; }catch(e){}
         try{ lG=JSON.parse(localStorage.getItem(gk)||'[]')||[]; }catch(e){}
         var uG=mergeGenericTomb(cG, lG), set={};
-        uG.forEach(function(t){ if(t&&t.k!=null&&gtombActive(t)) set[t.k]=1; });
-        m = m.filter(function(r){ if(set[genericRecKey(r)]){ try{ window.__rescueLocal&&window.__rescueLocal(base,[r],val); }catch(e){} return false; } return true; });
+        uG.forEach(function(t){ if(t&&t.k!=null&&gtombActive(t)) set[t.k]=(t.at||1); });
+        var __lk={}; (Array.isArray(val)?val:[]).forEach(function(x){ __lk[genericRecKey(x)]=x; });
+        /* STABLE V1 : une suppression MANUELLE (faite par un utilisateur) s'applique aux copies périmées ; une fiche modifiée/recréée après, ou une donnée calculée (stats, services…), est conservée */
+        var __ex1=(AUTO_TRASH_EXCLUDE.indexOf(base)>=0);
+        m = m.filter(function(r){ var gk2=genericRecKey(r); if(!set[gk2]) return true; var li=__lk[gk2]; return !!li && (__ex1 || ((li._upd||0) > set[gk2])); });
       }
       return m;
     }
@@ -3797,8 +3801,10 @@ window.IeppSyncCore = (function(){
                 try { _lT = JSON.parse(localStorage.getItem(_tk)||'[]')||[]; } catch(e){}
                 var _uT = mergeGenericTomb(_cT, _lT);
                 if (_uT.length){
-                  var _tset={}; _uT.forEach(function(t){ if(t&&t.k!=null && gtombActive(t)) _tset[t.k]=1; });
-                  _m = _m.filter(function(r){ if(_tset[genericRecKey(r)]){ try{ window.__rescueLocal&&window.__rescueLocal(k,[r],_lA); }catch(e){} return false; } return true; });
+                  var _tset={}; _uT.forEach(function(t){ if(t&&t.k!=null && gtombActive(t)) _tset[t.k]=(t.at||1); });
+                  var __lk2={}; (Array.isArray(_lA)?_lA:[]).forEach(function(x){ __lk2[genericRecKey(x)]=x; });
+                  var __ex2=(AUTO_TRASH_EXCLUDE.indexOf(k)>=0);
+                  _m = _m.filter(function(r){ var g3=genericRecKey(r); if(!_tset[g3]) return true; var li=__lk2[g3]; return !!li && (__ex2 || ((li._upd||0) > _tset[g3])); });
                 }
                 localStorage.setItem(_tk, JSON.stringify(_uT));
                 try { await withTimeout(sbSet(_tk, JSON.stringify(_uT)), 15000, _tk); } catch(e){}
@@ -44614,13 +44620,13 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
     var _a=window.recordMergeArrays;
     if(typeof _a==='function') window.recordMergeArrays=function(listKey,cloudArr,localArr,cloudTomb,localTomb){
       var out=_a.apply(this,arguments);
-      try{ var o={}; out.forEach(function(it){ o[it&&it.id]=1; }); var dropped=(Array.isArray(localArr)?localArr:[]).filter(function(it){ return it&&it.id!=null&&!o[it.id]; }); if(dropped.length) window.__rescueLocal(listKey,dropped,localArr); }catch(e){}
+      try{ var o={}; out.forEach(function(it){ o[it&&it.id]=1; }); var dropped=(Array.isArray(localArr)?localArr:[]).filter(function(it){ return it&&it.id!=null&&!o[it.id]; }); if(dropped.length){ var lt={}; (Array.isArray(localTomb)?localTomb:[]).forEach(function(t){ if(t&&t.id!=null) lt[t.id]=1; }); if(typeof AUTO_TRASH_EXCLUDE!=='undefined' && AUTO_TRASH_EXCLUDE.indexOf(listKey)>=0) dropped.forEach(function(it){ out.push(it); }); } }catch(e){} /* STABLE V1 : plus aucune suppression venue d'ailleurs — l'élément local reste en place */
       return out;
     };
     var _o=window.recordMergeObjects;
     if(typeof _o==='function') window.recordMergeObjects=function(k,cloudObj,localObj,cloudTomb,localTomb){
       var out=_o.apply(this,arguments);
-      try{ Object.keys(localObj||{}).forEach(function(p){ if(!Array.isArray(localObj[p])) return; var o={}; ((out&&out[p])||[]).forEach(function(it){ o[it&&it.id]=1; }); var dropped=localObj[p].filter(function(it){ return it&&it.id!=null&&!o[it.id]; }); if(dropped.length) window.__rescueLocal(k,dropped,localObj[p],k,p); }); }catch(e){}
+      try{ Object.keys(localObj||{}).forEach(function(p){ if(!Array.isArray(localObj[p])) return; var o={}; ((out&&out[p])||[]).forEach(function(it){ o[it&&it.id]=1; }); var dropped=localObj[p].filter(function(it){ return it&&it.id!=null&&!o[it.id]; }); if(dropped.length){ var lt={}; (Array.isArray(localTomb)?localTomb:[]).forEach(function(t){ if(t&&t.id!=null) lt[t.id]=1; }); out=out||{}; out[p]=out[p]||[]; if(typeof AUTO_TRASH_EXCLUDE!=='undefined' && AUTO_TRASH_EXCLUDE.indexOf(k)>=0) dropped.forEach(function(it){ out[p].push(it); }); } }); }catch(e){}
       return out;
     };
     /* Bouton manuel : « Récupérer les données locales » (Corbeille) */
@@ -45197,6 +45203,7 @@ try{
 
   /* Écarte (en place) les fiches revenues. Retourne les fiches écartées. */
   function purge(key,arr){
+    if(window.__DUP_SIG_LOCK!==true) return [];   /* STABLE V1 : plus AUCUN retrait automatique de fiches — seules les suppressions manuelles s'appliquent */
     var fam=MANAGED[key]; if(!fam||!Array.isArray(arr)||!arr.length) return [];
     var B=blocks().filter(function(b){ return b&&b.col===fam&&!b.lifted; }); if(!B.length) return [];
     var byRid={}, bySig={}, ids={}, hasSig=false;
@@ -45207,7 +45214,7 @@ try{
       var r=arr[i]; if(!r||typeof r!=='object') continue;
       var rest=+r._rest||0, hit=false, L=(r.id!=null)?byRid[r.id]:null;
       if(L) L.forEach(function(b){ if(r.id!==b.kid && rest<=(b.at||0)) hit=true; });          /* même identifiant revenu (autre appareil / sauvegarde) */
-      if(!hit && hasSig && !r._nodupGrp){                                                         /* nouvel identifiant, même identité (import, annuaire, synchro) */
+      if(!hit && hasSig && !r._nodupGrp && window.__DUP_SIG_LOCK===true){ /* STABLE V1 : plus d'écartement automatique par ressemblance (import Excel) — les ressemblances se traitent à la main dans « Traitement des doublons » */                                                         /* nouvel identifiant, même identité (import, annuaire, synchro) */
         sigsOf(fam,r).forEach(function(sg){ (bySig[sg]||[]).forEach(function(b){
           if(hit||r.id===b.kid||b.kid==null||!ids[b.kid]||rest>(b.at||0)) return;
           if(b.sp && (function(x,y){ x=x.split('|'); y=y.split('|'); return x.some(function(v,i){ return v&&y[i]&&v!==y[i]; }); })(b.sp,spOf(fam,r))) return;                                                    /* un autre espace de saisie n'est jamais un doublon */
@@ -46416,7 +46423,8 @@ try{
       var c = document.getElementById('content'); if (!c) return;
       var on = autoOn(), html = '<b>🖐️ Traitement des doublons :</b> <span style="color:#15803D;font-weight:700">MANUEL</span> (aucune suppression automatique) '
         + '<button class="btn btn-orange btn-sm" onclick="DupV2.now()">🧹 Nettoyer maintenant</button> '
-        + '<button class="btn btn-ghost btn-sm" onclick="IeppSafety.restoreAutoDup()">↩ Remettre les fiches supprimées comme doublons</button>'
+        + '<button class="btn btn-ghost btn-sm" onclick="IeppSafety.restoreAutoDup()">↩ Remettre les fiches supprimées comme doublons</button> '
+        + '<button class="btn btn-orange btn-sm" onclick="IeppStable.recoverQuarantine()">↩ Réintégrer les fiches écartées à l\'import' + (window.IeppStable ? ' (' + window.IeppStable.quarantineCount() + ')' : '') + '</button>'
         + '<div class="text-xs text-muted" style="margin-top:4px">Rien n\'est supprimé sans votre action : vous choisissez vous-même, groupe par groupe, de garder, fusionner ou supprimer. « Nettoyer maintenant » ne s\'exécute que lorsque vous cliquez dessus ; les fiches supprimées vont à la Corbeille et ne reviennent plus (synchronisation, import, autre appareil).</div>';
       var b = document.getElementById('dup-auto-box');
       if (b && b.getAttribute('data-h') === html) return;
@@ -48043,6 +48051,28 @@ try{
     wm.__stableV1 = true; window.openModal = wm;
   }
 
+  /* 3 bis) Fiches importées puis écartées automatiquement par l'ancien verrou (quarantaine locale) : réintégration à la demande */
+  function qRead(){ try{ var q = JSON.parse(localStorage.getItem('iepp_quarantine') || '[]'); return Array.isArray(q) ? q : []; }catch(e){ return []; } }
+  window.IeppStable = {
+    quarantineCount: function(){ return qRead().length; },
+    recoverQuarantine: function(){
+      var q = qRead(), n = 0;
+      if (!q.length){ try{ toast('Aucune fiche écartée sur cet appareil. Si votre import a disparu, réimportez simplement le fichier Excel.', 'info'); }catch(e){} return 0; }
+      q.forEach(function(e){
+        try{
+          if (!e || !e.col || !e.rec || !Array.isArray(state[e.col])) return;
+          if (e.rec.id != null && state[e.col].some(function(x){ return x && x.id === e.rec.id; })) return;
+          e.rec._rest = Date.now(); e.rec._upd = Date.now(); state[e.col].push(e.rec); n++;
+        }catch(x){}
+      });
+      ['elevesFichier','personnel','cppp','ecoles','effectifs'].forEach(function(k){ try{ if (Array.isArray(state[k])) save(k, state[k]); }catch(e){} });
+      try{ localStorage.setItem('iepp_quarantine', '[]'); }catch(e){}
+      try{ toast(n + ' fiche(s) réintégrée(s).', 'success'); }catch(e){}
+      try{ if (state.module && typeof navigate === 'function') navigate(state.module); }catch(e){}
+      return n;
+    }
+  };
+
   /* 4) ANTI-RETOUR DES SUPPRESSIONS : une donnée envoyée à la Corbeille ne peut plus revenir (synchronisation, fusion,
         autre appareil, import) tant qu'elle est dans la Corbeille. Seule la RESTAURATION la ramène (elle porte une date
         de modification plus récente que la suppression). S'applique à toutes les listes et registres de la plateforme. */
@@ -48062,8 +48092,9 @@ try{
             if (!t || typeof t !== 'object') return;
             var at = Date.parse(t.deletedAt || '') || 0, id = (t.matchVal != null) ? t.matchVal : (t.data && t.data.id != null ? t.data.id : null);
             if (id == null) return;
+            if (t.type === 'auto') return;
             if (t.regKey){ var r = (m.reg[t.regKey] = m.reg[t.regKey] || {}); var sp = (r[t.subPath] = r[t.subPath] || {}); sp[id] = Math.max(sp[id] || 0, at); }
-            else if (t.parentKey && t.matchKey !== 'username'){ var f = (m.flat[t.parentKey] = m.flat[t.parentKey] || {}); f[id] = Math.max(f[id] || 0, at); }
+            else if (t.parentKey && t.matchKey !== 'username' && t.type !== 'auto'){ var f = (m.flat[t.parentKey] = m.flat[t.parentKey] || {}); f[id] = Math.max(f[id] || 0, at); }
           });
         }catch(e){ m = null; }
         cacheRaw[ck] = raw; cacheMap[ck] = m; return m;
@@ -48081,7 +48112,7 @@ try{
         var sp = splitKey(key); if (!sp || SKIP.test(sp[1])) return v;
         var m = trashMap(sp[0]); if (!m) return v;
         var name = sp[1];
-        function dead(r, tab){ var id = r && (r.id != null ? r.id : r._id); return id != null && tab[id] != null && (r._upd || 0) <= tab[id]; }
+        function dead(r, tab){ var id = r && (r.id != null ? r.id : r._id); return id != null && tab[id] != null && r._upd != null && r._upd <= tab[id]; }
         try{
           if (c0 === '[' && m.flat[name]){
             var arr = JSON.parse(v), tab = m.flat[name], keep = arr.filter(function(r){ return !dead(r, tab); });
@@ -48118,6 +48149,52 @@ try{
       g.__trashGuard = true; Storage.prototype.setItem = g;
     }catch(e){ console.warn('[stable-v1] anti-retour', e); }
   })();
+})();
+</script>
+
+<script id="iepp-fichiers-importes">
+/* « Mes fichiers importés » : chaque fichier Excel/CSV importé est conservé (copie d'origine, sans limite de taille de 1,8 Mo),
+   privé à l'utilisateur, téléchargeable à tout moment. Stockage IndexedDB local (n'occupe pas le quota des données). Suppression : manuelle uniquement. */
+(function(){
+  try{
+    var DB='iepp_fichiers_importes', ST='f', dbp=null;
+    function db(){ if(dbp) return dbp; dbp=new Promise(function(res,rej){ var r=indexedDB.open(DB,1); r.onupgradeneeded=function(){ r.result.createObjectStore(ST,{keyPath:'id'}); }; r.onsuccess=function(){ res(r.result); }; r.onerror=function(){ rej(r.error); }; }); return dbp; }
+    function tx(mode,fn){ return db().then(function(d){ return new Promise(function(res,rej){ var t=d.transaction(ST,mode), s=t.objectStore(ST), rq=fn(s); t.oncomplete=function(){ res(rq&&rq.result); }; t.onerror=function(){ rej(t.error); }; }); }); }
+    function me(){ try{ return (window.state&&state.user&&state.user.username)||''; }catch(e){ return ''; } }
+    function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+    function fmtSize(n){ return n>1048576 ? (n/1048576).toFixed(1)+' Mo' : Math.max(1,Math.round(n/1024))+' Ko'; }
+    var lastFile=null;
+    var _imp=window.importRowsFromFile;
+    if(typeof _imp==='function') window.importRowsFromFile=function(ev,onRows){ try{ lastFile=ev&&ev.target&&ev.target.files&&ev.target.files[0]||null; }catch(e){ lastFile=null; } return _imp.apply(this,arguments); };
+    var _go=window.__iepImportGo;
+    if(typeof _go==='function') window.__iepImportGo=function(){
+      var p=window.__iepImportPending, f=lastFile, n=p&&p.rows?p.rows.length:0;
+      var out=_go.apply(this,arguments);
+      try{ if(f&&me()){
+        var rec={id:'fi_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), nom:f.name, taille:f.size, lignes:n, date:Date.now(), user:me(), scope:(window.activeScope||''), module:(window.state&&state.module)||'', blob:f};
+        tx('readwrite',function(s){ return s.put(rec); }).then(function(){ try{ toast('Fichier « '+f.name+' » conservé dans « Mes fichiers importés ».','success'); }catch(e){} }).catch(function(){ try{ toast('Données importées. Le fichier original n\'a pas pu être conservé sur cet appareil.','warning'); }catch(e){} });
+      } }catch(e){}
+      return out;
+    };
+    function list(){ return tx('readonly',function(s){ return s.getAll(); }).then(function(a){ return (a||[]).filter(function(r){ return r.user===me(); }).sort(function(x,y){ return y.date-x.date; }); }); }
+    window.IeppFichiers={
+      open:function(){
+        list().then(function(a){
+          var rows=a.map(function(r){ return '<tr><td>'+esc(r.nom)+'</td><td>'+new Date(r.date).toLocaleString('fr-FR')+'</td><td>'+r.lignes+'</td><td>'+fmtSize(r.taille)+'</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="IeppFichiers.dl(\''+r.id+'\')">⬇ Télécharger</button> <button class="btn btn-ghost btn-sm" onclick="IeppFichiers.del(\''+r.id+'\')">🗑</button></td></tr>'; }).join('');
+          openModal('📁 Mes fichiers importés', a.length ? '<p style="font-size:12px;color:#555;margin:0 0 8px">Fichiers privés à votre compte, conservés sur cet appareil. Rien n\'est supprimé automatiquement.</p><div class="table-wrap" style="max-height:340px;overflow:auto"><table><thead><tr><th>Fichier</th><th>Importé le</th><th>Lignes</th><th>Taille</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>' : '<p>Aucun fichier importé conservé pour le moment. Les prochains imports Excel/CSV apparaîtront ici.</p>', '<button class="btn btn-primary" onclick="closeModal()">Fermer</button>');
+        });
+      },
+      dl:function(id){ tx('readonly',function(s){ return s.get(id); }).then(function(r){ if(!r||r.user!==me()) return; var u=URL.createObjectURL(r.blob), a=document.createElement('a'); a.href=u; a.download=r.nom; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(u); a.remove(); },500); }); },
+      del:function(id){ if(!confirm('Supprimer définitivement ce fichier conservé ? (Les données déjà importées ne sont pas touchées.)')) return; tx('readwrite',function(s){ return s.delete(id); }).then(function(){ IeppFichiers.open(); }); }
+    };
+    /* accès : petit bouton discret, visible une fois connecté */
+    var b=document.createElement('button'); b.id='iepp-fi-btn'; b.textContent='📁 Mes fichiers importés'; b.title='Retrouver et télécharger les fichiers Excel/CSV que vous avez importés';
+    b.style.cssText='display:none;position:fixed;left:12px;bottom:12px;z-index:850;border:none;border-radius:18px;padding:7px 12px;font-size:12px;background:rgba(30,58,138,.88);color:#fff;cursor:pointer;opacity:.8';
+    b.onclick=function(){ IeppFichiers.open(); };
+    /* bouton retiré à la demande de l'utilisateur : le menu « Mes fichiers importés » n'est plus affiché (IeppFichiers.open() reste disponible) */
+    if(false) document.body.appendChild(b);
+    if(false) setInterval(function(){ try{ b.style.display=(me()&&document.getElementById('login-screen')&&getComputedStyle(document.getElementById('login-screen')).display!=='none')?'none':(me()?'block':'none'); }catch(e){} },1500);
+  }catch(e){ console.warn('[fichiers-importes]',e); }
 })();
 </script>
 
