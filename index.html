@@ -1,6 +1,77 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script id="iepp-stockage-etendu">
+/* STOCKAGE ÉTENDU : le navigateur limite localStorage à ~5 Mo. Dès qu'une écriture dépasse cette limite, la donnée est automatiquement
+   enregistrée dans IndexedDB (capacité = plusieurs centaines de Mo ou plus) — l'application continue d'utiliser localStorage comme avant.
+   Aucune donnée existante n'est déplacée ni modifiée ; seules les écritures qui seraient refusées passent par ce relais. */
+(function(){
+  try{
+    if(!window.Storage||!window.indexedDB||Storage.prototype.__ovfShim) return;
+    var LS=window.localStorage, P=Storage.prototype;
+    var _get=P.getItem, _set=P.setItem, _rem=P.removeItem, _key=P.key, _clear=P.clear;
+    var LIST_K='iepp__ovf_keys', mem={}, list={}, ready=false, pend={}, timer=null, dbp=null;
+    try{ (JSON.parse(_get.call(LS,LIST_K)||'[]')||[]).forEach(function(k){ list[k]=1; }); }catch(e){}
+    function saveList(){ try{ _set.call(LS,LIST_K,JSON.stringify(Object.keys(list))); }catch(e){} }
+    function db(){ if(dbp) return dbp; dbp=new Promise(function(res,rej){ var r=indexedDB.open('iepp_ovf',1); r.onupgradeneeded=function(){ r.result.createObjectStore('kv'); }; r.onsuccess=function(){ res(r.result); }; r.onerror=function(){ rej(r.error); }; }); return dbp; }
+    function flush(){
+      timer=null; var batch=pend; pend={};
+      db().then(function(d){ var t=d.transaction('kv','readwrite'), s=t.objectStore('kv');
+        Object.keys(batch).forEach(function(k){ if(batch[k]===null) s.delete(k); else s.put(batch[k],k); });
+      }).catch(function(e){ console.warn('[stockage-étendu]',e); });
+    }
+    function persist(k,v){ pend[k]=v; if(!timer) timer=setTimeout(flush,250); }
+    window.addEventListener('pagehide',function(){ try{ flush(); }catch(e){} });
+    function isOvf(k){ return Object.prototype.hasOwnProperty.call(list,k); }
+    P.getItem=function(k){
+      if(this===LS){ k=String(k); if(isOvf(k)) return Object.prototype.hasOwnProperty.call(mem,k)?mem[k]:null; }
+      return _get.call(this,k);
+    };
+    P.setItem=function(k,v){
+      if(this!==LS) return _set.call(this,k,v);
+      k=String(k); v=String(v);
+      if(isOvf(k)){ mem[k]=v; persist(k,v); return; }
+      try{ return _set.call(this,k,v); }
+      catch(e){
+        var q=e&&(e.name==='QuotaExceededError'||e.code===22||e.code===1014||/quota/i.test(e.message||''));
+        if(!q||k===LIST_K) throw e;
+        mem[k]=v; list[k]=1; saveList(); persist(k,v);
+        try{ _rem.call(this,k); }catch(x){}
+        try{ console.info('[stockage-étendu] clé déplacée vers IndexedDB :',k,Math.round(v.length/1024)+' Ko'); }catch(x){}
+      }
+    };
+    P.removeItem=function(k){
+      if(this===LS){ k=String(k); if(isOvf(k)){ delete list[k]; delete mem[k]; saveList(); persist(k,null); } }
+      return _rem.call(this,k);
+    };
+    P.clear=function(){ if(this===LS){ Object.keys(list).forEach(function(k){ persist(k,null); }); list={}; mem={}; } return _clear.call(this); };
+    var lenD=Object.getOwnPropertyDescriptor(P,'length');
+    if(lenD&&lenD.get) Object.defineProperty(P,'length',{configurable:true,enumerable:lenD.enumerable,get:function(){ var n=lenD.get.call(this); if(this===LS){ n+=Object.keys(list).length; } return n; }});
+    P.key=function(i){
+      if(this===LS){ var real=lenD&&lenD.get?lenD.get.call(this):0; if(i>=real){ return Object.keys(list)[i-real]||null; } }
+      return _key.call(this,i);
+    };
+    P.__ovfShim=true;
+    /* chargement des données relayées (IndexedDB → mémoire) */
+    function done(){ ready=true; window.__IEPP_STORE_READY=true;
+      try{ var b=document.getElementById('btn-se-connecter'); if(b&&b.__ovfOff){ b.disabled=false; b.__ovfOff=false; } }catch(e){}
+      try{ if(window.state&&state.user&&typeof reloadScopedState==='function'&&Object.keys(list).length) reloadScopedState(); }catch(e){}
+      try{ window.dispatchEvent(new Event('iepp-store-ready')); }catch(e){}
+    }
+    if(!Object.keys(list).length){ done(); }
+    else{
+      document.addEventListener('DOMContentLoaded',function(){ if(!ready){ var b=document.getElementById('btn-se-connecter'); if(b){ b.disabled=true; b.__ovfOff=true; } } });
+      db().then(function(d){ return new Promise(function(res){ var t=d.transaction('kv','readonly'), s=t.objectStore('kv'), c=s.openCursor();
+        c.onsuccess=function(){ var cur=c.result; if(cur){ if(isOvf(cur.key)&&!Object.prototype.hasOwnProperty.call(mem,cur.key)) mem[cur.key]=cur.value; cur.continue(); } else res(); };
+        c.onerror=function(){ res(); }; }); }).then(done,done);
+    }
+    try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+    /* outils : état du stockage */
+    window.IeppStockage={ relayees:function(){ return Object.keys(list); }, estimer:function(){ return navigator.storage&&navigator.storage.estimate?navigator.storage.estimate():Promise.resolve(null); } };
+  }catch(e){ console.warn('[stockage-étendu]',e); }
+})();
+</script>
+
 <script id="iepp-boot-errors">(function(){ try{ window.__ieppBoot=[]; window.addEventListener('error',function(ev){ try{ if(window.__ieppBoot.length<8) window.__ieppBoot.push(String(ev.message||ev.error)+' @'+String(ev.filename||'').split('/').pop().slice(0,40)+':'+ev.lineno+':'+ev.colno); }catch(e){} }); }catch(e){} })();</script>
 
 <meta charset="UTF-8">
@@ -2526,7 +2597,7 @@ function objMerge(c, l, cMeta, lMeta){
       }); });
       var sf=sub[p]||{};
       var __ls={}; (Array.isArray(lv)?lv:[]).forEach(function(x){ __ls[cpsSubKey(x)]=x; });   /* STABLE V1 : suppression manuelle appliquée aux copies périmées seulement */
-      out[p]=order.filter(function(k){ var st=sf[k]; return !(st && (st.d||0)>(st.a||0)) || (__ls[k] && ((__ls[k]._upd||0) > (st.d||0))); }).map(function(k){ return map[k]; });
+      out[p]=order.filter(function(k){ var st=sf[k]; return !(st && (st.d||0)>(st.a||0)) || !!__ls[k]; }).map(function(k){ return map[k]; });
     } else if (isPlainObj(nv) && isPlainObj(ov)){
       var o={}; Object.keys(ov).forEach(function(x){ o[x]=ov[x]; }); Object.keys(nv).forEach(function(x){ o[x]=nv[x]; }); out[p]=o;
     } else out[p]=nv;
@@ -3081,6 +3152,7 @@ window.IeppSyncCore = (function(){
   /* ---------- réessais automatiques (ouverture, retour réseau, minuterie) ---------- */
   function scheduleRetry(ms){
     if (retryTimer) return;
+    if (!window.__IEPP_SYNC_ALLOWED) return;   /* STABLE V1 : plus de relance automatique */
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return;   /* STABLE V1 : hors ligne, aucun réessai en boucle — reprise par l'événement « online » */
     retryTimer = setTimeout(function(){ retryTimer = null; retryAll(); }, ms || retryDelay);
     retryDelay = Math.min(retryDelay * 2, 300000);
@@ -3097,6 +3169,7 @@ window.IeppSyncCore = (function(){
     } catch(x){ log('err', fullKey, 'réessai impossible : ' + x.message); return false; }
   }
   function retryAll(){
+    if (!window.__IEPP_SYNC_ALLOWED) return;   /* STABLE V1 : réessai uniquement sur demande */
     if (typeof navigator !== 'undefined' && navigator.onLine === false) { scheduleRetry(); return; }
     if (typeof window.__cloudPush !== 'function' || !window.__iepCloudReady || !window.__iepCloudReady()) { scheduleRetry(15000); return; }
     var pullNeeded = false;
@@ -3125,6 +3198,7 @@ window.IeppSyncCore = (function(){
   function beforeLogout(cb){
     var t0 = origNow(), done = false;
     function fin(){ if (done) return; done = true; try { cb(); } catch(e){} }
+    if (!window.__IEPP_SYNC_ALLOWED) return fin();   /* STABLE V1 : déconnexion immédiate, données conservées sur l'appareil */
     try { retryAll(); } catch(e){}
     (function wait(){
       var c = cnt();
@@ -3639,7 +3713,7 @@ window.IeppSyncCore = (function(){
         var __lk={}; (Array.isArray(val)?val:[]).forEach(function(x){ __lk[genericRecKey(x)]=x; });
         /* STABLE V1 : une suppression MANUELLE (faite par un utilisateur) s'applique aux copies périmées ; une fiche modifiée/recréée après, ou une donnée calculée (stats, services…), est conservée */
         var __ex1=(AUTO_TRASH_EXCLUDE.indexOf(base)>=0);
-        m = m.filter(function(r){ var gk2=genericRecKey(r); if(!set[gk2]) return true; var li=__lk[gk2]; return !!li && (__ex1 || ((li._upd||0) > set[gk2])); });
+        m = m.filter(function(r){ var gk2=genericRecKey(r); if(!set[gk2]) return true; var li=__lk[gk2]; return !!li; });
       }
       return m;
     }
@@ -3699,6 +3773,10 @@ window.IeppSyncCore = (function(){
       /* STABLE V1 : pas d'Internet → la donnée reste enregistrée sur l'appareil et dans la file d'attente ; envoi dès le retour d'Internet */
       return Promise.resolve({queued:true, ok:false, offline:true});
     }
+    /* STABLE V1 : AUCUN envoi automatique. La donnée reste enregistrée sur l'appareil (file d'attente) ; l'envoi se fait uniquement par le bouton « Synchroniser » (sauf comptes/registre, nécessaires à la connexion). */
+    if (!window.__IEPP_SYNC_ALLOWED && !isUsersKey(fullKey) && !isIeppRegKey(fullKey)){
+      return Promise.resolve({queued:true, ok:false, manual:true});
+    }
     if (!cloudReady){
       pendingPushes.set(fullKey, val);
       return Promise.resolve({queued:true, ok:false});
@@ -3736,6 +3814,7 @@ window.IeppSyncCore = (function(){
     localStorage.setItem(fullKey, value); return true;
   }
   async function pullAll(){
+    if (!window.__IEPP_SYNC_ALLOWED) return;   /* STABLE V1 : aucune relecture automatique du cloud */
     IeppSyncCore.busy(true);
     try { return await __pullAllCore(); } finally { IeppSyncCore.busy(false); }
   }
@@ -3804,7 +3883,7 @@ window.IeppSyncCore = (function(){
                   var _tset={}; _uT.forEach(function(t){ if(t&&t.k!=null && gtombActive(t)) _tset[t.k]=(t.at||1); });
                   var __lk2={}; (Array.isArray(_lA)?_lA:[]).forEach(function(x){ __lk2[genericRecKey(x)]=x; });
                   var __ex2=(AUTO_TRASH_EXCLUDE.indexOf(k)>=0);
-                  _m = _m.filter(function(r){ var g3=genericRecKey(r); if(!_tset[g3]) return true; var li=__lk2[g3]; return !!li && (__ex2 || ((li._upd||0) > _tset[g3])); });
+                  _m = _m.filter(function(r){ var g3=genericRecKey(r); if(!_tset[g3]) return true; var li=__lk2[g3]; return !!li; });
                 }
                 localStorage.setItem(_tk, JSON.stringify(_uT));
                 try { await withTimeout(sbSet(_tk, JSON.stringify(_uT)), 15000, _tk); } catch(e){}
@@ -6084,7 +6163,7 @@ function dashScopedData() {
 function renderDashboard() {
   const u = state.user;
   const d = dashScopedData();
-  let totalEleves = d.effectifs.reduce((a,b)=>a+(b.total||0), 0) || (d.ecoles||[]).reduce((a,b)=>a+(Number(b.effectif)||0),0) || d.eleves.length;
+  let totalEleves = d.effectifs.reduce((a,b)=>a+(b.total||0), 0) || (typeof window.ieppOfficialEcoles==='function'?window.ieppOfficialEcoles(d.ecoles||[]):(d.ecoles||[])).reduce((a,b)=>a+(Number(b.effectif)||0),0) || d.eleves.length;
   let garcons = d.effectifs.reduce((a,b)=>a+(b.garcons||0), 0) || d.eleves.filter(e=>e.sexe==='M').length;
   let filles  = d.effectifs.reduce((a,b)=>a+(b.filles ||0), 0) || d.eleves.filter(e=>e.sexe==='F').length;
   let totalEcoles = d.ecoles.length;
@@ -7514,7 +7593,7 @@ function renderStats() {
   if (typeof window.ieppStatNums === 'function') { try { const _n = window.ieppStatNums(); totalG = _n.g; totalF = _n.f; _statSrc = _n.source; _statNk = _n.nk||0; } catch(e){} }
   const total = totalG + totalF;
   /* Repli : si aucun effectif détaillé (École·Niveau·Garçons·Filles), on affiche la somme des effectifs saisis sur les fiches écoles */
-  const effEcoles = (state.ecoles||[]).reduce((a,b)=>a+(Number(b.effectif)||0),0);
+  const effEcoles = (typeof window.ieppOfficialEcoles==='function'?window.ieppOfficialEcoles(state.ecoles||[]):(state.ecoles||[])).reduce((a,b)=>a+(Number(b.effectif)||0),0);   /* même base que le tableau de bord : écoles officielles (sans doublons) */
   const effAffiche = (total + _statNk) || effEcoles;
   const effDepuisFiches = (total===0 && effEcoles>0);
   const _effNote = effDepuisFiches ? 'd\'après les fiches écoles' : (_statSrc==='eleves' ? 'd\'après le fichier des élèves' : '');
@@ -44620,13 +44699,13 @@ window.__asxApi={MODEL:MODEL,SPEC:SPEC,mkGetter:mkGetter,check:check,consolidate
     var _a=window.recordMergeArrays;
     if(typeof _a==='function') window.recordMergeArrays=function(listKey,cloudArr,localArr,cloudTomb,localTomb){
       var out=_a.apply(this,arguments);
-      try{ var o={}; out.forEach(function(it){ o[it&&it.id]=1; }); var dropped=(Array.isArray(localArr)?localArr:[]).filter(function(it){ return it&&it.id!=null&&!o[it.id]; }); if(dropped.length){ var lt={}; (Array.isArray(localTomb)?localTomb:[]).forEach(function(t){ if(t&&t.id!=null) lt[t.id]=1; }); if(typeof AUTO_TRASH_EXCLUDE!=='undefined' && AUTO_TRASH_EXCLUDE.indexOf(listKey)>=0) dropped.forEach(function(it){ out.push(it); }); } }catch(e){} /* STABLE V1 : plus aucune suppression venue d'ailleurs — l'élément local reste en place */
+      try{ var o={}; out.forEach(function(it){ o[it&&it.id]=1; }); var dropped=(Array.isArray(localArr)?localArr:[]).filter(function(it){ return it&&it.id!=null&&!o[it.id]; }); if(dropped.length){ var lt={}; (Array.isArray(localTomb)?localTomb:[]).forEach(function(t){ if(t&&t.id!=null) lt[t.id]=1; }); dropped.forEach(function(it){ out.push(it); }); } }catch(e){} /* STABLE V1 : plus aucune suppression venue d'ailleurs — l'élément local reste en place */
       return out;
     };
     var _o=window.recordMergeObjects;
     if(typeof _o==='function') window.recordMergeObjects=function(k,cloudObj,localObj,cloudTomb,localTomb){
       var out=_o.apply(this,arguments);
-      try{ Object.keys(localObj||{}).forEach(function(p){ if(!Array.isArray(localObj[p])) return; var o={}; ((out&&out[p])||[]).forEach(function(it){ o[it&&it.id]=1; }); var dropped=localObj[p].filter(function(it){ return it&&it.id!=null&&!o[it.id]; }); if(dropped.length){ var lt={}; (Array.isArray(localTomb)?localTomb:[]).forEach(function(t){ if(t&&t.id!=null) lt[t.id]=1; }); out=out||{}; out[p]=out[p]||[]; if(typeof AUTO_TRASH_EXCLUDE!=='undefined' && AUTO_TRASH_EXCLUDE.indexOf(k)>=0) dropped.forEach(function(it){ out[p].push(it); }); } }); }catch(e){}
+      try{ Object.keys(localObj||{}).forEach(function(p){ if(!Array.isArray(localObj[p])) return; var o={}; ((out&&out[p])||[]).forEach(function(it){ o[it&&it.id]=1; }); var dropped=localObj[p].filter(function(it){ return it&&it.id!=null&&!o[it.id]; }); if(dropped.length){ var lt={}; (Array.isArray(localTomb)?localTomb:[]).forEach(function(t){ if(t&&t.id!=null) lt[t.id]=1; }); out=out||{}; out[p]=out[p]||[]; dropped.forEach(function(it){ out[p].push(it); }); } }); }catch(e){}
       return out;
     };
     /* Bouton manuel : « Récupérer les données locales » (Corbeille) */
@@ -45998,7 +46077,6 @@ try{
     if (typeof window.syncNowTop !== 'function' || window.syncNowTop.__ieppSync) return;
     var _t = window.syncNowTop;
     var w = function(){
-      if (pendingCount() && (!online() || oldestAge() > 8000)){ details(); return; }
       if (pendingCount()){ flushLedger().then(function(){ refresh(); }); }
       return _t.apply(this, arguments);
     };
@@ -46612,7 +46690,7 @@ try{
     if(!(g+f)){
       var el=(eleves||[]); src='eleves'; g=0; f=0; var nk=0;
       el.forEach(function(e){ var x=sexeOf(e&&e.sexe); if(x==='M') g++; else if(x==='F') f++; else nk++; });
-      if(!(g+f)){ src='fiches'; t = t || (ecoles||[]).reduce(function(a,b){return a+num(b.effectif);},0); return { total:t, g:0, f:0, source:src }; }
+      if(!(g+f)){ src='fiches'; t = t || officialEcoles(ecoles||[]).reduce(function(a,b){return a+num(b.effectif);},0); return { total:t, g:0, f:0, source:src }; }
       return { total:g+f+nk, g:g, f:f, nk:nk, source:src };
     }
     return { total:g+f, g:g, f:f, source:src };
@@ -48010,11 +48088,11 @@ try{
         le Super administrateur ne les voit qu'UNE FOIS au démarrage (10 s après la connexion)
         et à la fermeture (déconnexion). */
   var css2 = document.createElement('style'); css2.id = 'iepp-stable-v1-notif-css';
-  css2.textContent = 'body:not(.iepp-sync-show) #cloud-status, body:not(.iepp-sync-show) #iepp-notif{display:none!important}';
+  css2.textContent = '#cloud-status, #iepp-notif{display:none!important}';
   document.head.appendChild(css2);
   var showUntil = 0, closing = false, lastUser = null;
   function isSuper(){ return U().role === 'superadmin'; }
-  function showNow(){ return isSuper() && (closing || Date.now() < showUntil); }
+  function showNow(){ return false; }   /* plus aucune annonce de synchronisation, même pour le super administrateur */
   function tickNotif(){
     try{
       var u = (window.state && state.user) ? (state.user.username || state.user.role || '1') : null;
@@ -48028,7 +48106,8 @@ try{
   var SYNCMSG = /hors ligne|non synchronis|en attente|reprise|avant déconnexion|connexion internet|pas de connexion|pas encore (envoy|synchron)|cet appareil/i;
   if (typeof window.toast === 'function' && !window.toast.__stableV1){
     var _toast = window.toast;
-    var wt = function(msg){ try{ if (SYNCMSG.test(String(msg)) && !showNow()) return; }catch(e){} return _toast.apply(this, arguments); };
+    var ALLOW = /permission|autorisation|absence|courrier|note de service|circulaire/i;
+    var wt = function(msg, type){ try{ var m = String(msg); if (type === 'error' || ALLOW.test(m) || (window.__IEPP_SYNC_ALLOWED && /synchronis/i.test(m))) return _toast.apply(this, arguments); return; }catch(e){} return _toast.apply(this, arguments); };
     wt.__stableV1 = true; window.toast = wt;
   }
   /* déconnexion : les autres profils ne voient plus la fenêtre « Données en attente » (l'envoi se fait en arrière-plan,
@@ -48198,5 +48277,122 @@ try{
 })();
 </script>
 
+<script id="iepp-aucune-suppression-auto">
+/* Barrière générale : une liste de données ne peut diminuer QUE si l'utilisateur vient d'agir (clic, touche, confirmation).
+   Toute réduction déclenchée par le système (synchronisation, nettoyage, fusion, reprise…) est annulée : les éléments retirés sont remis. */
+(function(){
+  try{
+    var last=Date.now();
+    ['pointerdown','mousedown','click','keydown','touchstart','change'].forEach(function(ev){ document.addEventListener(ev,function(){ last=Date.now(); },true); });
+    var _c=window.confirm; window.confirm=function(){ var r=_c.apply(this,arguments); last=Date.now(); return r; };
+    var SKIP=/^(corbeille|audit|notifications|current_user|active_iepp)$|(Deleted|__gtomb|__ometa|_corbeille)$/;
+    var lastWarn=0;
+    function kfn(r){ try{ return (typeof genericRecKey==='function')?genericRecKey(r):(r&&r.id); }catch(e){ return r&&r.id; } }
+    var _s=window.save;
+    if(typeof _s==='function' && !_s.__noAutoDel){
+      var w=function(k,val){
+        try{
+          if(Array.isArray(val) && !SKIP.test(String(k)) && (Date.now()-last)>6000 && typeof prevStored==='function'){
+            var prev=null; try{ prev=JSON.parse(prevStored(k)||'null'); }catch(e){ prev=null; }
+            if(Array.isArray(prev) && prev.length>val.length){
+              var now={}; val.forEach(function(it){ now[kfn(it)]=1; });
+              var back=prev.filter(function(it){ return !now[kfn(it)]; });
+              if(back.length){
+                val=val.concat(back);
+                try{ if(window.state && Array.isArray(window.state[k])) window.state[k]=val; }catch(e){}
+                if(Date.now()-lastWarn>60000){ lastWarn=Date.now(); try{ console.warn('[IEPP] suppression automatique bloquée sur',k,back.length); }catch(e){} }
+              }
+            }
+          }
+        }catch(e){}
+        return _s.call(this,k,val);
+      };
+      w.__noAutoDel=true; window.save=w;
+    }
+  }catch(e){ console.warn('[aucune-suppression-auto]',e); }
+})();
+</script>
+<script id="iepp-sync-manuelle">
+/* Synchronisation 100 % MANUELLE : autorisée uniquement pendant (et juste après) un clic sur « Synchroniser ». */
+(function(){
+  try{
+    var off=null;
+    function allow(fn){
+      return function(){
+        window.__IEPP_SYNC_ALLOWED=true; clearTimeout(off);
+        var r; try{ r=fn.apply(this,arguments); }catch(e){ off=setTimeout(function(){ window.__IEPP_SYNC_ALLOWED=false; },1000); throw e; }
+        var end=function(){ clearTimeout(off); off=setTimeout(function(){ window.__IEPP_SYNC_ALLOWED=false; },10000); };
+        Promise.resolve(r).then(end,end);
+        try{ if(window.IeppSyncCore && IeppSyncCore.retryAll) setTimeout(function(){ try{ IeppSyncCore.retryAll(); }catch(e){} },1500); }catch(e){}
+        return r;
+      };
+    }
+    ['syncNowTop','cloudSyncNow','ieppActivResync'].forEach(function(n){ if(typeof window[n]==='function' && !window[n].__man) { var w=allow(window[n]); w.__man=true; w.__ieppSync=true; window[n]=w; } });
+    if(window.IeppSyncPanel && typeof IeppSyncPanel.retryAll==='function'){ IeppSyncPanel.retryAll=allow(IeppSyncPanel.retryAll); }
+  }catch(e){ console.warn('[sync-manuelle]',e); }
+})();
+</script>
+<script id="iepp-chiffres-uniques">
+/* CHIFFRES UNIQUES : tableau de bord, Statistiques et Gestion des écoles lisent la MÊME règle
+   (écoles officielles = sans doublons ni fiches créées automatiquement ; effectifs = mêmes sources, même ordre de priorité). */
+(function(){
+  try{
+    function S(){ return window.state||{}; }
+    function esc(x){ return (typeof escapeHtml==='function')?escapeHtml(x):String(x==null?'':x); }
+    function fr(n){ try{ return (+n||0).toLocaleString('fr-FR'); }catch(e){ return String(n); } }
+    function compute(){
+      var st=S(), fiches=(st.ecoles||[]).filter(function(e){ return e&&e.nom; });
+      var off=(typeof window.ieppOfficialEcoles==='function')?window.ieppOfficialEcoles(fiches):fiches;
+      var offIds={}; off.forEach(function(e){ offIds[e.id]=1; });
+      var n=(typeof window.ieppStatNums==='function')?window.ieppStatNums():{total:0,g:0,f:0,nk:0,source:'?'};
+      var total=(n.total||((n.g||0)+(n.f||0)))||0;
+      return { fiches:fiches, officielles:off, offIds:offIds, ecoles:off.length, enTrop:fiches.length-off.length, eleves:total, g:n.g||0, f:n.f||0, source:n.source };
+    }
+    window.IeppChiffres={ compute:compute };
+    function banner(c){
+      var diff=c.enTrop>0;
+      return '<div id="iepp-chiffres-banner" class="card" style="margin:0 0 12px;padding:10px 14px;border-left:4px solid #1D4ED8;font-size:13px">'
+        +'<b>Chiffres officiels de la plateforme :</b> '+fr(c.ecoles)+' école(s) · '+fr(c.eleves)+' élève(s)'
+        +(c.g||c.f?' ('+fr(c.g)+' garçons · '+fr(c.f)+' filles)':'')
+        +' — <span style="color:#555">identiques au tableau de bord et aux statistiques.</span>'
+        +(diff?'<div style="margin-top:4px;color:#B45309">'+fr(c.fiches.length)+' fiches sont enregistrées dans cette liste : <b>'+fr(c.enTrop)+'</b> sont des doublons ou des fiches créées automatiquement (repérées « doublon / auto » ci-dessous). Elles ne sont jamais supprimées automatiquement : traitez-les à la main dans « Traitement des doublons ».</div>':'')
+        +'</div>';
+    }
+    function decorate(){
+      try{
+        var c=compute();
+        var pane=document.getElementById('ec-pane'); if(!pane) return;
+        if(typeof ecoleTab!=='undefined' && ecoleTab!=='liste') return;
+        var tab=document.querySelector('#content .tabs .tab .badge'); if(tab) tab.textContent=String(c.ecoles);
+        var old=document.getElementById('iepp-chiffres-banner'); if(old) old.remove();
+        pane.insertAdjacentHTML('afterbegin',banner(c));
+        document.querySelectorAll('#ec-body tr').forEach(function(tr){
+          var b=tr.querySelector('button[onclick^="ecoleView("]'); if(!b) return;
+          var m=/ecoleView\('([^']*)'\)/.exec(b.getAttribute('onclick')||''); if(!m) return;
+          var id=m[1], td=tr.children[1];
+          if(td && !c.offIds[id] && !td.querySelector('.iepp-trop')) td.insertAdjacentHTML('beforeend',' <span class="badge badge-orange iepp-trop" title="Doublon ou fiche créée automatiquement : non comptée dans les chiffres officiels">doublon / auto</span>');
+        });
+      }catch(e){ console.warn('[chiffres]',e); }
+    }
+    ['ecRenderPane','renderEcolesBody'].forEach(function(n){
+      var f=window[n]; if(typeof f!=='function'||f.__chif) return;
+      var w=function(){ var r=f.apply(this,arguments); try{ setTimeout(decorate,0); }catch(e){} return r; }; w.__chif=true; window[n]=w;
+    });
+    var eh=window.ecEffHtml;
+    if(typeof eh==='function' && !eh.__chif){
+      window.ecEffHtml=function(){
+        var h=eh.apply(this,arguments), c=compute();
+        var tiles='<div class="stat-grid"><div class="stat s-blue"><div class="stat-label">Écoles (officielles)</div><div class="stat-value">'+fr(c.ecoles)+'</div></div>'
+          +'<div class="stat s-blue"><div class="stat-label">Effectif total (plateforme)</div><div class="stat-value">'+fr(c.eleves)+'</div></div>'
+          +'<div class="stat"><div class="stat-label">Garçons</div><div class="stat-value">'+(c.g||c.f?fr(c.g):'—')+'</div></div>'
+          +'<div class="stat s-pink"><div class="stat-label">Filles</div><div class="stat-value">'+(c.g||c.f?fr(c.f):'—')+'</div></div></div>'
+          +'<div class="text-xs text-muted" style="margin:-4px 0 10px">Mêmes chiffres que le tableau de bord et les statistiques. Ci-dessous : le fichier nominatif des élèves (élèves saisis ou importés un par un).</div>';
+        return tiles+h.replace('Élèves au fichier','Élèves au fichier nominatif');
+      };
+      window.ecEffHtml.__chif=true;
+    }
+  }catch(e){ console.warn('[chiffres-uniques]',e); }
+})();
+</script>
 </body>
 </html>
